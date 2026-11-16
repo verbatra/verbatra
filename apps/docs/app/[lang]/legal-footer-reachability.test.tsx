@@ -86,6 +86,9 @@ const IMPRINT_LABEL: Record<Locale, string> = {
   de: "Impressum",
   es: "Aviso legal (Impressum)",
   fr: "Mentions légales (Impressum)",
+  "zh-CN": "法律声明（Impressum）",
+  "pt-BR": "Aviso legal (Impressum)",
+  ja: "運営者情報（Impressum）",
 };
 
 async function renderLayout(layout: Layout, locale: Locale): Promise<Document> {
@@ -137,6 +140,9 @@ describe("the compact legal footer", () => {
         "/de/docs/providers",
         "/es/docs/providers",
         "/fr/docs/providers",
+        "/zh-CN/docs/providers",
+        "/pt-BR/docs/providers",
+        "/ja/docs/providers",
       ]);
     },
   );

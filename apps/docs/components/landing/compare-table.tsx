@@ -13,6 +13,8 @@ import {
   compareSourceHref,
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
+import { isSpaceless, lastWordStart, SPACELESS_SCRIPT } from "@/lib/word-count";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
 
@@ -26,8 +28,14 @@ function toolDetail(t: CompareTranslator, tool: CompareTool): string | null {
   return null;
 }
 
-function Detail({ text }: { text: string | null }): ReactNode {
-  return text === null ? null : <small className="vk-compare-detail">{text}</small>;
+export function criterionLabel(label: string, locale: Locale): ReactNode {
+  return isSpaceless(locale) ? breakBetweenWords(label) : label;
+}
+
+function Detail({ text, locale }: { text: string | null; locale: Locale }): ReactNode {
+  return text === null ? null : (
+    <small className="vk-compare-detail">{criterionLabel(text, locale)}</small>
+  );
 }
 
 function PairDetail({ text }: { text: string | null }): ReactNode {
@@ -122,17 +130,44 @@ function Unit({ children }: { children: ReactNode }): ReactNode {
 }
 
 const TAIL_SEGMENT = /[^\s\-/]*$/;
+const OPENING_PUNCTUATION = /[\p{Ps}\p{Pi}]$/u;
+
+const PREVIOUS_CHUNK = /\S+\s*$/;
+
+function isLoneSpacedCharacter(text: string, start: number): boolean {
+  const tail = text.slice(start);
+  return [...tail].length === 1 && SPACELESS_SCRIPT.test(tail) && /\s$/.test(text.slice(0, start));
+}
+
+const MAX_PREVIOUS_CHUNK = 6;
+
+function previousChunkStart(text: string, start: number): number {
+  const previous = text.slice(0, start).search(PREVIOUS_CHUNK);
+  return previous === -1 || [...text.slice(previous, start).trimEnd()].length > MAX_PREVIOUS_CHUNK
+    ? start
+    : previous;
+}
+
+function tailCut(text: string, locale: string): number {
+  const cut = text.search(TAIL_SEGMENT);
+  if (!isSpaceless(locale)) return cut;
+  let start = Math.max(cut, lastWordStart(text, locale));
+  while (start > cut && OPENING_PUNCTUATION.test(text.slice(0, start))) start -= 1;
+  return isLoneSpacedCharacter(text, start) ? previousChunkStart(text, start) : start;
+}
 
 function WordWithMark({
   word,
   mark,
   arrow,
+  locale,
 }: {
   word: string;
   mark: ReactNode;
   arrow: ReactNode;
+  locale: string;
 }): ReactNode {
-  const cut = word.search(TAIL_SEGMENT);
+  const cut = tailCut(word, locale);
   const head = word.slice(0, cut);
   const tail = word.slice(cut);
   if (mark === null)
@@ -169,19 +204,42 @@ function WordWithMark({
   );
 }
 
-function NoteWithArrow({ note, arrow }: { note: string; arrow: ReactNode }): ReactNode {
-  const cut = note.search(TAIL_SEGMENT);
+export function arrowCut(note: string, locale = "en"): number {
+  const cut = tailCut(note, locale);
+  const closing = note.lastIndexOf("`") + 1;
+  const tailOpensCode = (note.slice(cut).match(/`/g)?.length ?? 0) % 2 === 1;
+  return tailOpensCode && closing > cut && closing < note.length ? closing : cut;
+}
+
+const WORD_JOINER = "\u2060";
+
+export function NoteWithArrow({
+  note,
+  arrow,
+  locale,
+}: {
+  note: string;
+  arrow: ReactNode;
+  locale: string;
+}): ReactNode {
+  const cut = arrowCut(note, locale);
   const tail = note.slice(cut);
   if ((tail.match(/`/g)?.length ?? 0) % 2 === 1)
     return (
       <>
         {withInlineCode(note)}
-        <Unit>{arrow}</Unit>
+        <Unit>
+          {isSpaceless(locale) ? WORD_JOINER : null}
+          {arrow}
+        </Unit>
       </>
     );
+  const spaceless = isSpaceless(locale);
+  const head = withInlineCode(note.slice(0, cut));
   return (
     <>
-      {withInlineCode(note.slice(0, cut))}
+      {spaceless ? breakBetweenWords(head) : head}
+      {spaceless && cut > 0 ? <wbr /> : null}
       <Unit>
         {withInlineCode(tail)}
         {arrow}
@@ -202,7 +260,7 @@ export function CompareCellBody({
   locale: Locale;
 }): ReactNode {
   const view = compareCellView(t, row, tool);
-  const [first, ...more] = sourceLinks({
+  const arrows = sourceLinks({
     view,
     tool,
     criterion: t(`rows.${row}.label`),
@@ -217,17 +275,21 @@ export function CompareCellBody({
       data-verdict-mark={view.kind === "verdict" ? view.mark : undefined}
     >
       <span className="vk-compare-word" data-word="">
-        <WordWithMark word={view.word} mark={mark} arrow={view.note === null ? first : null} />
+        <WordWithMark
+          word={view.word}
+          mark={mark}
+          arrow={view.note === null ? arrows : null}
+          locale={locale}
+        />
       </span>
       {view.note === null ? null : (
         <>
           {" "}
           <span className="vk-compare-note" data-note="">
-            <NoteWithArrow note={view.note} arrow={first} />
+            <NoteWithArrow note={view.note} arrow={arrows} locale={locale} />
           </span>
         </>
       )}
-      {more}
     </span>
   );
 }
@@ -247,7 +309,7 @@ export function CompareMatrix({
       <thead>
         <tr>
           <th scope="col" className="vk-compare-head vk-compare-criterion">
-            {t("columns.criterion")}
+            {criterionLabel(t("columns.criterion"), locale)}
           </th>
           {COMPARE_TOOLS.map((tool) => (
             <th
@@ -257,7 +319,7 @@ export function CompareMatrix({
               className={cn("vk-compare-head", tool === "verbatra" && "vk-compare-self")}
             >
               {toolName(t, tool)}
-              <Detail text={toolDetail(t, tool)} />
+              <Detail text={toolDetail(t, tool)} locale={locale} />
             </th>
           ))}
         </tr>
@@ -266,8 +328,8 @@ export function CompareMatrix({
         {COMPARE_ROWS.map((row) => (
           <tr key={row} data-row={row}>
             <th scope="row" className="vk-compare-criterion">
-              {t(`rows.${row}.label`)}
-              <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+              {criterionLabel(t(`rows.${row}.label`), locale)}
+              <Detail text={row === "formats" ? t("rows.formats.detail") : null} locale={locale} />
             </th>
             {COMPARE_TOOLS.map((tool) => (
               <td
@@ -305,8 +367,11 @@ export function ComparePairs({ t, locale }: { t: CompareTranslator; locale: Loca
             {COMPARE_ROWS.map((row) => (
               <div key={row} className="vk-compare-pair-row" data-row={row}>
                 <dt>
-                  {t(`rows.${row}.label`)}
-                  <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+                  {criterionLabel(t(`rows.${row}.label`), locale)}
+                  <Detail
+                    text={row === "formats" ? t("rows.formats.detail") : null}
+                    locale={locale}
+                  />
                 </dt>
                 {(["verbatra", tool] as const).map((side) => (
                   <dd

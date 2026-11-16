@@ -69,6 +69,8 @@ Eine XLIFF-Datei wird in der Version gelesen, die sie angibt, und eine einzelne 
 
 Eine leere `Translation`-Zelle lässt eine Locale nie scheitern: Die Zeile wird übersprungen, ihre Lock-Baseline bleibt erhalten, und der Key wird als `unfilled` gemeldet, solange er noch eine Übersetzung braucht. Der Import einer Übergabe, die noch niemand ausgefüllt hat, gelingt also und listet jeden ausstehenden Key.
 
+Eine ausgefüllte Zeile, deren Quelltext sich seit dem Export geändert hat, wird zurückgehalten: Ihr Key steht ohne Grund unter `integrity-withheld`, die Locale ist unvollständig, und der Key wird erneut exportiert.
+
 Eine einzelne unlesbare Zeile wird als fehlerhafte Zeile gemeldet, und der Rest der Locale wird trotzdem importiert. Eine Übergabe, die zu groß ist oder sich gar nicht parsen lässt (etwa kein lesbarer xlsx-Container), ist ein `SOURCE_INVALID`-Fehler des gesamten Laufs, dessen Meldung sagt, was nicht stimmte.
 
 In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht, unberührt und wird als unverändert gemeldet, nicht als übersetzt, sobald sie das Integritäts-Gate passiert <AvailableFrom version="0.13.0" />. Siehe [Manuelle Übersetzung](/de/docs/manual-translation#was-der-import-akzeptiert).
@@ -77,7 +79,7 @@ In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem 
 
 <AvailableFrom version="0.12.0" />
 
-`import` zeigt eine Zeile, während es die Datei liest und anwendet. Nach einem sauberen Import schlägt es `verbatra check` vor, nach `--dry-run` denselben Import ohne das Flag. Scheitert eine Locale oder bleibt sie partiell, schlägt es denselben Import vor, sobald du die abgelehnten Zeilen korrigiert hast, oder, wenn eine Locale mit einem Fehler scheiterte, der einen nächsten Schritt hat, genau diesen Schritt:
+`import` zeigt eine Zeile, während es die Datei liest und anwendet. Nach einem sauberen Import schlägt es `verbatra check` vor, nach `--dry-run` denselben Import ohne das Flag. Scheitert eine Locale oder bleibt sie unvollständig, schlägt es denselben Import vor, sobald du die abgelehnten Zeilen korrigiert hast, oder, wenn eine Locale mit einem Fehler scheiterte, der einen nächsten Schritt hat, genau diesen Schritt:
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)
@@ -108,7 +110,7 @@ Der Vertrag entspricht [`verbatra translate`](/de/docs/cli/translate), eine manu
 
 ## Siehe auch
 
-- [Menschliche Übersetzung](/de/docs/manual-translation) behandelt den vollständigen Roundtrip aus Export, Ausfüllen und Import und was eine Übersetzerin bearbeiten darf.
+- [Manuelle Übersetzung](/de/docs/manual-translation) behandelt den vollständigen Roundtrip aus Export, Ausfüllen und Import und was eine Übersetzerin bearbeiten darf.
 - [Übersetzungssicherheit](/de/docs/translation-safety) erklärt die Prüfungen, die einen Wert zurückhalten können.
 - [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency) behandelt den XLIFF-Roundtrip durch ein CAT-Tool.
 - [`verbatra export`](/de/docs/cli/export) erzeugt die Übergabe, die dieser Befehl liest.

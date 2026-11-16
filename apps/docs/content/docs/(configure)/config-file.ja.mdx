@@ -1,0 +1,368 @@
+---
+title: 設定ファイル
+seoTitle: "verbatra の設定ファイル：全設定キーの解説"
+description: すべての設定キーの型、デフォルト、追加されたバージョンに加え、ファイルの置き場所と、不正な設定がどう失敗するかを説明します。
+type: reference
+---
+verbatra は、シークレットを含まない 1 つの設定オブジェクトを読み込み、処理の前に検証します。API キーは設定から読み込まれることがないため（[API キーは環境変数から読み込む](/ja/docs/providers#api-キーは環境変数から読み込む)）、設定ファイルは安全にコミットできます。
+
+## 最小構成の設定
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  // Locales and files: required
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: {
+    // {locale} is the only token
+    pattern: "locales/{locale}.json",
+  },
+
+  // Provider: required; the API key comes from the environment, never from here
+  provider: {
+    id: "gemini",
+    options: {
+      // example model id; use your provider's current one
+      model: "gemini-2.5-flash",
+      maxOutputTokens: 4096,
+    },
+  },
+
+  // Optional groups, each off or at its default until you add it:
+  // tone: "informal",
+  // glossary: "glossary.json",
+  // network: { policy: "local-only" },
+  // sensitiveData: { mode: "warn" },
+  // maxTokens: 200000,
+  // budgetBehavior: "stop",
+});
+```
+
+各項目の説明は、[ロケールとファイル](#ロケールとファイル)、[provider](#provider)、[glossary](#glossary)、[network](#network)、[機密情報ガード](/ja/docs/data-handling#機密情報ガード)、[maxTokens と budgetBehavior](#maxtokens-と-budgetbehavior)、[rates](#rates)、[extract](#extract) を参照してください。
+
+`defineConfig` は引数に型を付けるだけです。`options.model` はプロバイダーのモデル ID に補完されますが、実行時には空でない文字列ならどれでも受け付けられます。
+
+## すべての設定キー
+
+不明なキーは、`$schema` と、`maxLength`、`rates.table`、`localeMap`、インラインの `glossary` のようにキー名を自分で付けるマップを除き、どの階層でも拒否されます。そのため、API キーを設定に置くことはできません。
+
+| 設定キー | 型 | デフォルト | 追加バージョン | 説明 |
+| --- | --- | --- | --- | --- |
+| `$schema` | 文字列 | なし | 0.9.0 | エディターに JSON Schema を指定するキー（[エディターでの検証](#エディターでの検証)を参照）で、実行時には無視される |
+| `sourceLocale` | ロケールコード | 必須 | 0.1.0 | ソース文字列を書いているロケール |
+| `targetLocales` | ロケールコードの配列 | 必須 | 0.1.0 | 1 つ以上。`sourceLocale` は含められず、大文字と小文字を無視して同じになる 2 つも含められない |
+| `format` | フォーマット ID | 必須 | 0.1.0 | ロケールファイルの[フォーマット](/ja/docs/formats)、または外部のアダプター用の `custom:` ID（[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)を参照） |
+| `files.pattern` | 文字列 | 必須 | 0.1.0 | 各ロケールファイルへのパス。`{locale}` プレースホルダーを含める |
+| `files.localeStyle` | `"literal"`、`"posix"`、`"android"` | `"literal"` | 0.7.0 | パスの中で `{locale}` をどう表記するか |
+| `provider.id` | プロバイダー ID | 必須 | 0.1.0 | 翻訳プロバイダー。機械翻訳を使わない場合は `none` |
+| `provider.options` | オブジェクト | 必須（`none` を除く） | 0.1.0 | 各[プロバイダー](/ja/docs/providers)に固有のオプション |
+| `glossary` | オブジェクトまたはファイルパス | なし | 0.1.0 | 固定の訳、使用を禁止する訳語、翻訳しない用語 |
+| `tone` | `"formal"`、`"informal"`、`"neutral"` | なし | 0.1.0 | 翻訳に使うトーン（適用の仕方は[プロバイダーごとのトーンと用語集](/ja/docs/providers#プロバイダーごとのトーンと用語集)を参照） |
+| `prune` | 真偽値 | `false` | 0.3.0 | 孤立したキーをターゲットファイルとロックファイルから削除する。`translate --prune` で上書きできる |
+| `generatePlurals` | 真偽値 | `false` | 0.3.0 | ターゲット言語に必要な CLDR の複数形を合成する |
+| `fuzzyCache.enabled` | 真偽値 | ブロック内では必須 | 0.11.0 | わずかに変更されたソースの訳文を再利用する |
+| `fuzzyCache.threshold` | 数値、`0.5` から `1` | `0.9` | 0.11.0 | 古いソースと新しいソースがどれだけ似ている必要があるか |
+| `humanEdits` | `"protect"`、`"suggest"`、`"overwrite"` | `"protect"` | 0.12.0 | 人が書いた古くなったキーを実行がどう扱うか |
+| `pinnedKeys` | 文字列の配列 | なし | 0.12.0 | 機械による書き込みが一切触れないキーのパターン（`*` ワイルドカード） |
+| `network.policy` | `"any"`、`"local-only"`、`"allowlist"` | `"any"` | 0.12.0 | プロバイダーが接続してよいホスト（[ネットワークアクセスを制限する](/ja/docs/network-policy)を参照） |
+| `network.allowedHosts` | 文字列の配列 | なし。`"allowlist"` では必須 | 0.12.0 | 追加で許可するホスト：名前、`*.suffix` ワイルドカード、IP、CIDR 範囲 |
+| `sensitiveData.mode` | `"off"`、`"warn"`、`"block"`、`"redact"` | ブロック内では必須。ブロックがない場合は `"off"` | 0.12.0 | 送信前の機密情報に対する実行の動作（[機密情報ガード](/ja/docs/data-handling#機密情報ガード)を参照） |
+| `sensitiveData.detectors` | 検出器 ID の配列 | `secret`、`email`、`iban`、`credit-card` | 0.12.0 | 実行する検出器。`phone`、`ip`、`private-host` は明示的に有効にする必要がある |
+| `sensitiveData.patterns` | 文字列の配列 | なし | 0.12.0 | コードネームなど、独自の用語用の正規表現 |
+| `sensitiveData.allow` | 文字列の配列 | なし | 0.12.0 | 報告しない一致。`*` はワイルドカードで、大文字と小文字は無視される |
+| `maxBatchSize` | 正の整数 | `50` | 0.3.0 | 1 回のプロバイダーリクエストに含めるエントリの最大数 |
+| `maxLength` | キーから正の整数へのマップ | なし | 0.11.0 | キーごとの長さの上限（書記素クラスター単位） |
+| `maxTokens` | 正の整数 | なし | 0.5.0 | 実行全体のトークン予算 |
+| `budgetBehavior` | `"warn"`、`"stop"` | `"warn"` | 0.5.0 | `maxTokens` に達したときに警告するか、送信を止めるか |
+| `rates.asOf` | `YYYY-MM-DD` 形式の日付 | ブロック内では必須 | 0.11.0 | 単価を確認した日付 |
+| `rates.currency` | 大文字 3 文字 | ブロック内では必須 | 0.11.0 | すべての単価の通貨（`USD` など） |
+| `rates.table` | 単価キーから単価へのマップ | ブロック内では必須 | 0.11.0 | [単価キー](#rates)ごとの単価 |
+| `extract.framework` | `"i18next"` | ブロック内では必須 | 0.11.0 | ソーススキャンが探す呼び出し箇所の種類 |
+| `extract.roots` | 文字列の配列 | ブロック内では必須 | 0.11.0 | スキャンするディレクトリ。1 つ以上 |
+| `extract.exclude` | 文字列の配列 | なし | 0.11.0 | 追加でスキップするディレクトリ名 |
+| `extract.literals.ignore` | 文字列の配列 | なし | 0.11.0 | `doctor --literals` が除外する正確なテキスト |
+| `extract.unused.ignore` | 文字列の配列 | なし | 0.11.0 | `diff --unused` が報告しないキーまたは `*` パターン |
+
+### ロケールとファイル
+
+- **`files.pattern`** は、唯一のプレースホルダーである `{locale}` を含む必要があります。パスはプロジェクトルートを基準に解決され、`locales/{locale}.json` は `locales/de.json` になります。リテラルなパスでありグロブではないため、1 つの設定で扱えるのはロケールごとに 1 ファイルです（[名前空間のレイアウト](/ja/docs/formats#名前空間のレイアウト)）。`apple-xcstrings` は、すべてのロケールを 1 つのカタログに解決します（[Xcode String Catalogs (.xcstrings)](/ja/docs/formats#xcode-string-catalogs-xcstrings)）。
+- **`files.localeStyle`** は、プレースホルダーの展開結果を決めます。
+  - `literal` は、ほとんどのレイアウトが必要とするとおり、設定したタグをそのまま書きます。
+  - `posix` は、gettext と Java の `messages_{locale}.properties` で `-` を `_` に置き換えます（`pt-BR` は `pt_BR` になります）。`de-1996` のようなバリアントには posix 表記がありません。`gettext-po` は、文字体系を gettext 方式で表記します（次のセクション）。
+  - `android` はリソースディレクトリに展開します。パターンは `res/{locale}/strings.xml` のように書きます。ソースは `values`、続いて `values-de`、`values-pt-rBR`、`values-b+zh+Hans` です。
+
+  スタイルが表記できないロケールは拒否されます。
+
+### gettext のロケール名
+
+<AvailableFrom version="0.12.0" />
+
+`format: "gettext-po"` と `localeStyle: "posix"` では、ファイルに gettext 形式の名前（`language_REGION@modifier`）が使われます。設定には BCP 47 のコードをそのまま書きます。
+
+| 設定上のコード | ファイル名での表記 |
+| --- | --- |
+| `pt-BR` | `pt_BR` |
+| `es-419` | `es_419` |
+| `sr-Latn` | `sr@latin` |
+| `sr-Latn-RS` | `sr_RS@latin` |
+| `uz-Cyrl` | `uz@cyrillic` |
+| `ks-Deva-IN` | `ks_IN@devanagari` |
+| `zh-Hant-TW` | `zh_TW` |
+| `sr-Cyrl-RS` | `sr_RS` |
+
+言語と地域から決まる文字体系は省略されるため、`zh-TW` と `zh-Hant-TW` を同時に指定すると `LOCALE_PATH_COLLISION` で失敗します。gettext の修飾子がない文字体系（たとえば `zh-Hant` だけ）は `LOCALE_LAYOUT_INVALID` で失敗します。[`verbatra init`](/ja/docs/cli/init) はこれらの名前を読み戻します。ほかのフォーマットは ICU の表記（`sr_Latn`）のままです。
+
+### ロケールコード
+
+<AvailableFrom version="0.12.0" />
+
+すべてのロケールコードは `Intl.getCanonicalLocales` が受け付けるタグで、言語サブタグは 2 文字または 3 文字でなければなりません。そうでない場合、読み込みは `CONFIG_INVALID` で失敗します。`pt_BR`（`localeStyle: "posix"` では `pt-BR` と書きます）と `german` は拒否されます。`zh-hant-tw` や非推奨の `iw` のように、有効だが正規形でないコードは、書いたとおりに動作します。
+
+### provider
+
+`provider.id` は[プロバイダー](/ja/docs/providers)のいずれか 1 つを選びます。`none` の場合は `options` を省略できますが、書く場合は `{}` にします（[機械翻訳なしで実行する](/ja/docs/human-only-workflow)）。ほかのすべてのプロバイダーは `options.localeMap` と `options.requestTimeoutMs` を受け付けます（[プロバイダーに送られるロケールコード](/ja/docs/providers#プロバイダーに送られるロケールコード)）。バージョン 0.12.0 以上では、`localeMap` のように `provider` の下に置き違えたキーは `CONFIG_INVALID` で失敗します。
+
+### glossary
+
+固定の訳で翻訳する用語です。インラインで書くか、同じ形の JSON ファイルへのパスで指定します（マージはされません）。バージョン 1 は、ソース用語ごとに、すべてのロケールに共通の訳を 1 つ対応付けます。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  glossary: {
+    "Sign in": "Anmelden",
+  },
+  // or: glossary: "glossary.json",
+});
+```
+
+相対パスは設定ファイルのディレクトリを基準に解決されます。ファイルは UTF-8 で、1 MiB 以下である必要があり、読み込み時に 1 回だけ読み取られます。ファイルがない場合、JSON が不正な場合、形が不正な場合は `CONFIG_INVALID` で失敗し、パス（バージョン 2 ではフィールドも）が示されます。`__proto__` という用語はファイルに書いてください。JavaScript のリテラルではプロトタイプになってしまいます。
+
+#### ロケールごとの用語集（バージョン 2）
+
+<AvailableFrom version="0.12.0" />
+
+バージョン 2 では、ロケールごとの訳、禁止する訳語、そのまま書く用語を追加できます。
+
+```json title="glossary.json"
+{
+  "version": 2,
+  "terms": [
+    {
+      "source": "Dashboard",
+      "targets": { "de": "Übersicht", "fr": "Tableau de bord" },
+      "forbidden": { "de": ["Instrumententafel"] },
+      "note": "The start page after sign-in",
+      "partOfSpeech": "noun"
+    },
+    { "source": "Sign in", "target": "Anmelden", "caseSensitive": true }
+  ],
+  "doNotTranslate": ["verbatra", { "term": "Acme", "caseSensitive": false }]
+}
+```
+
+| フィールド | 意味 |
+| --- | --- |
+| `version` | 常に `2`。ほかの数値は失敗する |
+| `terms[].source` | ソース用語。各用語は 1 回だけ現れる |
+| `terms[].target` | 自身の `targets` エントリがないすべてのロケールの訳 |
+| `terms[].targets` | ロケールごとの訳。ロケールはまず自身のエントリ、次にベース言語のエントリ（`de` は `de-AT` を含む）、最後に `target` を使う。コードは正規形で、大文字と小文字を無視して比較される |
+| `terms[].forbidden` | ロケールが決して使ってはならない訳語。地域ロケールはベース言語のリストにも従う |
+| `terms[].caseSensitive` | 用語、訳、禁止する訳語を大文字と小文字を区別して照合する。デフォルトは `false` |
+| `terms[].note`、`terms[].partOfSpeech` | 自由記述のコンテキスト。LLM プロバイダーにデータとして送られる |
+| `doNotTranslate` | 翻訳せずにそのままコピーする用語。文字列だけの場合は大文字と小文字を保つ。`{ "term", "caseSensitive": false }` では変わることがある |
+
+各用語には `target`、`targets` エントリ、`forbidden` リストのいずれかが必要です。用語は、自身の訳を禁止すること、同じロケールを 2 回挙げること、`doNotTranslate` にも現れることができません。空のテキストは認められません。長さの上限は、用語が 200 文字、訳または禁止する訳語が 2,000 文字、`note` が 500 文字、`partOfSpeech` が 50 文字です。ロケールの[翻訳キャッシュ](/ja/docs/the-cache)のフィンガープリントは、そのロケール自身の用語だけを対象にします。バージョン 1 のファイルはフィンガープリントを保ちます。[`updateGlossaryTerm`](/ja/docs/sdk/config#updateglossaryterm) は、バージョン 1 では表現できない編集の場合に限り、ファイルをバージョン 2 として書き直します。
+
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> [Studio でレビューする](/ja/docs/review-in-studio)で編集できるのは、ファイルとして指定した用語集だけです。編集は 1 回に 1 つの用語です。どのプロバイダーが用語集を適用するかは[プロバイダーごとのトーンと用語集](/ja/docs/providers#プロバイダーごとのトーンと用語集)にあります。すべての出力は、あとで[翻訳の安全性](/ja/docs/translation-safety)のチェックを通ります。
+
+### generatePlurals
+
+true の場合、verbatra は、ターゲットに必要でソースにない CLDR の複数形（ポーランド語の `few` と `many` など）を合成します。序数キー（`<key>_ordinal_<category>`）も CLDR の序数ルールで合成します。対応するのは、LLM プロバイダーを使う `i18next-json` だけです。それ以外、および CLDR のルールがないロケールでは、[複数形](/ja/docs/language-support#複数形)の警告が出ます（序数は `other` とみなします）。CLI のオプションはありません。SDK の `translate()` は、実行ごとの上書きを受け付けます。
+
+### fuzzyCache
+
+`fuzzyCache: { enabled: true }` を指定すると、変更されたソースが、以前の形の訳文を再利用できます。条件は、2 つが `threshold` 以上似ていることです。再利用には常に `FUZZY_CACHE_REUSE` のフラグが付きます（[あいまい一致による再利用](/ja/docs/the-cache#あいまい一致による再利用)）。`--no-cache` で回避できます。
+
+### humanEdits と pinnedKeys
+
+`humanEdits` が対象とするのは、値を人が書いた古くなったキー（`human`、`import`、`external` の来歴）です（[来歴：各値を誰が書いたか](/ja/docs/the-lock-file#来歴各値を誰が書いたか)を参照）。`pinnedKeys` に一致するキー（`["legal.*", "brand.name"]` など）は、`humanEdits` の設定にかかわらず、機械が書き込むことはありません。`*` はドットを含む任意の文字列に一致し、大文字と小文字を区別します。各モードの動作は[人手翻訳を保護する](/ja/docs/protecting-human-translations)にあります。
+
+### network
+
+[ネットワークアクセスを制限する](/ja/docs/network-policy)を参照してください。
+
+```ts title="verbatra.config.ts"
+network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
+```
+
+### maxBatchSize
+
+欠落しているエントリと変更されたエントリは、この大きさ以下の連続したサブバッチで送られます（[バッチ処理](/ja/docs/providers#バッチ処理)を参照）。CLI のオプションでは上書きできません。
+
+### maxLength
+
+文字列にレイアウト上の制約がある場合の、キーごとの長さの上限です。
+
+```ts title="verbatra.config.ts"
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+- **設定ファイルまたは `verbatra.limits.json`**：<AvailableFrom version="0.13.0" /> キーはリテラルに一致し、グロブとしては扱いません。どちらにも設定されていないキーは測定されません。`setKeyLengthLimit` が受け付けるのはソースのキーだけなので、Studio は生成された複数形の上限を設定できません。そのキー自身に手で書いたエントリは適用されます。ロックファイルの隣のファイルは `{ "version": 1, "maxLength": { ... } }` を受け付け、キーごとに設定ファイルが優先され、[`setKeyLengthLimit`](/ja/docs/sdk/config#setkeylengthlimit) がそのファイルに書き込みます。
+- **書記素クラスター**：長さは、空白を含む知覚上の文字数で数えます。絵文字、アクセント付きの文字、CJK の文字はそれぞれ 1 です。上限の値そのものは超過に含みません。
+- **対象となる値**：`translate` がそのキーに対して生成するすべての値（キャッシュの再利用を含む）です。最新の状態のキーは、`check --qa`、`check --file`、[`export --include-unchanged`](/ja/docs/cli/export) が読み込むときだけ対象になります。
+- **警告のみ**：超過した値も書き込まれてロックファイルに記録され、レビュー用に [`MAX_LENGTH_EXCEEDED`](/ja/docs/error-codes#max_length_exceeded) のフラグが付きます。
+
+### maxTokens と budgetBehavior
+
+`maxTokens` は実行全体の予算です。すべてのプロバイダー呼び出し（翻訳と複数形の生成）とすべてのターゲットロケールにわたる、入力と出力のトークンの合計です。[`translate --max-tokens`](/ja/docs/cli/translate#トークンの上限) は 1 回の実行に限って厳しくできますが、緩めることはできず、常に厳格な `"stop"` として働きます。
+
+`budgetBehavior` は、上限に達したときの動作を決めます。
+
+- `"warn"`（デフォルト）は、使用量を数えて超過にフラグを付けますが、続行します。
+- `"stop"` <AvailableFrom version="0.11.0" /> は、`maxTokens` をすべてのプロバイダーに適用される上限にします。実行は、[実行前に費用を見積もる](/ja/docs/estimating-cost)場合と同じ方法で、リクエストごとに事前に費用を予測し、`maxTokens` を超えるリクエストを拒否します。そのリクエストのキーと、まだ試していないすべてのキー（ロケールの残りと、あとのすべてのロケール。それらの差分と孤立したキーの報告は引き続き実行されます）は保留され、ロックファイルの以前のハッシュを保ち、次回の実行で再試行されます。
+
+`"stop"` では次のとおりです。
+
+- 各リクエストのあとで、合計はプロバイダーが報告した使用量に合わせて調整されます。そのため、実行は `maxTokens` をわずかに超えて終わる場合があります（`budget` については [RunSummary の構造](/ja/docs/sdk/run-summary#runsummary-の構造)を参照）。機械翻訳プロバイダーはトークンを報告しないため、予測値で予算を管理します。
+- 失敗したリクエストや途中で切れたリクエストは、全額が計上されます。
+- 予測には、機械翻訳プロバイダーでも、LLM プロンプトの固定の余裕分が加算され、バッチ全体が対象になります。そのため、1 バッチの予測より小さい `maxTokens` は、毎回の実行でそのバッチを拒否します。通知には、`maxBatchSize` を下げるか `maxTokens` を上げるよう示されます。
+- 保留されたキーがあるロケールは `partial` になり、キーが 1 つも書き込まれなかった場合は `failed` になります。どちらも終了コード `1` です。`"warn"` では終了コードは変わりません。
+
+予算が制限するのは 1 回の `translate` の実行であり、1 エントリの再翻訳には適用されません。`watch` は実行ごとに新しい予算で始めます。予算を設定すると、実際の実行では [`--concurrency`](/ja/docs/cli/translate#ロケールの並列処理) を `1` より大きくできません。ドライランは対象外です。`maxTokens` がない `budgetBehavior` は効果がありません。
+
+<Callout type="warn" title="2 つの異なる maxTokens">
+最上位の `maxTokens` は、この実行全体の予算です。Anthropic の無関係な `provider.options.maxTokens` は、1 回のレスポンスの上限です（[Anthropic](/ja/docs/providers#anthropic) を参照）。
+</Callout>
+
+### rates
+
+[`translate --estimate`](/ja/docs/estimating-cost) が読み込みます。記録された各実行の履歴の費用を算出するときにも読み込みます。
+
+```ts title="verbatra.config.ts"
+rates: {
+  asOf: "2026-01-15",
+  currency: "USD",
+  table: {
+    // placeholders: copy the current rates from each provider's pricing page
+    "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
+    deepl: { perMillionCharacters: 1 },
+  },
+}
+```
+
+`table` のキーは `provider/model` で、モデルがないプロバイダー（`deepl`、`google-translate`）では ID だけです。エントリはトークン課金（`inputPerMillionTokens`、`outputPerMillionTokens`）か文字課金（`perMillionCharacters`）のどちらかで、両方にはできません。負の単価、100 万あたり 1,000,000,000 を超える単価、単位の誤りは拒否されます。`openai-compatible` と `libretranslate` は請求書を発行しないため、単価なしで数量だけが報告されます。
+
+### extract
+
+[`extract`](/ja/docs/cli/extract)、[`doctor --literals`](/ja/docs/cli/doctor#未翻訳のリテラル)、[`diff --unused`](/ja/docs/cli/diff#使われていないソースキー) だけが読み込みます。
+
+```ts title="verbatra.config.ts"
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+  literals: { ignore: ["Acme Inc."] },
+  unused: { ignore: ["emails.*"] },
+}
+```
+
+- **`framework`** は、抽出器があるものを指定する必要があります（[検出するもの](/ja/docs/cli/extract#検出するもの)）。それ以外は拒否されます。
+- **`roots`** はプロジェクトルートを基準に解決されます。**`exclude`** は、ルートの下のどこでも一致するディレクトリ名（パスではありません）を、常にスキップされるディレクトリの集合に追加します（[スキャンの範囲](/ja/docs/cli/extract#スキャンの範囲)を参照）。
+- **`literals.ignore`** は、空白を詰め、参照を展開したあとのリテラルのテキスト全体に一致します（[未翻訳のリテラル](/ja/docs/cli/doctor#未翻訳のリテラル)）。
+- **`unused.ignore`** は、デコード後のキーに一致します（[`diff --unused`](/ja/docs/cli/diff#使われていないソースキー)）。
+
+## 探索順序
+
+verbatra は作業ディレクトリから上方向に探索し、最初に見つかったものを使います。`.git` を含む最も近いディレクトリで止まり、なければホームディレクトリで止まります（ホームが作業ディレクトリの上にない場合は作業ディレクトリです）。そのため、リポジトリより上にある設定ファイルを拾うことはありません。
+
+1. `package.json`（`"verbatra"` プロパティ）
+2. `.verbatrarc`
+3. `.verbatrarc.json`
+4. `.verbatrarc.yaml`
+5. `.verbatrarc.yml`
+6. `.verbatrarc.js`
+7. `.verbatrarc.cjs`
+8. `.verbatrarc.ts`
+9. `verbatra.config.js`
+10. `verbatra.config.cjs`
+11. `verbatra.config.ts`
+
+`--config <path>` は、作業ディレクトリからの相対パスで 1 つのファイルだけを読み込みます。SDK での優先順位は [`loadConfig`](/ja/docs/sdk/config#loadconfig) にあります。
+
+## エディターでの検証
+
+<AvailableFrom version="0.9.0" />
+
+`@verbatra/sdk` は、zod スキーマから生成した JSON Schema を同梱しています。どのインストール（`npx`、依存関係を巻き上げたモノレポ、リモートのエージェント）でも使えるよう、固定の URL でも公開しています。
+
+```text
+https://verbatra.kreitz-webdev.de/schema/v1/config.json
+```
+
+オフラインの場合、またはインストール済みのバージョンに固定する場合は、パッケージ内のコピー `./node_modules/@verbatra/sdk/dist/config-schema.json` を使います（[スキーマ](/ja/docs/cli/output#スキーマ)を参照）。
+
+`.verbatrarc.json` と `.verbatrarc` は、VS Code 用に `$schema` キーを受け付けます。
+
+```json title=".verbatrarc.json"
+{
+  "$schema": "https://verbatra.kreitz-webdev.de/schema/v1/config.json",
+  "sourceLocale": "en",
+  "targetLocales": ["de", "fr"],
+  "format": "i18next-json",
+  "files": { "pattern": "locales/{locale}.json" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
+}
+```
+
+拡張子のない `.verbatrarc` には、ワークスペースのファイルマッチも必要です。
+
+```json title=".vscode/settings.json"
+{
+  "json.schemas": [
+    {
+      "fileMatch": [".verbatrarc", ".verbatrarc.json"],
+      "url": "https://verbatra.kreitz-webdev.de/schema/v1/config.json"
+    }
+  ]
+}
+```
+
+YAML の設定ファイルには、YAML Language Server のコメントを書きます。
+
+```yaml title=".verbatrarc.yaml"
+# yaml-language-server: $schema=https://verbatra.kreitz-webdev.de/schema/v1/config.json
+sourceLocale: en
+targetLocales: [de, fr]
+format: i18next-json
+files:
+  pattern: "locales/{locale}.json"
+provider:
+  id: gemini
+  options:
+    model: gemini-2.5-flash
+    maxOutputTokens: 4096
+```
+
+`package.json` はスキーマを受け付けません。実行可能な形式は `defineConfig` で型付けされます。
+
+### スキーマで検証できないこと
+
+設定の読み込みだけが、次のルールをチェックします。`targetLocales` のルールと[ロケールコード](#ロケールコード)、[`localeMap`](/ja/docs/providers#プロバイダーに送られるロケールコード) のキー、`openai-compatible` の `baseUrl` と [`apiKeyEnvVar`](/ja/docs/providers#openai-compatible) のルール、有効な [`network.allowedHosts`](/ja/docs/network-policy) のアドレスと範囲、[機密情報ガード](/ja/docs/data-handling#機密情報ガード)の安全ルール内の `sensitiveData.patterns`、インラインの[ロケールごとの用語集（バージョン 2）](#ロケールごとの用語集バージョン-2)の用語のルールです。
+
+## 作業ディレクトリと .env
+
+作業ディレクトリ（verbatra を実行する場所、または `--cwd`）は、設定ファイルの探索の起点で、[環境ファイル](/ja/docs/cli#環境ファイル)を置く場所でもあります。ロケールのパス、`verbatra.lock.json`、キャッシュ、来歴ファイル、`.verbatra-local/` は、見つかった設定ファイルのディレクトリであるプロジェクトルートを基準に解決されるため、サブディレクトリから実行しても同じファイルを使います。`--config` を指定した場合は作業ディレクトリがルートになります。別の場所にある設定ファイルでは、用語集のパスがそのファイル自身のディレクトリを基準に解決されるため、stderr に注記が出ます。`--out` や `check --file` のように自分で渡すパスは、作業ディレクトリを基準に解決されます。
+
+## 読み込みに失敗した場合
+
+- [`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found)：探索したどの場所にも設定ファイルがないか、`--config` のパスが存在しません。
+- [`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)：設定ファイルは見つかりましたが、使えません。メッセージには、すべての問題がキーのパスとともに一覧されます。不明なキーの場合は、API キーが環境変数から読み込まれるというヒントが加わります。解析の失敗ではファイル名が示されます（YAML では行と列も）が、内容は引用されません。また、すべてのメッセージは API キーの秘匿化を通ります。
+
+CLI はどちらも `2` で終了します。

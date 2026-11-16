@@ -30,7 +30,7 @@ Ce que le tableau ne couvre pas :
 - `cache` est le [cache de mémoire de traduction](/fr/docs/the-cache) local (`verbatra.cache.json`, exporté aussi comme `CACHE_FILE_NAME`).
 - `humanEdits` (à partir de 0.12.0) : par défaut, les clés obsolètes dont la valeur a été écrite,
   importée ou modifiée hors de verbatra par une personne sont gardées et listées dans
-  `LocaleSummary.protected`. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+  `LocaleSummary.protected`. Voir [Garder les traductions humaines](/fr/docs/protecting-human-translations).
 - `onProgress` reçoit les [événements de progression](#événements-de-progression) décrits plus bas.
 - `maxBatchSize` et `budgetBehavior` sont réservés à la config ; il n'y a pas de surcharge par
   exécution.
@@ -60,7 +60,7 @@ retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exéc
 | `change-detected` | `watch` uniquement : une modification du fichier source s'est stabilisée | `paths` |
 | `idle` | `watch` uniquement : une exécution est terminée et aucune n'attend | aucun |
 
-`provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI, OpenCode et openai-compatible indiquent la tentative quand leur client la lance, et DeepL, Google Cloud Translation et LibreTranslate n'indiquent rien. Un dry run et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
+`provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI, OpenCode et openai-compatible indiquent la tentative quand leur client la lance, et DeepL, Google Cloud Translation et LibreTranslate n'indiquent rien. Une exécution à blanc et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
 
 `extract`, `diff` avec `unused` et `doctor` avec `literals` acceptent leur propre `onProgress`. Il reçoit un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, une fois après chaque fichier source de l'application que l'analyse lit.
 
@@ -72,7 +72,7 @@ Un `CreateProvider` personnalisé reçoit un troisième argument, `CreateProvide
 
 <AvailableFrom version="0.11.0" />
 
-Indique si un ensemble d'options d'exécution se résout en un dry run. La fonction prend le `dryRun`
+Indique si un ensemble d'options d'exécution se résout en une exécution à blanc. La fonction prend le `dryRun`
 et l'`estimate` que tu t'apprêtes à passer à `translate` et dit si cette exécution construira un
 fournisseur, écrira un fichier ou dépensera quoi que ce soit. C'est le seul endroit où la règle
 voulant qu'`estimate` implique `dryRun` est décidée : utilise-la dès que quelque chose autour d'une
@@ -119,7 +119,7 @@ function watch(
 
 `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Si `onReady` lève une erreur, la surveillance est fermée et `watch` rejette avec cette erreur avant le début de toute exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
-Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Chaque code de la ligne **Lève** est refusé au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur. Deux d'entre eux pèsent plus sur une session que sur une seule exécution : un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève toujours `CONCURRENCY_BUDGET_CONFLICT`, car il n'existe pas de watch en dry run, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED` une seule fois au lieu de faire échouer chaque exécution. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
+Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Chaque code de la ligne **Lève** est refusé au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur. Deux d'entre eux pèsent plus sur une session que sur une seule exécution : un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève toujours `CONCURRENCY_BUDGET_CONFLICT`, car il n'existe pas de watch en exécution à blanc, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED` une seule fois au lieu de faire échouer chaque exécution. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
 ### releaseHeldLocks
 
@@ -156,7 +156,7 @@ mise en page et les chaînes qui n'ont jamais été extraites pour la traduction
 même qu'une clé d'API existe. Chaque valeur est accentuée, allongée d'environ un tiers de sa
 longueur traduisible et entourée des marqueurs de délimitation `[` et `]`, tandis que les
 placeholders restent intacts dans toutes les syntaxes que reconnaissent les adaptateurs, y compris
-les branches `plural` et `select` d'ICU, les balises de balisage et les séquences d'échappement.
+les branches `plural` et `select` d'ICU, les balises et les séquences d'échappement.
 Il ne construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau.
 
 ```ts title="Signature"
@@ -194,7 +194,7 @@ configuré y est développé, le fichier garde donc la disposition qu'attend l'a
 pseudo-locale qui nomme une locale configurée, ou qui se poserait sur un fichier de locale
 configuré, est refusée avec `PSEUDO_OUTPUT_CONFLICT` avant que quoi que ce soit ne soit lu ou
 écrit, elle ne peut donc ni écraser une vraie traduction ni en tenir lieu ; il en va de même d'un
-`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui y aboutit, dans le dossier d'un fichier de locale configuré ou sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
+`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui fait l'une de ces choses, qui aboutit dans le dossier d'un fichier de locale configuré ou qui aboutit sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
 ne dépense jamais pour lui et `check` et `diff` ne le signalent jamais comme désynchronisé.
 
 Renvoie un `PseudolocalizeResult` : la `locale`, le `mode`, le `path` absolu, combien d'`entries` ont été
@@ -239,7 +239,7 @@ fichier de locale cible n'est jamais touché. Les clés sont exactement ce que l
 avait déjà produit, dans l'ordre du document, si bien que deux exécutions sur un catalogue inchangé
 écrivent des octets identiques. Les arguments viennent des jetons de placeholder que l'adaptateur a
 extraits, sauf dans les formats de messages ICU (`next-intl-json` et `arb`), où chaque message est
-lu avec le même parseur ICU que celui de l'adaptateur. Chaque clé est émise comme un littéral de
+lu avec le même analyseur ICU que celui de l'adaptateur. Chaque clé est émise comme un littéral de
 chaîne entre guillemets : une clé portant un point, un mot réservé, un chiffre en tête, un
 guillemet, ou même la clé vide, est donc déclarée telle quelle plutôt qu'abandonnée ou redécoupée,
 et une clé que l'adaptateur a signalée dans `excludedLeafPaths` n'est pas déclarée du tout.

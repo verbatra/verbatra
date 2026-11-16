@@ -92,12 +92,20 @@ but **no test that drives it in a real browser**. Concretely, as of this writing
   `apps/docs/e2e/*.spec.ts` (`pnpm --filter @verbatra/docs test:e2e`) against the production
   standalone build, which `apps/docs/scripts/serve-standalone.mjs` serves on port 3107. It scans
   the landing, the legal pages and the docs pages listed in `DOCS_PAGES` (`apps/docs/e2e/support.ts`)
-  with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and all four locales, checks `html lang`,
+  with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and in every locale (the specs loop
+  `LOCALES` from `apps/docs/lib/locales.ts`, so a new locale is covered with no spec edit; only
+  `cursor.spec.ts`, `feature-deck.spec.ts` and `reveals.spec.ts` do not loop the locale list),
+  checks `html lang`,
   320px reflow on the landing and legal pages, 320px and 375px reflow on the docs pages, and that the
   phone navigation sheet opens without overflow. Its specs end in `.spec.ts` and live outside
   the directories `apps/docs/vitest.config.ts` includes, so Vitest never runs them. CI runs it in
-  the `docs-e2e` job of `.github/workflows/ci.yml`, which the `gate` job requires. Nothing in
+  the `docs-e2e` job of `.github/workflows/ci.yml`, split into three Playwright shards (`--shard=N/3`) so each fits its 30-minute job limit (`timeout-minutes: 30`), which the `gate` job requires. Nothing in
   `packages/studio` is covered by it.
+
+  The docs unit tests are Vitest too, co-located under `apps/docs`; a per-locale table in them is a
+  `Record<Locale, ...>` so a locale without an entry fails to typecheck, and the locale-parity and
+  per-locale assertions run for every locale in `LOCALES` (see "The locale set" in
+  `.claude/rules/docs.md`).
 - `pnpm-workspace.yaml`'s `allowBuilds` section explicitly sets `playwright: false`, with a comment
   explaining that Playwright's postinstall would otherwise download a browser binary (hundreds of
   MB) on every `pnpm install` and every CI job. This keeps the browser download opt-in: a

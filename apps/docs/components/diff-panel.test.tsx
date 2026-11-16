@@ -5,13 +5,10 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Locale } from "@/lib/i18n";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { DiffPanel } from "./diff-panel";
 
-const MESSAGES = { en, de, es, fr } as const;
+const MESSAGES = MESSAGE_CATALOGS;
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -5,7 +5,7 @@ description: "Starte den stdio-MCP-Server, der die Tools von verbatra jedem MCP-
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem MCP-Clients einen Tool-Server starten. Er bedient die Protokollrevisionen 2024-10-07 bis 2026-07-28. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem MCP-Clients einen Tool-Server starten. Er bedient die Protokollrevisionen 2024-10-07 bis 2026-07-28. Einen HTTP-Transport gibt es nicht: Er würde schreibende und kostenpflichtige Tools offenlegen.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -17,7 +17,7 @@ verbatra-mcp [flags]
 ```
 
 - `verbatra-mcp` ist das Binary aus `@verbatra/mcp`, mit dem ein Client den Server ganz ohne CLI starten kann. Es nimmt dieselben Flags außer `-q`/`--quiet` und startet denselben Server, lädt aber keine `.env`-Datei und gibt bei `--version` die Version von `@verbatra/mcp` aus.
-- Beide lehnen ein unbekanntes Flag (etwa `--json`), ein Flag ohne Wert oder ein überzähliges Argument als Nutzungsfehler mit Exit `2` ab. `verbatra-mcp` tut das, und kennt `-h` und `-V`, ab `@verbatra/mcp` 0.3.0.
+- Beide enden bei einem unbekannten Flag, einem fehlenden Flag-Wert oder einem überzähligen Argument mit Exit `2`. `verbatra-mcp` tut das, samt `-h` und `-V`, ab `@verbatra/mcp` 0.3.0.
 
 ## Beispiele
 
@@ -60,7 +60,7 @@ Die Konfigurationssuche beginnt dort, und das Verzeichnis der gefundenen Konfigu
 
 `translation.retranslateEntry` und `translation.translatePending` werden nur mit `--allow-spend` angeboten, oder, wenn das Flag fehlt, mit `VERBATRA_MCP_ALLOW_SPEND` auf `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal). Das Flag gewinnt gegen die Variable. `verbatra mcp` liest vorher `.env.local` und `.env`, die Variable darf also dort stehen; `verbatra-mcp` nimmt sie nur aus seiner eigenen Umgebung.
 
-Sonst tauchen die beiden nie in der Liste auf, und ein Aufruf scheitert als unbekanntes Tool. Eine Konfiguration mit `provider: { id: "none" }` listet sie nie, auch nicht mit `--allow-spend`. Alle anderen Tools rufen keinen Provider auf und brauchen keinen Schlüssel; gib dem Server den Schlüssel über die Umgebung des Clients erst, wenn du Ausgaben erlaubst (siehe [Provider](/de/docs/providers)).
+Sonst tauchen die beiden nie in der Liste auf, und ein Aufruf scheitert als unbekanntes Tool. Eine Konfiguration mit `provider: { id: "none" }` listet sie nie, auch nicht mit `--allow-spend`. Alle anderen Tools rufen keinen Provider auf und brauchen keinen API-Key; gib dem Server den API-Key erst, wenn du Ausgaben erlaubst.
 
 ### Anweisungen für den Agenten
 
@@ -80,10 +80,10 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | `status.diff` | pro Locale die Keys, die hinzukämen, neu übersetzt würden oder verwaist sind | ja | nein |
 | `glossary.get` | jeden Glossarbegriff mit Übersetzungen, verbotenen Wiedergaben und Kontext, mit geschwärzten Secrets | ja | nein |
 | `glossary.write` | einen Glossarbegriff ändern: eine Übersetzung, Daten pro Locale, Kontext, oder ob er unübersetzt bleibt | nein | nein |
-| `lock.state` | die Version der Lock-Datei und pro Ziel-Locale die Zahl der Keys plus fehlende, veraltete und aktuelle | ja | nein |
+| `lock.state` | die Version der Lock-Datei und pro Ziel-Locale die Zahl der Keys plus die Zahlen fehlender, veralteter und aktueller Keys | ja | nein |
 | `history.list` | die letzten Git-Commits an einer Locale-Datei, mit Autorname, Datum, Betreff und Pfaden | ja | nein |
 | `history.keyRevisions` | die Revisionen eines Keys in einer Locale, mit Wort-Diff <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | ja | nein |
-| `key.integrity` | die Abweichung eines Keys bei Platzhaltern, Markup, ICU-Syntax und ICU-Zweigen gegenüber der Lock-Basis, pro Locale | ja | nein |
+| `key.integrity` | die Abweichung eines Keys bei Platzhaltern, Markup, ICU-Syntax und ICU-Zweigen gegenüber der Baseline in der Lock-Datei, pro Locale | ja | nein |
 | `locale.integrity` | jede Übersetzung, die gerade die Prüfung von Platzhaltern, Markup oder ICU nicht besteht, pro Locale | ja | nein |
 | `key.value` | Quell- und Zieltext eines Keys, mit Herkunft und Kontext für Übersetzer | ja | nein |
 | `key.context` | was `key.value` liefert, dazu die passenden Glossarbegriffe, `maxLength` und eine Prüfung eines optionalen `draft` | ja | nein |
@@ -92,7 +92,7 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | `translation.estimate` | was `translation.translatePending` senden und kosten würde, wie `translate --estimate` | ja | nein |
 | `translation.retranslateEntry` | den konfigurierten Provider einen Key in einer Locale neu übersetzen lassen | nein | ja |
 | `translation.translatePending` | jeden fehlenden oder veralteten Key übersetzen, wahlweise nur für einige `locales` und unter einer `maxTokens`-Obergrenze | nein | ja |
-| `review.queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den Markierungen des letzten Laufs | ja | nein |
+| `review.queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den Review-Flags des letzten Laufs | ja | nein |
 | `report.provenance` | pro Locale die Herkunftszahlen wie bei `verbatra report provenance`, auf Wunsch mit den Keys, seitenweise | ja | nein |
 | `review.approve` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die aktuelle Übersetzung eines Keys freigibt | nein | nein |
 | `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt, und sie entfernen | nein | nein |
@@ -102,9 +102,9 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 - **Ein Aufruf zur Zeit.** Ein zweiter Aufruf desselben Tools für denselben Eintrag (`translation.editEntry`, `translation.retranslateEntry`), oder ein zweiter Lauf von `translation.translatePending`, wird mit `isError` abgelehnt, solange der erste läuft.
 - **Menschliche Arbeit.** `translation.retranslateEntry` lehnt einen gepinnten Key mit `KEY_PINNED` ab und, außer bei `humanEdits: "overwrite"`, den Wert einer Person mit `KEY_PROTECTED`; `translation.editEntry` lehnt einen gepinnten Key ab. `translation.translatePending` listet solche Keys unter `protected`. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 - **Herkunft.** Ein über `translation.editEntry` geschriebener Wert bekommt die Herkunft `agent`. `review.queue` ist dieselbe Warteschlange, die Studio zeigt: jeder nicht freigegebene Wert mit Herkunft `machine`, `memory`, `fuzzy` oder `agent`. Siehe [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen).
-- **Review-Entscheidungen.** `review.approve` und `review.reject` nehmen `locale`, `key`, `expectedValue` oder `expectedHash` (ein inzwischen geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt) und den Namen in `reviewer`. Eine Freigabe zählt für [`verbatra check --require-reviewed`](/de/docs/cli/check).
+- **Review-Entscheidungen.** `review.approve` und `review.reject` nehmen `locale`, `key`, `expectedValue` oder `expectedHash` (ein inzwischen geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt) und den Namen in `reviewer`. Eine Freigabe zählt für [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen).
 
-### Inputs und Ergebnisse
+### Eingaben und Ergebnisse
 
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
@@ -128,8 +128,8 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 - `history.keyRevisions` nimmt `locale`, `key` (höchstens 1.024 Zeichen) und `limit`, die Zahl der geprüften Commits (Standard 50, höchstens 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
 - `usage.summary` liest nur den letzten Lauf (frühere listet `usage.history`), lässt `usage` weg, wenn dieser Lauf keinen gemeldet hat, und enthält die Budgetfelder nur unter einem `maxTokens`-Budget. `budget.supported: false` heißt, eine Anfrage hat keinen Verbrauch gemeldet oder ist fehlgeschlagen; dann enthält `tokensUsed` die Schätzung von verbatra für jede Anfrage, die mit null oder gar nicht gemeldet wurde, und ist keine vom Provider berechnete Zahl. Außerdem enthält es `incomplete: { failed, partial }`, wenn Locales des Laufs fehlgeschlagen sind oder auf halbem Weg stehen geblieben sind, damit ein niedriger Verbrauch nicht als erfolgreicher Lauf gelesen wird <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />.
 - Die schreibenden Tools nehmen ein optionales `lockTimeoutMs`, `0` bis `600000`, Standard `30000`: so lange wartet der Aufruf auf eine gehaltene Schreibsperre, bevor er mit `LOCK_CONTENDED` scheitert, ohne etwas geschrieben zu haben.
-- Inputs und Outputs sind JSON-Schemas; ein falscher Input liefert ein Ergebnis, das das Feld nennt. Ein Ergebnis, das nicht zu seinem `outputSchema` passt, scheitert mit `OUTPUT_SCHEMA_MISMATCH`; bei einem schreibenden Tool wurde die Änderung trotzdem ausgeführt, also nicht wiederholen.
-- Der Text eines fehlgeschlagenen Aufrufs beginnt mit seinem Fehlercode, etwa `UNKNOWN_KEY: ...`, und endet mit einer Zeile `Next step: ...`, wenn der Fehler einen nächsten Schritt hat, demselben Text wie `hint` in der CLI.
+- Eingaben und Ausgaben sind JSON-Schemas; eine falsche Eingabe liefert ein Ergebnis, das das Feld nennt. Ein Ergebnis, das nicht zu seinem `outputSchema` passt, scheitert mit `OUTPUT_SCHEMA_MISMATCH`; bei einem schreibenden Tool wurde die Änderung trotzdem ausgeführt, also nicht wiederholen.
+- Der Text eines fehlgeschlagenen Aufrufs beginnt mit seinem Fehlercode, etwa `UNKNOWN_KEY: ...`, und endet mit einer Zeile `Next step: ...`, wenn der Fehler einen nächsten Schritt hat; das ist derselbe Text wie `hint` in der CLI.
 
 ### Erst schätzen, dann ausgeben
 
@@ -165,7 +165,7 @@ Vor jedem Aufruf lädt der Server die Konfiguration neu, wenn sich die Konfigura
 
 ### Secrets werden geschwärzt
 
-Secrets werden aus jedem Ergebnis und jeder Log-Zeile geschwärzt, wie Studio es auch tut: Ein Wert, der wie ein API-Schlüssel aussieht, oder der Wert einer konfigurierten Schlüsselvariable wird zu `[REDACTED]`; die Glossar-Tools nennen geschwärzte Begriffe. Übersetzungswerte verbirgt erst [`--redact-values`](#redacted-values).
+Secrets werden aus jedem Ergebnis und jeder Log-Zeile geschwärzt, wie Studio es auch tut: Ein Wert, der wie ein API-Key aussieht, oder der Wert einer konfigurierten Key-Variable wird zu `[REDACTED]`; die Glossar-Tools nennen geschwärzte Begriffe. Übersetzungswerte verbirgt erst [`--redact-values`](#redacted-values).
 
 ### Geschwärzte Werte [#redacted-values]
 
@@ -184,7 +184,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Von Hand im Terminal gestartet, sagt er außerdem, dass ein Client ihn starten soll. `verbatra mcp --quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
+Im Terminal sagt er außerdem, dass ein Client ihn starten soll. `--quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
 
 ### Installation
 
@@ -204,13 +204,13 @@ Jedes Release steht außerdem in der [offiziellen MCP Registry](https://registry
 | --- | --- |
 | `0` | sauber gestoppt durch einen einzelnen Interrupt, oder weil der Client stdin geschlossen hat |
 | `1` | das Schließen des Servers ist beim Herunterfahren fehlgeschlagen |
-| `2` | konnte nicht starten: eine fehlende `--config`-Datei, ein fehlendes oder, mit `--redact-values`, zu altes `@verbatra/mcp`, oder ein Nutzungsfehler |
+| `2` | konnte nicht starten: eine fehlende `--config`-Datei, ein fehlendes oder, mit `--redact-values`, zu altes `@verbatra/mcp`, oder ein Verwendungsfehler |
 | `130` | durch einen zweiten Interrupt beim Herunterfahren hart gestoppt |
 
 Beim Stoppen gibt der Server jede Locale-Sperre frei. `verbatra-mcp` endet bei einem Startfehler mit `1` und, ab 0.3.0, mit `143`, wenn es nach SIGTERM hart gestoppt wird. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [MCP-Client verbinden](/de/docs/connect-an-mcp-client) richtet alle gängigen stdio-Clients ein.
-- [Agent-Tools in Studio](/de/docs/agent-tools-in-studio) ist das Browser-Gegenstück zu den Tools dieses Servers für Terminal- und Headless-Agenten.
+- [MCP-Client verbinden](/de/docs/connect-an-mcp-client) richtet stdio-Clients ein.
+- [Agent-Tools in Studio](/de/docs/agent-tools-in-studio) ist das Browser-Gegenstück zu den Tools dieses Servers.
 - [`verbatra check`](/de/docs/cli/check) und [`verbatra diff`](/de/docs/cli/diff) sind die Berechnungen hinter `status.check` und `status.diff`.

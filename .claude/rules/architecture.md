@@ -93,6 +93,10 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio` and `@verbatra/mcp` under
   `ignoreDependencies` because nothing imports them by name, and `lib/third-party-licenses.ts`, which walks
   `dependencies` only, never sees them.
+  Its `subset-font` `devDependency` (`apps/docs/package.json`) is used only by
+  `apps/docs/lib/og-subset.ts`, run through `pnpm --filter @verbatra/docs og:fonts` to subset the
+  OG image font of a non-Latin locale; it ships nothing, and the subsets it writes are committed
+  under `apps/docs/assets/og-fonts/`.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward
@@ -212,7 +216,12 @@ from `packages/ai-providers/src/index.ts`, then the two `provider-config.ts` ste
 union variant, `providerFactories` entry), the `PROVIDER_BILLING` entry in
 `packages/sdk/src/config/provider-billing.ts`, and the `PROVIDER_DATA_FLOW` entry in
 `packages/sdk/src/config/provider-data-flow.ts` (a mapped type over `MachineProviderId`, read by
-`doctor --data-flow`); a provider that masks placeholders also gets its `MASKED_WIRES` entry. See `CONTRIBUTING.md` "Adding a translation provider"
+`doctor --data-flow`), the `PROVIDER_KIND` entry in `packages/sdk/src/config/provider-kind.ts`
+(`llm` or `machine-translation`) and the `PROVIDER_LANGUAGES` entry in
+`packages/sdk/src/config/provider-languages.ts` (a function from the provider's options to its
+language support, read by the locale checks before a run). Both are mapped types over
+`MachineProviderId`, so a missing entry is a compile error. A provider that masks placeholders also
+gets its `MASKED_WIRES` entry. See `CONTRIBUTING.md` "Adding a translation provider"
 for the full ordered list with line-number pointers.
 
 ## Core stays pure

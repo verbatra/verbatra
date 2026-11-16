@@ -1,0 +1,420 @@
+---
+title: "設定と用語集"
+seoTitle: "SDK：設定の読み込みと用語集の編集"
+description: "verbatra の設定を読み込んで検証し、用語集を編集する SDK のエントリポイントと、ディレクトリにプロジェクトがあるかを検出するエントリポイントを説明します。"
+type: reference
+---
+## 設定を読み込む [#config]
+
+### loadConfig
+
+プロジェクトの設定を探して読み込み、検証して、`VerbatraConfig` を返します。優先順位は、`configOverride`（メモリ上のオブジェクトを検証する）が `configPath`（明示した 1 つのファイルを読み込む）より高く、`configPath` は `cwd` からの探索より高くなります。探索は[探索順序](/ja/docs/config-file#探索順序)に従います。ファイルパスで指定された `glossary` は、ここで読み込まれて検証されます。そのため、下流のコードは常にメモリ上の用語集を見ます。バージョン 1 の、ソース用語から訳語へのマップ、またはバージョン 2 の定義です。
+
+```ts title="シグネチャ"
+function loadConfig(
+  options?: LoadConfigOptions,
+): Promise<VerbatraConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**戻り値**：`VerbatraConfig`
+
+**例外**：[`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+**例**：[ファイルを使わない設定](/ja/docs/programmatic-api#ファイルを使わない設定)
+
+スキーマは[設定ファイル](/ja/docs/config-file)を参照してください。`fs` は用語集ファイルの読み込みに使うファイルシステムのポートで、[依存関係の差し替え口](/ja/docs/sdk#依存関係の差し替え口)で説明しています。
+
+### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
+
+同じ読み込みに、読み込み元の情報を加えたものです。`{ config, source, glossary }` を返し、`source` は設定が探索で見つかったのか、明示したパスからなのか、メモリ上のオーバーライドからなのかを示します（ある場合は絶対パスの `filepath` も付きます）。`glossary` は、用語集が存在しなかったのか、インラインだったのか、ファイルから解決されたのかを記録します。設定がどこから来たかを表示する必要がある場合に使います。
+
+```ts title="シグネチャ"
+function loadConfigWithMeta(
+  options?: LoadConfigOptions,
+): Promise<LoadedConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**戻り値**：`LoadedConfig`
+
+**例外**：[`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+どちらも `fresh: true` を受け取ります。これを指定すると、JavaScript または TypeScript の設定ファイルを、同じプロセスの以前の読み込みで評価した結果を再利用せずに、もう一度評価します。編集後に設定を再読み込みする長時間動くプロセスが、これを設定します。JSON、YAML、`package.json` の設定は、常に新しく読み込まれます。<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+同じ `{ cwd?, configPath? }` で `loadConfigWithMeta` が設定を読み込む可能性のあるファイルを、すべて一覧にします。`configPath` を設定した場合はその明示したファイルだけ、そうでなければ、探索のチェーンの各ディレクトリにあるそれぞれの探索場所を、近い順に、存在するかどうかにかかわらず返します。これらを監視すれば（たとえば更新日時で）、リクエストのたびに読み込まなくても、設定の作成、編集、削除に気づけます。用語集ファイルは含まれません。`loadConfigWithMeta` が `glossary` で示します。
+
+```ts title="シグネチャ"
+function configCandidatePaths(
+  options?: ConfigCandidateOptions,
+): readonly string[];
+```
+
+<SdkTypeTable name="ConfigCandidateOptions" />
+
+**戻り値**：`readonly string[]`
+
+### resolveProjectRoot
+
+<AvailableFrom version="0.12.0" />
+
+フローが相対パスを解決する基準になるプロジェクトルートを返します。見つかった設定ファイルのディレクトリです。そのため、サブディレクトリで起動したプロセスも、プロジェクト自身のロケールファイル、ロックファイル、`.verbatra-local/` を対象に動作します。`configPath` で読み込んだ設定の場合は `cwd` を返します。`loadConfig` または `loadConfigWithMeta` が返した設定をフローに渡すと、その `cwd` のデフォルトはすでにこのルートになります。設定をコピーまたは再構築する場合や、設定を受け取らない `loadLockFile`、`loadProvenance`、`runStatus` には、`resolveProjectRoot(loaded.source, cwd)` を `cwd` として渡します。
+
+```ts title="シグネチャ"
+function resolveProjectRoot(
+  source: ConfigSource,
+  cwd: string,
+): string;
+```
+
+**戻り値**：`string`
+
+## 用語集
+
+### readGlossaryFile
+
+<AvailableFrom version="0.9.0" />
+
+ファイルに保存された用語集をディスクから新しく読み込み、正規化した `Glossary` として返します。`{ version, terms, doNotTranslate }` で、`version` はフラットな用語マップなら `1`、[ロケールごとの用語集](/ja/docs/config-file#glossary)なら `2` です。各用語は `source`、省略可能な `target`、`targets`、`forbidden`、`caseSensitive`、省略可能な `note` と `partOfSpeech` を持ちます。その `glossary` 入力は `loadConfigWithMeta` の `GlossaryProvenance` なので、読み込まれるファイルは常に、設定が指定しているものです。読み込んだ時点ではなく今の用語集を表示する、長時間動くツールで使います。
+
+```ts title="シグネチャ"
+function readGlossaryFile(
+  input: GlossaryFileInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="GlossaryFileInput" />
+
+**戻り値**：`Glossary`
+
+**例外**：[`GLOSSARY_NOT_FILE_BACKED`](/ja/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+用語集がインラインか存在しない場合は `GLOSSARY_NOT_FILE_BACKED` を、ファイルが[用語集ファイルのルール](/ja/docs/config-file#glossary)に違反している場合や別のバージョンを宣言している場合は `CONFIG_INVALID` をスローします。
+
+<AvailableFrom version="0.12.0" />
+
+0.11 までは、フラットな用語マップそのものを返していました。
+
+### updateGlossaryTerm
+
+<AvailableFrom version="0.9.0" />
+
+ファイルに保存された用語集で、用語をちょうど 1 つ追加、変更、削除し、更新後の正規化した用語集を返します。`translation` は新しいテキスト、または用語を削除する `null` です。ファイルのそのほかの部分は、キーの順序とインデントを保ちます。書き込みはアトミックで、読み取り、変更、書き込みの全体がプロジェクト全体の用語集の書き込みロックの下で行われるため、同時に行われた 2 つの編集は、混ざり合わずに順番に処理されます。
+
+```ts title="シグネチャ"
+function updateGlossaryTerm(
+  input: UpdateGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="UpdateGlossaryTermInput" />
+
+**戻り値**：`Glossary`
+
+**例外**：[`GLOSSARY_NOT_FILE_BACKED`](/ja/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`GLOSSARY_UNWRITABLE`](/ja/docs/error-codes#glossary_unwritable)
+
+<AvailableFrom version="0.12.0" />
+
+`locale`（その場合 `translation` はそのロケール固有の訳語になり、`null` はそのロケールの訳語だけを削除します）、`forbidden`（`locale` が使ってはならない表現。`null` または `[]` で削除します）、`note`、`partOfSpeech`（どちらも `null` で削除します）、`caseSensitive`、`doNotTranslate`（`true` でその用語を未翻訳のまま残す用語に追加し、`false` で削除します。用語のフィールドとは組み合わせられません）も受け取ります。バージョン 1 のファイルは、編集が全ロケール共通の訳語の設定または削除だけであれば、バージョン 1 のままです。それ以外の編集では、バージョン 2 として書き直され、既存のすべての用語は訳語を `target` として保ちます。`locale` なしの `translation: null` は、共通の訳語だけを削除します。用語そのものは、訳語も禁止された表現も残らなくなった時点で削除されます。バージョン 1 の用語では、すぐに削除されます。
+
+`sourceLocale` を指定すると、保存済みの用語と大文字と小文字だけが異なる用語（どちらも `caseSensitive` ではない場合）は、保存済みの表記を保ったまま更新します。指定しない場合は、完全一致のときだけ更新します。<AvailableFrom version="0.13.5" /> インライン用語集は、変換されずに `GLOSSARY_NOT_FILE_BACKED` で拒否されます。`term` がない、フィールドが空白、フィールドを何も設定しない編集、`doNotTranslate` と用語のフィールドを混ぜた編集、ロケールなしの禁止された表現、無効なロケール、無効な用語集になる編集、結果が用語集の 1 MiB の上限を超える編集は、`CONFIG_INVALID` で拒否されます。用語集の書き込みロックの書き込みを含め、書き込みの失敗は [`GLOSSARY_UNWRITABLE`](/ja/docs/error-codes#glossary_unwritable) で、ファイルシステムのエラーが `cause` になります。用語集がすでにそのとおりの状態になる編集は、成功して何も書き込みません。
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` も受け取ります。用語集の書き込みロックの待機に上限を設け、超えると `LOCK_CONTENDED` で失敗します（デフォルトは 10 分）。無効な上限は、何かを読み込む前に `LOCK_TIMEOUT_INVALID` で失敗します。
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+用語集のうち、1 つのターゲットロケールに適用される部分を解決します。`glossaryForLocale(config.glossary, "de")` は `{ terms, doNotTranslate }` を返します。各用語は、そのロケールの `target`（そのロケール自身のエントリ、次にベース言語のエントリ、最後に共通のエントリの順）、`forbidden` の表現、`caseSensitive`、`note`、`partOfSpeech` を持ちます。そのロケールに適用される用語集の内容が何もない場合は `undefined` を返します。これは、そのロケールへの翻訳リクエストが [`TranslateRequest.glossary`](/ja/docs/sdk/extend#カスタムプロバイダー) として運ぶ内容そのものであり、そのロケールのレビューチェックとキャッシュのフィンガープリントが見る内容でもあります。
+
+```ts title="シグネチャ"
+function glossaryForLocale(
+  glossary: GlossaryInput | Glossary | undefined,
+  locale: string,
+): LocaleGlossary | undefined;
+```
+
+**戻り値**：`LocaleGlossary | undefined`
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits({ glossary, locale, sourceLocale, source })` は、1 つのターゲットロケールで、1 つのソーステキストに適用される用語集のエントリを、`glossaryForLocale` が返す形の `{ terms, doNotTranslate }` で返します。対象になるのは、ソースが `source` に用語全体として現れるすべての用語（そのロケールが従う訳語と禁止された表現つき）と、そこに現れる、未翻訳のまま残すべきすべての用語です。用語は、その用語の指定に従って、大文字と小文字を区別して、または区別せずに一致します。大文字と小文字の区別をなくす処理は `sourceLocale` に従います。翻訳の実行が、用語集の用語の訳し漏れにフラグを付けるときと同じ照合を使い、何も読み込みません。
+
+```ts title="シグネチャ"
+function glossaryHits(
+  input: GlossaryHitsInput,
+): LocaleGlossary;
+```
+
+<SdkTypeTable name="GlossaryHitsInput" />
+
+**戻り値**：`LocaleGlossary`
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` は、書き込む前に、ソーステキストの中で `glossaryHits` が見つけた用語集のエントリに対して、訳文の下書きをチェックします。各用語について `targetUsed`（下書きが必須の訳語を含んでいるか。禁止する表現しか持たない用語では省略されます）と `forbiddenUsed`（下書きが使っていて、ソースにはない禁止された表現）が返り、未翻訳のまま残す各用語には `kept` が返ります。これらは、翻訳の実行が `GLOSSARY_TERM_MISSED` と `GLOSSARY_FORBIDDEN_TERM` にフラグを付けるときのルールです。何も読み込みません。
+
+```ts title="シグネチャ"
+function glossaryDraftCheck(
+  input: GlossaryDraftCheckInput,
+): GlossaryDraftCheck;
+```
+
+<SdkTypeTable name="GlossaryDraftCheckInput" />
+
+**戻り値**：`GlossaryDraftCheck`
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+2 つの形のどちらか（バージョン 1 のフラットなマップ、またはバージョン 2 の定義）の用語集を、`readGlossaryFile` が返す正規化された `Glossary` に変換し、すべてのデフォルトを補います。インライン用語集を、ファイルに保存された用語集と同じ形で表示したいときに使います。再度の検証はしません。検証は `loadConfig` が済ませています。
+
+```ts title="シグネチャ"
+function normalizeGlossary(
+  glossary: GlossaryInput | Glossary,
+): Glossary;
+```
+
+**戻り値**：`Glossary`
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+正規化した `Glossary` を、共通の `target` を持つ各用語からその訳語へのフラットなマップに射影します。順序は用語集の順です。ロケールごとの訳語、禁止された表現、未翻訳のまま残す用語は含まれないため、フラットな用語マップしか表示できない利用側でだけ使います。`__proto__` という名前の用語は、自身のキーとして保たれます。
+
+```ts title="シグネチャ"
+function sharedGlossaryTranslations(
+  glossary: Glossary,
+): Readonly<Record<string, string>>;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**戻り値**：`Readonly<Record<string, string>>`
+
+### redactGlossary
+
+<AvailableFrom version="0.12.0" />
+
+正規化した `Glossary` のすべてのソース用語、訳語、禁止された表現、メモ、品詞、未翻訳のまま残す用語を `redact` に通し、`{ glossary, redactedTerms }` を返します。`redactedTerms` は、値が置き換えられた各用語を示します。秘匿化されたソース用語そのものは `[REDACTED]` として示されるため、一覧がシークレットを繰り返すことはありません。MCP サーバーと Studio は、用語集がプロセスの外に出る前に、これを使います。
+
+```ts title="シグネチャ"
+function redactGlossary(glossary: Glossary): RedactedGlossary;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**戻り値**：`RedactedGlossary`
+
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+読み込まれた設定が指定する用語集を、今の状態で読み込みます。`readCurrentGlossary({ loaded })` で、`loaded` は `loadConfigWithMeta` が返すものです。ファイルに保存された用語集はディスクから新しく読み込まれ、インラインの用語集は設定から取得されます。どちらの場合も、結果は正規化された `Glossary` で、設定が用語集を宣言していない場合は `undefined` です。1 つのターゲットロケールが従う内容を確認するには、結果を `glossaryForLocale` に渡します。
+
+```ts title="シグネチャ"
+function readCurrentGlossary(
+  input: ReadCurrentGlossaryInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary | undefined>;
+```
+
+<SdkTypeTable name="ReadCurrentGlossaryInput" />
+
+**戻り値**：`Glossary | undefined`
+
+**例外**：[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+読み込まれた設定を持つツール向けの `updateGlossaryTerm` です。`glossary` の代わりに `loaded` を受け取り、編集のフィールドは同じです。`undefined` のフィールドは指定なしとして扱い、まず `locale` を設定済みのターゲットロケールと照合して、含まれていなければ `UNKNOWN_LOCALE` で失敗し、何も書き込みません。MCP サーバーと Studio は、これを通して用語集を書き込みます。
+
+```ts title="シグネチャ"
+function editConfiguredGlossaryTerm(
+  input: EditConfiguredGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="EditConfiguredGlossaryTermInput" />
+
+**戻り値**：`Glossary`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`GLOSSARY_NOT_FILE_BACKED`](/ja/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`GLOSSARY_UNWRITABLE`](/ja/docs/error-codes#glossary_unwritable)
+
+## 長さの上限
+
+### setKeyLengthLimit
+
+<AvailableFrom version="0.13.0" />
+
+`verbatra.limits.json` で、1 つのキーの長さの上限を設定、変更、削除します。このファイルは、ロックファイルの隣にあるコミット対象のファイルで、設定の [`maxLength`](/ja/docs/config-file#maxlength) が扱わない上限を保持します。キーはソースに存在している必要があります。設定の `maxLength` が上限を設定しているキーへの上限は拒否されます。`null` はファイルのエントリを削除し、ソースからなくなったキーや、設定が上限を設定しているキーのエントリも削除できます。読み取り、変更、書き込みは、プロジェクト全体の上限ファイルの書き込みロックの下で実行され、ファイルはアトミックに置き換えられるため、1 つまたは複数のプロセスからの同時の呼び出しでも、更新が失われることはありません。何も変更しない呼び出しは何も書き込まず、上限ファイルとして読み込めないファイルが上書きされることはありません。
+
+```ts title="シグネチャ"
+function setKeyLengthLimit(
+  input: SetKeyLengthLimitInput,
+  deps?: SetKeyLengthLimitDeps,
+): Promise<SetKeyLengthLimitResult>;
+```
+
+<SdkTypeTable name="SetKeyLengthLimitInput" />
+
+**戻り値**：`SetKeyLengthLimitResult`
+
+**例外**：[`LENGTH_LIMIT_INVALID`](/ja/docs/error-codes#length_limit_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`LIMITS_FILE_UNUSABLE`](/ja/docs/error-codes#limits_file_unusable)、[`LIMITS_FILE_UNWRITABLE`](/ja/docs/error-codes#limits_file_unwritable)
+
+## 作成、検出、人手のみのモード
+
+### defineConfig
+
+型付きの `verbatra.config.ts` のための恒等ヘルパーです。引数をそのまま返し、型推論とエディターの補完のために使います。選択したプロバイダーの既知のモデル ID も補完されます（作成時のみで、実行時には空でない任意の文字列が通ります）。`opencode`、`openai-compatible`、`libretranslate`、`none` を除くすべてのプロバイダーには、`AuthoringConfigFor<"<id>">`（たとえば `AuthoringConfigFor<"anthropic">`）を受け取るオーバーロードもあり、`provider` ブロックをそのプロバイダーのオプションに絞り込みます。除外した `opencode`、`openai-compatible`、`libretranslate`、`none` は、下のフォールバックの `AuthoringConfig` を使います。
+
+```ts title="シグネチャ"
+function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"openai">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
+```
+
+**戻り値**：`VerbatraConfigInput`
+
+**例**：[ソースファイルと設定を追加する](/ja/docs/sdk-quickstart#ソースファイルと設定を追加する)
+
+### verbatraConfigSchema
+
+`loadConfig` が検証に使う zod スキーマで、自分のツールで SDK と同じ方法で設定オブジェクトを検証できるようにエクスポートされています。未知のトップレベルのキーは拒否されるため、設定の中にシークレットが紛れ込むことはありません。例外は `$schema` です。省略可能な文字列で、実行時には無視され、JSON や YAML の設定からエディターをパッケージの `@verbatra/sdk/config-schema.json` に向けられます。
+
+```ts title="シグネチャ"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
+その `rates` ブロックは `RateCard` で、見積もりを金額に変える単価表です（[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照）。
+
+<SdkTypeTable name="RateCard" />
+
+### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
+
+CLI の `init` コマンドが対話式の質問の元にする、読み取り専用のメタデータです。`providerEnv`（プロバイダー ID から、API キーを読み取る環境変数への対応）、`scaffoldModels`（LLM プロバイダーごとの、作成時のデフォルトモデル）、`providerTokenLimitKeys`（各 LLM プロバイダーが出力トークンの上限を受け取るオプションのキー）、`supportedFormats`（フォーマット ID の閉じた集合）を含みます。トークン上限のキーは、1 つに決め打ちせず `providerTokenLimitKeys` から読み取ってください。キーはプロバイダーごとに異なるためです（[プロバイダー](/ja/docs/providers)）。DeepL と Google Cloud Translation にはエントリがありません。トークン上限を受け取らないためです。`ScaffoldableProviderId` 型は `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` です。つまり、ID 以外に何も必要としないすべてのプロバイダーです。`openai-compatible` と `libretranslate` は、自分でしか指定できない `baseUrl` が必要で、必須の環境変数はありません。`none` はプロバイダーをまったく呼び出しません。
+
+```ts title="シグネチャ"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
+
+`scaffoldingMetadata.humanOnlyProviderId` は `"none"` で、機械翻訳を無効にする ID です。API キーを読み込まないため、`providerEnv` にエントリはありません。
+
+<AvailableFrom version="0.12.0" />
+
+`scaffoldingMetadata.libreTranslateKeyEnv` は `"LIBRETRANSLATE_API_KEY"` で、`libretranslate` プロバイダーが API キーを読み取る変数です。省略可能です。`--api-keys` なしで起動したサーバーには不要なので、ジェネレーターは未設定のままにします。
+
+`scaffoldingMetadata.openAiCompatibleKeyEnv` は `"OPENAI_COMPATIBLE_API_KEY"` で、オプションに `apiKeyEnvVar` の指定がない `openai-compatible` プロバイダーが読み取る変数です。`scaffoldingMetadata.configSearchPlaces` は、`loadConfig` が設定を探すすべてのファイル名を、確認する順序で一覧にします。`verbatra.config.ts` を書き込むジェネレーターは、この一覧にあるほかのファイルがすでに存在する場合は拒否してください。最初に見つかったものが優先されるためです。
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+プロジェクトのロケールファイルのフォーマットとレイアウトを、そのファイルから検出します。`verbatra init` が設定ファイルを書き込む前に行うのと同じ方法です。何も書き込まず、プロバイダーも呼び出しません。ディレクトリをスキャンして（隠しディレクトリ、`node_modules`、ビルド出力を除き、深さとエントリ数には上限があります）、登録されたアダプターが引き受けるファイルを探し、それぞれでロケールを表すパスのセグメントを見つけ、最も多くのロケールをカバーするファイルパターンを残します。フォーマットは、一致したすべてのファイルの内容を見て、アダプターの `canHandle` がすべてを引き受けるものに決まります。JSON では、すべての JSON アダプターが引き受けるため、`package.json` に一致する i18n ライブラリが 1 つだけある場合に、それで決まります。
+
+```ts title="シグネチャ"
+function detectProject(
+  input?: DetectProjectInput,
+  deps?: DetectProjectDeps,
+): Promise<ProjectDetection>;
+```
+
+<SdkTypeTable name="DetectProjectInput" />
+
+**戻り値**：`ProjectDetection`
+
+```ts title="例"
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+結果には、`format`（`from` は `input`、`files`、`dependencies` のいずれか）、`layout`（`pattern`、`localeStyle`、`locales`、`sourceLocale`、`files`、`unqualifiedSourceFile`）、`ambiguities`（それぞれ `format` または `layout` の `subject` と `candidates` を持ちます）、`high`、`medium`、`low`、`none` のいずれかの `confidence`、判断ごとに 1 文の `reasons` が含まれます。同点はあいまいさとして報告され、推測されることはありません。省略可能な `format`、`pattern`、`sourceLocale` の入力は探索を絞り込み、`deps.fs` と `deps.adapterRegistry` はファイルシステムとアダプターを差し替えます。そのため、サードパーティのアダプターのファイルも検出されます。存在しない、読み取れない、または壊れたファイルがあっても、スローはせず、レポートが薄くなるだけです。`layout.unqualifiedSourceFile` は、レイアウトの隣にある、ロケール名のない文字列を持つファイルを示します。たとえば `messages.properties` や gettext の `.pot` テンプレートです。この場合、ソースはパターンがソースに対して指すファイルから読み込まれるため、ソースロケールは未確定のままになります。
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+設定が `provider: { id: "none" }` のときに限り、`false` を返します。これは人手のみのモード（[機械翻訳なしで実行する](/ja/docs/human-only-workflow)を参照）で、プロバイダーは生成されず、API キーも読み込まれません。プロバイダーの費用が発生する操作を提供する画面やツールは、これを読んでそれらの操作を完全に外します。Studio と MCP サーバーが、`--allow-spend` を指定しても費用が発生する操作を提供しないのは、この仕組みによるものです。
+
+```ts title="シグネチャ"
+function isMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+): boolean;
+```
+
+**戻り値**：`boolean`
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+設定と、操作を表す短いフレーズを受け取り、`provider: { id: "none" }` のときは `SdkError` の `MACHINE_TRANSLATION_DISABLED` をスローします。`translate` を、明示的な「未処理のものをすべて翻訳する」操作でラップする前に呼び出してください。そうすると、その操作は `retranslateEntry` と同じ形で失敗し、翻訳メモリだけで黙って埋めてしまうことがありません。
+
+```ts title="シグネチャ"
+function assertMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+  action: string,
+): void;
+```
+
+**戻り値**：`void`
+
+**例外**：[`MACHINE_TRANSLATION_DISABLED`](/ja/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+設定と 1 つのロケールを受け取り、そのロケールが設定済みの `targetLocales` のどれでもない場合は、`SdkError` の `UNKNOWN_LOCALE` をスローします。メッセージは、`locales` フィルターを受け取るすべての SDK 関数と同じです。MCP サーバーの `glossary.get` のように、独自に 1 つのロケールを受け取る画面やツールで呼び出してください。そうすると、間違ったロケールが SDK と同じ形で失敗します。
+
+```ts title="シグネチャ"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**戻り値**：`void`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)

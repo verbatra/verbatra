@@ -1,0 +1,408 @@
+---
+title: "プロジェクトの検査"
+seoTitle: "SDK：ファイルを書き込まずにプロジェクトを検査する"
+description: "doctor、check、diff を支える読み取り専用の SDK エントリポイントと、整合性チェック、ロックファイルと来歴の状態を扱う関数です。どれもファイルを書き込みません。"
+type: reference
+---
+## 書き込まずに状態を検査する
+
+どのエントリポイントも翻訳をせず、ロックファイルも変更しません。ファイルを書き込むのは `extract`（ソースカタログ）だけで、ネットワークリクエストを送るのは `live` を指定した `doctor`（プロバイダーの言語リスト）だけです。
+
+### doctor
+
+<AvailableFrom version="0.9.0" />
+
+プロジェクトの構成を検証し、費用はかかりません。プロバイダーを生成せず、`live` が求めない限りネットワークリクエストも送りません。API キーの値を読み込むのは、その 1 回の言語リストのリクエストのためだけです（LibreTranslate には API キーを渡しません）。先に失敗したチェックがあっても、すべてのチェックが実行されるので、1 回の呼び出しで、互いに独立したすべての問題が報告されます。チェックの一覧は [`verbatra doctor`](/ja/docs/cli/doctor#チェック内容) にあります。
+
+```ts title="シグネチャ"
+function doctor(
+  input?: DoctorInput,
+  deps?: DoctorDeps,
+): Promise<DoctorResult>;
+```
+
+<SdkTypeTable name="DoctorInput" />
+
+**戻り値**：`DoctorResult`
+
+**例外**：[`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found)
+
+<AvailableFrom version="0.12.0" />
+
+`network-policy` チェックは、有効な[ネットワークポリシー](/ja/docs/network-policy)がプロバイダーのホストまたはプロキシを拒否した場合や、ネットワーク変数が無効な場合に失敗します。プロバイダーが `none` の場合は通過します。情報提供のチェックは失敗せず、何も名前を変えません。`warn` では `ok` は true のままです。各チェックが何を示し、いつ `skipped` になるかは、[チェックの表](/ja/docs/cli/doctor#チェック内容)にあります。
+
+<AvailableFrom version="0.12.0" />
+
+`locales` チェックは、`translate` が費用をかける前に行うのと同じように、設定されたすべてのロケールを判定します。対応していないロケールがあれば失敗し、`none` では `skipped` になり、判定結果を `LocaleCapabilityReport` として `DoctorResult.locales` に返します。`live: true` を指定すると、最初にプロバイダーの最新の言語リストを取得します。このとき、クォータは消費しません。取得の結果は `LocaleCapabilityReport.live` に示されます。詳しくは[実行前の対応確認](/ja/docs/language-support#実行前の対応確認)を参照してください。
+
+`literals` を指定すると、`config` と `untranslated-literals` のチェックだけが実行されます。[`verbatra doctor --literals`](/ja/docs/cli/doctor#未翻訳のリテラル) と同じです。`doctor` は設定ファイルを自分で読み込むので、設定ファイルのないプロジェクトではエラーをスローせず、レポートを返します。`ok` が true になるのは、失敗したチェックがない場合に限ります。`CONFIG_NOT_FOUND` をスローするのは、存在しない `configPath` を明示的に指定した場合だけです。
+
+<AvailableFrom version="0.12.0" />
+
+失敗したチェックだけが `fix` を持ちます。命令形で書かれた次の手順が 1 つ入ります。`detail` と同じように、変数名とパスは示しますが、API キーの値は示しません。
+
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+読み込んだ設定ファイルについて、プロジェクトのデータがどこに行くかを、バージョン付きの `DataFlowManifest` として記述します。[`verbatra doctor --data-flow`](/ja/docs/cli/doctor#データフロー) がこれを出力し、フィールドを一覧表示します。`doctor({ dataFlow: true })` は、これを `DoctorResult.dataFlow` として返します。API キーは読み込まず、ネットワークリクエストも送りません。無効なネットワーク変数や読み取れないソースファイルは、スローされずにマニフェストの中で報告されます。
+
+```ts title="シグネチャ"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**戻り値**：`DataFlowManifest`
+
+**例外**：[`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+`DataFlowManifest` の zod スキーマです。CI のステップやレビュー担当者のツールが、マニフェストを検証できます。より新しい verbatra がバージョン 1 の範囲内でフィールドを追加することがあるので、未知のフィールドは保持されます。知らないフィールドは無視してください。`DATA_FLOW_MANIFEST_VERSION` は、このビルドが書き込む `version` です。
+
+```ts title="シグネチャ"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+アプリケーションのソースから翻訳の呼び出し箇所をスキャンし、見つかったものをソースロケールのカタログにマージします。カタログがまだ存在しない場合も同様です。プロバイダーは生成せず、API キーは読み込まず、ネットワークリクエストも送りません。
+
+```ts title="シグネチャ"
+function extract(
+  input: ExtractInput,
+  deps?: ExtractDeps,
+): Promise<ExtractResult>;
+```
+
+<SdkTypeTable name="ExtractInput" />
+
+**戻り値**：`ExtractResult`
+
+**例外**：[`EXTRACT_NOT_CONFIGURED`](/ja/docs/error-codes#extract_not_configured)、[`EXTRACT_FS_UNSUPPORTED`](/ja/docs/error-codes#extract_fs_unsupported)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`SOURCE_UNWRITABLE`](/ja/docs/error-codes#source_unwritable)
+
+**例**：[ソースコードからキーを抽出する](/ja/docs/programmatic-api#ソースコードからキーを抽出する)
+
+追加されるのは、本当に新しいキーだけです（[書き込むもの](/ja/docs/cli/extract#書き込むもの)）。スキャンが解決できなかったものは、`dynamic`、`conflicts`、`diagnostics` にデータとして返り、スローされることはありません（[推測せずに報告するもの](/ja/docs/cli/extract#推測せずに報告するもの)）。結果にソースファイルの内容が含まれることもありません。
+
+`config.extract` が、フレームワークとソースコードのルートディレクトリを指定します。探索には、`SdkFs` の省略可能な `readDirectory` メンバーが必要です。ない場合は `EXTRACT_FS_UNSUPPORTED` になります。
+
+### check
+
+<AvailableFrom version="0.4.0" />
+
+ロケールごとのドリフトを、件数として報告します。`missing`（ソースにあり、ターゲットにない）、`stale`（前回の翻訳以降にソースが変わった）、`upToDate` です。CI のゲートとして使います。
+
+```ts title="シグネチャ"
+function check(
+  input: CheckInput,
+  deps?: CheckDeps,
+): Promise<CheckSummary>;
+```
+
+<SdkTypeTable name="CheckInput" />
+
+**戻り値**：`CheckSummary`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)
+
+**例**：[書き込まずに CI でチェックする](/ja/docs/programmatic-api#書き込まずに-ci-でチェックする)
+
+`inSync` が true になるのは、チェックしたすべてのロケールで、欠落も古くなったキーもない場合に限ります。
+
+<AvailableFrom version="0.11.0" />
+
+`consistency: true` を指定すると、各 `LocaleCheckSummary` に `inconsistencies` も付きます。ロケールが、異なるキーの下で、同じソース文字列を複数の訳し方で翻訳している場合に、ソース文字列ごとに 1 つの `InconsistencyGroup` が入ります。形は[一貫性レポート](/ja/docs/cli/check#一貫性レポート)に示されるものと同じです。これはレポートにすぎません。`inSync`、件数、ファイルを変更することはありません。
+
+<AvailableFrom version="0.12.0" />
+
+各 `LocaleCheckSummary` には `provenance` も付きます。ロケールが値を持つキーについて、`verbatra.provenance.json` から読み取った `byOrigin` と `byReviewState` の件数です（[出どころ](/ja/docs/the-lock-file#来歴各値を誰が書いたか)）。ファイルが壊れている場合や、より新しい verbatra のものである場合は、これも、レポート内のほかのすべての来歴フィールドも、エラーにはならずに省かれます。
+
+<AvailableFrom version="0.12.0" />
+
+各 `LocaleCheckSummary` には `protected` も付きます。`stale` のうち、`humanEdits` と `pinnedKeys` の下で、`translate` の実行が人に任せる分です（[保護されたキー](/ja/docs/cli/check#保護されたキー)）。これらも古いものとして数えられるので、人が解決するまで `inSync` は false のままです。欠落している固定されたキーは、欠落としてだけ数えられます。
+
+<AvailableFrom version="0.12.0" />
+
+`qa: true` を指定すると、`check` はコミット済みのすべての値に対して[品質チェック](/ja/docs/cli/check#品質チェック)も実行します。API キーは不要で、何も書き込みません。各 `LocaleCheckSummary` に `qa` のレポートが付き、サマリーに `qa` の合計が付きます。形はそのセクションに示されているとおりです。エラーの理由は `INTEGRITY_GATE_REASONS` から、警告の理由は `REVIEW_REASON_CODES` から、重大度は `QA_SEVERITIES` から取られます。`qaSeverity: "error"` は警告を飛ばします。`inSync` は変わりません。CI のゲートは `qa.errors` を読み、厳格にする場合は `qa.warnings` も読みます。
+
+<AvailableFrom version="0.12.0" />
+
+各 `LocaleCheckSummary` には `incompletePlurals` も付きます。キー順に並び、ターゲット言語が使う CLDR カテゴリが欠けている複数形ごとに、`IncompletePlural` が 1 つ入ります。形は `{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }` です。警告のみです。対象のフォーマットとルールは、[複数形カテゴリ](/ja/docs/cli/check#複数形カテゴリ)に一覧があります。
+
+`requireReviewed: true` を指定すると、`check` は[レビューゲート](/ja/docs/cli/check#レビュー済みの訳文を必須にする)も実行します。API キーは不要で、何も書き込みません。各 `LocaleCheckSummary` に `review: { unreviewed }` が付き、承認されていない機械クラスのキーが入ります。サマリーには `review: { reviewed, unreviewed, code? }` が付き、そのセクションが示すコードが入ります。レポートが `inSync` を変えることはありません。CI のゲートは `review.reviewed` を読みます。
+
+<AvailableFrom version="0.12.0" />
+
+`sensitive: true` を指定すると、`check` は[機密情報](/ja/docs/cli/check#機密情報)のスキャンも実行します。API キーは不要で、何も書き込みません。サマリーに `sensitive: { findings, glossaryTerms }` が付き、フラグが付いたキーごとに `{ key, fields, detectors }` が 1 つ入ります。一致したテキストは含まれません。CI のゲートは、どちらかがあれば失敗させます。
+
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+編集後に、1 つのロケールファイルをチェックします。そのファイル、上限ファイル（使えない場合は通知）、ターゲットロケールならソースファイルを読みます。プロバイダーは呼び出さず、API キーも読み込まず、何も書き込みません。
+
+```ts title="シグネチャ"
+function checkFile(
+  input: CheckFileInput,
+  deps?: CheckFileDeps,
+): Promise<CheckFileSummary>;
+```
+
+<SdkTypeTable name="CheckFileInput" />
+
+**戻り値**：`CheckFileSummary`
+
+**例外**：[`NOT_A_LOCALE_FILE`](/ja/docs/error-codes#not_a_locale_file)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)
+
+`file` は絶対パスか、`cwd` からの相対パスです。`CheckFileSummary` の形は[単一のファイル](/ja/docs/cli/check#単一のファイル)に示されています。ターゲットファイルは `qa: true` の `check` と同じようにチェックされ、ソースファイルは構文だけがチェックされます。解析できないファイルは、スローされません。そのロケールに `QaSyntaxFinding` が 1 つ付き、JSON と YAML では `AdapterError.position` が報告するのと同じ位置が示されます。設定されたどのロケールのファイルでもないパスや、存在しないファイルは、`NOT_A_LOCALE_FILE` をスローします。
+
+### diff
+
+<AvailableFrom version="0.4.0" />
+
+`check` の詳細版です。計算は同じですが、件数の代わりに、ロケールごとのキーの一覧（`missing`、`changed`、`orphaned`）を返します。孤立したキーは報告のみで、`hasPendingChanges` を true にすることはありません。デフォルトの実行は削除をしないためです。
+
+```ts title="シグネチャ"
+function diff(
+  input: DiffInput,
+  deps?: DiffDeps,
+): Promise<DiffSummary>;
+```
+
+<SdkTypeTable name="DiffInput" />
+
+**戻り値**：`DiffSummary`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)
+
+**例**：[書き込まずに CI でチェックする](/ja/docs/programmatic-api#書き込まずに-ci-でチェックする)
+
+`unused: true` を指定すると、設定ファイルの `extract` のルートディレクトリもスキャンします。読み取り専用で、API キーは不要です。どの静的な参照にも指定されていないソースロケールのキーの `unused` レポートが加わります。これは `orphaned` のどの一覧とも別で、`hasPendingChanges` を true にすることもありません。フィールドの説明は[使われていないソースキー](/ja/docs/cli/diff#使われていないソースキー)にあります。
+
+<AvailableFrom version="0.12.0" />
+
+各 `LocaleDiff` には `changedOrigins` も付きます。`changed` の各キーの現在の値の出どころです（`machine`、`human`、`external` など）。再翻訳が、誰の作業を置き換えるかを示します。
+
+<AvailableFrom version="0.12.0" />
+
+各 `LocaleDiff` には `protected` も付きます。`translate` の実行が手をつけない欠落しているキーと変更されたキーで、ソートされています。これらも未処理として数えられます。
+
+### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
+
+各ロケールの変更されたキーについて、現在のターゲット値が、ソースのプレースホルダーとインラインマークアップに一致していて、有効な ICU であるかどうかを報告します。各エントリには、`key`、`hasPlaceholders`、`matches`、不一致の場合の `missing` と `extra` のトークン、`icuValid`、`markupMatches`、`markupDetails` が付きます。文字列の値は含まれません。書き込み時のゲートができる前に書かれた値や、verbatra の外で編集された値も、同じように判定されます。Studio は、このキーごとのレポートを表示します。
+
+```ts title="シグネチャ"
+function keyIntegrity(
+  input: KeyIntegrityInput,
+  deps?: KeyIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="KeyIntegrityInput" />
+
+**戻り値**：`readonly LocaleKeyIntegrity[]`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)
+
+<AvailableFrom version="0.12.0" />
+
+各エントリには `icuArmsMatch` と `icuArmDetails` も付きます。値の ICU の `plural`、`selectordinal`、`select` の分岐が、ターゲット言語に合っているかどうかです。[書き込み時のゲート](/ja/docs/translation-safety#ターゲット言語ごとの複数形の分岐)と同じ基準で判定し、誤った分岐ごとに短い問題を 1 つ示します。分岐をチェックしないフォーマットでは、`icuArmsMatch` は常に true です。
+
+`keys` でチェックの対象を絞れます。チェックされるのは、ロケールで「変更された」キーだけです。
+
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+ターゲットロケールの中で、現時点で壊れているすべての訳文を見つけます。プレースホルダーやインラインマークアップの欠落または追加、無効な ICU、ターゲット言語に合わない ICU の分岐です。`keyIntegrity` と異なり、同期状態にかかわらず、ソースとターゲットロケールの両方にあるすべてのキーを同じルールで判定し、失敗したキーだけを返します。`entries` の一覧が空なら、そのロケールは通過しています。
+
+```ts title="シグネチャ"
+function localeIntegrity(
+  input: LocaleIntegrityInput,
+  deps?: LocaleIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="LocaleIntegrityInput" />
+
+**戻り値**：`readonly LocaleKeyIntegrity[]`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)
+
+呼び出しのたびに、ソースと、要求された各ターゲットファイルを、キャッシュなしで読み込んで解析します。
+
+### lockState
+
+<AvailableFrom version="0.5.0" />
+
+ロックファイルの有無、バージョン、ロケールごとのドリフト（ベースラインのキー数と、欠落、古い、最新の件数）を報告します。`exists` は明示的な確認から得られるので、ロックファイルがない場合と空の場合を区別できます。ない場合、結果は `{ exists: false }` だけで、他には何も読み込まれません。
+
+```ts title="シグネチャ"
+function lockState(
+  input: LockStateInput,
+  deps?: LockStateDeps,
+): Promise<LockStateResult>;
+```
+
+<SdkTypeTable name="LockStateInput" />
+
+**戻り値**：`LockStateResult`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)
+
+各ロケールには、`check` が報告するのと同じ `provenance` の件数も付きます。
+
+### loadLockFile
+
+<AvailableFrom version="0.5.0" />
+
+ロックファイル自体（`verbatra.lock.json`。`LOCK_FILE_NAME` としてもエクスポートされています）を読み込み、解析した形を返します。形は `{ version, locales }` で、各ロケールは、キーを、最後に翻訳した元のソースのコンテンツハッシュに対応づけます。ファイルがない場合は、空のロックファイルとして扱われます。これは `translate` が前提にしている初回実行時の動作と同じです。ファイルがないことを区別する必要がある場合は、`lockState` を使います。
+
+```ts title="シグネチャ"
+function loadLockFile(
+  input?: LoadLockFileInput,
+  deps?: LoadLockFileDeps,
+): Promise<LockFile>;
+```
+
+<SdkTypeTable name="LoadLockFileInput" />
+
+**戻り値**：`LockFile`
+
+**例外**：[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)
+
+設定ファイルは不要です。
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+来歴ファイル自体（`verbatra.provenance.json`。`PROVENANCE_FILE_NAME` としてもエクスポートされています）を読み込み、保存されている形を返します。形は `{ version, locales }` で、各ロケールは、キーを `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }` の記録に対応づけます。訳文のテキストは含まれません。ファイルがない場合や、より新しい verbatra のものである場合は、空として読まれます。壊れている場合は `PROVENANCE_FILE_INVALID` をスローします。`keyValue`、`localeValues`、`check`、`diff`、`lockState` は、解釈済みのビュー（`KeyProvenance`）を報告します。このビューは `unrecorded` と `external` も区別します。
+
+```ts title="シグネチャ"
+function loadProvenance(
+  input?: LoadProvenanceInput,
+  deps?: LoadProvenanceDeps,
+): Promise<ProvenanceFile>;
+```
+
+<SdkTypeTable name="LoadProvenanceInput" />
+
+**戻り値**：`ProvenanceFile`
+
+**例外**：[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)
+
+設定ファイルは不要です。
+
+### runStatus
+
+<AvailableFrom version="0.5.0" />
+
+直近のドライランでない `translate` または `watch` の実行が `.verbatra-local/run-status.json` に保存した、レビューフラグとトークン使用量のスナップショットを読み込みます。スローすることはありません。使えないファイルは `available: false` として扱われます。このファイルはベストエフォートのテレメトリであり、正しさの基準にはなりません。
+
+```ts title="シグネチャ"
+function runStatus(
+  input?: RunStatusInput,
+  deps?: RunStatusDeps,
+): Promise<RunStatusResult>;
+```
+
+<SdkTypeTable name="RunStatusInput" />
+
+**戻り値**：`RunStatusResult`
+
+設定ファイルは不要です。`{ available: false, reason }`（`RUN_STATUS_UNAVAILABLE_REASONS` を参照）か、`{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` を返します。`incomplete: { failed, partial }` は、記録された実行で失敗したロケールと、途中で止まったロケールを数え、どちらもなければ省かれます。<AvailableFrom version="0.13.5" />
+
+トークン予算が強制されるようになる前のスナップショットも、引き続き読み込まれます。ただし、`supported: false` の `budget` は除かれます（その `tokensUsed: 0` は実際の計測値ではなかったためです）。新しいスナップショットはマーカーのフィールドを 1 つ加えるだけなので、古いリーダーでは、見積もりの予算が追跡されていないものとして表示されることがあります。未知のレビューの理由は無視され、理由がなくなったエントリは破棄されます。
+
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+コミット済みのファイルから、レビューキューを読み込みます。現在の値の出どころが機械クラス（`machine`、`memory`、`fuzzy`、`agent`。`MACHINE_CLASS_ORIGINS` タプル）で、承認されていないすべてのキーを、ターゲットロケールごとに、ソースの順序で並べます。ロケールファイル、`verbatra.lock.json`、`verbatra.provenance.json` を読むので、同じコミットを見ている全員に同じキューが見えます。値が承認または却下されるか、人が新しい値を書くかインポートすると、キーはキューから外れます。エージェントが書き直した値は残り、ソースが変わる前に与えた承認も残ります。最後の `runStatus` のスナップショットは、詳細を加えるだけです。各エントリの `reasons`（実行が既知の理由でフラグを付けなかった場合は空）、ロケールの `fuzzyHits`、`lastRunAt` です。
+
+```ts title="シグネチャ"
+function reviewQueue(
+  input: ReviewQueueInput,
+  deps?: ReviewQueueDeps,
+): Promise<ReviewQueueResult>;
+```
+
+<SdkTypeTable name="ReviewQueueInput" />
+
+**戻り値**：`ReviewQueueResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)
+
+**例**：[レビューキューを処理する](/ja/docs/programmatic-api#レビューキューを処理する)
+
+`{ available: true, locales, lastRunAt? }` を返します。各ロケールは `{ locale, needsReview, approved?, fuzzyHits? }`、各エントリは `{ key, reasons, provenance }` です。`approved` は承認された機械クラスの値を一覧表示し、`includeApproved: true` の場合にだけ含まれます。来歴ファイルが壊れている場合や、より新しい verbatra のものである場合は、`{ available: false, reason: "provenance-unreadable" }` を返します。読み取れないソース、ターゲット、ロックファイルは、`check` が失敗するのと同じように、呼び出しを失敗させます。0.11 までは、キューは直近の実行のフラグだけでした。
+
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance` が出力する、ロケールごとのレポートを作成します。ソースとターゲットロケールの両方に値があるすべてのキーを、ソースの順序で、出どころ、レビューの状態、プロバイダー、モデル、レビュー担当者とともに並べ、`PROVENANCE_BUCKETS` の 1 つの分類に数えます（[来歴レポート](/ja/docs/provenance-evidence#来歴レポート)が定義しています）。プロバイダーは呼び出さず、何も書き込みません。
+
+```ts title="シグネチャ"
+function provenanceReport(
+  input: ProvenanceReportInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportInput" />
+
+**戻り値**：`ProvenanceReportResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)
+
+`deps` には、`generatedAt` の時計となる `now` も渡せます。結果の完全な形は [JSON スキーマ](/ja/docs/provenance-evidence#json-スキーマ)にあります。来歴ファイルが壊れている場合や、より新しい verbatra のものである場合は、すべての値が `unrecorded` として読まれてしまうため、`{ available: false, reason: "provenance-unreadable" }` を返します。読み取れないソース、ターゲット、ロックファイルは、`check` が失敗するのと同じように、呼び出しを失敗させます。このレポートは補足的な証跡であり、法的助言ではありません。
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+`provenanceReport` と同じレポートを作成し、そのエントリを 1 ページずつ返します。必要なら一部の `buckets` のエントリだけに絞り、次のページへのカーソルも付きます。どのページにも、ロケールごとの完全な `total` と `counts` が含まれます。MCP サーバーの `report.provenance` は、これでページ分けします。読み取り専用です。
+
+```ts title="シグネチャ"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**戻り値**：`ProvenanceReportPageResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PAGE_CURSOR_INVALID`](/ja/docs/error-codes#page_cursor_invalid)、[`PAGE_LIMIT_INVALID`](/ja/docs/error-codes#page_limit_invalid)
+
+各ロケールの `entries` が含まれるのは、そのエントリを含むページだけです。1 ページに含まれるエントリは最大 `limit` 件で、デフォルトは `PAGE_LIMIT_DEFAULT` です。`nextCursor` がなくなるまで、同じ `locales` と `buckets` で、`nextCursor` を `cursor` として渡し直します。`available: false` を返す条件と失敗する条件は、`provenanceReport` と同じです。
+
+### previewIcuMessage
+
+<AvailableFrom version="0.13.0" />
+
+1 つの ICU メッセージを、ロケールでの読まれ方で描画します。分岐ごとに 1 行を返します。分岐とは複数形の各カテゴリ、完全一致の分岐、select の各選択肢で、それぞれが現れる箇所ごとに 1 行になります。引数は一度に 1 つだけ変え、残りはサンプル値に固定します。プレビューできるのは、メッセージが ICU 構文を使うフォーマット、つまり `next-intl-json` と `arb` だけです。`custom:` を含むほかのフォーマットは、`supported: false` を返します。メッセージは信頼できないテキストで、呼び出しがそれに対してスローすることはありません。20,000 文字を超えるメッセージ、16 段を超えて波括弧が入れ子になっているメッセージ、`{` と `<` が合わせて 256 個を超えるメッセージ、有効な ICU でないメッセージは、`reason` 付きの `valid: false` として返ります。未知のロケールも同様です。ファイルの読み書きもリクエストもしません。
+
+```ts title="シグネチャ"
+function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
+```
+
+<SdkTypeTable name="IcuPreviewInput" />
+
+**戻り値**：`IcuPreviewResult`
+
+数値と日付には、このランタイムの Node の CLDR データが使われます。日付は、`args` の数値がその時点を設定しない限り、UTC の固定された時点で描画されます。そのため、アプリケーション自身のランタイムが出力するテキストとは異なることがあります。1 行には、`segments` が入ります。種類は `text`、`argument`、`tag` のプレーンテキストで、解釈すべきマークアップは入りません。入れ子になった引数の行では、外側の引数を、その引数を含む分岐に固定します。そのため、行にはその行が指す分岐が表示され、外側の引数は `held` に一覧表示されます。plural、ordinal、select の引数に `args` で値を渡すと、その値が動かす軸ごとに、`supplied` と印が付いた行が 1 行加わり、その値が届く分岐を示します。ある軸のどの分岐にも届かない値は、行を加えません。返る行は最大 24 行で、1 つの出力の予算内に収まります。ラベルとテキストが同じ行はまとめられ、届く分岐が省かれた場合は `truncated` が設定されます。

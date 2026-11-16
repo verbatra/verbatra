@@ -29,7 +29,8 @@ Protokoll dessen, was schon übersetzt wurde:
 | --- | --- | --- |
 | missing | das Ziel hat den Key noch nicht | übersetzt ihn |
 | changed | die Quelle passt nicht mehr zum festgehaltenen Hash | übersetzt ihn |
-| unchanged | die Quelle passt noch zum festgehaltenen Hash | lässt ihn in Ruhe |
+| unchanged | die Quelle passt noch zum festgehaltenen Hash, oder es ist keiner festgehalten | lässt ihn in Ruhe |
+| empty source | der Quellwert ist leer | überspringt ihn und zählt ihn getrennt |
 | orphaned | der Key steht im Ziel, aber nicht mehr in der Quelle | meldet ihn; entfernt ihn nur mit `--prune` oder `prune: true` |
 
 ### Zurückgehaltene Keys
@@ -45,7 +46,7 @@ auflöst; siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human
 
 Jeder Kandidat wird zuerst im [Übersetzungs-Cache](/de/docs/the-cache) nachgeschlagen. Ein Treffer wird
 wiederverwendet und erreicht den Provider nie. Von den Fehltreffern werden Keys mit demselben
-Quellinhalt gruppiert, sodass dieser Text einen Request pro Locale kostet statt einen pro Key.
+Quellinhalt gruppiert, sodass dieser Text eine Anfrage pro Locale kostet statt eine pro Key.
 
 Die Gruppen gehen in aufeinanderfolgenden Teil-Batches von höchstens `maxBatchSize` (Standard 50)
 an deinen Provider, jeder mit den Einträgen, den Glossarbegriffen dieser Locale und deinem `tone`.
@@ -100,7 +101,7 @@ Was dieses Design garantiert:
 - Ein zweiter Lauf ohne Änderungen an der Quelle ruft den Provider für nichts auf.
 - Nichts, was eine Prüfung abgelehnt hat, wird je geschrieben, und nichts Zurückgehaltenes wird als
   erledigt festgehalten.
-- Ein Probelauf (`--dry-run`) hört nach dem Vergleich auf und liefert dieselbe Form der
+- Ein Dry Run (`--dry-run`) hört nach dem Vergleich auf und liefert dieselbe Form der
   Zusammenfassung, ohne einen Provider zu bauen oder eine Datei zu schreiben.
 
 Was es nicht tut: Es beurteilt nie, ob eine Übersetzung gut ist. Dafür gibt es

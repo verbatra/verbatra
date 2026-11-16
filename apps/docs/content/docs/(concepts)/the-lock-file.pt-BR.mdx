@@ -1,0 +1,114 @@
+---
+title: O arquivo de lock e a procedência
+seoTitle: "Arquivo de lock e arquivo de procedência"
+description: "O que o arquivo de lock e o de procedência registram, como a divergência é detectada, como execuções simultâneas são serializadas e por que versionar os dois."
+type: concept
+---
+O `verbatra.lock.json` é a linha de base com a qual toda execução compara, para que uma execução possa pular o que está atualizado e retraduzir o que divergiu. Ao lado dele, o [`verbatra.provenance.json`](#procedência-quem-escreveu-cada-valor)
+registra quem ou o que escreveu cada valor.
+
+## O que ele registra
+
+Para cada locale de destino, um hash por chave traduzida da entrada de origem por trás da tradução atual, mais um campo `version`: nenhuma tradução, nenhum segredo. O hash cobre o valor de origem mais a descrição, o significado, o indicador de plural e os placeholders, então uma descrição alterada também deixa a chave obsoleta. Ele normaliza o Unicode para NFC e as quebras de linha para LF, então salvar de novo um arquivo de origem com quebras CRLF não muda nada.
+
+## Como a divergência é detectada
+
+Uma chave de origem não vazia que o destino não tem está ausente. Para uma chave que ele tem, o hash atual da origem é comparado com o registrado: uma diferença significa que a origem mudou e a chave é retraduzida; uma correspondência significa que ela nunca é enviada, então uma segunda execução sem edições na origem não custa nada. A sequência de etapas está em [Como funciona uma execução](/pt-BR/docs/how-it-works).
+
+### Chaves protegidas
+
+<AvailableFrom version="0.12.0" />
+
+A exceção é uma chave alterada cujo valor uma pessoa escreveu ou importou: por padrão, ela fica protegida (veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations)) e permanece obsoleta em vez de ser retraduzida.
+
+## Adotar um projeto existente
+
+Arquivos de locale que já contêm traduções revisadas não são retraduzidos. Na primeira execução, não há arquivo de lock, então nada pode estar obsoleto: uma chave que o destino tem mantém o valor, só as chaves que ele não tem são traduzidas, e a execução registra todos os hashes de origem como linha de base, sem custo de provedor.
+
+A adoção se baseia na presença da chave, nunca no valor, o que tem duas consequências:
+
+- **Um valor vazio ou não traduzido conta como traduzido.** Exclua a chave (esvaziá-la não basta) e a próxima execução a traduz.
+- **Uma tradução desatualizada é registrada como atual.** Corrija-a ou exclua-a antes da primeira execução.
+
+A mesma regra mantém as formas de plural escritas manualmente, então `generatePlurals` é seguro durante a adoção. Para pré-visualizar tudo isso, execute [`verbatra diff`](/pt-BR/docs/cli/diff) ou `verbatra translate --dry-run`.
+
+## Como ele é atualizado
+
+- Uma execução completa (`translate`, `watch` ou uma importação) substitui as entradas de um locale pelo resultado da execução.
+- Uma ação sobre uma única chave, como uma retradução pelo Studio, mescla apenas a entrada dessa chave.
+
+De um jeito ou de outro, uma chave retida nesta execução (uma verificação de integridade ou uma chamada ao provedor que falhou, uma origem com ICU inválido) mantém o hash anterior, então a próxima execução tenta de novo. Chaves órfãs não recebem entrada, e chaves ordenadas mantêm os diffs pequenos.
+
+## A trava de escrita
+
+Duas execuções que tocam o mesmo locale ao mesmo tempo poderiam comparar com uma linha de base obsoleta e pagar duas vezes, então toda gravação mantém uma trava entre processos para aquele locale em `.verbatra-local/`. Um segundo processo que grava espera e depois compara com uma linha de base que inclui o resultado do primeiro. Locales diferentes nunca bloqueiam uns aos outros.
+
+O que a trava garante:
+
+- **Um tempo limite não custa nada.** `--lock-timeout` limita só a espera antes de qualquer chamada ao provedor, então um locale que desiste não gastou nem gravou nada; registrar um arquivo gravado espera os dez minutos completos do padrão.
+- **Travas abandonadas não bloqueiam você.** Uma trava cujo processo não existe mais nesta máquina é recuperada na hora, e uma que não é renovada há 30 segundos (quem a mantém renova a cada 10) conta como abandonada.
+- **Uma interrupção libera as travas.** Ctrl-C ou SIGTERM durante `translate` ou `import`, e a segunda interrupção que força a parada do `watch`, liberam todas as travas antes de o processo terminar.
+- **Uma trava perdida interrompe a gravação.** Cada trava carrega um token aleatório, verificado antes de toda gravação; quando outra execução assumiu a trava, a gravação para com [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended) e nada é gravado.
+
+O que ela não cobre:
+
+- **Uma trava de outra máquina** (uma unidade de rede compartilhada) ou de um verbatra anterior à 0.12.0 nunca é recuperada automaticamente; [Solução de problemas](/pt-BR/docs/troubleshooting) traz os passos para limpá-la.
+- **Uma pausa longa entre a verificação e a gravação.** Uma execução pausada logo depois da verificação do token (uma máquina em repouso, um processo parado) ainda pode gravar uma vez ao retomar.
+- **Hosts que compartilham um nome.** Fora do Linux, o nome do host é a única identidade da máquina, então dois contêineres com o mesmo nome de host que compartilham `.verbatra-local/` podem confundir a trava ativa um do outro com uma abandonada. Dê a cada um o próprio nome de host ou a própria cópia de trabalho.
+
+## Um código de locale com grafia diferente
+
+<AvailableFrom version="0.12.0" />
+
+O arquivo de lock, o cache e o arquivo de procedência indexam o estado pelo código de locale da sua configuração. Quando você muda a grafia de um, digamos de `pt_BR` para `pt-BR`, a próxima execução de `translate` ou `watch` transfere o estado antigo para o novo código uma vez e relata [`LOCALE_STATE_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_carried_over). Uma alteração de origem feita antes da renomeação ainda é retraduzida, e as traduções em cache ainda são reutilizadas.
+
+A mudança só acontece quando não há ambiguidade: `pt-BR` não tem estado próprio, e o arquivo guarda estado sob exatamente uma grafia dele com sublinhado (ou sua grafia do gettext, como `sr@latin` para `sr-Latn`), comparadas sem diferenciar maiúsculas de minúsculas. O estado que `pt-BR` já tem nunca é sobrescrito. Se a mudança não puder ser gravada, esse locale não é executado e falha com [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), então a próxima execução tenta de novo; os outros locales são executados normalmente.
+
+Até lá, toda leitura trata o estado antigo como o de `pt-BR` sem gravar, então uma chave obsoleta é relatada como obsoleta. Uma gravação de uma única chave (uma edição, uma retradução, uma decisão de revisão) e o `verbatra import` movem o estado primeiro, do mesmo modo. A verificação `locale-state` do [`verbatra doctor`](/pt-BR/docs/cli/doctor) nomeia qualquer estado que sobrou.
+
+## Ausente ou corrompido
+
+Um arquivo de lock ausente é uma [primeira execução](#adotar-um-projeto-existente), não um erro. Um que não pode ser analisado, está estruturalmente errado, é grande demais ou está em uma versão não aceita faz a execução falhar com [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid) em vez de ser sobrescrito, para que você possa restaurá-lo em vez de perder a linha de base.
+
+## Procedência: quem escreveu cada valor
+
+<AvailableFrom version="0.12.0" />
+
+O `verbatra.provenance.json` registra qual caminho de gravação produziu cada valor que está agora no arquivo de locale e se alguém o revisou. Um verbatra mais antigo, como um fixado na CI, o ignora.
+
+| Valor de `origin` | Gravado por |
+| --- | --- |
+| `machine` | uma resposta do provedor em `translate`, `watch` ou em uma retradução de uma única chave, com o `id` do provedor e, quando conhecido, o modelo |
+| `memory` | um acerto exato no cache, inclusive todo valor que uma execução somente humana (provedor `none`) preenche |
+| `fuzzy` | um acerto no [cache aproximado](/pt-BR/docs/the-cache#reutilização-aproximada) |
+| `human` | a edição de uma pessoa pelo `editEntry` do SDK, como o diálogo de edição do Studio faz |
+| `agent` | a edição de um agente de IA pelo `editEntry` com `actor: "agent"` |
+| `import` | uma linha aceita do `verbatra import` |
+| `unknown` | uma decisão de revisão sobre um valor que não tinha registro, ou um valor de `origin` que esta versão não conhece |
+
+Mais dois são derivados na leitura: `unrecorded` é um valor sem registro, como toda chave fica depois de atualizar o verbatra; `external` não bate mais com o hash do registro porque algo fora do verbatra o alterou, como o pull request de um tradutor, um verbatra mais antigo ou um merge. Os campos que cada leitura retorna estão na [referência do SDK](/pt-BR/docs/sdk/inspect#loadprovenance).
+
+O que o arquivo garante:
+
+- **Diffs estáveis.** Nenhum texto traduzido nem carimbo de data e hora, um registro ordenado por linha, então uma execução que não altera nada deixa o arquivo inalterado. Em um conflito de merge, fique com o lado que corresponde ao arquivo de locale que você mantém: um registro que não bate é lido como `external`, o que protege o valor da retradução.
+- **Registros novos para valores novos.** Uma gravação que altera um valor substitui o registro dele por um novo, não revisado; uma gravação que deixa valor e origem inalterados o mantém.
+- **Nenhuma sobrescrita silenciosa.** Um arquivo corrompido interrompe toda gravação com [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid) antes de qualquer arquivo de locale mudar; os relatórios omitem seus campos de procedência. Um arquivo de um verbatra mais novo é deixado intacto, e um que cresceria demais para ser lido de volta não é gravado ([`PROVENANCE_FILE_TOO_LARGE`](/pt-BR/docs/error-codes#provenance_file_too_large)).
+
+Ele não é à prova de adulteração; para transformá-lo em um relatório, veja [Registrar evidências de tradução automática](/pt-BR/docs/provenance-evidence).
+
+### Decisões de revisão
+
+<AvailableFrom version="0.12.0" />
+
+Um registro pode carregar uma decisão de revisão, `approved` ou `rejected`, com um nome de `reviewer` opcional. A página **Review** do Studio, as funções de revisão do SDK e as ferramentas de revisão do MCP as gravam (veja [Revisar no Studio](/pt-BR/docs/review-in-studio), [Revisar e retraduzir](/pt-BR/docs/sdk/review) e [verbatra mcp](/pt-BR/docs/cli/mcp)); as ferramentas do MCP repassam a decisão de uma pessoa e exigem o nome dela. Uma decisão vale para o valor exato que quem revisou viu, e é recusada se ele mudou.
+
+- **Uma aprovação** altera só o arquivo de procedência e volta a ser lida como não revisada quando o texto de origem muda.
+- **Uma rejeição** remove o valor e a entrada dele no arquivo de lock, então a chave é lida como ausente até a próxima execução de `translate` ou até uma pessoa escrever um novo valor. O registro guarda um hash do texto removido e a entrada do cache é descartada, então uma execução não recoloca o mesmo texto. O XLIFF não consegue descartar uma tradução, então uma rejeição nele é recusada com [`REVIEW_REJECT_UNSUPPORTED`](/pt-BR/docs/error-codes#review_reject_unsupported).
+
+Só os valores `machine`, `memory`, `fuzzy` e `agent` entram na fila de revisão e na barreira `--require-reviewed`. As contagens `byReviewState` em `check` e `lock.state` cobrem todos os valores pela decisão registrada, então um valor que uma pessoa escreveu ou importou, sem decisão, conta como `unreviewed` ali, embora não esteja na fila; leia-as junto com `byOrigin`.
+
+As decisões ficam neste arquivo versionado, então a fila de revisão e o [`verbatra check --require-reviewed`](/pt-BR/docs/cli/check#exigir-traduções-revisadas) enxergam o mesmo estado em todo lugar, e o nome de `reviewer` é público; o verbatra nunca o preenche.
+
+## Incluir no commit
+
+Faça commit de `verbatra.lock.json` e `verbatra.provenance.json` junto com seus arquivos de locale, e nunca os edite manualmente: eles são a linha de base com a qual sua equipe e a CI comparam, e o que um rollback (veja [Desfazer uma execução](/pt-BR/docs/recovery-and-rollback)) restaura.

@@ -14,7 +14,7 @@ Diese Befehle erledigen die Arbeit:
 <Cards>
   <Card title="init" href="/de/docs/cli/init">Eine verbatra-Konfiguration und `.env.example` für dieses Projekt anlegen.</Card>
   <Card title="extract" href="/de/docs/cli/extract">Deinen Anwendungscode nach Übersetzungsaufrufen durchsuchen und die neuen Keys in der Quell-Locale-Datei ergänzen.</Card>
-  <Card title="translate" href="/de/docs/cli/translate">Jedes Ziel-Locale einmal übersetzen, dann beenden.</Card>
+  <Card title="translate" href="/de/docs/cli/translate">Jede Ziel-Locale einmal übersetzen, dann beenden.</Card>
   <Card title="watch" href="/de/docs/cli/watch">Bei jeder Quelländerung neu übersetzen, bis unterbrochen wird.</Card>
   <Card title="check" href="/de/docs/cli/check">Melden, welche Keys pro Locale fehlen oder veraltet sind, nur lesend.</Card>
   <Card title="diff" href="/de/docs/cli/diff">Die genauen Keys pro Locale listen, die hinzugefügt oder neu übersetzt würden oder verwaist sind, nur lesend.</Card>
@@ -45,7 +45,7 @@ Starte das Binary anschließend über deinen Paketmanager:
 
 Du brauchst Node.js `^22.22.0 || >=24` (CLI 0.12.x akzeptiert `^22.18.0 || >=24`).
 
-Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <command>` (npm) oder `pnpm dlx @verbatra/cli <command>` (pnpm) funktionieren beide ohne vorherige lokale Installation. Nutze immer den Namen mit Scope: der Name `verbatra` ohne Scope gehört auf npm nicht zu diesem Projekt.
+Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <command>` (npm) oder `pnpm dlx @verbatra/cli <command>` (pnpm) funktionieren beide ohne vorherige lokale Installation. Nutze immer den Namen mit Scope: Der Name `verbatra` ohne Scope gehört auf npm nicht zu diesem Projekt.
 
 ## Globale Flags
 
@@ -69,7 +69,7 @@ Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nackt
 
 ## .gitignore-Einträge
 
-Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr (`--json` und `--quiet` lassen diese Zeile weg). Das geschieht, sobald die Konfiguration geladen ist, ein Lauf, der danach scheitert, hat es also schon getan. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/de/docs/cli/init). Eine `.gitignore`, die ein symbolischer Link aus dem Projekt hinaus ist, bleibt unverändert, mit einer Warnung, die `--json` und `--quiet` beibehalten.
+Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr (`--json` und `--quiet` lassen diese Zeile weg). Das geschieht, sobald die Konfiguration geladen ist; ein Lauf, der danach scheitert, hat es also schon getan. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/de/docs/cli/init). Eine `.gitignore`, die ein symbolischer Link aus dem Projekt hinaus ist, bleibt unverändert, mit einer Warnung, die `--json` und `--quiet` beibehalten.
 
 ## Terminalausgabe
 

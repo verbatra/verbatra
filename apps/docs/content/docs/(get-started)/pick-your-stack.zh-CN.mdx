@@ -1,0 +1,193 @@
+---
+title: 选择技术栈
+seoTitle: "为 verbatra 选择框架和 i18n 格式"
+description: "找到你的框架，复制配置 verbatra 所需的格式 id 和 init 命令，并查看常见的语言文件布局。"
+type: reference
+---
+在下方找到你的框架，用它的 `init` 命令代替[快速上手](/zh-CN/docs/quickstart)中的那一条。每种文件布局都是 `init` 在找不到语言文件时写入的路径模式；文件已经存在时，`init` 会检测它们的位置，也可以用 `--path` 自行设置路径模式。每种格式的完整行为见[格式](/zh-CN/docs/formats)。部分技术栈还有分步的快速上手，链接放在它们各自小节的末尾。
+
+<StackCards
+  labelledBy="page-title"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "#react-搭配-i18next" },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "#nextjs-搭配-next-intl" },
+    { label: "Vue 和 Nuxt", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "#vue-和-nuxt-搭配-vue-i18n" },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "#angular-搭配-ngx-translate" },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "#flutter" },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "#android" },
+    { label: "iOS 和 macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "#ios-和-macos" },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "#gettext" },
+    { label: "Java 和 Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "#java-和-spring" },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+    { label: "其他格式", icon: "custom", formats: [], href: "#其他格式" },
+  ]}
+/>
+
+## React 搭配 i18next
+
+适用于 i18next、react-i18next 和 next-i18next 项目。
+
+- 格式：`i18next-json`
+- 文件：`locales/{locale}.json`
+
+<InitCommand format="i18next-json" />
+
+详情：[四种 JSON 格式](/zh-CN/docs/formats#四种-json-格式)。
+
+分步指引：[React 快速上手](/zh-CN/docs/quickstart/react)。
+
+## Next.js 搭配 next-intl
+
+适用于 next-intl 的消息文件，其值是 ICU 消息。
+
+- 格式：`next-intl-json`
+- 文件：`messages/{locale}.json`
+
+<InitCommand format="next-intl-json" />
+
+详情：[四种 JSON 格式](/zh-CN/docs/formats#四种-json-格式)。
+
+分步指引：[Next.js 快速上手](/zh-CN/docs/quickstart/nextjs)。
+
+## Vue 和 Nuxt 搭配 vue-i18n
+
+适用于 vue-i18n（包括 Nuxt I18n），使用单花括号占位符和竖线分隔的复数。
+
+- 格式：`vue-i18n-json`
+- 文件：`src/locales/{locale}.json`
+
+<InitCommand format="vue-i18n-json" />
+
+详情：[四种 JSON 格式](/zh-CN/docs/formats#四种-json-格式)。
+
+分步指引：[Vue 快速上手](/zh-CN/docs/quickstart/vue)。
+
+## Angular 搭配 ngx-translate
+
+适用于 ngx-translate 的 JSON，扁平或嵌套均可。
+
+- 格式：`ngx-translate-json`
+- 文件：`src/assets/i18n/{locale}.json`
+
+<InitCommand format="ngx-translate-json" />
+
+详情：[四种 JSON 格式](/zh-CN/docs/formats#四种-json-格式)。
+
+分步指引：[Angular 快速上手](/zh-CN/docs/quickstart/angular)。
+
+## Flutter
+
+适用于 Flutter 的 Application Resource Bundle。`init` 还会设置 `localeStyle: "posix"`，所以 `pt-BR` 写成 `app_pt_BR.arb`，这正是 `flutter gen-l10n` 读取的名称。
+
+- 格式：`arb`
+- 文件：`lib/l10n/app_{locale}.arb`
+
+<InitCommand format="arb" />
+
+详情：[ARB](/zh-CN/docs/formats#arb)。
+
+分步指引：[Flutter 快速上手](/zh-CN/docs/quickstart/flutter)。
+
+## Android
+
+适用于 `strings.xml` 资源。`init` 还会设置 `localeStyle: "android"`，所以该占位符对源语言环境展开为 `values`，对德语展开为 `values-de`。
+
+- 格式：`android-xml`
+- 文件：`app/src/main/res/{locale}/strings.xml`
+
+<InitCommand format="android-xml" />
+
+详情：[Android strings.xml](/zh-CN/docs/formats#android-stringsxml)。
+
+## iOS 和 macOS
+
+有两种格式，取决于你的项目如何存放字符串。对于带有 `.stringsdict` 复数的 `.strings` 文件：
+
+- 格式：`apple-strings`
+- 文件：`{locale}.lproj/Localizable.strings`
+
+<InitCommand format="apple-strings" />
+
+对于 Xcode String Catalog，即一个包含所有语言环境的文件。先在 Xcode 中创建该 String Catalog：verbatra 会写入其中，但从不创建它。
+
+- 格式：`apple-xcstrings`
+- 文件：`{locale}Localizable.xcstrings`
+
+路径模式需要 `{locale}` 占位符，但对 String Catalog 它展开为空：所有语言环境都读写同一个文件 `Localizable.xcstrings`。
+
+<InitCommand format="apple-xcstrings" />
+
+详情：[Apple .strings](/zh-CN/docs/formats#apple-strings) 和 [Xcode String Catalogs](/zh-CN/docs/formats#xcode-string-catalogs-xcstrings)。
+
+## gettext
+
+适用于 `.po` 消息目录及其 `.pot` 模板，Python、PHP 和 C 项目常用。`init` 还会设置 `localeStyle: "posix"`，所以 `pt-BR` 写成 `pt_BR`。
+
+- 格式：`gettext-po`
+- 文件：`locales/{locale}/LC_MESSAGES/messages.po`
+
+<InitCommand format="gettext-po" />
+
+详情：[gettext .po/.pot](/zh-CN/docs/formats#gettext-popot)。
+
+## Java 和 Spring
+
+适用于 `.properties` 消息包。`init` 还会设置 `localeStyle: "posix"`，所以 `pt-BR` 写成 `messages_pt_BR.properties`。
+
+- 格式：`properties`
+- 文件：`src/main/resources/messages_{locale}.properties`
+
+<InitCommand format="properties" />
+
+详情：[Properties](/zh-CN/docs/formats#properties)。
+
+## .NET
+
+适用于 `.resx` 资源文件。图片、图标和设计器条目保持不变。
+
+- 格式：`resx`
+- 文件：`Resources/Strings.{locale}.resx`
+
+<InitCommand format="resx" />
+
+详情：[.NET .resx](/zh-CN/docs/formats#net-resx)。
+
+## YAML
+
+适用于嵌套的 YAML 语言文件，使用 i18next 风格的 `{{double-brace}}` 占位符。
+
+- 格式：`yaml`
+- 文件：`locales/{locale}.yml`
+
+<InitCommand format="yaml" />
+
+详情：[YAML](/zh-CN/docs/formats#yaml)。
+
+## XLIFF
+
+适用于来自 Angular 的 `ng extract-i18n`、CAT 工具或翻译公司的 XLIFF 1.2 和 2.0 文档。
+
+- 格式：`xliff`
+- 文件：`locales/{locale}.xlf`
+
+<InitCommand format="xliff" />
+
+详情：[XLIFF](/zh-CN/docs/formats#xliff)。
+
+## INI
+
+适用于经典的 INI 文件，带一层 `[section]` 标题。
+
+- 格式：`ini`
+- 文件：`locales/{locale}.ini`
+
+<InitCommand format="ini" />
+
+详情：[INI](/zh-CN/docs/formats#ini)。
+
+## 其他格式
+
+verbatra 未内置的格式，仍然可以通过你自己编写的适配器来翻译。见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)。

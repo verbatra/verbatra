@@ -174,7 +174,7 @@ Une locale que l'annulation a empêchée de démarrer porte le [code d'erreur `R
 `extract` est le seul point d'entrée qui lit du code applicatif plutôt qu'un fichier de locale. Il
 n'écrit que le catalogue source, et seulement les clés vraiment nouvelles : une clé déjà présente
 garde sa valeur, et une clé qu'aucun site d'appel ne mentionne est laissée telle quelle. Tout ce
-que l'analyse ne peut pas résoudre revient sous forme de données, donc un dry run fait un bon
+que l'analyse ne peut pas résoudre revient sous forme de données, donc une exécution à blanc fait un bon
 garde-fou avant l'exécution qui écrit.
 
 ```ts
@@ -320,7 +320,7 @@ if (retry.accepted) {
 
 `retranslateEntry` refuse avec `KEY_PROTECTED` une valeur écrite par une personne, y compris celle
 que `editEntry` vient d'enregistrer, sauf si tu passes `includeHuman: true` ou si la config définit
-`humanEdits: "overwrite"`. C'est pourquoi la recette le passe. Une clé épinglée est toujours refusée ; voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+`humanEdits: "overwrite"`. C'est pourquoi la recette le passe. Une clé épinglée est toujours refusée ; voir [Garder les traductions humaines](/fr/docs/protecting-human-translations).
 
 ## Traiter la file de relecture
 
@@ -413,7 +413,7 @@ const summary = await importWorkbook({ config, workbook: exported.path });
 console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} failed`);
 ```
 
-Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans rien écrire. Voir [Traduction humaine](/fr/docs/manual-translation) pour ce que les traducteurs peuvent modifier et comment les lignes sont validées.
+Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans rien écrire. Voir [Confier avec Excel ou CSV](/fr/docs/manual-translation) pour ce que les traducteurs peuvent modifier et comment les lignes sont validées.
 
 ## L'aller-retour TMX
 

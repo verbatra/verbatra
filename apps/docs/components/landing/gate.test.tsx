@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { snippetLength } from "@/lib/display-width";
 import {
   GATE_CHECK_COMMAND,
   GATE_CHECK_LINES,
@@ -20,11 +21,10 @@ import {
   GATE_TARGET_EXCERPT,
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
+import type { Locale } from "@/lib/locales";
+import { MESSAGE_CATALOGS, type Messages } from "@/lib/message-catalogs";
 import { docsGlobalCss, docsStylesheetRules, uiTokensCss } from "@/lib/stylesheet-rules";
-import de from "@/messages/de.json";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 import { cssBlock, literalColours } from "@/test-support/css-block";
 import {
   GATE_ACCENT_MS,
@@ -88,7 +88,7 @@ async function renderIn(locale: string): Promise<HTMLElement> {
   rendering.locale = locale;
   const element = document.createElement("div");
   element.innerHTML = renderToStaticMarkup(
-    <NextIntlClientProvider locale={locale} messages={locale === "de" ? de : en}>
+    <NextIntlClientProvider locale={locale} messages={locale === "de" ? MESSAGE_CATALOGS.de : en}>
       {await Gate()}
     </NextIntlClientProvider>,
   );
@@ -103,6 +103,19 @@ beforeAll(async () => {
 function frames(): Element[] {
   return Array.from(root.querySelectorAll("figure.vk-gate-frame"));
 }
+
+const RERUN_PROMISES: Readonly<Record<Locale, RegExp>> = {
+  en: /\b(re-?run|retr(y|ied)|next run|try again)\b/i,
+  de: /(erneut|nochmal|noch einmal|wiederhol|n\u00e4chsten? (lauf|durchlauf))/i,
+  es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
+  fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
+  "zh-CN": /(重新运行|再次运行|重试|下次运行|再运行)/,
+  "pt-BR":
+    /(de novo|novamente|outra vez|tentar novamente|reexecut|próxima execução|nova tentativa)/i,
+  ja: /(再実行|もう一度|再試行|次回の実行|次の実行)/,
+};
+
+const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];
 
 describe("Gate", () => {
   it("is the named region #gate with one h2 and the integrity lead, and no eyebrow", () => {
@@ -166,36 +179,40 @@ describe("Gate", () => {
     expect(stale?.textContent).toContain("exit 1");
   });
 
-  it.each([
-    ["en", en],
-    ["de", de],
-    ["es", es],
-    ["fr", fr],
-  ] as const)("promises no re-run in any %s caption, foot or lead", (locale, catalog) => {
-    const PATTERNS = {
-      en: /\b(re-?run|retr(y|ied)|next run|try again)\b/i,
-      de: /(erneut|nochmal|noch einmal|wiederhol|n\u00e4chsten? (lauf|durchlauf))/i,
-      es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
-      fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
-    } as const;
-    const { foot, ...stale } = catalog.landing.gate.stale;
-    expect(foot.length).toBeGreaterThan(0);
-    expect(JSON.stringify({ ...catalog.landing.gate, stale })).not.toMatch(PATTERNS[locale]);
+  it.each(CATALOG_ENTRIES)(
+    "promises no re-run in any %s caption, foot or lead",
+    (locale, catalog) => {
+      const { foot, ...stale } = catalog.landing.gate.stale;
+      expect(foot.length).toBeGreaterThan(0);
+      expect(JSON.stringify({ ...catalog.landing.gate, stale })).not.toMatch(
+        RERUN_PROMISES[locale],
+      );
+    },
+  );
+
+  const STALE_FOOT: Record<Locale, { ceiling: number; retry: RegExp }> = {
+    en: { ceiling: 92, retry: /retried/i },
+    de: { ceiling: 114, retry: /(erneut|wieder)/i },
+    es: { ceiling: 109, retry: /reintent/i },
+    fr: { ceiling: 118, retry: /(r\u00e9essay|relanc|nouveau)/i },
+    "zh-CN": { ceiling: 57, retry: /重试/ },
+    "pt-BR": { ceiling: 103, retry: /(tentad|nova tentativa|de novo)/i },
+    ja: { ceiling: 72, retry: /再試行/ },
+  };
+
+  it("bounds the stale foot of every locale", () => {
+    expect(Object.keys(STALE_FOOT).sort()).toEqual(Object.keys(MESSAGE_CATALOGS).sort());
   });
 
-  it.each([
-    ["en", en, 92, /retried/i],
-    ["de", de, 114, /(erneut|wieder)/i],
-    ["es", es, 109, /reintent/i],
-    ["fr", fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
-  ] as const)(
-    "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
-    (_locale, catalog, previousLength, retry) => {
+  it.each(CATALOG_ENTRIES)(
+    "names the retry in the %s stale foot, within its ceiling, and never promises the retry succeeds",
+    (locale, catalog) => {
       const { foot } = catalog.landing.gate.stale;
+      const { ceiling, retry } = STALE_FOOT[locale];
       expect(foot).toMatch(retry);
-      expect(foot.length).toBeLessThanOrEqual(previousLength);
+      expect(snippetLength(locale, foot)).toBeLessThanOrEqual(ceiling);
       expect(foot).not.toMatch(
-        /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig)/i,
+        /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig|成功|修复|修復|修正|解決|解消|sucesso|resolv)/i,
       );
     },
   );
@@ -250,7 +267,7 @@ describe("Gate", () => {
     }
     expect(german.querySelector("h2")?.textContent).not.toBe(root.querySelector("h2")?.textContent);
     const stamp = german.querySelector(".vk-gate-stamp");
-    expect(stamp?.textContent).toBe(de.landing.gate.refused.stamp);
+    expect(stamp?.textContent).toBe(MESSAGE_CATALOGS.de.landing.gate.refused.stamp);
     expect(stamp?.closest("[lang]")).toBeNull();
   });
 

@@ -155,8 +155,10 @@ async function recordApprovals(
 /**
  * Approves a locale's whole review queue in one call: every value {@link reviewQueue} lists for the
  * locale, optionally narrowed to some origins, that is up to date with its source. It writes only
- * the provenance file (`verbatra.provenance.json`), in one write, never a locale file or the
- * lock-file, and calls no provider.
+ * the provenance file (`verbatra.provenance.json`), in one write, apart from first moving the
+ * state that a respelled spelling of the locale (such as `pt_BR` for `pt-BR`) holds in the
+ * lock-file, translation memory and provenance file to the configured code; it never writes a
+ * locale file and calls no provider.
  *
  * Each approval is recorded exactly as {@link approveEntry} records one: on the value, with the
  * source hash it was given against, so a later write that changes the value, or a change of its
@@ -181,8 +183,11 @@ async function recordApprovals(
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
- * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
+ * `lockAcquireTimeoutMs` elapsed, the lock-file guard could not be acquired within its ten-minute
+ * default, a lock could not be reclaimed from an abandoned holder, or a lock was taken over by
+ * another process before a write (nothing was written) or before it was released (the writes were
+ * made and are on disk).
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code

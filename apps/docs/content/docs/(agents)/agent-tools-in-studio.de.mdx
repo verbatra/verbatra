@@ -21,11 +21,11 @@ WebMCP ist eine neue Browser-Fähigkeit hinter einem Flag, und ihre Schnittstell
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` bewirkt dasselbe; wie Flag und Variable aufgelöst werden, steht unter [Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools). Öffne die ausgegebene URL im WebMCP-Browser, und der Agent in diesem Tab findet die Tools. In einem Browser ohne WebMCP registriert Studio nichts, und das Dashboard bleibt unverändert.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` bewirkt dasselbe; wie Flag und Variable aufgelöst werden, steht unter [Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools). Öffne die ausgegebene URL im WebMCP-Browser, und der Agent in diesem Tab findet die Tools.
 
 Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend`.
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahmen sind die Glossar-Tools und `verbatra_history_keyRevisions`: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahmen sind die Glossar-Tools und `verbatra_history_keyRevisions`: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Keys kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 
@@ -41,7 +41,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_glossary_get` | das aufgelöste Glossar, mit geschwärzten Secrets |
 | `verbatra_lock_state` | den Zustand der Lock-Datei pro Locale |
 | `verbatra_history_list` | die letzten Commits an den Locale-Dateien, mit dem Namen des Autors ([nie die E-Mail](/de/docs/data-handling#studio-und-mcp)) |
-| `verbatra_history_keyRevisions` | die Commits eines Keys in einer Locale, mit Wort-Diffs, Schlüssel geschwärzt <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_history_keyRevisions` | die Commits eines Keys in einer Locale, mit Wort-Diffs, API-Keys geschwärzt <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_integrity` | Platzhalter-, Markup- und ICU-Prüfung für einen Key, in den Locales, in denen sich seine Quelle geändert hat |
 | `verbatra_review_queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, aus den committeten Dateien <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | Quelle und Ziel eines Keys, samt Angabe, wer das Ziel geschrieben hat |
@@ -49,7 +49,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_locale_values` | Key-Werte pro Ziel-Locale, standardmäßig 200 pro Seite, eingegrenzt mit `locales`, `keys` oder `query` |
 | `verbatra_locale_integrity` | jede Übersetzung, die die Integritätsprüfungen nicht besteht <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | was ein Translate-Pending-Aufruf senden und kosten würde, ohne einen Provider aufzurufen |
-| `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
+| `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs sowie, wenn eine Locale fehlgeschlagen ist oder auf halbem Weg stehen geblieben ist, `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
 | `verbatra_usage_history` | aufgezeichnete Läufe, neueste zuerst, mit Tokens, Kosten und Abdeckung, nur als Zahlen <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 
 ### Schreib-Tools
@@ -68,7 +68,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_translation_retranslateEntry` | einen Key in einer Locale neu übersetzen |
 | `verbatra_translation_translatePending` | alles Ausstehende übersetzen, optional nur für bestimmte `locales` und unter einer `maxTokens`-Obergrenze <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/de/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`. `verbatra_locale_values` blättert wie sein `locale.values`, mit denselben `limit` und `cursor` ([Weitere Eingaben und Ergebnisse](/de/docs/cli/mcp#weitere-eingaben-und-ergebnisse)).
+`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/de/docs/cli/mcp#eingaben-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`. `verbatra_locale_values` blättert wie dessen `locale.values`, mit denselben `limit` und `cursor` ([Weitere Eingaben und Ergebnisse](/de/docs/cli/mcp#weitere-eingaben-und-ergebnisse)).
 
 ## Die Regeln der Tools kennen
 
@@ -87,11 +87,11 @@ Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards,
 
 ## Einen fehlgeschlagenen Aufruf lesen
 
-Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Codes des SDK ergänzt die RPC-Schicht:
+Jedes Tool liefert den Envelope des Dashboards, ein Fehler sieht also so aus: `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Codes des SDK ergänzt die RPC-Schicht:
 
 | Code | Bedeutung |
 | --- | --- |
-| `REQUEST_INVALID` | Anfrage oder Antwort war kein lesbarer Umschlag |
+| `REQUEST_INVALID` | Anfrage oder Antwort war kein lesbarer Envelope |
 | `METHOD_UNKNOWN` | die Methode gibt es in dieser Studio-Version nicht |
 | `SPEND_DISABLED` | eine kostenpflichtige Methode, während Ausgaben aus sind: Studio läuft ohne `--allow-spend`, oder der Provider ist `none`; die Meldung nennt den Grund |
 | `PARAMS_INVALID` | ein Parameter hat die Prüfung nicht bestanden; `issues` nennt jedes Feld |

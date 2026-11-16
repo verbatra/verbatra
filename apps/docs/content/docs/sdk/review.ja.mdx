@@ -1,0 +1,361 @@
+---
+title: "レビューと再翻訳"
+seoTitle: "SDK：訳文のレビューと再翻訳"
+description: "値を一括またはページ単位で読み取り、1 つのキーを承認、却下、再翻訳します。多数のキーのレビューや再翻訳もまとめてできます。"
+type: reference
+---
+<SdkAnchorForward />
+
+## 単一キーの操作
+
+Verbatra Studio が呼び出すエントリポイントです。独自のレビューツールを作るのに使えます。`locale` と `key` を受け取る関数は、呼び出しのたびにそれらを解決し直します。どちらかが存在しない場合は、`UNKNOWN_LOCALE` または `UNKNOWN_KEY` をスローします。
+
+### keyValue
+
+<AvailableFrom version="0.5.0" />
+
+1 つのキーの現在のソース値と、存在する場合は 1 つのロケールの現在のターゲット値を読み取ります。読み取り専用です。
+
+```ts title="シグネチャ"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**戻り値**：`KeyValueResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)
+
+**例**：[1 つのキーを編集して再翻訳する](/ja/docs/programmatic-api#1-つのキーを編集して再翻訳する)
+
+`{ source, target? }` を返します。`target` がないのは、そのロケールにキーがまだ存在しない場合だけです。ある場合は `provenance` が付き、これはキーの解釈済みの `KeyProvenance` で、`{ origin, provider?, model?, reviewState, reviewer? }` の形です。
+
+<AvailableFrom version="0.12.0" />
+
+ソースファイルがキーに説明を付けている場合は、結果に `description` も含まれます。ARB の `@key.description`、XLIFF の注記、gettext、Apple の `.strings`、.NET の `.resx` のコメントが該当します。
+
+### keyContext
+
+<AvailableFrom version="0.12.0" />
+
+翻訳者が 1 つのターゲットロケールで 1 つのキーを書くために必要な情報を読み取ります。`keyValue` が返すすべてに加えて、ソーステキストに適用される用語集の用語と、キーの `maxLength` が含まれます。`draft` を渡すと、それらの用語に照らして確認できます。読み取り専用です。ファイルを使う用語集をディスクから読み直すには、単なる設定ではなく、`loadConfigWithMeta` の `loaded` を渡します。
+
+```ts title="シグネチャ"
+function keyContext(
+  input: KeyContextInput,
+  deps?: KeyContextDeps,
+): Promise<KeyContext>;
+```
+
+<SdkTypeTable name="KeyContextInput" />
+
+**戻り値**：`KeyContext`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)
+
+用語集を読み取れなくても、スローしません。`glossary` は空になり、`glossaryNotice` にエラーのコードと秘匿化されたメッセージが入ります。`draftCheck` は、適用される用語ごとに、ドラフトが必須の訳語を使っているか、禁止されている訳し方を使っているかを示します。
+
+### localeHistory
+
+<AvailableFrom version="0.12.0" />
+
+ソースまたはターゲットのロケールファイルを変更した最近の git コミットを、新しい順に一覧します。読み取り専用です。差し替え可能な `execFile` を通して `git log` を実行します。
+
+```ts title="シグネチャ"
+function localeHistory(
+  input: LocaleHistoryInput,
+  deps?: LocaleHistoryDeps,
+): Promise<LocaleHistoryResult>;
+```
+
+<SdkTypeTable name="LocaleHistoryInput" />
+
+**戻り値**：`LocaleHistoryResult`
+
+**例外**：[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+各コミットには、`hash`、`author`（`.mailmap` を適用した後の名前で、メールアドレスは含まれません）、`authorDate`、`subject`、`touchedPaths` が入ります。`limit` のデフォルトは `LOCALE_HISTORY_LIMIT_DEFAULT`（`50`）で、最大は `LOCALE_HISTORY_LIMIT_CAP`（`200`）、最小は 1 です。`author` と `subject` からは制御文字と双方向文字が取り除かれ、既知の API キーは `[REDACTED]` に置き換えられ、それぞれ 200 文字と 500 文字に切り詰められます。メタデータを読み取れないコミットは除外されます。リポジトリを読み取れない場合や、`git log` が `LOCALE_HISTORY_TIMEOUT_MS` または `LOCALE_HISTORY_MAX_OUTPUT_BYTES` を超えた場合は、`LOCALE_HISTORY_UNAVAILABLE_REASONS` の理由を持つ `{ available: false, reason }` を返します。詳しくは [Studio と MCP](/ja/docs/data-handling#studio-と-mcp) を参照してください。
+
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+最後のコミットと異なるロケールファイル、`verbatra.lock.json`、`verbatra.provenance.json`、およびチェックアウトされているブランチを一覧します。読み取り専用で、呼び出し側からパスを受け取りません。
+
+```ts title="シグネチャ"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**戻り値**：`LocaleGitStatusResult`
+
+**例外**：[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+変更された各ファイルには、`path`、`locales`、`LOCALE_GIT_FILE_STATES` の `state` が付きます。シンボリックリンクの先にあるファイルやサブモジュールの内側にあるファイルは、一覧されません。`apple-strings` は `.stringsdict` ファイルも監視します。デフォルトのランナーは、最小限の環境（グローバル設定は `HOME` のみ）で git を起動します。オプションのロック、`core.fsmonitor`、ベアリポジトリ、遅延フェッチ、サブモジュール、設定済みのコンテンツフィルターはオフです。パスはリテラルで照合し、`LOCALE_GIT_TIMEOUT_MS` または `LOCALE_GIT_MAX_OUTPUT_BYTES` を超えると git を強制終了します。差し込む `execFile` も同じ動作にする必要があります。部分クローンには git 2.45 以上が必要で、それ未満では `git-too-old` になります。プロジェクトの `verbatra.config.ts` は、引き続き verbatra が実行するコードです。git がリポジトリを読み取れない場合や、`files.pattern` がロケールファイルをプロジェクトのフォルダーの外に置く場合（`outside-project`）、結果は `{ available: false, reason }` で、`reason` は `LOCALE_GIT_UNAVAILABLE_REASONS` のいずれかです。
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+1 つのロケールのファイルについて、`HEAD` にあるものとディスク上のものを、キーごとに比較します。読み取り専用です。受け取るのはロケールで、パスは受け取りません。`git diff`、テキスト変換ドライバー、外部の diff は実行しません。
+
+```ts title="シグネチャ"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**戻り値**：`LocaleGitDiffResult`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+`added` と `removed` には `{ key, value }` が、`changed` には `{ key, before, after }` が一覧されます。`state` はファイルの状態、または `unchanged` です。`conflicted` または `unchanged` のファイルでは、差分は一覧されません。コミット済みのファイルは `git cat-file blob` で読み取られます。対象は、サイズが `LOCALE_GIT_BLOB_MAX_BYTES` 以下の通常ファイルだけです。一覧されるキーは最大 `LOCALE_GIT_DIFF_MAX_ENTRIES` 件で、各テキストは `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` 文字に切り詰められます。どちらの場合も `truncated` が設定されます。`custom-adapter` を返すのは diff だけで、`custom:` フォーマットまたは `adapterRegistry` の場合です。片側がない場合は空として扱います。通常ファイルではない、または解析できない場合は、`revision-unreadable` または `working-file-unreadable` になります。それ以外の理由は `localeGitStatus` のものと同じです。
+
+### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
+
+`translate` が使うプロバイダーの経路と整合性ゲートを通して、1 つのキーとロケールについてプロバイダーを再実行します。受け入れられた場合は、そのキーについてだけ、ロケールファイルとロックファイルのエントリを書き込みます。
+
+```ts title="シグネチャ"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**戻り値**：`RetranslateEntryResult`
+
+**例外**：[`MACHINE_TRANSLATION_DISABLED`](/ja/docs/error-codes#machine_translation_disabled)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/ja/docs/error-codes#locale_unsupported_by_provider)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`KEY_PINNED`](/ja/docs/error-codes#key_pinned)、[`KEY_PROTECTED`](/ja/docs/error-codes#key_protected)、[`PROVIDER_CONSTRUCTION_FAILED`](/ja/docs/error-codes#provider_construction_failed)、[`NETWORK_POLICY_VIOLATION`](/ja/docs/error-codes#network_policy_violation)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`TARGET_UNWRITABLE`](/ja/docs/error-codes#target_unwritable)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/ja/docs/error-codes#locale_state_not_carried_over)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)、[`SENSITIVE_CONTENT_WITHHELD`](/ja/docs/error-codes#sensitive_content_withheld)
+
+**例**：[1 つのキーを編集して再翻訳する](/ja/docs/programmatic-api#1-つのキーを編集して再翻訳する)
+
+`{ accepted: true, value, reviewReasons }` または、`editEntry` が返す拒否を返します。`translate` とは異なり、ここではプロバイダーが失敗するとエラーをスローします。`@verbatra/sdk` からエクスポートされている `ProviderError` で、`RATE_LIMITED` や `AUTH_FAILED` などの安定した `code` を持ちます。`provider: { id: "none" }` では、何かを読み込んだりロックしたりする前に、まず `MACHINE_TRANSLATION_DISABLED` をスローします。
+
+<AvailableFrom version="0.13.0" />
+
+どちらの結果にも、プロバイダーがトークン数を報告した場合に限り、その `usage` が含まれます。
+
+新しい値は、応答したプロバイダーの `id` と設定されたモデルとともに、`verbatra.provenance.json` に `machine` として記録されます。`createProvider` で渡したプロバイダーは、そのプロバイダー自身の `id` で記録されます。モデルが設定されたものと異なる場合、モデルは記録されません。来歴ファイルが破損している場合は、プロバイダーを呼び出す前に `PROVENANCE_FILE_INVALID` をスローします。
+
+<AvailableFrom version="0.12.0" />
+
+人が書いた値、インポートした値、または verbatra の外で変更された値を持つキーは、`includeHuman: true` を渡すか、設定で `humanEdits: "overwrite"` にしていない限り、書き込みロックの内側で、プロバイダーを呼び出す前に `KEY_PROTECTED` をスローします。より新しい verbatra の来歴ファイルがある場合、既存のすべての値が保護されたものとして扱われます。`pinnedKeys` に一致するキーは、`includeHuman` を指定しても、プロバイダーを生成する前に `KEY_PINNED` をスローします。
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+人が 1 つのロケールの 1 つのキーの現在の値をレビューし、それを受け入れたことを記録します。書き込むのは `verbatra.provenance.json` だけで、ロケールファイルやロックファイルには書き込まず、プロバイダーも呼び出しません。承認にはそのキーのロックファイル上のソースハッシュも保存されます。そのため、ソースが変更されると、再び未レビューとして読まれます。その後、値を変更する書き込みがあると、新しい未レビューのレコードが作られます。
+
+```ts title="シグネチャ"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**戻り値**：`ReviewDecisionResult`
+
+**例外**：[`REVIEWER_INVALID`](/ja/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`REVIEW_VALUE_CHANGED`](/ja/docs/error-codes#review_value_changed)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/ja/docs/error-codes#locale_state_not_carried_over)、[`REVIEW_SOURCE_CHANGED`](/ja/docs/error-codes#review_source_changed)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/ja/docs/error-codes#provenance_file_unwritable)
+
+**例**：[レビューキューを処理する](/ja/docs/programmatic-api#レビューキューを処理する)
+
+`expectedValue` と `expectedValueHash` のどちらか 1 つだけを渡します。後者は `valueMarker` の依存関係と一緒に渡します。両方を渡した場合、どちらも渡さない場合、文字列ではない `expectedValue` を渡した場合、マーカーなしでハッシュを渡した場合は、何かを読み込む前に `REVIEW_VALUE_CHANGED` をスローします。`expectedValue` はレビュー担当者が見たテキストです。あるいは、それを生成した `valueMarker` とともに `expectedValueHash` を渡します。キーに値がない場合や別の値がある場合は `REVIEW_VALUE_CHANGED` をスローし、値が書き込まれた後にソースが変更されている場合は `REVIEW_SOURCE_CHANGED` をスローします。`reviewer` は、制御文字を含まない 1〜64 文字の自由なテキストで、任意です（それ以外は `REVIEWER_INVALID`）。コミットされるファイルに保存され、verbatra が自動で入力することはありません。`{ locale, key, provenance }` を返します。まだ記録のない値や、verbatra の外で変更された値は、出どころ `unknown` で記録されます。
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+人が 1 つのロケールの 1 つのキーの現在の値をレビューし、それを却下したことを記録します。値はロケールファイルとロックファイルから削除されるため、`check` と `diff` はそのキーを欠落として報告し、次の `translate` がもう一度埋めます（`provider: { id: "none" }` では、誰かが書くまで欠落のままです）。来歴レコードは、削除されたテキストのハッシュとともに `rejected` として残り、このマシンの該当する翻訳メモリのエントリは破棄されます。その後の `translate` は、そのハッシュに一致するキーの完全一致またはあいまい一致の翻訳メモリのヒットをスキップします。そのため、どのマシンの翻訳メモリからも、そのテキストが戻ることはありません。プロバイダーは呼び出しません。
+
+```ts title="シグネチャ"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**戻り値**：`ReviewDecisionResult`
+
+**例外**：[`REVIEWER_INVALID`](/ja/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`REVIEW_VALUE_CHANGED`](/ja/docs/error-codes#review_value_changed)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/ja/docs/error-codes#locale_state_not_carried_over)、[`TARGET_UNWRITABLE`](/ja/docs/error-codes#target_unwritable)、[`REVIEW_REJECT_UNSUPPORTED`](/ja/docs/error-codes#review_reject_unsupported)、[`REVIEW_RESTORE_FAILED`](/ja/docs/error-codes#review_restore_failed)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/ja/docs/error-codes#provenance_file_unwritable)
+
+**例**：[レビューキューを処理する](/ja/docs/programmatic-api#レビューキューを処理する)
+
+入力は `approveEntry` と同じように検査されます。ただし、ソースが古くなっていても、却下は妨げられません。`{ locale, key, provenance }` を返します。渡されなかったキーを保持するフォーマット（XLIFF）では、ファイルを復元した後に `REVIEW_REJECT_UNSUPPORTED` をスローします。
+
+どちらの呼び出しも、`editEntry` と同様に、`lockAcquireTimeoutMs` と `onLockWait` を使ってロケールの書き込みロックを取得します。`LOCK_TIMEOUT_INVALID` は、指定された上限が 0 以上のミリ秒の整数ではないことを意味します。タイムアウトは、判断を記録するために取得するロックファイルのガードには適用されません。こちらは常にデフォルトの 10 分まで待ちます。
+
+どちらも、保存できなかった判断を報告しません。より新しい verbatra の来歴ファイルがある場合や、判断によって verbatra が読み戻せるサイズを超えてしまう場合は、何かが書き込まれる前に `PROVENANCE_FILE_UNWRITABLE` をスローします。
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+テキストを示さずに値を表示するために、画面やツールが使うマーカーを作成します。`mark(value)` は `[redacted length=<n> hash=<h>]` を返し、`hash(value)` は `h` を返します。`h` は、ランダムなソルト（または指定した `salt`）をキーにした 16 桁の 16 進数の HMAC です。そのため、ハッシュは同じマーカーのもとでだけ一致します。このマーカーを `approveEntry` または `rejectEntry` に `valueMarker` として渡すと、`expectedValue` の代わりに `expectedValueHash` を受け付けます。`verbatra mcp --redact-values` は、サーバーの起動ごとに 1 つ作成します。
+
+```ts title="シグネチャ"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**戻り値**：`ValueMarker`
+
+## コンテンツの一括読み取り
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+要求されたターゲットロケール全体について、ディスク上のファイルを 1 回走査して、すべてのキーの現在のソースとターゲットのテキストを読み取ります。たとえば、キー名ではなく値を検索するときに使います。`keyValue` の一括版です。読み取り専用です。
+
+```ts title="シグネチャ"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**戻り値**：`readonly LocaleValues[]`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)
+
+**例**：[すべての値をまとめて読む](/ja/docs/programmatic-api#すべての値をまとめて読む)
+
+`locales` を省略すると、設定されたすべてのターゲットロケールが対象になります。ロケールごとに `{ locale, keys, values }` を 1 つ返します。`keys` にはすべてのキーがソースの順序で並び、その後にターゲットだけにあるキーが続きます。`values` は、各キーを `{ source?, target? }` に対応付けます。`target` がないことは、そのロケールにまだ翻訳されていないことを意味し、`source` がないことは、孤立している（ソースからなくなった）ことを意味します。`values` にはプロトタイプがありません。そのため、`__proto__` や `constructor` を含むすべてのキーが自身のプロパティになり、存在しないキーは `undefined` として読まれます。
+
+`target` を持つ各組には `provenance` も付きます。`keyValue` が報告するのと同じ `KeyProvenance` です。
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+`localeValues` の 1 ページを読み取ります。必要に応じて、正確な `keys`、または、キー、ソース、ターゲットのテキストに対して大文字と小文字を区別せずに照合する `query` で絞り込めます。次のページへのカーソルも返します。MCP サーバーと、Studio の `verbatra_locale_values` エージェントツールが、これでページングします。読み取り専用です。
+
+```ts title="シグネチャ"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**戻り値**：`LocaleValuesPage`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`PAGE_CURSOR_INVALID`](/ja/docs/error-codes#page_cursor_invalid)、[`PAGE_LIMIT_INVALID`](/ja/docs/error-codes#page_limit_invalid)
+
+`{ locales, nextCursor? }` を返します。そのページにエントリがある各ロケールには `entries` が付き、各エントリは、`localeValues` が報告するとおりの `{ key, source?, target?, provenance? }` です。ロケール、次にキーの順に並びます。1 ページに入るエントリは最大 `limit` 件で、デフォルトは `PAGE_LIMIT_DEFAULT`（200）、上限は `PAGE_LIMIT_CAP`（1000）です。`nextCursor` がなくなるまで、同じフィルターで `nextCursor` を `cursor` として渡し直します。呼び出しのたびにファイルを読み直すため、キーが移動した、またはなくなったカーソルは、エントリを飛ばしたり重複したりせず、拒否されます。
+
+`cursor` は最大 `PAGE_CURSOR_MAX_LENGTH`（512）文字です。MCP サーバーと Studio が受け付ける `query` は、最大 `LOCALE_VALUES_QUERY_MAX_LENGTH`（500）文字です。
+
+## 一括レビューと再翻訳
+
+<AvailableFrom version="0.12.0" />
+
+これらはそれぞれ、対応する単一キーの呼び出しをエントリごとに順番に 1 回ずつ実行し、エントリごとに 1 つの結果を持つ `{ results }` を返します。失敗したエントリがあってもバッチは止まりません。そのエントリの結果は `{ locale, key, ok: false, code, message }` で、`code` は `SdkError`、アダプターのエラー、`ProviderError` のコードで、メッセージは秘匿化されています。それ以外のエラーは、`BatchInterruptedError` でバッチを止めます。`entries` のリストが空の場合は、空の `results` を返します。
+
+### approveEntries
+
+エントリごとに、同じチェックで `approveEntry` を実行します。`reviewer` はすべてのエントリに適用されます。成功した結果は `{ ok: true, locale, key, provenance }` です。`lockAcquireTimeoutMs` は、エントリごとのそのロケールの書き込みロックの待機時間を制限し、`onLockWait` はその待機を報告します。タイムアウトを過ぎても書き込みロックが取得できなかったエントリは `LOCK_CONTENDED` で失敗します。同じ書き込みロックを必要とする以降のすべてのエントリは、再び待たずに `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` になります。ほかのロケールのエントリは、引き続き判断されます。
+
+```ts title="シグネチャ"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**戻り値**：`ReviewEntriesResult`
+
+**例外**：[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)
+
+### rejectEntries
+
+エントリごとに `rejectEntry` を実行し、却下された値をそれぞれ削除します。成功した結果は `{ ok: true, locale, key, provenance }` です。書き込みロックがタイムアウトすると、`approveEntries` と同じように、その書き込みロックを必要とする以降のエントリがスキップされます。
+
+```ts title="シグネチャ"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**戻り値**：`ReviewEntriesResult`
+
+**例外**：[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+ロケールのレビューキュー全体、または `origins` のいずれかを持つ値だけを承認します。ロケールの書き込みロックのもとで `verbatra.provenance.json` を 1 回書き込み、各値は `approveEntry` が記録するのと同じように記録されます。期待する値は受け取らず、実行時点でキューに入っているものを承認します。そのため、先にレビュー担当者へキューを見せてください。`{ locale, approved, sourceChanged }` を返します。承認されたキーと、書き込まれた後にソースが変更されたために未レビューのまま残ったキュー内のキーです。プロバイダーは呼び出さず、保存できなかった承認を報告する代わりに `PROVENANCE_FILE_UNWRITABLE` で失敗します。
+
+```ts title="シグネチャ"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**戻り値**：`ApproveLocaleResult`
+
+**例外**：[`REVIEWER_INVALID`](/ja/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/ja/docs/error-codes#locale_state_not_carried_over)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/ja/docs/error-codes#provenance_file_unwritable)
+
+### retranslateEntries
+
+エントリごとに `retranslateEntry` を実行するため、最大でエントリごとに 1 回のプロバイダー呼び出しが発生します。`translate` の実行ではありません。`maxTokens` と `budgetBehavior` は適用されず、費用の上限になるのはエントリ数だけです。完了した結果は `{ ok: true, locale, key, result }` で、`result` は `retranslateEntry` が返したものです。整合性ゲートが拒否した値も含まれます。人が書いた値は、`includeHuman: true` を渡さない限り、`KEY_PROTECTED` で失敗します。書き込みロックのオプションは `approveEntries` と同様に動作し、待機はプロバイダーを呼び出す前に終わります。
+
+```ts title="シグネチャ"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**戻り値**：`RetranslateEntriesResult`
+
+**例外**：[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)
+
+<AvailableFrom version="0.12.0" />
+
+すべてのエントリを同じように失敗させるエラーは、プロバイダーの呼び出しを止めます。`MISSING_API_KEY`、`AUTH_FAILED`、`RATE_LIMITED`（使い切ったクォータを含みます）、`NETWORK_POLICY_VIOLATION`、`PROVIDER_CONSTRUCTION_FAILED`、`CONFIG_INVALID`、`MACHINE_TRANSLATION_DISABLED` です。それに当たったエントリは通常どおり失敗し、以降のすべてのエントリは、そのコードを示す `{ locale, key, ok: false, skipped: true, code, message }` になり、プロバイダーは再び呼び出されません。
+
+書き込みロックがタイムアウトすると、`approveEntries` と同じように、その書き込みロックを必要とする以降のエントリが `LOCK_CONTENDED` でスキップされます。すべてのロケールを 1 つのファイルに持つフォーマットでは、以降のすべてのエントリが該当します。
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+`approveEntries`、`rejectEntries`、`retranslateEntries` が、1 つのエントリの結果ではないエラー（予期しないファイルシステムの失敗など）によってバッチの途中で止まったときにスローされます。`results` には、それより前に完了したエントリの結果が順番に入り、その書き込みはディスクに残ります。`entry` は、実行中だった `{ locale, key }` を示し、`cause` は元のエラーです。`entry` より後のエントリは実行されていません。
+
+```ts title="シグネチャ"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />

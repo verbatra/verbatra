@@ -1,0 +1,181 @@
+---
+title: 使用 GitHub Action
+seoTitle: "用 GitHub Action 翻译并把关 i18n"
+description: "用组合式 Action 在 GitHub Actions 中运行 verbatra：推送时翻译，或用门禁拦住 pull request，并附带注解和作业摘要。"
+type: how-to
+---
+用该 Action 在 GitHub Actions 作业中运行 verbatra，并查看运行结果。它以 `--json` 运行 `translate`、`check` 或 `diff`；其他命令或选项（例如 `--prune`）请直接运行 CLI（见[在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes)）。
+
+开始之前，你需要：
+
+- 一份直接放在 Action 运行目录中的 verbatra 配置（见[配置查找](#配置查找)）。
+- 要固定的确切 `@verbatra/cli` 版本，`0.9.3` 或更高。
+- 仅 `translate` 需要：把提供商的 API 密钥保存为仓库机密（secret）。
+- Actions Runner v2.327.1 或更高版本，以及 `verbatra/action` `v1.3.0` 或更高版本。本页描述的正是该版本，`qa`、`require-reviewed`、`sensitive`、`locales` 和 `needs-human` 也需要它。
+
+## 在工作流中添加该 Action
+
+该 Action 位于 [verbatra/action](https://github.com/verbatra/action) 和 [GitHub Marketplace](https://github.com/marketplace/actions/verbatra)，没有 npm 包。如下所示把它固定到提交 SHA，或使用不断前移的 `verbatra/action@v1` 标签。旧的 `mariokreitz/verbatra/packages/github-action` 路径已经无法解析。
+
+```yaml title=".github/workflows/translate.yml"
+name: translate
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verbatra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<commit-sha>
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6 # an exact @verbatra/cli release, 0.9.3 or newer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+该 Action 会把 `@verbatra/cli` 和 `@verbatra/sdk` 按这个确切版本安装到临时目录，不动你的依赖，所以作业不需要安装步骤。
+
+### 传入提供商密钥
+
+把仓库机密中的密钥映射到你的提供商读取的变量名下；[提供商](/zh-CN/docs/providers#密钥来自环境变量)列出了这些变量。该 Action 没有密钥输入，所以密钥从不作为输入或 CLI 参数传递。
+
+## 用门禁拦住 pull request
+
+设置 `command: check`，会让语言文件已漂移的 pull request 失败；设置 `command: diff` 则还会列出待处理的键。两者都是只读的，不调用提供商，所以不需要密钥，也能在来自 fork 的 pull request 上运行：
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+```
+
+## 检查翻译质量
+
+<AvailableFrom version="0.12.0" />
+
+在 `command: check` 上加 `qa: "true"`，对每条已提交的译文（包括手写的值）运行 [`verbatra check --qa`](/zh-CN/docs/cli/check#质量检查)。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          qa: "true"
+```
+
+- 每条检查结果成为一条标题为 `verbatra qa: <locale>` 的注解：完整性门禁会拒绝的值是错误，审校原因是警告。
+- 出现任何错误级别的检查结果时，该步骤失败。加上 `qa-strict: "true"`，遇到警告和不完整的复数时也会失败；加上 `qa-severity: error`，则只报告错误。CLI 不接受两者同时使用。
+
+## 要求译文已审校
+
+<AvailableFrom version="0.12.0" />
+
+在 `command: check` 上加 `require-reviewed: "true"`，运行 [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check#要求译文已审校)。只要有机器写成的译文在已提交的 `verbatra.provenance.json` 中没有获得批准，该步骤就会失败；Studio（见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）把审校决定记录在这个文件里。它保持只读且不需要密钥，并且可以与 `qa` 组合使用。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          require-reviewed: "true"
+```
+
+- 每个存在未批准键的语言环境会得到一条 [`REVIEW_REQUIRED`](/zh-CN/docs/error-codes#review_required) 错误注解，列出这些键，作业摘要也会增加一个 `unreviewed` 列。
+- `verbatra.provenance.json` 已损坏或来自更新版本的 verbatra 时，门禁失败，并给出一条 `REVIEW_STATE_UNREADABLE` 注解。
+
+## 选择语言环境并扫描源文件
+
+把 `locales` 设为逗号分隔的列表（例如 `de,fr`），可以让任何命令只处理这些语言环境。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          locales: "de,fr"
+```
+
+### 敏感内容
+
+<AvailableFrom version="0.12.0" />
+
+在 `command: check` 上加 `sensitive: "true"`，运行 `verbatra check --sensitive`。源文件或术语表中的内容匹配某个 `sensitiveData` 检测器或模式（例如电子邮件、密钥或银行卡号）时，该步骤失败，并为每个受影响的键添加注解，但不输出匹配到的内容。`version` 设为更早的版本，或设为 `0.12.0-next.*` 预发布版本时，该步骤会在安装任何内容之前失败。
+
+## 纯人工模式
+
+<AvailableFrom version="0.12.0" />
+
+设置 `provider: { id: "none" }` 时（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)），只要有键留给人工处理，`translate` 就以退出码 `3` 退出。Action 把这视为需要交接的工作，而不是失败：该步骤通过，每个受影响的语言环境得到一条 `NEEDS_HUMAN` 警告，作业摘要列出这些键，输出 `needs-human` 为 `"true"`。可以据此设置条件步骤：
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        id: verbatra
+        with:
+          version: 0.13.6
+      - if: steps.verbatra.outputs.needs-human == 'true'
+        run: echo "Some keys need a human translation; see the job summary."
+```
+
+只有 `translate` 有这种处理；`check` 和 `diff` 从不以退出码 `3` 退出，所以它们的失败仍会让该步骤失败。
+
+## 配置查找
+
+`config-path` 为空时，Action 要求 `working-directory`（默认是仓库根目录）中直接存在可识别的配置文件。它从不查找父目录，所以在 monorepo 中要把 `working-directory` 指向应用目录，并把配置放在那里：
+
+```yaml
+      with:
+        version: 0.13.6
+        working-directory: apps/docs
+```
+
+找不到配置时，该步骤会在安装 CLI 之前失败，并指出它检查过的目录。要从别处加载配置，请设置 `config-path`：相对路径相对于 `working-directory` 解析。
+
+## 保存译文
+
+`translate` 把更新后的语言文件写入运行器的检出目录；Action 从不提交。请自行添加一个步骤来提交并推送，或打开 pull request，并且只给那个作业授予 `contents: write` 或 `pull-requests: write`。
+
+## 输入
+
+| 输入 | 默认值 | 作用 |
+| --- | --- | --- |
+| `version` | 必填 | 要运行的确切 `@verbatra/cli` 版本，`0.9.3` 或更高；dist-tag、范围或 `^`/`~` 前缀会让该步骤失败 |
+| `command` | `translate` | `translate`、`check` 或 `diff`；其他值会让该步骤失败 |
+| `config-path` | `""` | 要加载的配置文件（`--config`）；相对于 `working-directory` |
+| `working-directory` | `""` | 运行所在的目录（`--cwd`）；为空时是仓库根目录 |
+| `dry-run` | `"false"` | `"true"` 表示预览，不调用提供商也不写入（`--dry-run`）；仅 `translate` |
+| `qa` | `"false"` | `"true"` 加入质量检查（`--qa`）；仅 `check` |
+| `qa-severity` | `""` | 要报告的最低严重级别，`error` 或 `warning`（`--severity`）；需要 `qa` |
+| `qa-strict` | `"false"` | `"true"` 表示警告也会失败（`--strict`）；需要 `qa` |
+| `require-reviewed` | `"false"` | `"true"` 表示未批准的机器写成的译文也会失败（`--require-reviewed`）；仅 `check` |
+| `sensitive` | `"false"` | `"true"` 加入敏感内容扫描（`--sensitive`）；仅 `check` |
+| `locales` | `""` | 逗号分隔的目标语言环境，用于限定运行范围（`--locales`） |
+| `node-version` | `"24"` | 要设置的 Node.js 版本。CLI 0.13.0 及以上：22 系列需 `22.22.0` 及以上，或 24 及以上（Action v1.4.0：仅偶数主版本）；CLI 0.12.x：`^22.18.0 || >=24`；更早的版本：`>=22.14.0` |
+
+布尔输入只接受 `"true"` 或 `"false"`。布尔值有误，或输入缺少它所需的命令或 `qa` 时，该步骤会在安装 CLI 之前以退出码 `1` 失败。CLI 会拒绝未知的 `qa-severity`，以及 `qa-severity: error` 与 `qa-strict` 同时使用的情况，这发生在安装之后，退出码为 `2`。
+
+## 输出
+
+| 输出 | 值 |
+| --- | --- |
+| `needs-human` | `translate` 以退出码 `3` 退出并把键留给人工处理时为 `"true"`，否则为 `"false"` |
+
+## 一次运行会显示什么
+
+- **注解**：在 `translate` 以退出码 `1` 结束时，每个失败或部分完成的语言环境成为一条标题为 `verbatra: <locale>` 的错误注解。在 `check` 或 `diff` 下，每个已漂移的语言环境得到一条标题为 `verbatra check: <locale>` 或 `verbatra diff: <locale>` 的注解。Action 能找到该语言环境的文件时，所有这些注解都会附在该文件上。部分完成的语言环境的 `LOCALE_PARTIAL` 注解会列出被搁置的键，并按原因分组。如果某个语言环境的复数缺少该语言使用的 CLDR 类别，每次 `check` 都会为它添加一条 `PLURAL_CATEGORIES_INCOMPLETE` 警告。启用 `sensitive` 时，每个被标记的键得到一条 `SENSITIVE_CONTENT` 错误注解，并在摘要中占一行。整体失败的运行会得到一条 `verbatra` 注解，其中包含错误码、以 `(cause: X)` 给出的原因，以及 CLI 提供时的 `Next step:` 提示。GitHub 每种严重级别最多显示 10 条注解，所以 Action 按漂移、审校、质量错误、警告的顺序排列，并添加一条通知，说明其余的数量。
+- **作业摘要**：每个语言环境一行，显示所运行命令的计数，外加一行汇总，以及部分完成和失败的语言环境。启用 `qa` 时，它还会添加一个最多包含 1000 条检查结果的表格；不完整的复数有单独的小节。
+- **退出状态**：Action 先输出注解和摘要，再以 CLI 自己的[退出码](/zh-CN/docs/cli/output#退出码)退出。例外：`translate` 的退出码 `3` 视为通过；CLI 运行之前的失败（没有工作目录、没有配置、安装失败）以退出码 `1` 退出；被拒绝的输入得到一条 `::error::`，没有摘要。
+
+## 安全
+
+两个引用都要固定：`uses:` 固定到提交 SHA，`version` 固定到确切的版本（[npm 上的当前版本](https://www.npmjs.com/package/@verbatra/cli)）；Action 会拒绝任何可能解析为 `latest` 的值。输入以带引号的参数数组形式传给 CLI，从不拼接进 shell 文本。
+
+## 相关内容
+
+- [在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes)：在任何 CI 系统中使用同样的门禁。
+- [verbatra/action](https://github.com/verbatra/action)：发布说明，以及由 `action.yml` 生成的输入参考。

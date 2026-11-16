@@ -1,0 +1,111 @@
+---
+title: 翻訳会社に受け渡す（XLIFF）
+seoTitle: "XLIFF で翻訳会社に翻訳を受け渡す"
+description: "翻訳が必要な文字列を CAT ツール向けに XLIFF 2.0 または 1.2 で書き出し、返されたファイルを通常の実行と同じ安全チェックでインポートします。"
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+プロの翻訳者が Trados、memoQ、OmegaT、Matecat、Phrase などの CAT ツール（翻訳支援ツール）で作業する場合に使います。XLIFF は、状態、注記、保護されたプレースホルダーを持つセグメントとして翻訳者に届きます。翻訳メモリと QA チェックは、この構造を前提に作られています。verbatra はどのプロジェクトフォーマットからでも XLIFF を書き出せます。XLIFF プロジェクトに限りません。読み戻しには、ブックによる受け渡し（[Excel や CSV で受け渡す](/ja/docs/manual-translation)）と同じインポートを使います。
+
+## 往復の流れ
+
+```bash
+# 1. Export one XLIFF 2.0 file per target locale into handoff/
+verbatra export --format xliff2 --out handoff
+
+# 2. The agency translates handoff/de.xlf, handoff/fr.xlf ... in its CAT tool and sends them back
+
+# 3. Import every returned file, recording who signed off on the reviewed ones
+verbatra import handoff --format xliff2 --reviewer "Agency GmbH"
+```
+
+ツールが XLIFF 2.0 にまだ対応していない場合は、`--format xliff12` を使います。どちらでも、ターゲットロケールごとに 1 つの `<locale>.xlf` が得られます。以前の、より広い範囲のエクスポートから残っているファイルは、インポート時に適用されず拒否されます。
+
+返されたファイルを 1 つだけインポートするには、ファイルを指定します。`.xlf` または `.xliff` で終わるパスは、`--format` なしで XLIFF として読み込まれ、XLIFF のバージョンはファイル自体から判定されます。
+
+```bash
+verbatra import handoff/de.xlf
+```
+
+ロケールはファイル名から決まります。ツールがファイル名を変更した場合（たとえば `project_de.xlf`）は、ファイルが宣言しているターゲット言語を、設定済みのロケールと照合します。
+
+## ファイルに入る内容
+
+エクスポートは、ブックのエクスポートと同じキーを選びます。欠落しているキーと変更されたキーに加え、`--include-unchanged` を付けると最新のキーも含みます。各キーは 1 つの翻訳単位になります。
+
+- **キー**：翻訳単位の名前になります。XLIFF 2.0 では翻訳単位の `name`、XLIFF 1.2 では `trans-unit` の `id` と `resname` です。
+- **プレースホルダー、インラインマークアップ、ICU 構文**：インラインコード（`<ph>`）になります。CAT ツールでは、翻訳者が配置できても編集できないタグとして表示されます。各 ICU の分岐の中のテキストは翻訳可能なままです。インポートでは、すべてのコードを元のテキストそのままに戻します。
+- **コンテキスト**：キーの説明と意味が、プロジェクトのフォーマットに含まれる場合は注記として渡されます。
+- **ソースのハッシュ**：メタデータとして渡されます。これにより、エクスポート後にソースが変わったかどうかをインポート時に判定できます。
+- **変更されたキー**：古い訳文を出発点としてターゲットに入れ、初期状態にします。
+
+### セグメントの状態
+
+各セグメントの状態は、ロックファイルとキーの[レビューの判断](/ja/docs/the-lock-file#レビューの判断)から決まります。
+
+| キーの状態 | XLIFF 2.0 `state` | XLIFF 1.2 `state` |
+| --- | --- | --- |
+| 欠落 | `initial`、ターゲットなし | ターゲットなし |
+| 古い（ソースが変更された） | `initial`、古い訳文をターゲットに入れる | `needs-translation`、古い訳文をターゲットに入れる |
+| 最新でレビューされていない | `translated` | `translated` |
+| 最新で承認済み | `reviewed` | `signed-off` と `approved="yes"` |
+| 最新だが却下された | `initial` | `needs-translation` |
+
+値の出どころは状態を変えません。機械翻訳、翻訳メモリのヒット、人が入力した値は、誰かが承認するまですべて `translated` です。
+
+### 機械翻訳のマーカー
+
+出どころは状態のそばに記録されるため、翻訳会社はどのターゲットを機械が書いたかを確認できます。XLIFF 1.2 では、機械（プロバイダー、翻訳メモリ、あいまい一致、エージェント）が書いた未承認のターゲットに `state-qualifier="mt-suggestion"` が付きます。XLIFF 2.0 では、翻訳単位のメタデータに出どころとレビューの状態が入ります。インポートはどちらも無視します。詳しくは[機械翻訳の証跡を記録する](/ja/docs/provenance-evidence#xliff)を参照してください。
+
+## インポートが受け付けるもの
+
+返されたすべての翻訳単位は、ブックのインポートと同じチェックを通ります（[インポートが受け付けるもの](/ja/docs/manual-translation#インポートが受け付けるもの)を参照）。チェックは、整合性ゲート、古いソースのガード、値を意図的に空にする `[[CLEAR]]`、「まだ翻訳されていない」を意味する空のターゲットです。XLIFF では次のルールが加わります。
+
+- **エクスポートしたままのターゲットは何も変えません**。キーはバイト単位で同一のままで、来歴も保たれます。古くなったキーの古い訳文を新しいソースに対しても残したい場合は、翻訳者が状態を `initial` より先に進めます。
+- **それ以外のターゲットは、状態にかかわらず訳文として扱います**。テキストを書いても状態を変えないツールがあるためです。
+- **`reviewed` と `final` は承認として記録されます**。XLIFF 1.2 の `signed-off`、`final`、`approved="yes"` も同じです。承認は `--reviewer` の名前とともに `verbatra.provenance.json` に保存され、[`HANDOFF_REVIEWS_RECORDED`](/ja/docs/error-codes#handoff_reviews_recorded) として報告されます。インポートされた値の出どころは `import` になります。翻訳者が確認しただけの値は、`machine` など元の出どころを保ちます。
+- **ソースハッシュが削除されている場合は、ソーステキストで代用します**。翻訳単位のソースが一致すればインポートされ、一致しなければドリフトとして保留されます。
+- **破損は報告されますが、致命的ではありません**。不明なキーや壊れたインラインコードを持つ翻訳単位は不正な行として、繰り返されたキーは重複として報告されます。ファイルの残りは引き続きインポートされます。
+- **XML は安全に解析します**。エンティティや内部 DTD サブセットを宣言するファイルは拒否され、32 MB を超えるファイルも拒否されます。
+
+まず `verbatra import --dry-run` を実行します。承認を含むこれらすべてを、ファイルを書き込まずに確認できます。
+
+XLIFF 1.2 は、XML 1.0 が禁止する文字（U+0007 などの制御文字）を持てません。そのため 1.2 のエクスポートではその文字が取り除かれます。XLIFF 2.0 はその文字をそのまま保てます。ツールが対応している場合は `xliff2` を選んでください。
+
+## ツールを手動で確認する：OmegaT
+
+自動テストは CAT ツールと同じ方法でエクスポートしたファイルを編集しますが、CAT ツール自体は実行しません。実際の往復を試すには、無料の [OmegaT](https://omegat.org) を使います。
+
+1. 受け渡しファイルをエクスポートします：`verbatra export --format xliff12 --out handoff`（または `xliff2`）。
+2. OmegaT でソース言語とターゲット言語を指定してプロジェクトを作成し、`handoff/de.xlf` をプロジェクトの `source` フォルダーにコピーします。
+3. プロジェクトを開きます。`{{name}}` などのプレースホルダーはタグとして表示されます。タグの周囲のテキストを翻訳し、各タグは入力せずに Ctrl+T（macOS では Cmd+T）で挿入します。
+4. いくつかのセグメントを翻訳し、いくつかは未翻訳のままにして保存します。
+5. **Project**（プロジェクト）、**Create Translated Documents**（翻訳済みドキュメントを作成）の順に選びます。OmegaT がプロジェクトの `target` フォルダーに `de.xlf` を書き込みます。
+6. `verbatra import path/to/target/de.xlf --dry-run` で確認します。翻訳したセグメントは `translated` に、手を付けていないセグメントは `unfilled` に一覧され、タグが失われていない限り何も拒否されません。
+7. `verbatra import path/to/target/de.xlf` でインポートし、続けて `verbatra check` を実行します。
+
+## SDK から使う
+
+CLI は、ブックの受け渡しと同じ [`exportWorkbook`](/ja/docs/sdk/exchange#exportworkbook) と [`importWorkbook`](/ja/docs/sdk/exchange#importworkbook) をラップしています。
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "xliff2", out: "handoff" });
+
+const summary = await importWorkbook({
+  config,
+  workbook: "handoff",
+  format: "xliff2",
+  reviewer: "Agency GmbH",
+});
+```
+
+## 関連項目
+
+- [`verbatra export`](/ja/docs/cli/export)：XLIFF フォーマットを含む、エクスポートのすべてのオプション
+- [`verbatra import`](/ja/docs/cli/import)：`--reviewer` を含む、インポートのすべてのオプション
+- [Excel や CSV で受け渡す](/ja/docs/manual-translation)：ブックによる受け渡しと、インポートが適用するすべてのチェック

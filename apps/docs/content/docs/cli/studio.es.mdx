@@ -52,7 +52,7 @@ Abre exactamente esa URL. El token solo se acepta como `?token=` en la primera c
 
 Un fallo al ocupar el puerto se informa en stderr como `verbatra: error [<code>] <message>`: `PORT_IN_USE` cuando otro proceso tiene el puerto (pasa `--port <n>` o detén ese proceso), o `BIND_FAILED` cuando el socket quedó en una dirección distinta de `127.0.0.1`.
 
-Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites ([Revisa en Studio](/es/docs/review-in-studio#traduce-los-cambios-pendientes) describe el aviso), y **Run history and cost** se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
+Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites ([Revisar en Studio](/es/docs/review-in-studio#traduce-los-cambios-pendientes) describe el aviso), y **Run history and cost** se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
 
 ### Navegación y enlaces
 
@@ -79,7 +79,7 @@ Con `--allow-spend` y el proveedor `none`, la primera línea dice `verbatra: spe
 
 Sin `--allow-spend`, Studio lee `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` recurre del mismo modo a `VERBATRA_STUDIO_AGENT_TOOLS`. En ambos casos, `1`, `true`, `yes` u `on` (sin distinguir mayúsculas e ignorando espacios alrededor) cuenta como activado, y el flag siempre gana a la variable. Sin ninguno de los dos, Studio nunca contacta con un proveedor. Studio carga antes los [archivos de entorno](/es/docs/cli#archivos-de-entorno), así que ambas variables pueden estar en `.env.local` o `.env`.
 
-El gasto desde un agente necesita los dos flags; ninguno implica el otro. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, así que Studio retiene el gasto incluso con `--allow-spend`, y la página Settings lo indica. Consulta [Opera Studio con un agente de navegador](/es/docs/agent-tools-in-studio) para el catálogo de herramientas y el modelo de seguridad.
+El gasto desde un agente necesita los dos flags; ninguno implica el otro. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, así que Studio retiene el gasto incluso con `--allow-spend`, y la página Settings lo indica. Consulta [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio) para el catálogo de herramientas y el modelo de seguridad.
 
 ### Instalación
 
@@ -104,7 +104,7 @@ Consulta [Códigos de salida](/es/docs/cli/output#códigos-de-salida) para el co
 
 ## Relacionado
 
-- [Revisa en Studio](/es/docs/review-in-studio) recorre las páginas Overview y Translations, la cola de revisión y la retraducción con `--allow-spend`.
+- [Revisar en Studio](/es/docs/review-in-studio) recorre las páginas Overview y Translations, la cola de revisión y la retraducción con `--allow-spend`.
 - [Ver los archivos modificados en Studio](/es/docs/changes-in-studio) lista los archivos de locale que difieren del último commit y las claves que cambiaron en cada uno.
-- [Opera Studio con un agente de navegador](/es/docs/agent-tools-in-studio) cubre `--expose-agent-tools` y las herramientas WebMCP.
+- [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio) cubre `--expose-agent-tools` y las herramientas WebMCP.
 - [`verbatra check`](/es/docs/cli/check) y [`verbatra diff`](/es/docs/cli/diff) son los mismos cálculos que Studio muestra en vivo.

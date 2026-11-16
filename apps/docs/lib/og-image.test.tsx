@@ -1,19 +1,16 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
-import de from "../messages/de.json";
 import en from "../messages/en.json";
-import es from "../messages/es.json";
-import fr from "../messages/fr.json";
 import {
   HERO_CHECK_COMMAND,
   HERO_OG_LINES,
   HERO_TERMINAL_SCRIPT,
   HERO_TRANSLATE_COMMAND,
 } from "./hero-terminal";
-import { i18n } from "./i18n";
+import { LOCALES } from "./locales";
 import { loadOgFonts, OG_FONT_DIR, OG_FONT_FILES } from "./og-fonts";
 import {
   HomeOgFrame,
@@ -24,8 +21,11 @@ import {
   OgFrame,
   titleFontSize,
 } from "./og-image";
+import { OG_LOCALE_FONTS } from "./og-locale-fonts";
+import { ogTexts } from "./og-texts";
 import { SITE_URL } from "./site";
 import { uiTokensCss } from "./stylesheet-rules";
+import { fontCodePoints, fontTableTags } from "./ttf-coverage";
 
 describe("titleFontSize", () => {
   it("uses the largest size for a short title", () => {
@@ -148,25 +148,17 @@ describe("OG_PALETTE", () => {
 });
 
 describe("OG fonts", () => {
-  function tableTags(file: string): ReadonlyArray<string> {
-    const data = readFileSync(join(process.cwd(), OG_FONT_DIR, file));
-    const count = data.readUInt16BE(4);
-    return Array.from({ length: count }, (_, index) =>
-      data.toString("latin1", 12 + index * 16, 16 + index * 16),
-    );
-  }
-
   it.each(OG_FONT_FILES.map((font) => font.file))(
     "%s carries no kerning tables, which satori measures and draws inconsistently into doubled word gaps",
     (file) => {
-      const tags = tableTags(file);
+      const tags = fontTableTags(readFileSync(join(process.cwd(), OG_FONT_DIR, file)));
       expect(tags).toContain("glyf");
       for (const tag of ["GPOS", "GSUB", "kern"]) expect(tags).not.toContain(tag);
     },
   );
 
   it("loads the site's display face at 500 and 700 and its mono face", async () => {
-    const fonts = await loadOgFonts();
+    const fonts = await loadOgFonts("en");
     expect(fonts.map((font) => [font.name, font.weight])).toEqual([
       [OG_FONT.display, 500],
       [OG_FONT.display, 700],
@@ -185,61 +177,9 @@ describe("OG fonts", () => {
 });
 
 describe("OG font coverage", () => {
-  function codePoints(file: string): ReadonlySet<number> {
-    const data = readFileSync(join(process.cwd(), OG_FONT_DIR, file));
-    const tables = data.readUInt16BE(4);
-    let cmap = 0;
-    for (let index = 0; index < tables; index += 1) {
-      const record = 12 + index * 16;
-      if (data.toString("latin1", record, record + 4) === "cmap")
-        cmap = data.readUInt32BE(record + 8);
-    }
-    const covered = new Set<number>();
-    const subtables = data.readUInt16BE(cmap + 2);
-    for (let index = 0; index < subtables; index += 1) {
-      const offset = cmap + data.readUInt32BE(cmap + 4 + index * 8 + 4);
-      if (data.readUInt16BE(offset) === 4) readFormat4(data, offset, covered);
-    }
-    return covered;
-  }
-
-  function readFormat4(data: Buffer, offset: number, covered: Set<number>): void {
-    const segments = data.readUInt16BE(offset + 6) / 2;
-    const ends = offset + 14;
-    const starts = ends + segments * 2 + 2;
-    const deltas = starts + segments * 2;
-    const ranges = deltas + segments * 2;
-    for (let segment = 0; segment < segments; segment += 1) {
-      const start = data.readUInt16BE(starts + segment * 2);
-      const end = data.readUInt16BE(ends + segment * 2);
-      const delta = data.readInt16BE(deltas + segment * 2);
-      const rangeAt = ranges + segment * 2;
-      const range = data.readUInt16BE(rangeAt);
-      for (let code = start; code <= end && code !== 0xffff; code += 1) {
-        const glyph =
-          range === 0
-            ? (code + delta) & 0xffff
-            : data.readUInt16BE(rangeAt + range + (code - start) * 2);
-        if (glyph !== 0) covered.add(code);
-      }
-    }
-  }
-
-  const catalogs = { en, de, es, fr } as const;
-  const docsFrontmatter = readdirSync(join(process.cwd(), "content/docs"), {
-    recursive: true,
-    encoding: "utf8",
-  })
-    .filter((file) => file.endsWith(".mdx"))
-    .flatMap((file) => {
-      const source = readFileSync(join(process.cwd(), "content/docs", file), "utf8");
-      const frontmatter = /^---\n([\s\S]*?)\n---/.exec(source)?.[1] ?? "";
-      return Array.from(frontmatter.matchAll(/^(?:title|description): (.*)$/gm), (m) => m[1] ?? "");
-    });
+  const latinLocales = LOCALES.filter((locale) => OG_LOCALE_FONTS[locale].length === 0);
   const drawn = [
-    ...docsFrontmatter,
-    ...i18n.languages.map((locale) => catalogs[locale].landing.banner.headline),
-    ...i18n.languages.map((locale) => catalogs[locale].compare.heading),
+    ...latinLocales.flatMap((locale) => ogTexts(locale, process.cwd())),
     ...HERO_OG_LINES.map((line) => line.text),
     OG_TERMINAL_PROMPT,
     new URL(SITE_URL).host,
@@ -252,7 +192,7 @@ describe("OG font coverage", () => {
   it.each(OG_FONT_FILES.map((font) => font.file))(
     "%s has a glyph for every character the home and docs images draw",
     (file) => {
-      const covered = codePoints(file);
+      const covered = fontCodePoints(readFileSync(join(process.cwd(), OG_FONT_DIR, file)));
       const missing = needed.filter((code) => !covered.has(code));
       expect(missing.map((code) => String.fromCodePoint(code))).toEqual([]);
     },

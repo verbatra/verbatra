@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
+import { translationFilePattern } from "./locales.ts";
 
 export type DocsPage = { readonly file: string; readonly source: string };
 
@@ -7,7 +8,7 @@ type ReadFile = (absolutePath: string) => string;
 
 type CommitTimeMap = Readonly<Record<string, number>>;
 
-const TRANSLATION_FILE = /^(.*)\.[a-z]{2}\.mdx$/;
+const TRANSLATION_FILE = translationFilePattern();
 const INCLUDE = /^<include>([^<#]+\.mdx)<\/include>[ \t]*$/gm;
 const ANY_INCLUDE = /<include\b[^>]*>[^<]*<\/include>/g;
 const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;

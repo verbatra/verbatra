@@ -1,0 +1,89 @@
+---
+title: 用 AI 智能体配置 verbatra
+seoTitle: "用 AI 智能体在项目中配置 verbatra"
+description: "给 AI 编码智能体的简短提示词：在已有 i18n 配置的项目中加入 verbatra，产生任何花费之前先由人工确认。"
+type: tutorial
+---
+<StartHere />
+
+本页适用于已经提交了语言文件的项目。把上方的**给 AI 智能体的提示词**粘贴到 Claude Code、Codex、Gemini CLI、Cursor 或任何能运行 shell 命令的智能体中。智能体会按下面的步骤操作，并向你确认三件事：
+
+- **使用哪个提供商**，项目中已有明确选择时除外。
+- **API 密钥**：智能体在 `.env` 中留空对应的变量，由你填写，它从不索要密钥。
+- **同意运行**：首次真正执行 `translate` 之前需要你确认，因为它会立即产生花费。
+
+## 智能体遵循的步骤
+
+智能体：按顺序执行这些步骤，绝不能跳过第 6 步的停下确认。
+
+### 1. 检查现有配置
+
+更改任何内容之前，先在 `package.json` 中找出 i18n 库（例如 `i18next`、`vue-i18n` 或 `next-intl`）和语言文件。记下源语言环境、已有的每个目标语言环境，以及带 `{locale}` 占位符的路径模式，例如 `locales/{locale}.json`。[选择技术栈](/zh-CN/docs/pick-your-stack)列出了每个技术栈对应的格式 id 和布局；[格式](/zh-CN/docs/formats)说明哪些文件必须已经存在。没有 i18n 库的纯 JSON：`{{name}}` 占位符对应 `i18next-json`，单花括号 `{name}` 对应 `vue-i18n-json`。
+
+### 2. 安装 CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+pnpm、yarn 和 bun 同样可用。不要批准任何安装脚本，无论是 `pnpm approve-builds` 还是 npm 的 `allowScripts`：verbatra 不需要它们。
+
+### 3. 生成配置和智能体文件
+
+```bash
+npx @verbatra/cli init --provider <provider> --yes --json --agent
+```
+
+除非项目中已有明确选择，否则询问用户使用哪个提供商。不要选择会向用户未同意的服务产生花费的提供商，也不要向 `init` 传入密钥值。[提供商](/zh-CN/docs/providers)列出了各个 id，`none` 会关闭机器翻译。`init` 会检测格式、路径模式和语言环境，输出一个 JSON 信封（envelope），并且从不提示输入。`--agent` 还会在 `AGENTS.md` 中写入 verbatra 部分（当 `CLAUDE.md` 是唯一的指令文件，或已包含 verbatra 部分时，则写入 `CLAUDE.md`），并把 verbatra MCP 服务器（付费工具关闭）写入它检测到的每个客户端的配置；检测到 Claude Code 或没有检测到任何客户端时，写入 Claude Code 的 `.mcp.json`。`result.agent.clients` 列出这些文件。
+
+| 退出码与错误码 | 操作 |
+| --- | --- |
+| `0` | 把 `result.config` 与第 1 步比对，先看 `result.sources` 中每个标注为 `default` 的条目；只有文件没有按原样书写语言环境时，才会出现 `result.config.files.localeStyle`。如有不对，用正确的 `--format`、`--path`、`--source` 或 `--targets` 加上 `--force` 重新运行。 |
+| `2`，`FORMAT_AMBIGUOUS` 或 `LAYOUT_AMBIGUOUS` | 从 `candidates` 中选一个，用 `--format` 或 `--path` 重新运行。命名空间文件并排存放：停下来询问用户，因为一份配置只覆盖一个文件路径模式。 |
+| `2`，`MISSING_OPTIONS` | 错误信息列出了仍需提供的每个选项 |
+| `2`，`CONFIG_EXISTS` | 告诉用户现有配置使用哪个提供商，并等待确认。然后运行 `npx @verbatra/cli init --agent --json`，它会保留配置，只添加智能体文件。传入 `--force` 之前先询问。 |
+
+[init](/zh-CN/docs/cli/init#提供商) 记录了每个选项。
+
+### 4. 把 API 密钥留给人工
+
+提供商为 `none` 时跳过此步骤。密钥变量是 `result.apiKeyEnvVar`；出现 `CONFIG_EXISTS` 之后它为 `null`，此时从 `npx @verbatra/cli doctor --json` 中失败的 `api-key` 检查里取变量名。把 `.env.example` 复制为 `.env`；如果 `init` 没有写入示例文件，就新建 `.env`。在其中写下该变量名并留空值，然后告诉用户自行填写。永远不要写入、编造或索要密钥值。不必等待，继续后面的步骤。
+
+### 5. 不产生花费，检查配置
+
+```bash
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
+```
+
+这些命令都不会调用提供商，不需要密钥，也不会写入文件。能在 `verbatra.config.ts` 中修复的失败 `doctor` 检查都要修复；只有用户设置好密钥后，`api-key` 检查才会通过，所以不要在它上面反复重试。`check` 或 `diff` 返回退出码 `1`（不同步）在首次运行前属于预期情况；只有退出码 `2` 才说明配置有问题。提供商为 `none` 时，只要还有键留给人工译者，`translate --dry-run` 就会以退出码 `3` 退出。只有目标中缺失的键才会被翻译，空字符串算作已存在，所以删除占位用的 `""` 键之前先询问。
+
+### 6. 停下来询问
+
+汇总每个语言环境有多少键待处理，以及 `translate --dry-run` 报告了什么，然后停下。真正的运行会立即产生花费，自身没有确认提示，所以要等用户明确同意。除非用户要求，否则不要使用 `--prune`。
+
+### 7. 获得同意后翻译
+
+```bash
+npx @verbatra/cli translate --json
+```
+
+报告摘要中的 `succeeded`、`partial` 和 `failed` 列表。状态为 `partial` 或 `failed` 的语言环境会保留已成功的部分。
+
+### 8. 提交并连接
+
+提交 `verbatra.config.ts`、`.env.example`（如果存在）、第 3 步生成的指令文件和客户端配置文件、`verbatra.lock.json`、运行写入后的 `verbatra.provenance.json`，以及翻译后的语言文件。不要提交 `.env`、`.env.local`、`.verbatra-local/` 或 `verbatra.cache.json`；确认 `.gitignore` 已经覆盖它们。
+
+然后告诉用户重启客户端，并批准该项目的 `verbatra` 服务器。在 Claude Code 中不要再安装 verbatra 插件，否则会注册两次；`claude mcp list` 会显示连接情况。`init` 没有检测到的客户端，需要的唯一一项配置见[连接 MCP 客户端](/zh-CN/docs/connect-an-mcp-client)。
+
+## 接下来
+
+<Cards>
+  <Card title="连接 MCP 客户端" href="/zh-CN/docs/connect-an-mcp-client" description="除 Claude Code 外，每个客户端需要的那一项配置，以及如何让智能体产生花费。" />
+  <Card title="用 JSON 编写 verbatra 脚本" href="/zh-CN/docs/agent-recipes" description="本提示词自身的命令所依赖的 --json 信封和退出码，可据此构建你自己的智能体循环。" />
+  <Card title="用浏览器智能体操作 Studio" href="/zh-CN/docs/agent-tools-in-studio" description="另一种入口：在浏览器标签页中操作已配置好的项目，不用 shell。" />
+  <Card title="快速上手" href="/zh-CN/docs/quickstart" description="同样的配置流程，写给人而不是智能体。" />
+  <Card title="锁文件与来源记录" href="/zh-CN/docs/the-lock-file" description="本提示词所依赖的接入安全行为的完整细节。" />
+</Cards>

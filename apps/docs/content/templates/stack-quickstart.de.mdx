@@ -1,4 +1,4 @@
-Am Ende dieser Seite zeigt deine <StackText field="name" />-App einen deutschen Text, den verbatra aus <StackText field="sourceFile" /> übersetzt hat, und eine Lock-Datei sorgt dafür, dass jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.22.0 || >=24`, ein <StackText field="name" />-Projekt und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
+Am Ende dieser Seite zeigt deine <StackText field="name" />-App einen deutschen Text, den verbatra aus <StackText field="sourceFile" /> übersetzt hat, und eine Lock-Datei sorgt dafür, dass jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.22.0 || >=24`, ein <StackText field="name" />-Projekt und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Key.
 
 Du hast schon Locale-Dateien und einen Coding-Agenten? Gib ihm stattdessen den Prompt von [verbatra mit einem KI-Agenten einrichten](/de/docs/start-with-ai): Er richtet verbatra um die Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt.
 
@@ -42,7 +42,7 @@ Gibt es <StackText field="sourceFile" /> schon, überspringst du diesen Schritt.
 </Step>
 <Step>
 
-### Sieh dir den Lauf ohne Schlüssel an
+### Sieh dir den Lauf ohne API-Key an
 
 ```bash
 npx @verbatra/cli translate --dry-run
@@ -58,7 +58,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts.
+Ein Dry Run baut keinen Provider, braucht also keinen API-Key, kostet nichts und schreibt nichts.
 
 </Step>
 <Step>
@@ -69,7 +69,7 @@ Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nicht
 cp .env.example .env
 ```
 
-Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/de/docs/providers).
+Öffne `.env` und füge deinen API-Key hinter `GEMINI_API_KEY=` ein. Noch kein API-Key? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/de/docs/providers).
 
 ```bash
 npx @verbatra/cli translate

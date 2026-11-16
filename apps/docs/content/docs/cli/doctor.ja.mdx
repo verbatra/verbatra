@@ -1,0 +1,274 @@
+---
+title: verbatra doctor
+seoTitle: "verbatra doctor：プロジェクトの構成を検証する"
+description: "API キーを読み取らずプロバイダーも呼び出さずに、プロジェクトが正しく構成されているかをチェックし、すべての問題を 1 つのレポートにまとめます。"
+type: reference
+---
+<AvailableFrom version="0.9.0" />
+
+プロジェクトが正しく構成されているかをチェックし、すべての問題を 1 つのレポートにまとめます。`doctor` はプロバイダーを生成せず、ファイルも書き込みません。API キーの値を読み取るのは `--live` のときだけで、プロバイダーの言語一覧を取得する 1 回のリクエストに付けて送ります（LibreTranslate には送りません）。[`verbatra init`](/ja/docs/cli/init) の後や、ほかのコマンドが失敗したときに実行します。
+
+## 書式
+
+```bash
+verbatra doctor [flags]
+```
+
+## 例
+
+```bash
+# report every setup problem at once
+verbatra doctor
+
+# validate a project in another directory, with an explicit config
+verbatra doctor --cwd apps/web --config verbatra.config.ts
+
+# machine-readable report for a CI preflight step
+verbatra doctor --json
+
+# list hardcoded user-facing strings, with no key set
+verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--literals` | なし | オフ | 構成をチェックする代わりに、[`extract`](/ja/docs/config-file#extract) のソースコードのルートディレクトリを走査して、ハードコードされたユーザー向けの文字列を探す（[未翻訳のリテラル](#未翻訳のリテラル)を参照） |
+| `--locales` | なし | オフ | チェックのあとに、ターゲットロケールごとに、送信されるコード、プロバイダーの対応状況、用語集、丁寧さを一覧表示する（[ロケールの対応状況](#ロケールの対応状況)を参照） |
+| `--live` | なし | オフ | 翻訳のクォータを使わずに、プロバイダーの現在の言語一覧を先に取得する。`--locales` も有効になる |
+| `--data-flow` | なし | オフ | 構成をチェックする代わりに、どのホストに何が送られ、ローカルに何が書き込まれるかを説明する（[データフロー](#データフロー)を参照） |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。`--locales` と `--live` は `--literals` と同時に指定できず（`INVALID_OPTION`、終了コード `2`）、`--data-flow` は、その 3 つのどれとも同時に指定できません。
+
+## 動作
+
+### チェック内容
+
+<AvailableFrom version="0.12.0" />
+
+構成のチェックを実行すると、次のチェックがこの順に報告されます。Plural rules（複数形ルール）、Plural completeness（複数形の網羅性）、Locale codes（ロケールコード）、Locale state（ロケールの状態）、Length limits（長さの上限）は情報提供のみで、失敗することはありません。該当するものがあれば `[warn]` を、なければ `[ok  ]` を出力します。
+
+| チェック | 失敗する条件 |
+| --- | --- |
+| Configuration | 設定ファイルが見つからない、または検証に失敗する |
+| Format adapter | 設定された `format` に対応するファイルアダプターがない |
+| Provider | 設定された `provider.id` に対応するプロバイダーのファクトリ関数がない |
+| API key environment variable | そのプロバイダーが API キーを読み取る変数が設定されていない |
+| Network policy | 有効なネットワークポリシー（[ネットワークアクセスを制限する](/ja/docs/network-policy)を参照）が、プロバイダーのホスト、またはプロバイダーが使うプロキシを拒否する |
+| Source locale file | ソースのロケールファイルが、解決されたパスにない、通常のファイルではない、または設定されたフォーマットで解析できない |
+| Plural rules | 失敗することはありません。使われている ICU と CLDR のバージョンを示し、ターゲットロケールに ICU の複数形ルールがない場合に警告します。 |
+| Plural completeness | 失敗することはありません。ターゲットの複数形に、その言語が使う CLDR のカテゴリが欠けている場合に警告し、それぞれを示します。ターゲットに形のない複数形は、実行がそこに書き込む内容で判断します（空のソースの形は存在しないものとして数え、複数形の生成は実際に実行される場合だけ対象にします）。判断基準は、`translate` の i18next だけが対象の通知より意図的に厳しくなっています（最大 10 件。ターゲットがすでに持つ複数形の欠落は、[`verbatra check`](/ja/docs/cli/check#複数形カテゴリ) が一覧表示します）。 |
+| Locale codes | 失敗することはありません。有効だが正規形ではないコード（`en-us` や `iw` など）をすべて警告し、正規形を示します（[ロケールコード](/ja/docs/config-file#ロケールコード)を参照）。 |
+| Locale state | 失敗することはありません。ロックファイル、キャッシュ、来歴ファイルが状態を持っているのに設定に一覧がないロケールをすべて警告し、`translate` がそれを[引き継ぐ](/ja/docs/the-lock-file#表記の異なるロケールコード)かどうかを示します。 |
+| Length limits | 失敗することはありません。`verbatra.limits.json` が使えない場合（実行はこのファイルを無視し、直すまで上限を設定できません）、ソースにもうないキーの上限や、設定の `maxLength` で上書きされる上限がある場合、キーを確認するためにソースを読み取れなかった場合に警告します。ファイルがなければ合格します（[長さの上限](/ja/docs/config-file#maxlength)）。 <AvailableFrom version="0.13.0" /> |
+| Locale support | プロバイダーがソースまたはターゲットのロケールに対応していない場合です。ロケールに警告がある場合は警告します（[ロケールの対応状況](#ロケールの対応状況)を参照）。 |
+
+どのチェックも、前のチェックが失敗しても実行されます。唯一の例外は設定です。設定を読み込めない場合、設定を必要とするチェックは `[skip]`（JSON では `"status": "skipped"`）と出力されます。CLDR の複数形がないフォーマットでの Plural completeness も同じです。注意に値する内容を見つけたものの失敗ではないチェックは、`[warn]`（JSON では `"status": "warn"`）と出力され、終了コードは変わりません。失敗したチェックには `fix` も付きます。これは、命令形の次の手順 1 つで、`fix:` として出力され、JSON では `"fix"` として送られるため、エージェントが `detail` を解析する必要はありません。
+
+問題が 2 つある場合の実行例です。
+
+```text output
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
+  [ok  ] Provider: Provider "anthropic" resolves to a factory.
+  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.
+  [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
+  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+  ...
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
+2 problems found (run verbatra doctor again after fixing them)
+```
+
+問題がなければ `no problems found` で終わり、チェックが警告した場合は `, N warnings` が付きます。
+
+### API キーとファイル
+
+- API キーは**変数名だけ**でチェックされます。`doctor` は変数が設定されているかどうかを調べ、その内容は決して調べません。各プロバイダーの変数は[プロバイダー](/ja/docs/providers)を参照してください。
+- `openai-compatible` はダミーの API キーにフォールバックします。失敗するのは、設定に独自の `provider.options.apiKeyEnvVar` があり、その変数が未設定のときだけです。`libretranslate` は API キーが省略可能なので、このチェックで失敗することはありません。
+- [`provider: { id: "none" }`](/ja/docs/human-only-workflow) では、Provider、API key、Network policy のチェックは合格し、Locale support はスキップされます。
+- **ターゲット**ファイルがなくても問題ありません。`translate` が作成します。**ソース**ファイルは解析されるため、ディレクトリ、空のファイル、壊れた内容では失敗します。
+- `doctor` は最初に[環境ファイル](/ja/docs/cli#環境ファイル)を読み込むため、dotenv ファイルにある API キーは設定済みとして扱われます。`--literals` では、どちらも読み込みません。
+
+### ロケールの対応状況
+
+<AvailableFrom version="0.12.0" />
+
+Locale support のチェックは、プロバイダーが設定された各ロケールを翻訳できるかどうかを確認します。DeepL と Google Cloud Translation は、verbatra が同梱する日付付きの言語テーブルに照らして判定されます。LLM プロバイダーは、どのロケールも受け付けます。失敗するのは、[`verbatra translate`](/ja/docs/cli/translate) が `LOCALE_UNSUPPORTED_BY_PROVIDER` で拒否するロケールとまったく同じものです。それ以外では、ロケールに警告がある場合、または `--live` で一覧を取得できなかった場合に `[warn]` を出力します。判定の意味は、[実行前の対応確認](/ja/docs/language-support#実行前の対応確認)で説明しています。
+
+`--locales` は、チェックのあとにロケールごとの判定を出力します。
+
+```text output
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+各行には、ロケール、プロバイダーが受け取るコード（[`localeMap`](/ja/docs/providers#プロバイダーに送られるロケールコード) の適用後で、適用された場合は `(localeMap)` と示されます）、判定、そして用語集と `formal` または `informal` のトーンが適用されるかどうかが示されます。警告が出ても、チェックは失敗しません。
+
+`--live` は、代わりにプロバイダーの現在の一覧で判定します（DeepL は `/v3/languages`、Cloud Translation は `languages`、LibreTranslate は `/languages`）。テーブルを同梱していない LibreTranslate では、`unverified` 以外の判定を得る唯一の方法なので、`--live` を実行するまで Locale support は `[warn]` と表示されます。リクエストが送られるのは、API キーの変数が設定されていて（LibreTranslate では不要）、ネットワークポリシー（[ネットワークアクセスを制限する](/ja/docs/network-policy)を参照）がそのホストを許可している場合だけです。それ以外の場合や失敗した場合は、同梱のテーブルが使われ、`live language list` の行にその理由が示されます。
+
+### 未翻訳のリテラル
+
+<AvailableFrom version="0.11.0" />
+
+`--literals` は、カタログに入っていないユーザー向けの文字列を見つけます。[`extract` ブロック](/ja/docs/config-file#extract)のソースコードのルートディレクトリをたどり、ソースを読み取るだけで書き込まず、プロバイダーを生成せず、API キーを読み取らず、`.env` ファイルも読み込みません。実行されるチェックは、Configuration と Untranslated literals（未翻訳のリテラル）の 2 つだけです。各検出結果には、ファイル、行、列が示され、空白は 1 つにまとめられ、JSX の文字参照はデコードされ、最大 80 文字まで表示されます。
+
+```text output
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+```
+
+報告されるもの：`.tsx`、`.jsx`、`.js` ファイルの JSX テキスト、ユーザー向けの JSX 属性（`alt`、`title`、`placeholder`、`label`、`aria-label`、およびテキストを持つそのほかの `aria-*`）、そして 2 語以上のそのほかの文字列です。
+
+報告されないもの：
+
+- `t(...)`、`$t(...)`、`i18n.t(...)`、`useTranslation` から名前を変えた `t` に渡された文字列、および `<Trans>` や `<Translation>` の中に描画される文字列
+- オブジェクトのキー名、import のスペシファイア、クラス名、CSS の値、テスト ID、`data-*`、ID やキーワードを取る属性（`aria-describedby`、`aria-labelledby`、`aria-controls`、`rel`、`sandbox`、`allow`、`autoComplete`、`referrerPolicy`、`crossOrigin`）、URL、数字や記号だけからなる文字列
+- 型の位置にあるリテラル（`as` や `satisfies` の前の値は引き続きチェックされます）、ログメッセージ、エラーメッセージ（`new ValidationError(...)`、`throw Error(...)`）、比較のオペランド、式を含むテンプレートリテラル
+- `describe`（zod）、`query`、`execute`、`prepare`、`format`、`parse`、`z.enum`、`setItem`、`getItem`、`removeItem` の直接の引数、および `on`、`off`、`once`、`emit`、`addEventListener`、メンバーの `get` や `set` の最初の引数（より深くネストした文言や、`setError` のような関数に渡すメッセージは、引き続き報告の対象）
+- テスト、ストーリー、宣言、設定のファイルにあるすべて
+
+リテラルを 1 つ除外するには、その上に `// verbatra-ignore-next-line` を置くか（JSX では `{/* verbatra-ignore-next-line */}`）、その行の末尾に `// verbatra-ignore-line` を置きます。next-line ディレクティブは、コードのある次の行を対象にし、JSX の開始タグでは、そのタグのすべての属性を対象にします。どこでも問題のない文字列は、参照をデコードした形で `extract.literals.ignore` に列挙します（`Tom & Jerry`）。除外されたリテラルも、理由とともに一覧表示されます。
+
+このチェックは、検出結果があった場合、およびファイルを開けない、最後まで読めない、大きすぎると判断された場合に失敗します（走査は続きます）。`extract` ブロックのないプロジェクトでは失敗します。
+
+### データフロー
+
+<AvailableFrom version="0.12.0" />
+
+`--data-flow` は、構成をチェックする代わりに、このプロジェクトのデータがどこに行くかを説明します。DPA（データ処理契約）や NDA（秘密保持契約）の審査の証跡として使えます。各カテゴリは[データの取り扱いとプライバシー](/ja/docs/data-handling)で説明しています。API キーは読み取らず、ネットワークリクエストも行いません。実行されるチェックは、Configuration と Data flow（データフロー）の 2 つだけです。Data flow は失敗することがありません。ネットワークポリシー（[ネットワークアクセスを制限する](/ja/docs/network-policy)を参照）がホストを拒否した場合や、無効な値を保持している場合、または件数を数えるためにソースファイルを読み取れない場合に、`[warn]` を出力します。
+
+```text output
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  data flow (manifest version 1)
+    provider     deepl (machine-translation)
+    network      any host (no policy set)
+    destination  api.deepl.com  default  paid-key  before-construction  permitted
+    destination  api-free.deepl.com  default  free-key  before-construction  permitted
+    sent         source-text, placeholder-markers, language-codes
+    api key      required
+    placeholders masked
+    sensitive    off
+    counts       3 source keys, 0 with a description or meaning, 1 with placeholders it cannot mask (withheld)
+    locale       de  sent as DE  glossary terms: 0
+    local        lock  verbatra.lock.json  (no source text, translations or personal data)
+    local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
+    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
+    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
+    request      language-list  verbatra doctor --live  sends the API key
+    request      dns-lookup  each connection to a destination host
+    agent        mcp  verbatra mcp  redactable
+    agent        studio-agent-tools  verbatra studio --expose-agent-tools
+```
+
+マニフェストには、プロバイダー、各送信先のホストとその由来（組み込み、`provider.options.baseUrl`、`*_BASE_URL` 変数のいずれか）、ポリシーの判定（`permitted`、`deferred`、`refused`、`invalid-policy`）が示されます。さらに、送られるデータの種類、ソースキーの数、説明または意味を持つキーの数、プロバイダーがプレースホルダーをマスクできないキーの数（ソースキーに対する見積もりです。実行が送るのは欠落または変更されたキーだけで、`sensitiveData: redact` のときはさらに多くが保留されることもあります）、ターゲットロケールごとのコードと用語集の用語数、プロジェクトからの相対パスで示したローカルファイルと、それがソーステキスト、訳文、個人データを含むかどうか、そのほかのリクエストとエージェントが使う画面やツールも示されます。DeepL は両方のホストが記載されます。どちらを選ぶかを決める API キーは読み取らないためです。有効なプロキシは、変数とホストで示され、認証情報は示されません。項目に並ぶのは、この設定が送れるものだけです。`provider: { id: "none" }` では、何も送られないと明記されます。示されるのはホスト、データのカテゴリ、条件だけで、API キーの値やファイルの内容は示されません。
+
+`--json` を付けると、マニフェストは `result.dataFlow` に入ります。`version` フィールドが変わるのは、フィールドの名前が変わったか削除されたときだけです。新しいフィールドは、バージョンを上げずに追加されることがあるため、知らないフィールドは無視してください。SDK の [`dataFlowManifestSchema`](/ja/docs/sdk/inspect#dataflowmanifestschema) で検証できます。
+
+### JSON 出力
+
+スキーマ：[`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) はエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[エンベロープ（envelope）](/ja/docs/cli/output#json-出力)の `result` にレポートが入ります。`ok` が true になるのは、コマンドが終了コード `0` で終了する場合に限られます。
+
+```ts
+interface DoctorResult {
+  ok: boolean;                 // true exactly when the command exits 0
+  checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  dataFlow?: DataFlowManifest; // only with --data-flow: what goes where, version 1
+  locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
+}
+
+interface DoctorCheck {
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "network-policy"
+    | "source-file"
+    | "plural-rules"
+    | "plural-completeness"
+    | "locale-codes"
+    | "locale-state"
+    | "limits" // 0.13.0
+    | "locales"
+    | "untranslated-literals"
+    | "data-flow";
+  title: string;               // stable, human-readable name
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
+  detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check
+}
+
+interface LocaleCapabilityReport {
+  provider: string;
+  coverage: "listed" | "open";       // "open" for an LLM provider
+  tableVersion: string;              // the table's date (YYYY-MM-DD)
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;
+    formality: boolean;
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` は、設定を読み込めなかった場合、プロバイダーが不明な場合、`provider: { id: "none" }` の場合には存在しません。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+実行中、`doctor` は stderr に 1 行を表示します。この行は `--quiet` で非表示にできます。表示されるのは、`checking the setup`、`--live` では `checking the setup and fetching the provider's language list`、`--data-flow` では `describing the data flow`、`--literals` ではファイル数付きの `scanning the source for literals` のいずれかです。レポートは stdout に出力されます。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 失敗したチェックがない（`warn` があっても `0` で終了する） |
+| `1` | 失敗したチェックが 1 つ以上ある（未対応のロケールを含む）、または `--literals` でリテラルが見つかったか、ファイルを走査できなかった |
+| `2` | 実行できなかった。使い方の誤り、または存在しない `--config` のパスを明示した |
+
+探索で設定が見つからない場合や、設定が検証に失敗する場合は、失敗したチェック（終了コード `1`）になります。それを報告するのがこのコマンドの役目だからです。[終了コードの仕様](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [`verbatra init`](/ja/docs/cli/init) は、`doctor` が検証する設定と `.env.example` を作成します。
+- [`verbatra check`](/ja/docs/cli/check) は、構成が整ってから実行するドリフトゲートです。
+- [設定ファイル](/ja/docs/config-file)は、`doctor` が検証するすべての設定キーを説明します。
+- [プロバイダー](/ja/docs/providers)には、各プロバイダーが読み取る API キーの変数が載っています。
+- [言語とロケール](/ja/docs/language-support#実行前の対応確認)には、Locale support のチェックが使う言語テーブルが載っています。

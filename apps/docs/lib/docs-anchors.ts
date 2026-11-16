@@ -5,4 +5,7 @@ export const PROVIDER_KEYS_ANCHORS: LocalizedAnchors = {
   de: "keys-kommen-aus-der-umgebung",
   es: "las-claves-vienen-del-entorno",
   fr: "les-clés-viennent-de-lenvironnement",
+  "zh-CN": "密钥来自环境变量",
+  "pt-BR": "as-chaves-de-api-vêm-do-ambiente",
+  ja: "api-キーは環境変数から読み込む",
 };

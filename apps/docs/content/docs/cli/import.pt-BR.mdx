@@ -1,0 +1,116 @@
+---
+title: verbatra import
+seoTitle: "verbatra import: traz as traduções de volta"
+description: Importe de volta aos arquivos de locale uma entrega preenchida em pasta de trabalho, CSV, TSV ou XLIFF, com as mesmas verificações de segurança.
+type: reference
+---
+Traz de volta para os seus arquivos de locale uma entrega que um tradutor preencheu. Todo valor passa pelas mesmas verificações de integridade de uma execução automática: os valores que passam são gravados e o arquivo de lock é atualizado (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)); os que falham ficam retidos e são relatados, então uma célula ruim nunca chega a um arquivo de locale. Uma execução real também adiciona entradas que faltam a um `.gitignore` existente, veja [Entradas do .gitignore](/pt-BR/docs/cli#entradas-do-gitignore).
+
+## Sinopse
+
+```bash
+verbatra import <workbook> [flags]
+```
+
+- `<workbook>`: a entrega que o [`verbatra export`](/pt-BR/docs/cli/export) gravou e que o tradutor preencheu. Para `xlsx`, é o arquivo da pasta de trabalho; para `csv`, `tsv`, `xliff2` e `xliff12`, é um arquivo `<locale>.csv`, `<locale>.tsv` ou `<locale>.xlf`, ou o diretório que contém um arquivo por locale.
+
+## Exemplos
+
+```bash
+# import the filled workbook
+verbatra import verbatra-translations.xlsx
+
+# validate and report, write nothing
+verbatra import verbatra-translations.xlsx --dry-run
+
+# import every locale file in a CSV handoff directory
+verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--dry-run` | nenhum | desativado | valida e relata sem gravar arquivos de locale nem atualizar o arquivo de lock |
+| `--format` | `<format>` | pela extensão do caminho: `csv`, `tsv`, `xliff2` para `.xlf` ou `.xliff`, senão `xlsx`; para um diretório, pelo manifesto da exportação ou pelos arquivos de locale dentro dele | `xlsx`, `csv`, `tsv`, `xliff2` ou `xliff12`; qualquer um dos formatos XLIFF lê as duas versões |
+| `--reviewer` | `<name>` | nenhum | nome registrado em cada unidade XLIFF marcada como reviewed ou final; no máximo 64 caracteres, armazenado no arquivo de procedência versionado |
+| `--lock-timeout` | `<seconds>` | `600` | quanto tempo esperar por uma trava de escrita por locale que está ocupada; um número inteiro de `1` a `3600`, senão um erro de uso, saída `2` |
+
+Também aceita as flags globais `--cwd`, `--config` e `--json` (veja [Flags globais](/pt-BR/docs/cli#flags-globais)).
+
+## Comportamento
+
+<Callout type="warn">
+Todo valor preenchido que passa nas verificações substitui o valor no arquivo de locale, inclusive um que uma pessoa escreveu. Execute `--dry-run` primeiro para ver o que mudaria.
+</Callout>
+
+### Arquivos de locale e sobras
+
+Com `csv` ou `tsv`, o locale vem do nome do arquivo, então mantenha cada arquivo com exatamente o nome da exportação. Um locale de destino configurado sem arquivo (ou, em uma pasta de trabalho, sem planilha) faz esse locale falhar com `WORKBOOK_SHEET_MISSING`; ele nunca é ignorado em silêncio.
+
+Um arquivo que sobrou de uma exportação anterior, com uma seleção de `--locales` mais ampla, nunca é aplicado. O import confere o diretório com o manifesto que a exportação mais recente gravou e faz um locale assim falhar com `HANDOFF_FILE_STALE`. Exporte esse locale de novo ou exclua o arquivo. Um diretório sem manifesto legível (montado manualmente ou cujo manifesto se perdeu ao passar por um arquivo compactado) é lido como está, e um único arquivo que você informa diretamente também.
+
+### Travas de escrita
+
+<AvailableFrom version="0.12.0" />
+
+O `--lock-timeout` define quanto tempo um locale espera por uma trava de escrita ocupada (veja [A trava de escrita](/pt-BR/docs/the-lock-file#a-trava-de-escrita)) antes de falhar com `LOCK_CONTENDED`, exatamente como no [`verbatra translate`](/pt-BR/docs/cli/translate). A espera acontece antes de o arquivo do locale ser gravado, então um locale que atinge o tempo limite continua intocado enquanto os outros ainda são importados, e o comando termina com `1`. Depois que um arquivo é gravado, registrá-lo no arquivo de lock espera até o padrão de dez minutos, seja qual for o `--lock-timeout`. Uma espera maior que um segundo imprime uma linha com o nome da trava e de quem a mantém (um registro `lock-wait` com `--json`). O `--dry-run` não adquire nenhuma trava, então nunca espera.
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+Um arquivo XLIFF é lido com a versão que ele declara, e um único arquivo cujo nome não é um locale configurado é associado pelo idioma de destino que declara. Uma unidade cujo destino é igual ao valor atual não altera nada; qualquer outro destino passa pela barreira de integridade como uma linha de pasta de trabalho. Uma unidade marcada como `reviewed` ou `final` (no 1.2, também `signed-off` ou `approved="yes"`) é registrada como aprovada, com o nome do `--reviewer`, e informada com o aviso `HANDOFF_REVIEWS_RECORDED`. Uma unidade cujo id não nomeia nenhuma chave de origem é relatada como linha malformada. Veja [Entregar a uma agência (XLIFF)](/pt-BR/docs/translation-agency).
+
+### Linhas vazias e quebradas
+
+Uma célula `Translation` vazia nunca faz um locale falhar: a linha é ignorada, sua linha de base no arquivo de lock é mantida e a chave é relatada como `unfilled` enquanto ainda precisar de uma tradução. Importar uma entrega que ninguém preencheu ainda, portanto, é bem-sucedido e lista todas as chaves pendentes.
+
+Uma linha preenchida cujo texto de origem mudou desde a exportação fica retida: sua chave é listada em `integrity-withheld` sem motivo, o locale fica parcial e a chave é exportada de novo.
+
+Uma única linha ilegível é relatada como linha malformada, e o restante do locale ainda é importado. Uma entrega grande demais ou que não pode ser analisada de forma alguma (por exemplo, que não é um contêiner xlsx legível) é um erro `SOURCE_INVALID` que afeta a execução inteira, cuja mensagem diz o que estava errado.
+
+Em uma entrega CSV, TSV ou xlsx, uma linha preenchida igual ao valor que uma chave em dia já contém é deixada como está e relatada como inalterada, não traduzida, depois de passar pela barreira de integridade <AvailableFrom version="0.13.0" />. Veja [Tradução manual](/pt-BR/docs/manual-translation#o-que-o-import-aceita).
+
+### Retorno no terminal
+
+<AvailableFrom version="0.12.0" />
+
+O `import` mostra uma linha enquanto lê e aplica o arquivo. Depois de um import limpo, ele sugere `verbatra check`, e depois de `--dry-run`, o mesmo import sem a flag. Depois que um locale falha ou fica parcial, ele sugere o mesmo import assim que você corrigir as linhas recusadas ou, quando um locale falhou com um erro que tem um próximo passo, esse passo:
+
+```text output
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check (confirm every locale is in sync)
+```
+
+Essas linhas vão para o stderr, e `--quiet` as descarta. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+### Saída JSON
+
+Schema: o [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os outros.
+
+Com `--json`, o envelope (veja [Saída JSON](/pt-BR/docs/cli/output#saída-json)) carrega um `RunSummary`, o mesmo formato que o [`verbatra translate`](/pt-BR/docs/cli/translate) imprime; [RunSummary](/pt-BR/docs/sdk/run-summary) lista todos os campos.
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | todos os locales de destino ficaram completos |
+| `1` | a execução terminou, mas um ou mais locales falharam ou ficaram parciais |
+| `2` | não foi possível executar: um erro que afeta a execução inteira (configuração, entrega, formato ou um arquivo de lock corrompido) ou um erro de uso |
+| `130` | interrompido com Ctrl-C (SIGINT) depois de liberar as travas de escrita da execução |
+| `143` | encerrado com SIGTERM depois de liberar as travas de escrita da execução |
+
+<AvailableFrom version="0.9.0" />
+
+O contrato é o mesmo do [`verbatra translate`](/pt-BR/docs/cli/translate), então uma entrega manual se ramifica da mesma forma na CI: um locale parcial termina com `1`, e um arquivo de lock que está corrompido ou se corrompe interrompe a execução inteira com `2`, deixando os locales restantes intocados (os locales aplicados antes continuam gravados). Veja [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída) para o contrato que todo comando segue.
+
+## Veja também
+
+- [Tradução manual](/pt-BR/docs/manual-translation) cobre o ciclo completo de exportar, preencher e importar, e o que um tradutor pode editar.
+- [Segurança da tradução](/pt-BR/docs/translation-safety) explica as verificações que podem reter um valor.
+- [Entregar a uma agência (XLIFF)](/pt-BR/docs/translation-agency) cobre o ciclo XLIFF por uma ferramenta CAT.
+- [`verbatra export`](/pt-BR/docs/cli/export) produz a entrega que este comando lê.

@@ -1,0 +1,86 @@
+---
+title: "RunSummary"
+seoTitle: "RunSummary：verbatra 运行返回什么"
+description: "translate、importWorkbook 和 watch 兑现的结果，逐字段说明，方便脚本读取一次运行的用量和通知。"
+type: reference
+---
+## RunSummary 的结构
+
+`translate`、`importWorkbook` 以及每次成功的 `watch` 运行都会兑现（resolve）为一个 `RunSummary`：
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // true when nothing was written and no provider was called
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; the CLI exits 1 on these
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // present when maxTokens is configured or passed to the run
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
+}
+
+interface LocaleSummary {
+  locale: string;
+  status: "succeeded" | "partial" | "failed";
+  translated: string[];          // keys translated this run (in dry-run, keys that would be)
+  cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
+  unchanged: string[];           // keys already up to date
+  orphaned: string[];            // target keys with no matching source key (always reported)
+  pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
+  invalidIcuSource: string[];    // source keys skipped for invalid ICU
+  emptySource?: string[];        // source keys with an empty value; nothing is sent or written for them
+  integrityMismatches: string[]; // translations the integrity gate withheld
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
+  providerFailures: string[];    // keys withheld because nothing was translated for them
+  budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
+  sensitiveWithheld: string[];   // keys sensitiveData kept from the provider (block or redact)
+  generated: string[];           // CLDR plural forms synthesized this run
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
+  malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
+  duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
+  notices: LocaleNotice[];       // provider notices and SDK notices for this locale
+  needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
+  usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
+}
+```
+
+值得了解的部分：
+
+- **needsReview** 列出审校启发式规则标记的、已接受并已写入的键，每个键带有它的原因码，这些原因码在[审校标记](/zh-CN/docs/translation-safety#审校标记)中列出并解释。这个集合以 `REVIEW_REASON_CODES` 元组的形式发布，所以请据此构建任何运行时 schema 或穷举查找，而不要重新输入这些成员。审校标记只是建议，从不搁置任何键，所以一个键不会同时出现在 `needsReview` 和 `integrityMismatches` 中。处理队列的方法见[在 Studio 中审校](/zh-CN/docs/review-in-studio)。
+- **notices** 按语言环境存放，从不在顶层。它们包括提供商通知（例如 DeepL 的降级），列在[提供商通知](/zh-CN/docs/error-codes#provider-notice-codes)下；以及 SDK 通知，其代码构成 `SdkNoticeCode` 联合类型，在[运行通知](/zh-CN/docs/error-codes#sdk-notice-codes)下解释。整次运行范围的通知（例如缓存通知，一个文件由所有语言环境共用）会附加到该次运行中的每个语言环境上。
+- 当该范围内没有任何调用报告用量时，**usage** 是 `undefined`，而不是编造的零：试运行从不调用提供商，DeepL 也从不报告 token。`RunSummary.usage` 是各语言环境用量之和。
+- **budget** 只有在配置了 `maxTokens` 或把它传给该次运行时才会出现：`{ maxTokens, behavior, supported, tokensUsed, exceeded }`。`supported` 表示 `tokensUsed` 是否完全来自提供商自己报告的用量；只要有一个请求返回时没有可用的数字，它就是 `false`，此时总数中有一部分是 verbatra 的推算值，它同样会被计数和执行。试运行或没有发出任何请求的运行，会报告 `supported: true` 和 `tokensUsed: 0`：什么都没有发送，所以没有任何推算。在 `behavior: "stop"` 下，上限会在运行发出的每个请求之前检查（包括被重新拆分的请求的每一半），所以 `tokensUsed` 会落在 `maxTokens` 或以下，只有一个遗留例外：最后被放行的请求会按提供商报告的数字核对，这可能事后把总数推过上限。一旦如此，就不再发送任何内容。有两件事超出预留所能约束的范围，因为它们发生在已经放行的请求内部：键缺失返回时，提供商层会自行发送一次补救调用，所以一个被放行的批次最多可能花费其推算值的约两倍；并且计数只和提供商报告的内容一样准确。两者都在核对时体现，一旦发生，就不再放行任何内容。预算约束一次 `translate` 调用：`watch` 每次运行都重新开始，`retranslateEntry` 则完全不在其范围内。
+- 失败的语言环境上的 **error.code** 是原样保留的字符串（底层的提供商或适配器的错误码，只有在没有时才回退到 `LOCALE_FAILED`），所以不要把它当作封闭集合。状态为 `failed` 的语言环境并不总是带有 `error`：如果它的每个键都被搁置，从而列在 `integrityMismatches`、`providerFailures` 或 `budgetWithheld` 中，它会在没有抛出任何错误的情况下失败。它的原因在这些列表和它的 `notices` 中，例如提供商批次失败时的 `SUB_BATCH_FAILED`，或 token 预算的 `BUDGET_TOKENS_EXCEEDED`。请检查 `status`，不要检查 `error` 是否存在。
+- **cancelled** 只有在运行的 `signal` 中止了它时才会出现。[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled) 说明了这会留下什么。
+- **estimate** 只有在要求该次运行给出运行前估算时才会出现。它的 `caveats` 列表从不为空，并以 `EstimateCaveatCode` 成员的形式指出这个数字排除了什么：
+  - `CACHE_NOT_CONSULTED`：不读取翻译记忆库，所以真实运行时由缓存提供的键在估算中仍会计入。适用于每一次估算。
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`：真实运行对每个相同的源字符串只发送一个代表；估算则统计每个键。适用于每一次估算。
+  - `TRANSPORT_RETRIES_NOT_COUNTED`：每个计划的请求只计一次计费调用，尽管提供商的 SDK 可能在其下重试失败的调用，被重试的尝试仍可能计费。适用于每一次估算。
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`：响应的大小按源值加上固定的扩展余量来估算，所以篇幅更长的目标语言会报告更多的补全 token。仅适用于按 token 计费的提供商。
+  - `TOKEN_COUNT_IS_HEURISTIC`：token 由字符数推算，而不是来自提供商自己的分词器。仅适用于按 token 计费的提供商。
+  - `REPAIR_REQUESTS_NOT_COUNTED`：针对缺失键的补救轮次，以及对被截断的响应对半拆分后的重试，都不计入。仅适用于按 token 计费的提供商。
+- **cacheHits** 列出由[翻译缓存](/zh-CN/docs/the-cache)而不是提供商提供的键。**fuzzyHits** 列出源字符串已更改、但复用了原有译文的键，每个都带有 `key`、`similarity` 和它匹配到的 `previousSource`；除非启用了 `fuzzyCache`，否则它为空，并且这些键从不计入 **cacheHits**。**unfilled**、**malformedRows** 和 **duplicateKeys** 只由 `importWorkbook` 填充（`translate` 运行会让它们保持为空）：分别是导入时仍需翻译的键所在的空白行（无论它导出时是 `new` 还是 `changed`）、读取器无法解析的工作簿行，以及首次出现者胜出的重复键。后两者的可选 `line` 是该记录起始的文件行，只有在分隔符文件（`csv` 或 `tsv`）导入时才有。唯一的例外是纯人工项目（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）：在那里，`translate` 和 `watch` 会把翻译记忆库中没有精确条目的每个键都列在 **unfilled** 中，而 **fuzzyHits** 保持为空，因为那里从不应用模糊复用。
+- **protected** 列出 `translate` 运行未动的键，每个键带有它的 `reason`（`human`、`import`、`external` 或 `pinned`）；在 `humanEdits: "suggest"` 下还带有 `suggestion`（提供商的回答或翻译记忆库的精确条目，从不是模糊匹配），它不会被写入，以及 `suggestionStatus`：试运行时为 `planned`，否则为 `suggested`，或为说明未能给出建议原因的值（`integrity-mismatch`、`provider-failure`、`budget-withheld`、`sensitive-withheld`）。失败的建议译文从不改变该语言环境的状态。它们不在 **translated** 中，从不改变语言环境的状态，并且对 `check` 保持过期。`importWorkbook` 会让它保持为空。见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+
+这些条目类型中有两个是单独导出的：每个 `protected` 条目是一个 `ProtectedKey`，`notices` 中的每个 SDK 通知是一个 `SdkNotice`。
+
+<SdkTypeTable name="ProtectedKey" />
+
+<SdkTypeTable name="SdkNotice" />
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+把 `RunBudget` 归入三个 `BudgetStanding` 值之一，这与 CLI 的预算行、Studio 和 `usage.summary` 智能体工具所报告的分类相同：`"within"` 表示运行从未达到上限；`"stopped-before-ceiling"` 表示 `"stop"` 预算搁置了一个请求，而此时 `tokensUsed` 仍低于 `maxTokens`；`"reached"` 表示 `tokensUsed` 达到或超过了 `maxTokens`。请使用它，而不要只读 `exceeded`，因为在后两种情况下 `exceeded` 都是 `true`。
+
+```ts title="签名"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**返回**：`BudgetStanding`

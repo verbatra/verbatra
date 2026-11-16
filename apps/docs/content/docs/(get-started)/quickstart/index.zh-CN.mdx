@@ -1,0 +1,152 @@
+---
+title: 快速上手
+seoTitle: "快速上手：翻译你的第一个语言文件"
+description: 安装 CLI，生成配置，不用 API 密钥预览运行，然后翻译你的第一个语言文件。
+type: tutorial
+---
+学完本页，英文语言文件就有了对应的德文文件，由提供商编写、经 verbatra 检查，另有锁文件，让之后每次运行只翻译已更改的内容。你需要 Node.js `^22.22.0 || >=24`，大约 10 分钟。前 4 步不需要账号，也不需要 API 密钥。
+
+<Callout title="已经有语言文件和编码智能体了？">
+把[用 AI 智能体配置 verbatra](/zh-CN/docs/start-with-ai) 中的提示词交给你的智能体。它会围绕项目已有的语言文件添加 verbatra，并在产生任何花费之前停下。下面的步骤从零开始。
+</Callout>
+
+以下技术栈另有包含“在应用中加载译文文件”这一步的快速上手：[React](/zh-CN/docs/quickstart/react)、[Next.js](/zh-CN/docs/quickstart/nextjs)、[Vue](/zh-CN/docs/quickstart/vue)、[Angular](/zh-CN/docs/quickstart/angular) 和 [Flutter](/zh-CN/docs/quickstart/flutter)。
+
+## 步骤
+
+<Steps>
+<Step>
+
+### 安装 CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+下面的命令使用 `npx`。使用 pnpm、yarn 或 bun 时，改为运行 `pnpm verbatra`、`yarn verbatra` 或 `bun run verbatra`。如果 pnpm 以 `ERR_PNPM_IGNORED_BUILDS` 退出，见[故障排查](/zh-CN/docs/troubleshooting#pnpm-阻止依赖的安装脚本err_pnpm_ignored_builds)。
+
+</Step>
+<Step>
+
+### 添加源语言文件
+
+如果项目已经有语言文件，跳过这一步。否则创建一个：
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### 生成配置
+
+```bash
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
+```
+
+`--format` 指定文件格式：[选择技术栈](/zh-CN/docs/pick-your-stack)列出了每个框架对应的 ID。`--yes` 直接采用 `init` 检测到的结果，不再提示；省略它，就要逐一回答 [`verbatra init`](/zh-CN/docs/cli/init) 列出的提示问题。
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run  (Preview what a run would translate, without calling the provider.)
+```
+
+新生成的 `verbatra.config.ts` 把 `en` 翻译为 `de`。要增加语言，把语言环境代码加入 `targetLocales`。
+
+</Step>
+<Step>
+
+### 不用密钥预览运行
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+这是交互式终端中的形式；通过管道或在 CI 中，每一步还会各有一行输出，见[终端输出](/zh-CN/docs/cli/output#终端输出)。试运行不会构造提供商，所以不需要密钥，不产生花费，也不写入任何内容。[`verbatra doctor`](/zh-CN/docs/cli/doctor) 以同样的方式检查其余配置。
+
+</Step>
+<Step>
+
+### 翻译
+
+```bash
+cp .env.example .env
+```
+
+打开 `.env`，把你的密钥粘贴到 `GEMINI_API_KEY=` 之后。密钥只会来自环境变量，CLI 会把 [`.env.local` 和 `.env`](/zh-CN/docs/cli#环境文件) 加载到环境中。还没有密钥？Gemini 有免费套餐：在 [Google AI Studio](https://aistudio.google.com/apikey) 创建一个。其他提供商及其变量见[提供商](/zh-CN/docs/providers)。
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra 把缺失的 2 个键发送给 Gemini，检查每条结果，然后写入德文文件。摘要以 `de: 2 translated, 0 unchanged` 开头，并列出本次运行用掉的 token。具体措辞取决于模型，例如：
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### 检查所有语言环境是否同步
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` 不调用提供商，语言环境一旦不同步就以 `1` 退出，所以同一条命令可以用门禁拦住 pull request。
+
+</Step>
+</Steps>
+
+## 刚才发生了什么
+
+- `locales/de.json` 的键与源文件相同，顺序也相同，`{{name}}` 完好保留：丢失占位符的结果会被搁置，绝不写入。见[翻译安全](/zh-CN/docs/translation-safety)。
+- `verbatra.lock.json` 记录每条译文所对应源字符串的哈希，所以下次运行只发送新增和已更改的键。见[锁文件与来源记录](/zh-CN/docs/the-lock-file)。
+- `verbatra.provenance.json` 记录每个值由哪个提供商和模型写成。见[来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)。
+- `verbatra.cache.json` 和 `.verbatra-local/` 保存可重新生成的翻译缓存和本地运行状态。`init` 已经把两者加入 gitignore。见[翻译缓存](/zh-CN/docs/the-cache)。
+
+把语言文件、锁文件和来源记录文件一起提交，让每台机器和你的 CI 都与同一个基线比对。
+
+## 接下来
+
+<Cards>
+  <Card title="添加语言" href="/zh-CN/docs/add-a-language" description="添加一个目标语言环境，让一次运行把它填满。" />
+  <Card title="在 CI 中运行 verbatra" href="/zh-CN/docs/ci-and-exit-codes" description="语言环境发生漂移时，让 pull request 失败。" />
+  <Card title="运行的工作原理" href="/zh-CN/docs/how-it-works" description="你刚运行的命令背后的流程。" />
+  <Card title="配置文件" href="/zh-CN/docs/config-file" description="verbatra.config.ts 能包含的全部内容。" />
+</Cards>

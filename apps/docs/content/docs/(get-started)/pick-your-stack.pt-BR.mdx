@@ -1,0 +1,193 @@
+---
+title: Escolher sua stack
+seoTitle: "Escolher o framework e o formato i18n do projeto"
+description: "Encontre seu framework e copie o id do formato e o comando init que configuram o verbatra para ele, com o layout usual dos arquivos de locale."
+type: reference
+---
+Encontre seu framework abaixo e use o comando `init` dele no lugar do comando do [Início rápido](/pt-BR/docs/quickstart). Cada layout de arquivo é o padrão que o `init` grava quando não encontra arquivos de locale; quando seus arquivos já existem, o `init` detecta onde estão, e `--path` define o padrão manualmente. O comportamento completo de cada formato está em [Formatos](/pt-BR/docs/formats). Algumas stacks também têm um início rápido passo a passo, com link no fim da seção.
+
+<StackCards
+  labelledBy="page-title"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "#react-com-i18next" },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "#nextjs-com-next-intl" },
+    { label: "Vue e Nuxt", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "#vue-e-nuxt-com-vue-i18n" },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "#angular-com-ngx-translate" },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "#flutter" },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "#android" },
+    { label: "iOS e macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "#ios-e-macos" },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "#gettext" },
+    { label: "Java e Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "#java-e-spring" },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+    { label: "Outra coisa", icon: "custom", formats: [], href: "#outra-coisa" },
+  ]}
+/>
+
+## React com i18next
+
+Para projetos com i18next, react-i18next e next-i18next.
+
+- Formato: `i18next-json`
+- Arquivos: `locales/{locale}.json`
+
+<InitCommand format="i18next-json" />
+
+Detalhes: [Os quatro formatos JSON](/pt-BR/docs/formats#os-quatro-formatos-json).
+
+Passo a passo: [Início rápido com React](/pt-BR/docs/quickstart/react).
+
+## Next.js com next-intl
+
+Para arquivos de mensagens do next-intl, cujos valores são mensagens ICU.
+
+- Formato: `next-intl-json`
+- Arquivos: `messages/{locale}.json`
+
+<InitCommand format="next-intl-json" />
+
+Detalhes: [Os quatro formatos JSON](/pt-BR/docs/formats#os-quatro-formatos-json).
+
+Passo a passo: [Início rápido com Next.js](/pt-BR/docs/quickstart/nextjs).
+
+## Vue e Nuxt com vue-i18n
+
+Para o vue-i18n, incluindo o Nuxt I18n, com placeholders de chave simples `{ }` e plurais separados por barra vertical.
+
+- Formato: `vue-i18n-json`
+- Arquivos: `src/locales/{locale}.json`
+
+<InitCommand format="vue-i18n-json" />
+
+Detalhes: [Os quatro formatos JSON](/pt-BR/docs/formats#os-quatro-formatos-json).
+
+Passo a passo: [Início rápido com Vue](/pt-BR/docs/quickstart/vue).
+
+## Angular com ngx-translate
+
+Para JSON do ngx-translate, plano ou aninhado.
+
+- Formato: `ngx-translate-json`
+- Arquivos: `src/assets/i18n/{locale}.json`
+
+<InitCommand format="ngx-translate-json" />
+
+Detalhes: [Os quatro formatos JSON](/pt-BR/docs/formats#os-quatro-formatos-json).
+
+Passo a passo: [Início rápido com Angular](/pt-BR/docs/quickstart/angular).
+
+## Flutter
+
+Para os Application Resource Bundles do Flutter. O `init` também define `localeStyle: "posix"`, então `pt-BR` é gravado como `app_pt_BR.arb`, o nome que o `flutter gen-l10n` lê.
+
+- Formato: `arb`
+- Arquivos: `lib/l10n/app_{locale}.arb`
+
+<InitCommand format="arb" />
+
+Detalhes: [ARB](/pt-BR/docs/formats#arb).
+
+Passo a passo: [Início rápido com Flutter](/pt-BR/docs/quickstart/flutter).
+
+## Android
+
+Para recursos `strings.xml`. O `init` também define `localeStyle: "android"`, então o placeholder `{locale}` se expande para `values` na origem e para `values-de` no alemão.
+
+- Formato: `android-xml`
+- Arquivos: `app/src/main/res/{locale}/strings.xml`
+
+<InitCommand format="android-xml" />
+
+Detalhes: [Android strings.xml](/pt-BR/docs/formats#android-stringsxml).
+
+## iOS e macOS
+
+Dois formatos, conforme o projeto guarda suas strings. Para arquivos `.strings` com seus plurais em `.stringsdict`:
+
+- Formato: `apple-strings`
+- Arquivos: `{locale}.lproj/Localizable.strings`
+
+<InitCommand format="apple-strings" />
+
+Para um Xcode String Catalog, um único arquivo que contém todos os locales. Crie o catálogo no Xcode primeiro: o verbatra grava nele, mas nunca o cria.
+
+- Formato: `apple-xcstrings`
+- Arquivos: `{locale}Localizable.xcstrings`
+
+O padrão precisa do placeholder `{locale}`, mas, em um String Catalog, ele se expande para uma string vazia: todos os locales são lidos e gravados no mesmo arquivo `Localizable.xcstrings`.
+
+<InitCommand format="apple-xcstrings" />
+
+Detalhes: [Apple .strings](/pt-BR/docs/formats#apple-strings) e [Xcode String Catalogs (.xcstrings)](/pt-BR/docs/formats#xcode-string-catalogs-xcstrings).
+
+## gettext
+
+Para catálogos `.po` e seus modelos `.pot`, como os usados em projetos Python, PHP e C. O `init` também define `localeStyle: "posix"`, então `pt-BR` é gravado como `pt_BR`.
+
+- Formato: `gettext-po`
+- Arquivos: `locales/{locale}/LC_MESSAGES/messages.po`
+
+<InitCommand format="gettext-po" />
+
+Detalhes: [gettext .po/.pot](/pt-BR/docs/formats#gettext-popot).
+
+## Java e Spring
+
+Para pacotes de mensagens `.properties`. O `init` também define `localeStyle: "posix"`, então `pt-BR` é gravado como `messages_pt_BR.properties`.
+
+- Formato: `properties`
+- Arquivos: `src/main/resources/messages_{locale}.properties`
+
+<InitCommand format="properties" />
+
+Detalhes: [Properties](/pt-BR/docs/formats#properties).
+
+## .NET
+
+Para arquivos de recursos `.resx`. Imagens, ícones e entradas do designer não são alterados.
+
+- Formato: `resx`
+- Arquivos: `Resources/Strings.{locale}.resx`
+
+<InitCommand format="resx" />
+
+Detalhes: [.NET .resx](/pt-BR/docs/formats#net-resx).
+
+## YAML
+
+Para arquivos de locale YAML aninhados com placeholders `{{double-brace}}` no estilo do i18next.
+
+- Formato: `yaml`
+- Arquivos: `locales/{locale}.yml`
+
+<InitCommand format="yaml" />
+
+Detalhes: [YAML](/pt-BR/docs/formats#yaml).
+
+## XLIFF
+
+Para documentos XLIFF 1.2 e 2.0 vindos do `ng extract-i18n` do Angular, de uma ferramenta CAT ou de uma agência.
+
+- Formato: `xliff`
+- Arquivos: `locales/{locale}.xlf`
+
+<InitCommand format="xliff" />
+
+Detalhes: [XLIFF](/pt-BR/docs/formats#xliff).
+
+## INI
+
+Para arquivos INI clássicos, com um nível de cabeçalhos `[section]`.
+
+- Formato: `ini`
+- Arquivos: `locales/{locale}.ini`
+
+<InitCommand format="ini" />
+
+Detalhes: [INI](/pt-BR/docs/formats#ini).
+
+## Outra coisa
+
+Um formato que o verbatra não traz pode ser traduzido por meio de um adaptador que você mesmo escreve. Veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters).

@@ -1,0 +1,274 @@
+---
+title: verbatra doctor
+seoTitle: "verbatra doctor: valida a configuração do projeto"
+description: "Verifique se um projeto está configurado corretamente e receba todos os problemas em um único relatório, sem chamar um provedor nem ler uma chave de API."
+type: reference
+---
+<AvailableFrom version="0.9.0" />
+
+Verifique se um projeto está configurado corretamente e receba todos os problemas em um único relatório. O `doctor` não instancia nenhum provedor, não grava nenhum arquivo e só lê o valor de uma chave de API com `--live`, que o envia em uma requisição para obter a lista de idiomas do provedor (o LibreTranslate não recebe nenhuma chave de API). Execute-o depois de [`verbatra init`](/pt-BR/docs/cli/init) ou quando outro comando falhar.
+
+## Sinopse
+
+```bash
+verbatra doctor [flags]
+```
+
+## Exemplos
+
+```bash
+# report every setup problem at once
+verbatra doctor
+
+# validate a project in another directory, with an explicit config
+verbatra doctor --cwd apps/web --config verbatra.config.ts
+
+# machine-readable report for a CI preflight step
+verbatra doctor --json
+
+# list hardcoded user-facing strings, with no key set
+verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--literals` | nenhum | desativado | varre os diretórios-raiz do código-fonte do bloco [`extract`](/pt-BR/docs/config-file#extract) atrás de strings de interface escritas diretamente no código, em vez de verificar a configuração (veja [Literais não traduzidos](#literais-não-traduzidos)) |
+| `--locales` | nenhum | desativado | depois das verificações, lista por locale de destino o código enviado, o suporte do provedor, o glossário e a formalidade (veja [Suporte a locales](#suporte-a-locales)) |
+| `--live` | nenhum | desativado | busca primeiro a lista atual de idiomas do provedor, sem usar cota de tradução; implica `--locales` |
+| `--data-flow` | nenhum | desativado | descreve o que é enviado a qual host e o que é gravado localmente, em vez de verificar a configuração (veja [Fluxo de dados](#fluxo-de-dados)) |
+
+Aceita também as [flags globais](/pt-BR/docs/cli#flags-globais) `--cwd`, `--config` e `--json`. `--locales` e `--live` não podem ser combinadas com `--literals` (`INVALID_OPTION`, código de saída `2`), e `--data-flow` não pode ser combinada com nenhuma das três.
+
+## Comportamento
+
+### O que ele verifica
+
+<AvailableFrom version="0.12.0" />
+
+Uma execução normal (que verifica a configuração) relata estas verificações, nesta ordem. **Plural rules** (regras de plural), **Plural completeness** (completude de plurais), **Locale codes** (códigos de locale), **Locale state** (estado do locale) e **Length limits** (limites de tamanho) são apenas informativas e nunca falham: cada uma imprime `[warn]` quando aponta algo e `[ok  ]` nos demais casos.
+
+| Verificação | Falha quando |
+| --- | --- |
+| Configuration | nenhum arquivo de configuração é encontrado, ou ele não passa na validação |
+| Format adapter | o `format` configurado não corresponde a nenhum adaptador de arquivo |
+| Provider | o `provider.id` configurado não corresponde a nenhuma função de fábrica de provedor |
+| API key environment variable | a variável da qual esse provedor lê a chave de API não está definida |
+| Network policy | a política de rede em vigor (veja [Restringir o acesso à rede](/pt-BR/docs/network-policy)) recusa o host do provedor ou um proxy que ele usaria |
+| Source locale file | o arquivo de locale de origem está ausente no caminho resolvido, não é um arquivo comum ou não pode ser analisado no formato configurado |
+| Plural rules | nunca; nomeia as versões do ICU e do CLDR em uso e emite um alerta quando um locale de destino não tem regras de plural do ICU |
+| Plural completeness | nunca; emite um alerta e nomeia cada plural de destino que não tem uma categoria do CLDR usada pelo idioma dele, avaliando um plural para o qual o destino não tem formas pelo que uma execução gravaria ali (uma forma de origem em branco conta como ausente, e a geração de plurais só onde ela de fato é executada), de propósito mais rigorosa que o aviso do `translate`, exclusivo do i18next (no máximo dez; [`verbatra check`](/pt-BR/docs/cli/check#categorias-de-plural) lista as lacunas nos plurais que um destino já tem) |
+| Locale codes | nunca; emite um alerta e nomeia todo código válido, mas não canônico, como `en-us` ou `iw`, com a forma canônica (veja [Códigos de locale](/pt-BR/docs/config-file#códigos-de-locale)) |
+| Locale state | nunca; emite um alerta e nomeia todo locale para o qual o arquivo de lock, o cache ou o arquivo de procedência guardam estado e que a configuração não lista, e se o `translate` [o mantém](/pt-BR/docs/the-lock-file#um-código-de-locale-com-grafia-diferente) |
+| Length limits | nunca; emite um alerta quando o `verbatra.limits.json` não pode ser usado (uma execução o ignora e um limite só pode ser definido depois que ele for corrigido), nomeia um limite para uma chave que a origem não tem mais ou um que o `maxLength` da configuração sobrescreve, e informa quando a origem não pôde ser lida para verificar as chaves; passa quando o arquivo não existe ([limites de tamanho](/pt-BR/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
+| Locale support | o provedor não aceita o locale de origem ou um locale de destino; emite um alerta quando um locale traz um alerta (veja [Suporte a locales](#suporte-a-locales)) |
+
+Toda verificação é executada mesmo quando uma anterior falhou. A única exceção é a configuração: quando ela não pode ser carregada, as verificações que dependem dela aparecem como `[skip]` (`"status": "skipped"` no JSON), assim como **Plural completeness** para um formato sem formas de plural do CLDR. Uma verificação que encontrou algo que merece atenção sem falhar imprime `[warn]` (`"status": "warn"` no JSON) e nunca muda o código de saída. Uma verificação com falha traz também um `fix`, um próximo passo no imperativo impresso como `fix:` e enviado como `"fix"` no JSON, para que um agente não precise analisar o `detail`.
+
+Uma execução com dois problemas:
+
+```text output
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
+  [ok  ] Provider: Provider "anthropic" resolves to a factory.
+  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.
+  [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
+  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+  ...
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
+2 problems found (run verbatra doctor again after fixing them)
+```
+
+Uma execução limpa termina com `no problems found`, mais `, N warnings` quando uma verificação emitiu um alerta.
+
+### Chaves de API e arquivos
+
+- A chave de API é verificada **apenas pelo nome**: o `doctor` pergunta se a variável está definida, nunca o que ela contém. Veja [Provedores](/pt-BR/docs/providers) para a variável de cada provedor.
+- O `openai-compatible` recorre a uma chave de API fictícia, então só falha quando a configuração nomeia a própria `provider.options.apiKeyEnvVar` e essa variável não está definida. O `libretranslate` nunca falha na verificação, já que a chave de API dele é opcional.
+- Com [`provider: { id: "none" }`](/pt-BR/docs/human-only-workflow), as verificações **Provider** (provedor), **API key** (chave de API) e **Network policy** (política de rede) passam e **Locale support** (suporte a locales) é ignorada.
+- Um arquivo de **destino** ausente não é problema: o `translate` o cria. O arquivo de **origem** é analisado, então um diretório, um arquivo vazio ou conteúdo malformado faz a verificação falhar.
+- O `doctor` carrega primeiro os [arquivos de ambiente](/pt-BR/docs/cli#arquivos-de-ambiente), então uma chave de API em um arquivo dotenv conta como definida; com `--literals` ele não carrega nenhum dos dois.
+
+### Suporte a locales
+
+<AvailableFrom version="0.12.0" />
+
+A verificação **Locale support** pergunta se o provedor consegue traduzir cada locale configurado. O DeepL e o Google Cloud Translation são avaliados com base em uma tabela de idiomas datada que o verbatra inclui; um provedor de LLM aceita qualquer locale. Ela falha exatamente no locale que o [`verbatra translate`](/pt-BR/docs/cli/translate) recusaria com `LOCALE_UNSUPPORTED_BY_PROVIDER` e, nos demais casos, imprime `[warn]` quando um locale traz um alerta ou quando o `--live` não conseguiu obter a lista. [Idiomas e locales](/pt-BR/docs/language-support#verificar-o-suporte-antes-de-uma-execução) explica os vereditos.
+
+`--locales` imprime o veredito por locale depois das verificações:
+
+```text output
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+Cada linha nomeia o locale, o código que o provedor recebe (depois de [`localeMap`](/pt-BR/docs/providers#códigos-de-locale-enviados-ao-provedor), marcado com `(localeMap)`), o veredito e se um glossário e um tom `formal` ou `informal` se aplicam. Um alerta é apenas informativo.
+
+`--live` avalia com base na lista atual do provedor, em vez da tabela (`/v3/languages` do DeepL, `languages` do Cloud Translation, `/languages` do LibreTranslate). Para o LibreTranslate, que não inclui tabela, é a única forma de obter um veredito diferente de `unverified`, então **Locale support** mostra `[warn]` até o `--live` ser executado. A requisição só é enviada quando a variável da chave de API está definida (o LibreTranslate não precisa de nenhuma) e a política de rede (veja [Restringir o acesso à rede](/pt-BR/docs/network-policy)) permite o host; caso contrário, ou em caso de falha, a tabela que acompanha o verbatra é usada e uma linha `live language list` diz o motivo.
+
+### Literais não traduzidos
+
+<AvailableFrom version="0.11.0" />
+
+`--literals` encontra strings de interface que nunca chegaram a um catálogo. Ela percorre os diretórios-raiz do código-fonte do seu [bloco `extract`](/pt-BR/docs/config-file#extract), lê o seu código-fonte e nunca o grava, não instancia nenhum provedor, não lê nenhuma chave de API e não carrega nenhum arquivo `.env`. Só duas verificações são executadas: **Configuration** (configuração) e **Untranslated literals** (literais não traduzidos). Cada ocorrência indica arquivo, linha e coluna, com os espaços em branco reduzidos a um só, as referências de caractere do JSX decodificadas e no máximo 80 caracteres:
+
+```text output
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+```
+
+São informados: texto JSX em arquivos `.tsx`, `.jsx` e `.js`; atributos JSX voltados ao usuário (`alt`, `title`, `placeholder`, `label`, `aria-label` e os demais `aria-*` que carregam texto); e qualquer outra string de duas ou mais palavras.
+
+Nunca são informados:
+
+- uma string passada a `t(...)`, `$t(...)`, `i18n.t(...)` ou a um `t` renomeado vindo de `useTranslation`, ou renderizada dentro de `<Trans>` ou `<Translation>`;
+- chaves de objeto, especificadores de importação, nomes de classe, valores de CSS, ids de teste, `data-*` e atributos de id ou de palavra-chave (`aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy`, `crossOrigin`), URLs e strings sem letras;
+- literais em uma posição de tipo (o valor antes de `as` ou `satisfies` ainda é verificado), mensagens de log, mensagens de erro (`new ValidationError(...)`, `throw Error(...)`), operandos de comparação e template literals com uma expressão;
+- argumentos diretos de `describe` (zod), `query`, `execute`, `prepare`, `format`, `parse`, `z.enum`, `setItem`, `getItem` e `removeItem`, e o primeiro argumento de `on`, `off`, `once`, `emit`, `addEventListener` e de um `get` ou `set` de membro; textos aninhados mais fundo, e mensagens passadas a funções como `setError`, ainda são informados;
+- qualquer coisa em arquivos de teste, de story, de declaração ou de configuração.
+
+Para excluir um literal, coloque `// verbatra-ignore-next-line` acima dele (`{/* verbatra-ignore-next-line */}` no JSX) ou `// verbatra-ignore-line` no fim da linha dele. Uma diretiva next-line se aplica à próxima linha que contém código e, em uma tag de abertura JSX, a todos os atributos dessa tag. Para uma string que é aceitável em todo lugar, liste-a em `extract.literals.ignore` com as referências decodificadas (`Tom & Jerry`). Os literais excluídos continuam listados, com o motivo.
+
+A verificação falha diante de uma ocorrência e de um arquivo que não pôde ser aberto, lido até o fim ou que foi considerado grande demais (a varredura continua). Um projeto sem um bloco `extract` faz a verificação falhar.
+
+### Fluxo de dados
+
+<AvailableFrom version="0.12.0" />
+
+`--data-flow` descreve para onde vão os dados deste projeto, em vez de verificar a configuração, como evidência para uma revisão de DPA (acordo de tratamento de dados) ou de NDA (acordo de confidencialidade); [Tratamento de dados e privacidade](/pt-BR/docs/data-handling) explica cada categoria. Ele não lê nenhuma chave de API e não faz nenhuma requisição de rede. Só duas verificações são executadas: **Configuration** e **Data flow** (fluxo de dados). **Data flow** nunca falha: imprime `[warn]` quando a política de rede (veja [Restringir o acesso à rede](/pt-BR/docs/network-policy)) recusa um host ou contém um valor inválido, ou quando o arquivo de origem não pode ser lido para as contagens.
+
+```text output
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  data flow (manifest version 1)
+    provider     deepl (machine-translation)
+    network      any host (no policy set)
+    destination  api.deepl.com  default  paid-key  before-construction  permitted
+    destination  api-free.deepl.com  default  free-key  before-construction  permitted
+    sent         source-text, placeholder-markers, language-codes
+    api key      required
+    placeholders masked
+    sensitive    off
+    counts       3 source keys, 0 with a description or meaning, 1 with placeholders it cannot mask (withheld)
+    locale       de  sent as DE  glossary terms: 0
+    local        lock  verbatra.lock.json  (no source text, translations or personal data)
+    local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
+    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
+    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
+    request      language-list  verbatra doctor --live  sends the API key
+    request      dns-lookup  each connection to a destination host
+    agent        mcp  verbatra mcp  redactable
+    agent        studio-agent-tools  verbatra studio --expose-agent-tools
+```
+
+O manifesto nomeia o provedor; cada host de destino, de onde ele vem (embutido, `provider.options.baseUrl` ou uma variável `*_BASE_URL`) e o veredito da política (`permitted`, `deferred`, `refused` ou `invalid-policy`); os tipos de dados enviados, com o número de chaves de origem, de chaves que carregam uma descrição ou um significado e de chaves cujos placeholders o provedor não consegue mascarar (uma estimativa sobre as chaves de origem: uma execução envia apenas as chaves ausentes ou alteradas e pode reter mais com `sensitiveData: redact`); o código e o número de termos de glossário por locale de destino; os arquivos locais com os caminhos relativos ao projeto, e se guardam texto de origem, traduções ou dados pessoais; e as demais requisições e interfaces de agente. O DeepL é listado com os dois hosts, porque a chave de API que escolhe um deles nunca é lida. Um proxy em vigor é nomeado pela variável e pelo host, nunca pelas credenciais, e os campos listam só o que esta configuração pode enviar. Com `provider: { id: "none" }`, ele informa que nada é enviado. Ele nomeia hosts, categorias de dados e condições, nunca o valor de uma chave de API nem o conteúdo de arquivos.
+
+Com `--json`, o manifesto fica em `result.dataFlow`. O campo `version` dele só muda quando um campo é renomeado ou removido; campos novos podem aparecer sem mudança de versão, então ignore os que você não conhece. O [`dataFlowManifestSchema`](/pt-BR/docs/sdk/inspect#dataflowmanifestschema) do SDK o valida.
+
+### Saída JSON
+
+Schema: [`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os demais.
+
+Com `--json`, o [envelope](/pt-BR/docs/cli/output#saída-json) traz o relatório em `result`. `ok` é verdadeiro exatamente quando o comando sai com `0`:
+
+```ts
+interface DoctorResult {
+  ok: boolean;                 // true exactly when the command exits 0
+  checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  dataFlow?: DataFlowManifest; // only with --data-flow: what goes where, version 1
+  locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
+}
+
+interface DoctorCheck {
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "network-policy"
+    | "source-file"
+    | "plural-rules"
+    | "plural-completeness"
+    | "locale-codes"
+    | "locale-state"
+    | "limits" // 0.13.0
+    | "locales"
+    | "untranslated-literals"
+    | "data-flow";
+  title: string;               // stable, human-readable name
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
+  detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check
+}
+
+interface LocaleCapabilityReport {
+  provider: string;
+  coverage: "listed" | "open";       // "open" for an LLM provider
+  tableVersion: string;              // the table's date (YYYY-MM-DD)
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;
+    formality: boolean;
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` está ausente quando a configuração não pôde ser carregada, para um provedor desconhecido e para `provider: { id: "none" }`.
+
+### Retorno no terminal
+
+<AvailableFrom version="0.12.0" />
+
+Enquanto é executado, o `doctor` mostra uma linha no stderr, que `--quiet` descarta: `checking the setup`, `checking the setup and fetching the provider's language list` com `--live`, `describing the data flow` com `--data-flow` ou `scanning the source for literals` com `--literals`, junto com a contagem de arquivos. O relatório permanece no stdout. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | nenhuma verificação falhou (com um `warn`, o código de saída continua `0`) |
+| `1` | pelo menos uma verificação falhou, inclusive um locale sem suporte; com `--literals`, um literal foi encontrado ou um arquivo não pôde ser varrido |
+| `2` | não foi possível executar: um erro de uso, ou um caminho `--config` explícito que não existe |
+
+Uma configuração que a busca não encontra, ou que falha na validação, é uma verificação com falha (código de saída `1`), porque relatá-la é o trabalho do comando. Veja [o contrato dos códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída).
+
+## Veja também
+
+- [`verbatra init`](/pt-BR/docs/cli/init) gera a configuração e o `.env.example` que o `doctor` valida.
+- [`verbatra check`](/pt-BR/docs/cli/check) é a barreira contra divergências a executar quando a configuração estiver correta.
+- [Arquivo de configuração](/pt-BR/docs/config-file) documenta todas as opções que o `doctor` valida.
+- [Provedores](/pt-BR/docs/providers) lista a variável da chave de API que cada provedor lê.
+- [Idiomas e locales](/pt-BR/docs/language-support#verificar-o-suporte-antes-de-uma-execução) lista as tabelas de idiomas que a verificação **Locale support** usa.

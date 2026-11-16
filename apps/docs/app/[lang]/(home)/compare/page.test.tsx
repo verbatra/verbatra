@@ -7,6 +7,7 @@ import { createTranslator } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { SPACELESS_SNIPPET_WIDTH, snippetLength } from "@/lib/display-width";
 import { i18n, type Locale } from "@/lib/i18n";
 import {
   COMPARE_LAST_CHECKED,
@@ -21,6 +22,7 @@ import {
   verdictMark,
 } from "@/lib/landing-compare";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { localePrefix } from "@/lib/locales";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { resolveServer } from "@/test-support/resolve-server";
 
@@ -83,8 +85,6 @@ const { default: CompareRoute, generateMetadata } = await import("./page");
 await preloadRegisteredIslands();
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
-
-const PREFIX: Readonly<Record<Locale, string>> = { en: "", de: "/de", es: "/es", fr: "/fr" };
 
 async function render(locale: Locale): Promise<Document> {
   const page = await resolveServer(
@@ -153,19 +153,53 @@ function expectSourceLinks(
   }
 }
 
+interface LengthRange {
+  readonly min: number;
+  readonly max: number;
+}
+
+interface MetaWindow {
+  readonly title: LengthRange;
+  readonly description: LengthRange;
+}
+
+const SEARCH_WINDOW: MetaWindow = {
+  title: { min: 50, max: 60 },
+  description: { min: 150, max: 160 },
+};
+
+const META_WINDOWS: Readonly<Record<Locale, MetaWindow>> = {
+  en: SEARCH_WINDOW,
+  de: SEARCH_WINDOW,
+  es: SEARCH_WINDOW,
+  fr: SEARCH_WINDOW,
+  "zh-CN": {
+    title: { min: 30, max: SPACELESS_SNIPPET_WIDTH.titleMax },
+    description: { min: 100, max: SPACELESS_SNIPPET_WIDTH.descriptionMax },
+  },
+  "pt-BR": SEARCH_WINDOW,
+  ja: {
+    title: { min: 30, max: SPACELESS_SNIPPET_WIDTH.titleMax },
+    description: { min: 100, max: SPACELESS_SNIPPET_WIDTH.descriptionMax },
+  },
+};
+
 describe.each(i18n.languages)("the %s comparison page", (locale) => {
   const copy = catalog(locale);
-  const path = `${PREFIX[locale]}/compare`;
+  const path = `${localePrefix(locale)}/compare`;
 
   it("has its own title and description of a search-result length", async () => {
     const meta = await metadata(locale);
     expect(meta.title).toEqual({ absolute: copy.compare.meta.title });
     expect(meta.description).toBe(copy.compare.meta.description);
     expect(copy.compare.meta.title).toMatch(/Verbatra/);
-    expect(copy.compare.meta.title.length).toBeGreaterThanOrEqual(50);
-    expect(copy.compare.meta.title.length).toBeLessThanOrEqual(60);
-    expect(copy.compare.meta.description.length).toBeGreaterThanOrEqual(150);
-    expect(copy.compare.meta.description.length).toBeLessThanOrEqual(160);
+    const window = META_WINDOWS[locale];
+    const titleLength = snippetLength(locale, copy.compare.meta.title);
+    const descriptionLength = snippetLength(locale, copy.compare.meta.description);
+    expect(titleLength).toBeGreaterThanOrEqual(window.title.min);
+    expect(titleLength).toBeLessThanOrEqual(window.title.max);
+    expect(descriptionLength).toBeGreaterThanOrEqual(window.description.min);
+    expect(descriptionLength).toBeLessThanOrEqual(window.description.max);
   });
 
   it("points its canonical at itself, lists every locale plus x-default and its markdown", async () => {
@@ -177,6 +211,9 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
         de: "/de/compare",
         es: "/es/compare",
         fr: "/fr/compare",
+        "zh-CN": "/zh-CN/compare",
+        "pt-BR": "/pt-BR/compare",
+        ja: "/ja/compare",
         "x-default": "/compare",
       },
       types: { "text/markdown": `${path}.md` },
@@ -189,7 +226,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
       url: `${ORIGIN}${path}`,
       title: copy.compare.meta.title,
       type: "article",
-      images: [{ url: `${PREFIX[locale]}/compare-og`, alt: copy.compare.meta.ogImageAlt }],
+      images: [{ url: `${localePrefix(locale)}/compare-og`, alt: copy.compare.meta.ogImageAlt }],
     });
   });
 
@@ -198,7 +235,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     expect(breadcrumb).toMatchObject({
       "@type": "BreadcrumbList",
       itemListElement: [
-        { position: 1, item: `${ORIGIN}${PREFIX[locale] || "/"}` },
+        { position: 1, item: `${ORIGIN}${localePrefix(locale) || "/"}` },
         { position: 2, name: copy.compare.breadcrumbCompare, item: `${ORIGIN}${path}` },
       ],
     });
@@ -268,14 +305,16 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
         expectSourceLinks(doc, row, tool, locale, copy.landing.compare);
   });
 
-  it("keeps the first arrow of a cell in a no-wrap unit with the last word before it, and glues a mark to its first word", async () => {
+  it("keeps every arrow of a cell in one no-wrap unit with the last word before it, and glues a mark to its first word", async () => {
     const doc = await render(locale);
     for (const cell of doc.querySelectorAll("tbody td")) {
       const first = cell.querySelector("a[data-source]");
       if (first === null) continue;
       const unit = first.closest(".vk-compare-unit");
       expect(textWithoutSources(unit), cell.textContent ?? "").not.toBe("");
-      expect(unit?.querySelectorAll("a[data-source]")).toHaveLength(1);
+      expect(unit?.querySelectorAll("a[data-source]")).toHaveLength(
+        cell.querySelectorAll("a[data-source]").length,
+      );
     }
     for (const mark of doc.querySelectorAll(".vk-compare-mark")) {
       const unit = mark.closest(".vk-compare-unit");
@@ -352,7 +391,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
   it("links the quickstart and the home page in the reader's locale", async () => {
     const doc = await render(locale);
     const hrefs = Array.from(doc.querySelectorAll("nav a"), (a) => a.getAttribute("href"));
-    expect(hrefs).toEqual([`${PREFIX[locale]}/docs/quickstart`, PREFIX[locale] || "/"]);
+    expect(hrefs).toEqual([`${localePrefix(locale)}/docs/quickstart`, localePrefix(locale) || "/"]);
   });
 
   it("keeps what the old notes said as small labels on the Lingo.dev and manual columns and the formats row", async () => {
@@ -413,6 +452,9 @@ describe("the comparison cells", () => {
     de: /^Nein$/,
     es: /^No\b/,
     fr: /^Non$/,
+    "zh-CN": /^否$/,
+    "pt-BR": /^Não$/,
+    ja: /^いいえ$/,
   };
 
   const UNKNOWN: Readonly<Record<Locale, RegExp>> = {
@@ -420,6 +462,9 @@ describe("the comparison cells", () => {
     de: /^Unbekannt$/,
     es: /^Desconocido$/,
     fr: /^Inconnu$/,
+    "zh-CN": /^未知$/,
+    "pt-BR": /^Não apurado$/,
+    ja: /^不明$/,
   };
 
   for (const locale of i18n.languages) {

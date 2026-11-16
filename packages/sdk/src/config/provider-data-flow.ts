@@ -38,7 +38,9 @@ export type DataFlowField =
 
 /**
  * Whether a provider request carries an API key: `required` for a hosted provider that reads one,
- * `optional` for a self-hosted one that sends it only when its variable is set.
+ * `optional` for a self-hosted one: LibreTranslate sends the key only when its variable is set;
+ * openai-compatible sends it when its variable is set, a fixed placeholder otherwise, and requires
+ * it when the config names `apiKeyEnvVar`.
  */
 export type DataFlowApiKey = "required" | "optional";
 

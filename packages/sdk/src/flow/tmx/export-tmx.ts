@@ -89,7 +89,7 @@ export interface ExportTmxInput {
    * Where to write the file. Defaults to {@link DEFAULT_TMX_PATH}, resolved against `cwd`. Refused
    * with `TMX_OUTPUT_CONFLICT`, before anything is read or written, when it names no file, resolves
    * outside `cwd` or to `cwd` itself, or names a configured locale file, the lock file, the
-   * translation-memory cache, a file verbatra searches for its configuration, the
+   * provenance file, the translation-memory cache, a file verbatra searches for its configuration, the
    * {@link ExportTmxInput.configPath} file, or the {@link ExportTmxInput.glossaryPath} file. Names
    * are compared case-insensitively, and, when the file-system port implements `realpath`, again
    * after symbolic links are resolved, so a link cannot carry the file anywhere a plain path could

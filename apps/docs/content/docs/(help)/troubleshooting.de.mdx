@@ -9,7 +9,7 @@ Jeder Eintrag geht von dem aus, was du siehst, und verlinkt den Code dahinter mi
 steht. Such nach dem Code in `verbatra: error [CODE]`, nie nach dem Meldungstext.
 
 Führe [`verbatra doctor`](/de/docs/cli/doctor) aus, bevor du Eintrag für Eintrag durchgehst: Es prüft
-Konfiguration, Format, Provider, die Variable des API-Schlüssels und die Quelldatei in einem
+Konfiguration, Format, Provider, die Variable des API-Keys und die Quelldatei in einem
 Durchgang, kostet nichts und funktioniert schon, bevor die Quell-Locale-Datei existiert.
 
 ## pnpm blockiert die Installationsskripte einer Abhängigkeit (ERR_PNPM_IGNORED_BUILDS)
@@ -98,7 +98,7 @@ SDK mit einer Registry, die seinen Adapter enthält: siehe
 **Symptom**: `The source locale file was not found at <path>.` oder `The source locale file at
 <path> could not be read: ...`
 
-**Ursache**: `files.pattern` mit eingesetztem Quell-Locale zeigt auf keine Datei, oder die Datei
+**Ursache**: `files.pattern` mit eingesetzter Quell-Locale zeigt auf keine Datei, oder die Datei
 lässt sich nicht parsen. Der Pfad wird gegen die Projektwurzel aufgelöst, das Verzeichnis der gefundenen Konfiguration
 (oder mit `--config` das Arbeitsverzeichnis), also ist ein falsches `--cwd` oder `--config` eine häufige Ursache, ebenso ein Platzhalter: `files.pattern` ist ein wörtlicher
 Pfad, kein Glob (siehe [Namespace-Layouts](/de/docs/formats#namespace-layouts)).
@@ -108,12 +108,12 @@ Pfad, kein Glob (siehe [Namespace-Layouts](/de/docs/formats#namespace-layouts)).
 [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable),
 [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid).
 
-## Fehlender API-Schlüssel (PROVIDER_CONSTRUCTION_FAILED)
+## Fehlender API-Key (PROVIDER_CONSTRUCTION_FAILED)
 
 **Symptom**: `Failed to construct provider "anthropic": The ANTHROPIC_API_KEY environment variable
 is not set.` (oder die Variable deines Providers).
 
-**Ursache**: Die Variable, die die Meldung nennt, ist nicht gesetzt oder leer. Schlüssel kommen nur
+**Ursache**: Die Variable, die die Meldung nennt, ist nicht gesetzt oder leer. API-Keys kommen nur
 aus der Umgebung, nie aus der Konfiguration oder einem Flag.
 
 **Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. Die CLI liest sie auch aus
@@ -136,7 +136,7 @@ Meldung nennt, falls sie eine nennt (ein erschöpftes Tageskontingent), und bei 
 Kontingent eine Locale nach der anderen mit `--locales`. Für ein langsames Modell heb gegen
 [`TIMEOUT`](/de/docs/error-codes#timeout) den Wert [`requestTimeoutMs`](/de/docs/providers#anfrage-timeout)
 an. [`AUTH_FAILED`](/de/docs/error-codes#auth_failed) löst sich nicht durch Wiederholen: Ersetze den
-Schlüssel.
+API-Key.
 
 ## Die Lock-Datei ist beschädigt (LOCK_FILE_INVALID)
 
@@ -171,8 +171,8 @@ und sie behält ihre vorige Datei und Baseline. Code:
 
 **Ursache**: Ein anderes `translate`, `watch`, `import` oder ein Schreibvorgang aus Studio hält die
 Sperre der Locale. Eine Sperre eines beendeten Prozesses auf diesem Rechner wird automatisch
-zurückgeholt, eine verbliebene stammt also von einem anderen Rechner oder einem verbatra älter als
-0.12.0.
+zurückgeholt, eine verbliebene stammt also von einem anderen Rechner oder einer verbatra-Version, die älter als
+0.12.0 ist.
 
 **Lösung**: Warte auf den anderen Lauf, oder lösch die ausgegebene Sperrdatei, wenn nirgends ein
 verbatra-Prozess läuft. `--lock-timeout <seconds>` bei [`translate`](/de/docs/cli/translate),
@@ -181,7 +181,7 @@ Code: [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended).
 
 ## Gepunktete Keys oder YAML-Keys kollidieren (INVALID_STRUCTURE)
 
-**Symptom**: `A dotted key and a nested key path resolve to the same path.` oder bei YAML
+**Symptom**: `A literal dotted leaf key and a nested key path resolve to the same path.` oder bei YAML
 `A mapping key is a map or sequence (expected scalar keys).`
 
 **Ursache**: Zwei Einträge einer Datei laufen auf denselben Key hinaus, etwa `"a.b"` neben
@@ -198,10 +198,10 @@ das in `SOURCE_INVALID` eingepackt an. Code:
 Keys unter `budgetWithheld`.
 
 **Ursache**: Der Lauf hat `maxTokens` aus der Konfiguration oder `--max-tokens` für den Lauf
-erreicht. `"warn"` meldet nur ein Budget aus der Konfiguration; `"stop"` und `--max-tokens`, egal was die Konfiguration sagt, halten jeden noch nicht versuchten Key zurück, und das
+erreicht. `"warn"` meldet nur ein Budget aus der Konfiguration; `"stop"` und `--max-tokens`, egal was die Konfiguration sagt, halten jeden noch nicht versuchten Key zurück, und die
 Locale endet `partial` oder `failed`.
 
-**Lösung**: Das ist die Leitplanke bei der Arbeit: Was angekommen ist, ist geschrieben, und
+**Lösung**: Das ist die Leitplanke, die greift: Was angekommen ist, ist geschrieben, und
 zurückgehaltene Keys werden beim nächsten Lauf übersetzt. Heb das Budget an oder wechsle zu
 `"warn"`, wenn ein Lauf alles schaffen soll. Wie das Budget zählt, steht in
 [Übersetzungssicherheit](/de/docs/translation-safety#das-token-budget). Code:
@@ -240,7 +240,7 @@ sind, steht unter [Inline-Markup-Parität](/de/docs/translation-safety#inline-ma
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
 `npx @verbatra/cli` startet die CLI, die im Paket des aktuellen Ordners installiert ist, also
-führe es im Projektstamm aus (oder nutze `pnpm exec verbatra` in einem Workspace-Unterpaket);
+führe es in der Projektwurzel aus (oder nutze `pnpm exec verbatra` in einem Workspace-Unterpaket);
 anderswo lädt npx die neueste CLI, die vielleicht nicht zu deinem lokalen `@verbatra/studio` oder
 `@verbatra/mcp` passt.
 
@@ -253,8 +253,8 @@ offener Keys erscheinen nicht.
 [Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis
 werden die Ausgabe-Aktionen nicht registriert.
 
-**Lösung**: Starte neu mit `verbatra studio --allow-spend`, außer das Projekt ist
-[nur mit Menschen](/de/docs/human-only-workflow). Siehe [Review in Studio](/de/docs/review-in-studio).
+**Lösung**: Starte neu mit `verbatra studio --allow-spend`, außer das Projekt arbeitet
+[ohne maschinelle Übersetzung](/de/docs/human-only-workflow). Siehe [In Studio prüfen](/de/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
@@ -277,8 +277,8 @@ per Name scheitert als unbekanntes Tool.
 [Kostenpflichtige Tools](/de/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht
 pro Verbindung ändern, also bleiben die Ausgabe-Tools ganz draußen.
 
-**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, außer das Projekt ist
-[nur mit Menschen](/de/docs/human-only-workflow).
+**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, außer das Projekt arbeitet
+[ohne maschinelle Übersetzung](/de/docs/human-only-workflow).
 
 ## Einen Lauf rückgängig machen (kein Fehlercode)
 

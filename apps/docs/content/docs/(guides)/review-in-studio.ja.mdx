@@ -1,0 +1,189 @@
+---
+title: Studio でレビューする
+seoTitle: "Verbatra Studio で機械翻訳をレビューする"
+description: Verbatra Studio を起動し、レビューキューを処理して、エントリをその場で修正し、フラグが付いたキーをローカルのダッシュボードから再翻訳します。
+type: how-to
+---
+Verbatra Studio で、レビュー待ちの機械翻訳を見つけ、値を修正し、プロバイダーが書いた訳文を承認または却下します。
+
+ルールは 2 つあります。**ローカルでの編集は常に有効**で、**プロバイダーの費用が発生する操作は常に無効**です。課金を許可するには、`--allow-spend` を付けて Studio を起動します。
+
+## Studio を起動する
+
+```bash
+npm install --save-dev @verbatra/studio
+verbatra studio
+```
+
+出力された URL を、セッショントークンも含めて開きます。ポート、セッショントークン、オプション、ライブ更新については [`verbatra studio`](/ja/docs/cli/studio) を参照してください。
+
+## Translations ページを読む
+
+### 1 つのキー表
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Translations**（訳文）ページは、対応が必要なすべてのキーを 1 つの表にまとめたものです。対象は、欠落しているキー、変更されたキー、孤立したキー、保護されたキー、レビューキューにあるキー、整合性チェックに失敗しているキーです。各行には、キー、ソーステキスト、ロケールごとの状態が表示されます。ロケールを選ぶと、訳文、状態、出どころが表示されます。検索では、同期しているキーも見つかります。
+
+### キーの詳細
+
+キーをクリックするとエディターが開き、各ロケールの値が整合性の表示とともに一覧されます。その表示は、プレースホルダーの一致、不一致（一致しないプレースホルダー名を表示）、メッセージ構文の不正のいずれかです。次の内容も表示されます。
+
+| 詳細 | 表示内容 |
+| --- | --- |
+| **Inline markup mismatch**（インラインマークアップの不一致） | 訳文で欠落した（`-`）、または追加された（`+`）各タグ <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch**（ICU の分岐の不一致） | ターゲット言語に合わない複数形または `select` の分岐。右から左に書く言語の値は右から左に描画されます（[言語とロケール](/ja/docs/language-support#右から左に書く言語)） <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| 出どころのバッジ | 各値を誰が書いたかを示します。[`verbatra.provenance.json`](/ja/docs/the-lock-file#来歴各値を誰が書いたか) から読み取り、**Machine**（機械）、**Human**（人）、**Edited outside verbatra**（verbatra 外で編集）などと表示されます <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### 状態で絞り込む
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+検索の横にあるチップで、表を状態別に絞り込めます。**Review queue**（レビューキュー）と **Integrity problems**（整合性の問題）もあります。**Copy as review report**（レビューレポートとしてコピー）は、未処理のキーを pull request 用の Markdown としてコピーします。
+
+### 整合性ゲート付きで編集する
+
+**Edit**（編集）を押すと、そのロケールの下書きが開きます。保存すると、値は[整合性ゲート](/ja/docs/translation-safety#整合性ゲート)を通ります。ゲートが拒否した値は書き込まれず、理由が表示されます。受け入れられた編集は、ロケールファイルに書き込まれ、ロックファイルも更新されます。
+
+#### 下書きのチェック
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+エディターには、キーの説明、下書きが使っている用語集の用語と使っていない用語、ソースおよび `maxLength` と比べた長さが表示されます。Ctrl または Cmd と Enter で保存します。
+
+#### 長さの上限を設定する
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+長さの行の下にある **Set limit**（上限を設定）、**Change limit**（上限を変更）、**Remove limit**（上限を解除）で、[`verbatra.limits.json`](/ja/docs/config-file#maxlength) のそのキーのエントリを編集します。上限はすべてのロケールに適用されます。設定ファイルの `maxLength` が優先され、その場合は読み取り専用です。使えないファイルがある場合は、理由が表示され、操作ができなくなります。上限は警告のみです。translate の実行は、上限より長い値にレビューのフラグを付けますが、何もブロックしません。Studio が上限を設定できるのはソースキーだけです。生成された複数形のキーに直接書かれた上限も、引き続き適用されます。
+
+#### ICU メッセージをプレビューする
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+`next-intl-json` または `arb` では、下書きの下にある折りたたまれた **ICU preview**（ICU プレビュー）が、そのロケールの言語と方向で、分岐ごとに 1 回ずつ下書きを描画します。入力したサンプルが分岐に当たると行が追加され、当たらなければ注記が表示されます。数値と日付は、このコンピューターの言語データを使うため、アプリでの表示とは異なる場合があります。
+
+#### 表の横に表示されるもの
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+幅が 1280px 以上の場合、エディターは表の横に表示されます。それより狭い場合はドロワーになります。未保存の編集があるままキーを離れようとすると、保存、破棄、編集の続行のどれにするかを尋ねられます。Studio を離れる場合は、ブラウザー自身の確認が表示されます。
+
+### 検索と置換
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace**（検索と置換）は、翻訳された値の中のリテラルなテキストを変更します。テキスト、置換後のテキスト、大文字と小文字の区別、ロケールを選び、最大 1,000 件の一致を確認してから適用します。固定されたキーと保護された値は、チェックボックスをオンにしない限り対象外です。保護された値とは、人が書いた、インポートした、verbatra の外で変更した値のことです。`verbatra.provenance.json` が読み取れない間は、すべての値が保護されます。
+
+## レビューキューを処理する
+
+**Review**（レビュー）ページには、機械が書いて誰も承認していないすべての値が一覧されます。ロケールとキーごとに 1 行で、ソースと訳文の全文、出どころ、このマシンでの前回の実行で付いた[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)が表示されます。
+
+<StudioScreenshot
+  shot="review"
+  alt="Needs review チップが押された Verbatra Studio の Review ページ。ドイツ語のエントリが一覧され、2 つの行に Matches source text と Unusual length というレビューの理由が、出どころの Machine の横に付いています。各行には Edit、Approve、Reject の操作があります。"
+  caption="実行後のレビューキュー。フラグが付いた行には理由が表示されています。Studio にはライトテーマとダークテーマがあります。スクリーンショットを切り替えて比べられます。"
+/>
+
+### フラグのラベル
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+2 つのレビューフラグのラベルは、**Over length budget**（長さの上限超過）と **Reused after source edit**（ソース編集後に再利用）です。
+
+### 行の操作
+
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+ロケールまたはテキストで絞り込んでから、次の操作をします。
+
+- **Edit** は、整合性ゲート付きのエディターを開きます。編集が受け入れられると、その行は一覧から消えます。
+- **Approve**（承認）は、値を受け入れます。
+- **Reject**（却下）は、確認の後、置き換えのために値を削除します。
+
+### 保存された判断
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+どちらの判断も、[レビューの判断](/ja/docs/the-lock-file#レビューの判断)のルールに従って `verbatra.provenance.json` に保存されます。承認には、値がソースに対して最新であることも必要です。ロケールファイル、ロックファイル、来歴ファイルは、まとめてコミットします。XLIFF プロジェクトでは、却下せずに編集します。
+
+### チーム全体で 1 つのキュー
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+キューはコミット済みのファイルから読み取られるため、それらを pull したチームメンバーにも同じキューが見えます。人が承認、却下、書き込み、またはインポートした値は、キューから外れます。承認済みの値を機械が書き換えると、キューに戻ります。
+
+**Needs review**（要レビュー）と **Approved**（承認済み）のチップで一覧を切り替え、件数を確認できます。バーでは出どころで絞り込めます。ロケールを選ぶと、**Approve all in**（一括承認）で、確認の後にそのロケールの値をすべて承認します。機械翻訳が承認待ちの間、pull request を失敗させるには、CI で [`verbatra check --require-reviewed`](/ja/docs/cli/check#レビュー済みの訳文を必須にする) を実行します。
+
+### キーボードでキューを処理する
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`j` または下矢印キーを押して開始し、次のキーを使います。
+
+| ショートカット | 操作 |
+| --- | --- |
+| `j` または下矢印キー | 次のエントリ |
+| `k` または上矢印キー | 前のエントリ |
+| `a` | ハイライトされたエントリを承認 |
+| `r` | 却下（確認は引き続き開きます） |
+| `e` または Enter | エディターで開く |
+| `t` | 再翻訳（`--allow-spend` を付けた場合のみ。プロバイダーを呼び出します） |
+| `x` | 一括操作のために選択または選択解除 |
+| `?` | ショートカットの一覧を表示または非表示 |
+
+絞り込みバーやダイアログで入力している間は、ショートカットは一時停止します。
+
+### 複数のエントリをまとめて操作する
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+行のチェックボックスをオンにします（絞り込んだすべての行を選ぶには見出しのチェックボックスをオンにします）。続けて、**Approve selected**（選択項目を承認）、**Reject selected**（選択項目を却下）、`--allow-spend` を付けた場合は **Retranslate selected**（選択項目を再翻訳）を選びます。失敗したものは原因ごとに一覧され、選択されたまま残ります。1 つのバッチで承認または却下できるのは最大 100 件、再翻訳できるのは最大 20 件です。
+
+## フラグが付いたキーを再翻訳する
+
+課金を許可して Studio を起動します（[課金の許可の方法](/ja/docs/cli/studio#課金ツールとエージェントツール)）。
+
+```bash
+verbatra studio --allow-spend
+```
+
+Review の各行と、整合性の問題がある値のキーのエディターに、**Retranslate**（再翻訳）ボタンが表示されます。プロバイダーを 1 回呼び出し、結果をゲートに通し、新しい値を承認待ちのキューに残します。Review の行からは、人が書いた値が置き換えられることはありません。人が書いた値を置き換えるには、Translations のエディターで **Replace anyway**（このまま置換）を選びます。
+
+## 未処理の変更を翻訳する
+
+Studio の実行中にソースまたはターゲットのロケールファイルが変わると、トースト通知に `Source changed` または `Target changed: de` と、キーの件数が表示されます。`--allow-spend` を付けている場合、ソースのトースト通知には **Translate pending changes across all locales**（すべてのロケールの未処理の変更を翻訳）も表示されます。`verbatra translate` が行うのと同じ実行です。
+
+## Overview で対応率と前回の実行を確認する
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Studio は **Overview**（概要）ページで開きます。ここには、各ロケールの対応率と[ロックファイル](/ja/docs/the-lock-file)の状態、ロケールファイルの git 履歴、前回の実行のトークン使用量が表示されます。予算が設定されている場合は、予算のメーターも表示されます。
+
+その下の **Run history and cost**（実行履歴と費用）には、表の上に、直近の実行の費用とトークンがグラフで表示されます。表には、各ロケールの最後に確認された対応率が載っています。
+
+<StudioScreenshot
+  shot="overview"
+  alt="Verbatra Studio の Overview ページ。Needs attention、Waiting for review、Avg coverage、Locales in sync の 4 つの数値の下に、de、es、fr ロケールの対応率と、各ロケールの訳文とレビューキューへのリンクを載せた表があります。"
+  caption="Overview ページで Studio が開きます。スクリーンショットを切り替えて、ライトとダークを比べられます。"
+/>
+
+## Glossary ページで用語集を最新に保つ
+
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+
+**Glossary**（用語集）には専用のページがあります。JSON の用語集では、用語の検索、追加、編集、削除ができます。削除する前には確認があり、未保存の編集があるまま離れようとすると確認があります。インラインの用語集は読み取り専用のままです。
+
+用語集を編集すると、次回の実行で伝える内容が変わります。すでに書き込まれたテキストは変わりません。Studio 自身の再翻訳に反映するには、Studio を再起動します。
+
+### ロケールごとの表示
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+**Show translations for**（表示するロケール）で、1 つのロケールの[用語集](/ja/docs/config-file#glossary)の表示に切り替えます。訳語、禁止された訳語、注記が表示されます。
+
+## 関連項目
+
+- [ブラウザーエージェントで Studio を操作する](/ja/docs/agent-tools-in-studio)：ブラウザーの AI エージェントから行う同じ作業
+- [機械翻訳の証跡を記録する](/ja/docs/provenance-evidence)
+- [レビューと再翻訳](/ja/docs/sdk/review)（SDK から）

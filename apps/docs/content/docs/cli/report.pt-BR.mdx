@@ -1,0 +1,91 @@
+---
+title: verbatra report
+seoTitle: "verbatra report: quem escreveu cada tradução"
+description: Imprime um relatório somente leitura do projeto. O relatório de procedência mostra de onde veio cada tradução e se uma pessoa a revisou.
+status: new
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+O `verbatra report provenance` lê o `verbatra.provenance.json`, o arquivo de lock e os arquivos de locale, e imprime, por locale de destino, quantos valores uma máquina escreveu, quantos uma pessoa revisou e quantos uma pessoa escreveu ou importou. Ele não chama nenhum provedor, não precisa de chave de API e não grava nada. O relatório é uma evidência de apoio, não aconselhamento jurídico.
+
+## Sinopse
+
+```bash
+verbatra report <report> [flags]
+```
+
+- `<report>`: o relatório a imprimir. `provenance` é o único hoje; qualquer outro nome é um erro de uso.
+
+## Exemplos
+
+```bash
+# contagens por locale: automática e não revisada, automática e revisada, humana, importada e o restante
+verbatra report provenance
+
+# como cada valor foi produzido e o estado de revisão de cada chave, para um arquivo de auditoria
+verbatra report provenance --json > provenance-report.json
+
+# só o locale alemão
+verbatra report provenance --locales de
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | todos os destinos configurados | inclui no relatório só este subconjunto separado por vírgulas; um locale não configurado falha com `UNKNOWN_LOCALE` e uma lista vazia com `INVALID_LOCALES`, ambos com saída `2` |
+
+Também aceita as flags globais `--cwd`, `--config` e `--json` (veja [Flags globais](/pt-BR/docs/cli#flags-globais)).
+
+## Comportamento
+
+### Saída
+
+```text output
+verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
+  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
+  de      12                   40                 3      85      1         0           0        141
+Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
+```
+
+A primeira linha nomeia o locale de origem, a versão do verbatra e quando o relatório foi gerado. Cada linha conta as chaves que têm um valor tanto na origem quanto nesse locale. [O relatório de procedência](/pt-BR/docs/provenance-evidence#o-relatório-de-procedência) descreve as categorias, o que o relatório pode e não pode mostrar e o JSON Schema completo.
+
+Não existe `--out`: o relatório vai para o stdout, como `check` e `diff`, então redirecione-o para guardá-lo.
+
+### Saída JSON
+
+Schema: o [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os outros.
+
+O `--json` imprime um envelope (veja [Saída JSON](/pt-BR/docs/cli/output#saída-json)) cujo `result` lista, para um arquivo de auditoria, a procedência, o estado de revisão, o provedor, o modelo e o revisor de cada chave. Quando o arquivo de procedência não pode ser lido, o resultado é `{ "available": false, "reason": "provenance-unreadable" }`.
+
+### Procedência ilegível
+
+Um relatório montado sem um arquivo de procedência legível listaria todos os valores como `unrecorded`, o que não é o mesmo que não ter registro. O comando falha de forma segura (fail closed), com saída `1`, como o [`check --require-reviewed`](/pt-BR/docs/cli/check), para que um job de CI não arquive um arquivo de auditoria vazio.
+
+### Retorno no terminal
+
+O comando mostra uma linha enquanto lê os arquivos. Quando há traduções automáticas esperando revisão, ele sugere o Studio:
+
+```text output
+verbatra: reading the provenance record... done (0.1s)
+next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
+```
+
+Essas linhas vão para o stderr, e `--quiet` as descarta. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | o relatório foi impresso |
+| `1` | nenhum relatório: o `verbatra.provenance.json` está corrompido ou foi gravado por um verbatra mais novo |
+| `2` | não foi possível executar: um erro de configuração, um arquivo de origem ou de lock ilegível, um valor de `--locales` não configurado ou vazio (`UNKNOWN_LOCALE`, `INVALID_LOCALES`) ou um nome de relatório desconhecido |
+
+Veja [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída) para o contrato.
+
+## Veja também
+
+- [Registrar evidências de tradução automática](/pt-BR/docs/provenance-evidence) cobre o relatório, seu schema e os marcadores de tradução automática nas exportações XLIFF e TMX.
+- [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor) explica o arquivo de procedência que o relatório lê.
+- [`verbatra check --require-reviewed`](/pt-BR/docs/cli/check) faz a CI falhar enquanto uma tradução automática não está aprovada.

@@ -1,0 +1,102 @@
+---
+title: 保留人工翻译
+seoTitle: "源文本更改时保留人工翻译"
+description: 源文本更改时保留译者编写的字符串，改为获得机器建议译文而不是被覆盖，并固定任何机器都不得改动的键。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+当部分译文由人编写时使用本页：法律文本、营销文案或品牌文案，有人为之付过费。它的源文本更改后，该键会过期，普通的机器运行会覆盖它。verbatra 默认保留它；本页说明如何查看这些键、处理它们，以及收紧或放宽这条规则。
+
+你需要一个至少运行过一次 `translate` 的项目，这样 `verbatra.provenance.json` 才存在，并记录每个值的编写者。
+
+## 哪些内容受保护
+
+键的源文本更改时，如果值由人编写，`translate` 和 `watch` 不会动它：
+
+| 来源 | 值的来源 |
+| --- | --- |
+| `human` | 人的编辑，例如在 Studio 的编辑对话框中 |
+| `import` | 用 `verbatra import` 从译者交接文件中导入的一行 |
+| `external` | 在 verbatra 之外所做的编辑，例如译者在 pull request 中更改语言文件 |
+
+机器输出（`machine`、`memory`、`fuzzy`）、智能体的编辑（`agent`）和尚无记录的值（`unrecorded`）照常重新翻译。审校人员拒绝的值绝不受保护。各来源如何记录见[来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)。
+
+## 查找受保护的键
+
+受保护的键不会发送给提供商，保留原值并保持过期，所以始终可见：
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 1 would translate, 12 unchanged, 1 protected
+    protected:       checkout.terms (import)
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+- `verbatra translate` 翻译其余所有内容，把该键列为受保护，退出码仍为 `0`。
+- `verbatra check` 把它算作过期，退出码为 `1`，所以 CI 门禁会显示有人需要处理。
+- `verbatra diff` 把它列在 `protected` 下。
+- `verbatra export` 像任何过期的键一样，把它作为 `changed` 交给译者。
+
+## 处理受保护的键
+
+只要有人决定了它该写什么，受保护的键就不再过期：
+
+- 在 Studio 中编辑它，或不做更改直接保存以保留文本。无论哪种方式，该值都会针对新的源文本记录为 `human`。
+- 导出它，让译者更新，再导入交接文件。见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)。
+- 用 `verbatra translate --include-human` 在一次运行中有意重新翻译它。
+
+## 用建议译文代替覆盖
+
+想看机器会写什么、又不替换人的文本，请把 `humanEdits` 设为 `suggest`：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+此时受保护的键仍会发送给提供商，但答案只是一条建议。它会出现在运行摘要中该键的旁边，并带有 `suggestionStatus`，说明它是否送达或为何没有；它也保存在翻译记忆库中，但绝不会写入语言文件。新文本的精确翻译记忆库条目可以充当建议，下次运行会再次提供它，无需付费。`translate --estimate` 会统计这些键，因为它们会被发送。在纯人工项目中没有可询问的提供商，所以 `suggest` 的行为与 `protect` 相同。
+
+要回到重新翻译所有内容，请把 `humanEdits` 设为 `overwrite`。见 [`humanEdits` 和 `pinnedKeys`](/zh-CN/docs/config-file#humanedits-与-pinnedkeys)。
+
+## 固定的键
+
+有些键根本不能让机器碰：商标、法律免责声明。把它们列在 `pinnedKeys` 中，其中 `*` 匹配任意一段字符：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+固定的键从不被翻译、建议或重新翻译，即使它缺失，即使使用 `--include-human`。它会以原因 `pinned` 列为受保护，直到有人填写。
+
+## 智能体
+
+AI 智能体不能替换人的成果。MCP 工具 `translation.retranslateEntry` 拒绝受保护的值并返回 [`KEY_PROTECTED`](/zh-CN/docs/error-codes#key_protected)，拒绝固定的键并返回 [`KEY_PINNED`](/zh-CN/docs/error-codes#key_pinned)，并且不提供逐次调用的覆盖选项；对受保护的值，只有项目的 `humanEdits` 设置能改变这一点（`overwrite` 会重新翻译该键，在 `suggest` 下 `translation.translatePending` 只报告一条建议）；固定的键始终被拒绝。`translation.translatePending` 不动受保护的键，并把它们列出。智能体仍可用 `translation.editEntry` 写入值，除非该键已固定；该值记录为 `agent`，所以绝不会被当作人的成果。
+
+## 在 Studio 中
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+**Translations**（翻译）页面把受保护的键标为 **Protected**（受保护），可以筛选出受保护的键，并显示其当前值的来源。打开该键即可编辑，或不做更改直接保存以保留文本。在键编辑器中重新翻译受保护的键会被拒绝，随后提供 **Replace anyway**（仍然替换），它会有意重新翻译该键。见[在 Studio 中审校](/zh-CN/docs/review-in-studio)。
+
+## 边缘情况
+
+- **来自更新的 verbatra 的来源记录文件**：无法读取任何来源，所以在你升级之前，`translate` 会保护每个有值的过期键，而 `check` 和 `diff` 只把固定的键列为受保护。
+- **损坏的来源记录文件**：包括试运行在内的 `translate` 会以 [`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid) 失败。`check` 和 `diff` 仍可工作，并且只把固定的键列为受保护。
+- **纯人工项目**：受保护的键与翻译记忆库无法填充的键一样计入退出码 `3`：两者都需要人处理。
+
+## 相关内容
+
+- [配置文件](/zh-CN/docs/config-file#humanedits-与-pinnedkeys)：`humanEdits` 和 `pinnedKeys`。
+- [`verbatra translate`](/zh-CN/docs/cli/translate#人工编写的键)：`--include-human`。
+- [锁文件与来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)：`verbatra.provenance.json` 如何记录每个来源。
+- [不用机器翻译运行](/zh-CN/docs/human-only-workflow)：所有值都由人编写的项目。

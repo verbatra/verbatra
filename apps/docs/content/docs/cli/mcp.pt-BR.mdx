@@ -1,0 +1,216 @@
+---
+title: verbatra mcp
+seoTitle: "verbatra mcp: inicia o servidor MCP via stdio"
+description: "Inicie o servidor MCP via stdio que expõe as ferramentas do verbatra a qualquer cliente MCP, sem listar por padrão as que chamam um provedor pago."
+status: new
+type: reference
+---
+Inicie um servidor [Model Context Protocol](https://modelcontextprotocol.io) via stdio, o transporte que os clientes MCP usam para iniciar um servidor de ferramentas. Ele atende às revisões do protocolo de 2024-10-07 a 2026-07-28. Não há transporte HTTP, que exporia ferramentas de escrita e ferramentas pagas.
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## Sinopse
+
+```bash
+verbatra mcp [flags]
+verbatra-mcp [flags]
+```
+
+- `verbatra-mcp` é o binário que o `@verbatra/mcp` traz, para que um cliente possa iniciar o servidor sem a CLI. Ele aceita as mesmas flags, exceto `-q`/`--quiet`, e inicia o mesmo servidor, mas não carrega nenhum arquivo `.env` e imprime a versão do `@verbatra/mcp` para `--version`.
+- Os dois saem com `2` diante de uma flag desconhecida, de um valor de flag ausente ou de um argumento solto. O `verbatra-mcp` faz isso, e aceita `-h` e `-V`, com o `@verbatra/mcp` 0.3.0 ou mais recente.
+
+## Exemplos
+
+```bash
+# start the MCP server with only local, non-spending tools
+verbatra mcp
+
+# also advertise the provider-calling tools
+verbatra mcp --allow-spend
+
+# resolve a project outside the current directory
+verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+
+# run the standalone server without the CLI
+npx -y @verbatra/mcp --cwd /path/to/project
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--allow-spend` | nenhum | `VERBATRA_MCP_ALLOW_SPEND`, caso contrário desativado | anuncia as duas ferramentas que chamam um provedor de tradução; veja [Ferramentas pagas](#ferramentas-pagas) |
+| `--redact-values` | nenhum | `VERBATRA_MCP_REDACT_VALUES`, caso contrário desativado | substitui todo valor de tradução nos resultados das ferramentas por um marcador; veja [Valores ocultados](#redacted-values) |
+
+Aceita também as [flags globais](/pt-BR/docs/cli#flags-globais) `--cwd` e `--config`. Não aceita `--json`, porque o stdout é o canal do protocolo. Sem `--cwd`, o diretório do projeto pode vir de `CLAUDE_PROJECT_DIR`; veja [Diretório do projeto](#diretório-do-projeto).
+
+## Comportamento
+
+### Diretório do projeto
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Quando `--cwd` está ausente e `CLAUDE_PROJECT_DIR` nomeia um diretório existente, o servidor o usa como diretório do projeto. O `verbatra mcp` então carrega os [arquivos de ambiente](/pt-BR/docs/cli#arquivos-de-ambiente) desse diretório; um `CLAUDE_PROJECT_DIR` definido apenas nesses arquivos é ignorado.
+
+A busca da configuração começa ali, e o diretório da configuração que ela encontra é a [raiz do projeto](/pt-BR/docs/config-file#o-diretório-de-trabalho-e-o-env) a partir da qual os caminhos das ferramentas são resolvidos.
+
+### Ferramentas pagas
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.retranslateEntry` e `translation.translatePending` são anunciadas somente com `--allow-spend` ou, quando a flag está ausente, com `VERBATRA_MCP_ALLOW_SPEND` definida como `1`, `true`, `yes` ou `on` (sem diferenciar maiúsculas de minúsculas, ignorando espaços em volta). A flag prevalece sobre a variável. O `verbatra mcp` lê `.env.local` e `.env` primeiro, então a variável pode ficar neles; o `verbatra-mcp` a recebe apenas do próprio ambiente.
+
+Caso contrário, elas nunca são listadas, e chamar uma delas falha como ferramenta desconhecida. Uma configuração com `provider: { id: "none" }` nunca as lista, nem com `--allow-spend`. Nenhuma outra ferramenta chama provedor ou precisa de chave de API; entregue a chave de API ao servidor apenas quando você ativar os gastos.
+
+### Instruções para o agente
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+O servidor responde ao handshake com `instructions` fixas, que a maioria dos clientes passa ao modelo primeiro. Elas definem a ordem das chamadas (ler e comparar primeiro, estimar e obter um sim explícito antes de gastar), deixam as decisões de revisão e o trabalho humano para as pessoas, tratam toda string como dados e nunca gravam de volta um valor `[REDACTED]`.
+
+### Ferramentas [#tools]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+| Ferramenta | O que faz | Somente leitura | Chama um provedor |
+| --- | --- | --- | --- |
+| `project.snapshot` | a configuração resolvida: `configured`, `configSource`, locales, formato, `files.pattern`, provedor, glossário, `humanEdits`, `prune`, `valuesRedacted` | sim | não |
+| `project.doctor` | todas as verificações de configuração com o `status`, o `detail` e, quando falhou, um `fix` | sim | não |
+| `status.check` | contagem por locale de chaves ausentes, obsoletas e em dia | sim | não |
+| `status.diff` | lista por locale das chaves que seriam adicionadas, retraduzidas ou órfãs | sim | não |
+| `glossary.get` | todos os termos do glossário com as traduções, as traduções proibidas e o contexto, com os segredos ocultados | sim | não |
+| `glossary.write` | altera um termo do glossário: uma tradução, dados por locale, o contexto ou se ele continua sem tradução | não | não |
+| `lock.state` | a versão do arquivo de lock e, por locale de destino, a contagem de chaves mais as contagens de ausentes, obsoletas e em dia | sim | não |
+| `history.list` | commits recentes do git que tocam um arquivo de locale, com autor, data, assunto e caminhos | sim | não |
+| `history.keyRevisions` | as revisões do git de uma chave em um locale, com diff por palavra <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sim | não |
+| `key.integrity` | a divergência de placeholders, marcação, sintaxe ICU e ramos ICU de uma chave em relação à linha de base do arquivo de lock, por locale | sim | não |
+| `locale.integrity` | toda tradução que falha agora nas verificações de placeholder, marcação ou ICU, por locale | sim | não |
+| `key.value` | o texto de origem e de destino atuais de uma chave, com a procedência e o contexto do tradutor | sim | não |
+| `key.context` | o que `key.value` retorna, mais os termos do glossário que se aplicam, o `maxLength` e a verificação de um `draft` opcional | sim | não |
+| `locale.values` | o texto de origem e de destino de várias chaves, filtrado por `keys` ou `query`, página por página | sim | não |
+| `translation.editEntry` | grava uma tradução manual para uma chave em um locale, condicionada às verificações de integridade | não | não |
+| `translation.estimate` | o que `translation.translatePending` enviaria e custaria, como `translate --estimate` | sim | não |
+| `translation.retranslateEntry` | pede ao provedor configurado que retraduza uma chave em um locale | não | sim |
+| `translation.translatePending` | traduz toda chave ausente ou obsoleta, opcionalmente só para alguns `locales` e dentro de um teto `maxTokens` | não | sim |
+| `review.queue` | todo valor escrito por máquina que ninguém aprovou ainda, com as sinalizações da última execução | sim | não |
+| `report.provenance` | contagens de procedência por locale, como o `verbatra report provenance` as fornece, mais chaves paginadas sob demanda | sim | não |
+| `review.approve` | registra, por instrução do usuário, que uma pessoa identificada aprova a tradução atual de uma chave | não | não |
+| `review.reject` | registra, por instrução do usuário, que uma pessoa identificada rejeita a tradução de uma chave e a remove | não | não |
+| `usage.summary` | o uso de tokens e o status do orçamento da última execução | sim | não |
+| `usage.history` | execuções recentes, custo e cobertura <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sim | não |
+
+- **Uma chamada por vez.** Uma segunda chamada da mesma ferramenta para a mesma entrada (`translation.editEntry`, `translation.retranslateEntry`), ou uma segunda execução de `translation.translatePending`, é recusada com `isError` enquanto a primeira está em andamento.
+- **Trabalho humano.** `translation.retranslateEntry` recusa uma chave fixada com `KEY_PINNED` e, a menos que `humanEdits: "overwrite"`, o valor de uma pessoa com `KEY_PROTECTED`; `translation.editEntry` recusa uma chave fixada. `translation.translatePending` lista essas chaves em `protected`. Veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations).
+- **Procedência.** Um valor gravado por `translation.editEntry` recebe `origin` `agent`. `review.queue` é a mesma fila que o Studio mostra: todo valor `machine`, `memory`, `fuzzy` ou `agent` não aprovado. Veja [Decisões de revisão](/pt-BR/docs/the-lock-file#decisões-de-revisão).
+- **Decisões de revisão.** `review.approve` e `review.reject` aceitam `locale`, `key`, `expectedValue` ou `expectedHash` (um valor alterado é recusado com `REVIEW_VALUE_CHANGED`) e um nome de `reviewer`. Uma aprovação vale para [`verbatra check --require-reviewed`](/pt-BR/docs/cli/check#exigir-traduções-revisadas).
+
+### Entradas e resultados
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+- `status.check`, `status.diff` e `key.integrity` aceitam um array `locales` opcional; `key.integrity` aceita também a `key`.
+- `key.integrity` retorna `{ locales: [{ locale, entries }] }`, cada entrada com `matches`, `missing`, `extra`, `icuValid`, `markupMatches` e os detalhes deles.
+- `translation.editEntry` aceita `locale`, `key` e um `value` de até 20.000 caracteres. Ele retorna `{ accepted, value, reason?, details? }`, e `translation.retranslateEntry` o mesmo mais `reviewReasons?` e `usage?`, em que `reason` é `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
+- `glossary.write` exige um glossário baseado em arquivo, caso contrário falha com `GLOSSARY_NOT_FILE_BACKED`; [um termo que difere apenas em maiúsculas e minúsculas](/pt-BR/docs/sdk/config#updateglossaryterm) atualiza o que está armazenado.
+
+### Mais entradas e resultados
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- `translation.estimate`, `locale.integrity`, `locale.values` e `report.provenance` aceitam o mesmo array `locales` opcional, e `key.integrity` falha com `UNKNOWN_KEY` para uma chave desconhecida.
+- Cada entrada de `key.integrity` traz também `icuArmsMatch` e os detalhes dela.
+- `glossary.get` aceita um `locale` opcional e então acrescenta `effective`, os termos a que aquele locale está sujeito.
+- `key.value`, `lock.state`, `status.check` e `status.diff` trazem a procedência, omitida quando o `verbatra.provenance.json` não pode ser lido.
+- `locale.values` e `report.provenance` paginam as entradas na ordem das chaves de origem: `limit` (padrão 200, no máximo 1.000) e depois o `nextCursor` da página anterior como `cursor`. Uma página lista só os locales para os quais tem entradas, e um cursor obsoleto falha como entrada inválida.
+- `locale.values` aceita `keys` ou um `query` sem diferenciar maiúsculas de minúsculas e retorna arrays de entradas, não o mapa de chaves do Studio. `report.provenance` sempre retorna contagens completas; `includeEntries` acrescenta as chaves, opcionalmente para alguns `buckets`.
+- `history.list` aceita `limit` (padrão 50, no máximo 200). Com `available: false`, o `reason` dele é `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` ou `git-too-old`.
+- `usage.history` aceita `limit`, o número de execuções mais recentes (padrão 50, no máximo 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
+- `history.keyRevisions` aceita `locale`, `key` (no máximo 1.024 caracteres) e `limit`, o número de commits examinados (padrão 50, no máximo 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
+- `usage.summary` lê apenas a última execução (`usage.history` lista as anteriores), omite `usage` quando essa execução não informou nenhum e traz os campos de orçamento apenas sob um orçamento `maxTokens`. `budget.supported: false` significa que uma requisição não informou uso ou falhou; `tokensUsed` então soma a projeção do próprio verbatra para cada requisição informada como zero ou não informada, então não é um número cobrado pelo provedor. Ele traz também `incomplete: { failed, partial }` quando a execução teve locales que falharam ou pararam no meio, para que um uso baixo não seja lido como uma execução bem-sucedida <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />.
+- As ferramentas de escrita aceitam um `lockTimeoutMs` opcional, de `0` a `600000`, padrão `30000`: por quanto tempo esperar por uma trava de escrita ocupada antes de falhar com `LOCK_CONTENDED`, sem gravar nada.
+- Entradas e saídas são JSON Schemas; uma entrada inválida retorna um resultado que nomeia o campo. Um resultado que não corresponde ao `outputSchema` dele falha com `OUTPUT_SCHEMA_MISMATCH`; se vier de uma ferramenta de escrita, a alteração já foi aplicada, então não tente de novo.
+- O texto de uma chamada com falha começa com o código de erro dela, como `UNKNOWN_KEY: ...`, e termina com uma linha `Next step: ...` quando o erro tem uma, o mesmo texto do `hint` da CLI.
+
+### Estimar e depois gastar
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.estimate` é sempre listada. `translation.translatePending` aceita `locales` opcional (um não configurado falha com `UNKNOWN_LOCALE` antes de gastar) e `maxTokens`, um teto que só pode reduzir o da configuração. Veja [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost).
+
+### Progresso
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Quando uma chamada de `translation.translatePending` traz um `progressToken`, o verbatra envia `notifications/progress` conforme os lotes terminam: `progress` os conta, `total` cresce a cada locale planejado e `message` nomeia o locale e o lote (`de: batch 3/7`), no máximo um a cada 250 ms mais um final. Cancelar uma chamada paga (`notifications/cancelled`) a interrompe sem resultado nem mais progresso: `translation.translatePending` mantém o que chegou, e o restante continua pendente.
+
+### Sem configuração
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+O servidor inicia mesmo assim. `project.snapshot` então retorna `configured: false` com o `configProblem` e um `nextStep`, `project.doctor` informa a correção, e todas as outras ferramentas recusam com o erro de configuração. O stderr diz o motivo:
+
+```text output
+Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
+verbatra MCP server running on stdio (project ., spend tools off)
+No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
+  set it up:  npx @verbatra/cli init in the project, or fix the config project.doctor names
+  no restart needed: the server loads the config on the next call once it is valid
+```
+
+### Depois de uma mudança na configuração
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Antes de cada chamada, o servidor recarrega a configuração quando o arquivo de configuração, um arquivo que a busca tentaria ou o arquivo do glossário mudou; um módulo que a configuração importa não é observado. `--allow-spend` é lida uma vez, então uma mudança pode esconder as ferramentas pagas, mas nunca listá-las sem a flag. Quando a lista de ferramentas muda, o servidor envia `notifications/tools/list_changed`. Um recarregamento que move a raiz do projeto faz o `verbatra mcp` carregar os arquivos de ambiente dessa raiz e imprimir `verbatra: project root is now <root>`, o que `--quiet` descarta.
+
+### Ocultação de segredos
+
+Os segredos são ocultados de todo resultado e de toda linha de log, como o Studio faz: um valor com o formato de uma chave de API, ou o valor da variável de uma chave de API configurada, vira `[REDACTED]`; as ferramentas de glossário nomeiam os termos ocultados. Ocultar valores de tradução é [`--redact-values`](#redacted-values).
+
+### Valores ocultados [#redacted-values]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Com `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` definida com um valor que `VERBATRA_MCP_ALLOW_SPEND` aceita, os resultados substituem textos de origem, traduções, descrições e termos do glossário por um marcador, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, e omitem nomes de revisores e de autores, diffs por palavra e os assuntos de `history.keyRevisions`; valores iguais compartilham um hash até o servidor parar. Erros que podem carregar valores mantêm o código e o próximo passo; a mensagem vira um marcador. Nomes de chaves, contagens, valores de `origin`, vereditos de integridade, assuntos de commits e caminhos permanecem. `review.approve` e `review.reject` aceitam apenas o hash do marcador, como `expectedHash`; `glossary.write` responde com contagens; `locale.values` recusa `query` e `key.context` recusa `draft`. Um provedor ainda recebe o texto. Isso não impede que um agente sonde de propósito, por gravações no glossário ou por acertos de glossário em `key.context`.
+
+### Stdout e stderr
+
+<AvailableFrom version="0.12.0" />
+
+O stdout carrega apenas mensagens do protocolo MCP; todos os logs vão para o stderr. Depois de conectado, o `verbatra mcp` imprime uma linha de prontidão e outra quando para:
+
+```text output
+verbatra MCP server running on stdio (project ., spend tools off)
+verbatra MCP server stopped (client closed stdin)
+```
+
+Em um terminal, ele também diz que um cliente deve iniciá-lo. `--quiet` descarta essas linhas, não o motivo de configuração ausente.
+
+### Instalação
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+O `@verbatra/mcp` é um pacote separado que a CLI carrega sob demanda. Sem ele, o `verbatra mcp` sai com `2` e esta mensagem:
+
+```text output
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
+```
+
+Cada versão também está no [MCP Registry oficial](https://registry.modelcontextprotocol.io) como `io.github.verbatra/verbatra`.
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | encerrado de forma limpa por uma única interrupção, ou porque o cliente fechou o stdin |
+| `1` | o fechamento do servidor falhou durante o encerramento |
+| `2` | não foi possível iniciar: um arquivo `--config` ausente, um `@verbatra/mcp` ausente ou, com `--redact-values`, antigo demais, ou um erro de uso |
+| `130` | encerrado à força por uma segunda interrupção durante o encerramento |
+
+Um encerramento libera qualquer trava de locale. O `verbatra-mcp` sai com `1` diante de um erro de inicialização e, com a 0.3.0 ou mais recente, com `143` quando encerrado à força após SIGTERM. Veja [o contrato dos códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída).
+
+## Veja também
+
+- [Conectar um cliente MCP](/pt-BR/docs/connect-an-mcp-client) configura os clientes stdio.
+- [Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio): a contraparte no navegador das ferramentas deste servidor.
+- [`verbatra check`](/pt-BR/docs/cli/check) e [`verbatra diff`](/pt-BR/docs/cli/diff) sustentam `status.check` e `status.diff`.

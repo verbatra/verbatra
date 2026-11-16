@@ -3,11 +3,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
+import {
+  assertLocaleTable,
+  isTranslationFile,
+  LOCALE_SUFFIXES,
+  localeAlternation,
+  TRANSLATED_LOCALES,
+} from "./docs-locales.mjs";
 import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 const ENTRY_POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 
@@ -131,19 +136,31 @@ const RESULT_CODE_FAMILIES = [
   },
 ];
 
-const NEXT_STEP_LABEL = {
-  "": "Next step",
-  ".de": "Nächster Schritt",
-  ".es": "Siguiente paso",
-  ".fr": "Étape suivante",
-};
+const NEXT_STEP_LABEL = assertLocaleTable(
+  {
+    "": "Next step",
+    ".de": "Nächster Schritt",
+    ".es": "Siguiente paso",
+    ".fr": "Étape suivante",
+    ".zh-CN": "下一步",
+    ".pt-BR": "Próximo passo",
+    ".ja": "次の手順",
+  },
+  "NEXT_STEP_LABEL",
+);
 
-const INPUT_FILE_HINT_LABELS = {
-  "": { handoff: "Next step for `import`", tmx: "Next step for `tmx import`" },
-  ".de": { handoff: "Nächster Schritt bei `import`", tmx: "Nächster Schritt bei `tmx import`" },
-  ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
-  ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
-};
+const INPUT_FILE_HINT_LABELS = assertLocaleTable(
+  {
+    "": { handoff: "Next step for `import`", tmx: "Next step for `tmx import`" },
+    ".de": { handoff: "Nächster Schritt bei `import`", tmx: "Nächster Schritt bei `tmx import`" },
+    ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
+    ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
+    ".zh-CN": { handoff: "`import` 的下一步", tmx: "`tmx import` 的下一步" },
+    ".pt-BR": { handoff: "Próximo passo com `import`", tmx: "Próximo passo com `tmx import`" },
+    ".ja": { handoff: "`import` の次の手順", tmx: "`tmx import` の次の手順" },
+  },
+  "INPUT_FILE_HINT_LABELS",
+);
 
 const INPUT_FILE_HINTS = {
   handoff: hintTable(SDK_HINTS_FILE, "HANDOFF_FILE_HINTS"),
@@ -164,6 +181,8 @@ function errorCodesPage(suffix) {
   return readDocPage("(reference)/error-codes", suffix);
 }
 
+const BULLET_LINE = /^- \*\*(.+?)\*\* ?(?:: |：)(.*)$/;
+
 function familySections(page) {
   const sections = new Map();
   let current;
@@ -183,7 +202,7 @@ function familySections(page) {
       });
       continue;
     }
-    const bullet = /^- \*\*(.+?)\*\* ?: (.*)$/.exec(line);
+    const bullet = BULLET_LINE.exec(line);
     if (bullet !== null) {
       current?.entries.at(-1)?.bullets.push({ label: bullet[1], text: bullet[2] });
     }
@@ -413,7 +432,8 @@ describe("the SDK reference catalogs the whole public surface", () => {
 
 const SDK_ERROR_CODES = new Set(unionCodes("packages/sdk/src/errors.ts", "SdkErrorCode"));
 
-const THROWS_LINE = /^\*\*(?:Throws|Wirft|Lanza|Lève) ?:\*\* (.*)$/m;
+const THROWS_LINE =
+  /^(?:\*\*(?:Throws|Wirft|Lanza|Lève|Lança) ?:\*\* |\*\*(?:抛出|例外)\*\*：)(.*)$/m;
 
 function sdkTypeExports() {
   const source = readRepoFile("packages/sdk/src/index.ts");
@@ -481,6 +501,61 @@ function documentedThrows(section) {
   const line = THROWS_LINE.exec(section)?.[1] ?? "";
   return [...new Set([...line.matchAll(/\[`([A-Z_]+)`\]/g)].map((match) => match[1]))].sort();
 }
+
+describe("the label lines the reference checks parse", () => {
+  it.each([
+    ["**Throws:** [`A`](/docs/error-codes#a)", "[`A`](/docs/error-codes#a)"],
+    ["**Wirft:** [`A`](/de/docs/error-codes#a)", "[`A`](/de/docs/error-codes#a)"],
+    ["**Lève :** [`A`](/fr/docs/error-codes#a)", "[`A`](/fr/docs/error-codes#a)"],
+    ["**Lança:** [`A`](/pt-BR/docs/error-codes#a)", "[`A`](/pt-BR/docs/error-codes#a)"],
+    [
+      "**抛出**：[`A`](/zh-CN/docs/error-codes#a)、[`B`](/zh-CN/docs/error-codes#b)",
+      "[`A`](/zh-CN/docs/error-codes#a)、[`B`](/zh-CN/docs/error-codes#b)",
+    ],
+    [
+      "**例外**：[`A`](/ja/docs/error-codes#a)、[`B`](/ja/docs/error-codes#b)",
+      "[`A`](/ja/docs/error-codes#a)、[`B`](/ja/docs/error-codes#b)",
+    ],
+  ])("reads the Throws line %s", (line, rest) => {
+    expect(THROWS_LINE.exec(line)?.[1]).toBe(rest);
+  });
+
+  it.each([
+    "**抛出：**[`A`](/zh-CN/docs/error-codes#a)",
+    "**例外：**[`A`](/ja/docs/error-codes#a)",
+    "**例外** [`A`](/ja/docs/error-codes#a)",
+    "**戻り値**：RunSummary オブジェクト。",
+    "**抛出** [`A`](/zh-CN/docs/error-codes#a)",
+    "**返回**：一个 RunSummary 对象。",
+    "**Throws** [`A`](/docs/error-codes#a)",
+    "**Lança** [`A`](/pt-BR/docs/error-codes#a)",
+    "**Lanca:** [`A`](/pt-BR/docs/error-codes#a)",
+  ])("does not read %s as a Throws line", (line) => {
+    expect(THROWS_LINE.exec(line)).toBeNull();
+  });
+
+  it.each([
+    ["- **Next step**: Do x", ["Next step", "Do x"]],
+    ["- **Étape suivante** : Do x", ["Étape suivante", "Do x"]],
+    ["- **下一步**：Do x", ["下一步", "Do x"]],
+    ["- **次の手順**：Do x", ["次の手順", "Do x"]],
+    ["- **Próximo passo**: Do x", ["Próximo passo", "Do x"]],
+  ])("reads the error code bullet %s", (line, [label, text]) => {
+    const match = BULLET_LINE.exec(line);
+
+    expect([match?.[1], match?.[2]]).toEqual([label, text]);
+  });
+
+  it.each([
+    "- **下一步：**Do x",
+    "- **下一步** Do x",
+    "- 下一步：Do x",
+    "- **次の手順：**Do x",
+    "- 次の手順：Do x",
+  ])("does not read %s as an error code bullet", (line) => {
+    expect(BULLET_LINE.exec(line)).toBeNull();
+  });
+});
 
 describe("each SDK entry point states what it takes and what it throws", () => {
   const exportsByName = new Map(sdkValueExports().map((entry) => [entry.name, entry]));
@@ -677,11 +752,8 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   });
 });
 
-const TRANSLATED_LOCALES = LOCALE_SUFFIXES.filter(Boolean)
-  .map((suffix) => suffix.slice(1))
-  .join("|");
 const REVIEW_FLAG_ROW = new RegExp(
-  `^\\| \\[\`([A-Z_]+)\`\\]\\((?:\\/(?:${TRANSLATED_LOCALES}))?\\/docs\\/error-codes#[a-z_]+\\) \\|`,
+  `^\\| \\[\`([A-Z_]+)\`\\]\\((?:\\/(?:${localeAlternation(TRANSLATED_LOCALES)}))?\\/docs\\/error-codes#[a-z_]+\\) \\|`,
 );
 
 function reviewFlagTable(page) {
@@ -699,10 +771,7 @@ function reviewFlagTable(page) {
 function docPagesCarryingEveryCode(codes, suffix) {
   const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
   return readdirSync(contentDir, { recursive: true, encoding: "utf8" })
-    .filter(
-      (file) =>
-        file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !/\.(de|es|fr)\.mdx$/.test(file)),
-    )
+    .filter((file) => file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !isTranslationFile(file)))
     .filter((file) => {
       const page = readIncludedSource(resolve(contentDir, file));
       return codes.every((code) => new RegExp(`\\b${code}\\b`).test(page));

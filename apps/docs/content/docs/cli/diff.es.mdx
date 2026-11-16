@@ -56,7 +56,7 @@ Un locale tiene cambios pendientes cuando tiene al menos una clave faltante o ca
 
 <AvailableFrom version="0.11.0" />
 
-`--unused` responde otra pregunta que `orphaned`: ¿qué claves de tu archivo de locale de origen ya no nombra tu aplicación? Analiza las `roots` del [bloque `extract`](/es/docs/config-file#extract) con el lector que usa [`verbatra extract`](/es/docs/cli/extract) y lista cada clave de origen que ninguna referencia estática nombra. Las dos listas nunca se fusionan. El análisis solo lee: no se elimina nada y no se lee ninguna clave de API. Borrar una clave es decisión tuya.
+`--unused` responde una pregunta distinta de la de `orphaned`: ¿qué claves de tu archivo de locale de origen ya no nombra tu aplicación? Analiza las `roots` del [bloque `extract`](/es/docs/config-file#extract) con el lector que usa [`verbatra extract`](/es/docs/cli/extract) y lista cada clave de origen que ninguna referencia estática nombra. Las dos listas nunca se fusionan. El análisis solo lee: no se elimina nada y no se lee ninguna clave de API. Borrar una clave es decisión tuya.
 
 El análisis modela el runtime de i18next. Esto cuenta como referencia:
 
@@ -124,10 +124,10 @@ interface LocaleDiff {
 
 <AvailableFrom version="0.12.0" />
 
-`diff` muestra una línea mientras trabaja (con un recuento de archivos en curso cuando `--unused` analiza el código) y sugiere el siguiente comando:
+`diff` muestra una línea mientras trabaja (`diffing and scanning the source`, con un recuento de archivos en curso, al usar `--unused`) y sugiere el siguiente comando:
 
 ```text output
-verbatra: diffing and scanning the source... done (0.8s)
+verbatra: diffing the locales... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
@@ -148,4 +148,4 @@ Las claves huérfanas, posiblemente dinámicas e ignoradas, y un informe `unreli
 - [`verbatra check`](/es/docs/cli/check) da los contadores por locale detrás de estas listas.
 - [`verbatra translate`](/es/docs/cli/translate) aplica los cambios pendientes; `--prune` elimina las claves huérfanas.
 - [El archivo de configuración](/es/docs/config-file#extract) documenta el bloque `extract` y `unused.ignore`.
-- [CI y códigos de salida](/es/docs/ci-and-exit-codes) muestra `diff` en una canalización.
+- [CI y códigos de salida](/es/docs/ci-and-exit-codes) muestra `diff` en un pipeline.

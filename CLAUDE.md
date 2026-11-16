@@ -32,9 +32,9 @@ Hard rules a linter cannot enforce:
 
 - All repository content (code, comments, docs, commit messages) is English.
 - No emojis, no decorative formatting.
-- The em dash character (U+2014) must never appear anywhere in the repository. Use a
-  spaced hyphen, a colon, or parentheses instead. Enforced by the `check:no-em-dash`
-  script and hook, but write clean in the first place.
+- The em dash character (U+2014) and the horizontal bar (U+2015) must never appear anywhere in
+  the repository. Use a spaced hyphen, a colon, or parentheses instead. Enforced by the
+  `check:no-em-dash` script and hook, but write clean in the first place.
 - No prose comments and no JSDoc on internal code: names and structure carry intent.
   When reasoning must be preserved, promote it to a test that fails if the behavior
   regresses, not a comment.
@@ -123,7 +123,9 @@ Follow it rather than improvising commit or branch conventions.
 `apps/docs` mixes real verbatra-managed UI-string translation with hand-maintained
 MDX locale content. How that split works, the source-of-truth files for what has
 shipped, and the `<AvailableFrom />` and tone conventions are documented in
-`.claude/rules/docs.md`.
+`.claude/rules/docs.md`. The docs locale set has
+one source of truth, `apps/docs/lib/locales.ts`; never write a locale list or a locale count
+elsewhere, and add a locale through the checklist in `CONTRIBUTING.md` "Adding a docs locale".
 
 ## Agents and skills
 

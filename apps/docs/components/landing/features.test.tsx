@@ -8,11 +8,9 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { FEATURE_ARTIFACTS } from "@/lib/feature-artifacts";
 import { i18n } from "@/lib/i18n";
 import { LANDING_FEATURES } from "@/lib/landing-features";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
-import de from "@/messages/de.json";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -228,7 +226,7 @@ describe("Features", () => {
   });
 
   it("carries a title, a body and every badge for every feature in every locale", () => {
-    for (const catalog of [en, de, es, fr]) {
+    for (const catalog of Object.values(MESSAGE_CATALOGS)) {
       for (const { id } of LANDING_FEATURES) {
         const item = catalog.landing.features.items[id];
         expect(item.title.length, id).toBeGreaterThan(0);

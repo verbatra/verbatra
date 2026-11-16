@@ -1,0 +1,223 @@
+---
+title: verbatra init
+seoTitle: "verbatra init: gera a configuração do projeto"
+description: Cria a configuração do verbatra e um .env de exemplo, detectados a partir dos seus arquivos de locale, de forma interativa ou totalmente não interativa.
+type: reference
+---
+Gera a configuração inicial de um projeto: o `init` grava um `verbatra.config.ts`, um `.env.example` com o nome da variável da chave de API do seu provedor (nunca o valor de uma chave de API) e as entradas do `.gitignore` para `.env`, `.env.local`, `.verbatra-local/` e `verbatra.cache.json`. Para `i18next-json`, a configuração também ganha um bloco `extract` comentado, para você descomentar. Ele lê primeiro os arquivos de locale que já estão no projeto, então em geral o provedor é tudo o que você precisa informar.
+
+## Sinopse
+
+```bash
+verbatra init [flags]
+```
+
+## Exemplos
+
+```bash
+# prompt for anything not passed or detected
+verbatra init --provider gemini
+
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--provider` | `<id>` | nenhum (obrigatório, a menos que perguntado) | provedor para o qual gerar a configuração: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `opencode`, `openai-compatible`, `libretranslate` ou `none` |
+| `--format` | `<id>` | detectado, senão `i18next-json` | o formato do arquivo de locale, um dos ids em [Formatos](/pt-BR/docs/formats) |
+| `--source` | `<locale>` | detectado, senão `en` | o locale de origem em que as suas strings estão escritas |
+| `--targets` | `<locales>` | detectado, senão `de` | locales de destino, separados por vírgulas, para os quais traduzir |
+| `--path` | `<pattern>` | detectado, senão o layout usual do formato ([Detecção](#detecção)) | padrão de caminho dos arquivos de locale; precisa conter o placeholder `{locale}` |
+| `--model` | `<name>` | o padrão gerado | o modelo; obrigatório para `openai-compatible`, opcional para `anthropic`, `openai`, `gemini` e `opencode` |
+| `--base-url` | `<url>` | nenhum | a URL do servidor; só para `openai-compatible` e `libretranslate`, e obrigatória nesses dois |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | a variável de onde o `openai-compatible` lê a sua chave de API |
+| `--yes` | nenhum | desativado | nunca pergunta; usa o padrão para tudo o que não foi passado nem detectado |
+| `--force` | nenhum | desativado | sobrescreve um `verbatra.config.ts` existente cujo conteúdo difere |
+| `--agent` | nenhum | desativado | grava também a seção para agentes de programação em `AGENTS.md` ou `CLAUDE.md` e o servidor MCP do verbatra na configuração de projeto de cada cliente detectado ([Configurar agentes de programação](#configurar-agentes-de-programação)) |
+| `--client` | `<ids>` | detectado | clientes, separados por vírgulas, que o `--agent` conecta no lugar dos detectados: `claude`, `cursor`, `vscode`, `codex`, `gemini` ou `all`; exige `--agent` |
+| `--dry-run` | nenhum | desativado | relata todo arquivo que o `init` gravaria ou alteraria e não grava nada ([Simulação](#simulação)) |
+
+Aceita também as [Flags globais](/pt-BR/docs/cli#flags-globais) `--cwd` e `--json`, mas não `--config`. Aqui, `--cwd` é o diretório a varrer e onde gravar, e ele precisa já existir. O `--json` nunca pergunta.
+
+## Comportamento
+
+### Perguntas interativas
+
+<AvailableFrom version="0.12.0" />
+
+Uma flag sempre prevalece. Tudo o que você omite é detectado a partir do projeto, depois perguntado quando o stdin é um terminal e nem `--yes` nem `--json` foram passados; caso contrário, só assume o padrão sob `--yes`. Pressionar Enter aceita o valor sugerido. Uma flag com valor vazio, como `--targets ''`, é um erro de uso (`INVALID_OPTION`), nunca um pedido pelo padrão. Se o stdin termina em uma pergunta (Ctrl-D), o `init` termina com `2` e `MISSING_OPTIONS`.
+
+Cada resposta é verificada assim que você a dá. Uma resposta inválida é explicada no stderr e perguntada de novo, até três vezes, mantendo as suas respostas anteriores; uma terceira resposta inválida interrompe o `init` com o código de erro dessa resposta (como `INVALID_LOCALE`), nomeia a flag a passar no lugar e não grava nada.
+
+### Detecção
+
+O `init` varre o diretório em busca de arquivos que um adaptador de formato assume, ignorando diretórios ocultos, `node_modules` e a saída de build, e encontra a parte de cada caminho que representa um locale, como `de.json`, `messages_pt_BR.properties`, `de.lproj/` ou o `values-de/` do Android. O padrão de caminho que cobre mais locales prevalece, e ele preenche:
+
+- `format`: o único formato cujo adaptador lê todos os arquivos encontrados. Todo adaptador JSON lê `.json`, então, para arquivos JSON, decide uma única dependência correspondente no `package.json` (`i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`).
+- `files.pattern` e `files.localeStyle`: `posix` quando os nomes dos arquivos usam `pt_BR`, `android` para diretórios `values-*` e `literal` nos demais casos.
+- `sourceLocale`: o idioma de origem de um catálogo `.xcstrings`; senão `en` ou o único locale `en-*` encontrado; senão o único locale encontrado.
+- `targetLocales`: todos os outros locales encontrados.
+
+Um arquivo ao lado dos arquivos de locale que contém strings sem nenhum nome de locale, como `messages.properties`, `Strings.resx` ou um `app.pot` do gettext, é relatado como `unqualifiedSourceFile`. O verbatra não consegue ler a origem de um arquivo assim, então o `init` não adivinha o locale de origem: passe `--source`, mesmo com `--yes`, e os próximos passos nomeiam o arquivo a renomear ou para o qual copiar o arquivo base.
+
+Sem nenhum arquivo de locale, só as dependências decidem o formato, e o padrão de caminho segue o layout usual do formato, o que está listado por formato em [Escolher sua stack](/pt-BR/docs/pick-your-stack).
+
+Um catálogo `apple-xcstrings` é um único arquivo compartilhado por todos os locales, e o verbatra nunca o cria: crie-o antes no Xcode. `--format`, `--path` e `--source` restringem a detecção em vez de serem sobrescritos por ela, então `--format yaml` só olha arquivos YAML.
+
+O `init` nunca escolhe entre opções equivalentes. Vários formatos que leem os arquivos (JSON simples, sem dependência de i18n) terminam com `2` e `FORMAT_AMBIGUOUS`, e vários padrões de caminho empatados (um arquivo por namespace) terminam com `2` e `LAYOUT_AMBIGUOUS`. Os dois listam os candidatos; passe `--format` ou `--path` para escolher. Em um terminal, ele pergunta.
+
+### Execuções não interativas
+
+Sem terminal, ou com `--json`, o `init` nunca pergunta. Um valor que não foi passado, detectado nem assumido como padrão por `--yes` é um erro: o `init` termina com `2` e `MISSING_OPTIONS` e nomeia toda flag que falta. Uma ambiguidade ou uma flag inválida também lista as flags que ainda faltam, então uma execução diz a um agente tudo o que ele precisa passar. `--provider` não tem padrão, e `--base-url` e `--model` também não, para o `openai-compatible`, nem `--base-url` para o `libretranslate`. Este é o comando que um agente executa:
+
+```bash
+npx @verbatra/cli init --provider gemini --yes --json
+```
+
+### Saída JSON
+
+Schema: o [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os demais.
+
+Com `--json`, o stdout traz exatamente um envelope (veja [Saída JSON](/pt-BR/docs/cli/output#saída-json)). O seu `result`:
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  dryRun: boolean;                     // true under --dry-run: files holds the planned actions
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options?: Record<string, unknown> };
+    sensitiveData?: { mode: "warn" };
+  } | null;
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  } | null;
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  } | null;
+  agent: {                             // null without --agent
+    instructionsFile: "AGENTS.md" | "CLAUDE.md";
+    mcpServer: "added" | "present" | "differs" | "skipped" | null; // Claude Code; null when not wired
+    configKept: boolean;               // true when --agent kept an existing config
+    clients: {
+      id: "claude" | "cursor" | "vscode" | "codex" | "gemini";
+      file: string;                    // the client's config file, such as .mcp.json
+      server: "added" | "present" | "differs" | "skipped";
+      reason: "plugin" | "symlink" | null; // why the client was skipped
+      selectedBy: "flag" | "markers" | "default";
+      markers: string[];               // the client's marker files found in the project
+    }[];
+  } | null;
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+`confidence` é `high` quando só os arquivos decidiram tudo, `medium` quando uma convenção ou uma dependência preencheu uma lacuna (como assumir `en` como origem) ou uma lacuna ficou aberta, `low` quando nenhum arquivo de locale sustentou o formato e `none` quando nada foi detectado. Um `default` em `sources` é o valor a conferir de novo. `nextSteps` termina com os comandos exatos a executar em seguida.
+
+Um envelope de erro para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` ou `INVALID_FORMAT` traz também `candidates`, os valores entre os quais escolher. Todo erro de uso que deixa flags sem resposta traz `missing`, que as nomeia, como `"--source <locale>"`.
+
+### Provedores
+
+<AvailableFrom version="0.12.0" />
+
+- `--provider none` gera uma configuração somente humano (veja [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow)) sem `options` e não grava `.env.example`, já que nenhuma chave de API é lida.
+- `--provider openai-compatible` gera um servidor local ou auto-hospedado a partir de `--base-url` e `--model`, com `maxOutputTokens: 4096`. A chave de API dele é opcional: um servidor que não precisa de uma deixa `OPENAI_COMPATIBLE_API_KEY` sem definir, e `--api-key-env-var` nomeia outra variável, em maiúsculas, como `LLM_API_KEY`. Um valor rejeitado nunca é repetido na saída, para o caso de ele ser a própria chave de API.
+- `--provider libretranslate` gera um servidor [LibreTranslate](/pt-BR/docs/providers#libretranslate) auto-hospedado só a partir de `--base-url`, como `http://localhost:5000`, e recusa `--model` e `--api-key-env-var`. O `.env.example` nomeia `LIBRETRANSLATE_API_KEY` para um servidor iniciado com `--api-keys`.
+
+O `init` grava o nome de uma variável na configuração e no `.env.example`, nunca um valor, e recusa uma URL base com credenciais, query string ou fragmento (`https://user:key@host`, `https://host/v1?api-key=...`), onde uma chave de API poderia ir parar na configuração versionada.
+
+### Arquivos existentes
+
+Executar o `init` de novo com as mesmas respostas não muda nada e termina com sucesso. Um `verbatra.config.ts` com conteúdo diferente é recusado com `CONFIG_EXISTS`, a menos que você passe `--force`, e essa recusa vem antes de qualquer pergunta ou outro erro. Outra configuração do verbatra no diretório (um `.verbatrarc.json` ou uma propriedade `verbatra` no `package.json`) é recusada mesmo com `--force`, porque seria lida primeiro. Nada é gravado quando o `init` recusa. A configuração de um diretório pai que cobre este gera um alerta no stderr (na simulação também): o novo `verbatra.config.ts` a substitui aqui.
+
+Um diretório em que o `init` não consegue gravar é recusado com `INIT_UNWRITABLE`, nomeando o arquivo e qualquer arquivo já gravado. Um `verbatra.config.ts`, `.env.example` ou `.gitignore` que é um link simbólico levando para fora do projeto, ou para lugar nenhum, é recusado com `INIT_UNWRITABLE` antes de qualquer gravação. Um `.env.example` existente é mantido; quando ele ainda não nomeia a variável da chave de API, só essa linha é acrescentada, e sob `--force` uma linha de cabeçalho que o próprio `init` gravou é reescrita para o novo provedor. O `.gitignore` recebe só as entradas que lhe faltam.
+
+### Simulação
+
+<AvailableFrom version="0.12.0" />
+
+`--dry-run` executa toda verificação e recusa de uma execução real, exceto uma gravação com falha, como um diretório somente leitura, imprime `would create`, `would update`, `would overwrite` ou `unchanged` para cada arquivo e não grava nada.
+
+### Configurar agentes de programação
+
+<AvailableFrom version="0.12.0" />
+
+O `--agent` prepara também o projeto para agentes de programação. Ele não grava nenhum valor de chave de API, nunca grava por um link que sai do projeto e adiciona:
+
+- **O arquivo de instruções.** Uma seção do verbatra entre os marcadores `<!-- verbatra:start -->` e `<!-- verbatra:end -->`, palavra por palavra o trecho de [Apresentar o verbatra ao seu agente](/pt-BR/docs/agent-recipes#apresentar-o-verbatra-ao-seu-agente). Ela vai para o `AGENTS.md`, ou para o `CLAUDE.md` quando esse é o único arquivo de instruções; quando os dois existem, o `AGENTS.md` prevalece. Em um arquivo que já contém a seção, o texto entre os marcadores é substituído pelo atual e relatado como `updated`, ou `unchanged` quando já corresponde.
+- **A configuração MCP de cada cliente.** A entrada do servidor `verbatra` de [Conectar um cliente MCP](/pt-BR/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` sem `--allow-spend` nem `VERBATRA_MCP_ALLOW_SPEND`, para que as ferramentas pagas fiquem ocultas. O `@verbatra/cli` exporta essas entradas como `AGENT_CLIENT_CONFIGS`.
+
+| Cliente | `--client` | Arquivo | Detectado por |
+| --- | --- | --- | --- |
+| Claude Code | `claude` | `.mcp.json` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| Cursor | `cursor` | `.cursor/mcp.json` | `.cursor/`, `.cursorrules` |
+| VS Code | `vscode` | `.vscode/mcp.json`, sob `servers` | `.vscode/mcp.json` |
+| Codex | `codex` | `.codex/config.toml`, como `[mcp_servers.verbatra]` | `.codex/` |
+| Gemini CLI | `gemini` | `.gemini/settings.json` | `.gemini/`, `GEMINI.md` |
+
+O `init` conecta todo cliente que detecta e, quando não encontra nenhum marcador, só o Claude Code. O `AGENTS.md` escolhe o arquivo de instruções, não um cliente. Uma pasta `.vscode` sem `mcp.json` não é conectada: um próximo passo nomeia o comando que a conecta. O Gemini CLI lê o `GEMINI.md`: a menos que as configurações dele ou o `GEMINI.md` carreguem o arquivo de instruções, um próximo passo diz como. Um cliente detectado cujo caminho de configuração passa por um link simbólico é ignorado, com o motivo `symlink` e um próximo passo. O `--client` substitui a detecção; um id desconhecido, uma lista vazia ou `--client` sem `--agent` termina com `2` e `INVALID_OPTION` com os candidatos.
+
+Nada fora dos marcadores é tocado, e os outros servidores e chaves mantêm seus bytes, sua indentação e suas quebras de linha quando o arquivo tem uma entrada por linha; caso contrário, ele é reescrito com o mesmo conteúdo. A tabela do Codex é acrescentada ao fim. Um servidor `verbatra` existente nunca é tocado: o arquivo é relatado como `unchanged`, e o `server` do cliente é `present` quando a entrada corresponde ao que foi gerado, ou `differs` quando não corresponde, o que também adiciona uma observação em `nextSteps`.
+
+Quando o `.claude/settings.json` ou o `.claude/settings.local.json` habilita o plugin do verbatra para o Claude Code, o `init` ignora o `.mcp.json`: o Claude Code é relatado como `skipped` com o motivo `plugin` e um próximo passo, e uma entrada existente nunca é apagada. Um arquivo de configurações por trás de um link simbólico é ignorado.
+
+Com uma configuração existente, o `init --agent` a mantém, grava só os arquivos de agente, imprime `kept verbatra.config.ts`, nunca pergunta e não detecta nada. O resultado JSON lista a configuração como `unchanged`, define `agent.configKept` como `true` e traz `null` em `config`, `sources`, `apiKeyEnvVar` e `detection`. Uma flag de configuração ou `--force` traz a configuração de volta para a execução, como sem `--agent`.
+
+O `init` recusa antes de gravar qualquer coisa, com `AGENT_FILE_INVALID`, quando um arquivo de cliente não é JSON simples (ele nunca reescreve comentários nem vírgulas finais), não é um objeto, repete uma chave ou tem um valor de servidores que não é um objeto; quando o `.codex/config.toml` define `mcp_servers` ou o servidor verbatra em linha, com chaves com pontos ou como um array de tabelas, repete essa tabela ou uma chave dela, ou tem uma string, um array ou um cabeçalho sem fechamento; quando um cliente que o `--client` nomeia tem um link simbólico no caminho da sua configuração, ou um arquivo de instruções leva para fora do projeto; ou quando o arquivo de instruções tem um marcador sem par, fora de ordem ou repetido. A mensagem nunca cita o arquivo.
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | arquivos gravados, ou já em dia |
+| `2` | um erro de uso: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `INVALID_LOCALE`, `INVALID_LOCALES`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID` ou `CONFIG_INVALID` quando as respostas não formariam uma configuração válida |
+
+Veja como cada comando usa esses códigos em [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída).
+
+## Veja também
+
+- [Configurar o verbatra com um agente de IA](/pt-BR/docs/start-with-ai) é o prompt de agente construído sobre este comando.
+- [Início rápido](/pt-BR/docs/quickstart) percorre o caminho do init até a primeira execução.
+- A página [Arquivo de configuração](/pt-BR/docs/config-file) documenta todas as opções que a configuração gerada define.
+- [Provedores](/pt-BR/docs/providers) cobre as opções dos provedores e as variáveis das chaves de API.

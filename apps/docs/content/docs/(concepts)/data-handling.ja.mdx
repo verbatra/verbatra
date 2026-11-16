@@ -1,0 +1,135 @@
+---
+title: データの取り扱いとプライバシー
+seoTitle: "verbatra CLI のデータの取り扱いとプライバシー"
+description: verbatra がマシンの外へ送るデータと送信先、ローカルに残すデータをまとめます。セキュリティや法務の審査に使えます。
+type: concept
+---
+verbatra の CLI、SDK、Studio、MCP サーバーがマシンや CI の外へ送るデータを説明します。このウェブサイトについては[プライバシーポリシー](/privacy)を参照してください。
+
+## 要点
+
+- **テレメトリはありません**。更新チェックも、接続先となる verbatra のサーバーもありません。
+- **外向きの通信先はプロバイダーだけ**です。通信するのはコマンドが翻訳するときに限ります。`provider: { id: "none" }` では通信しません。それ以外はすべてローカルで完結します。
+- **翻訳が必要なものだけを送信します**。未変更のキー、キャッシュヒット、保護されたキー、固定されたキーは送りません。ただし `humanEdits: "suggest"` では、人による編集のうち古くなったものを送ります。
+- **API キーは環境変数からのみ読み込まれ**、メッセージには現れません。
+
+## データの流れ
+
+```text
+ your project (local disk)                               provider (only on translate, watch,
+                                                         SDK retranslateEntry, or a Studio /
+ +-----------------------------------------+             MCP retranslate or translate-pending)
+ | locale files, verbatra.config.ts,       |   HTTPS     +--------------------------+
+ | glossary          -- read by verbatra --|------------>| Anthropic / OpenAI /     |
+ |                                         |  changed    | Gemini / DeepL / Google  |
+ | verbatra.lock.json, provenance file,    |  strings    | or your own server       |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (self-hosted)            |
+ |                 -- written by verbatra  | translations+--------------------------+
+ +-----------------------------------------+
+        |                        |
+        | 127.0.0.1 only         | stdio
+        v                        v
+  Studio in your browser   MCP client (your AI agent)
+```
+
+矢印は HTTPS です。ただし [`openai-compatible`](/ja/docs/providers#openai-compatible) と [`libretranslate`](/ja/docs/providers#libretranslate) は、自分で用意した `baseUrl` に対して平文の http を使えます。
+
+## リクエストが送られるタイミング
+
+プロバイダーを呼び出すのは図のコマンドだけです。Studio と MCP のアクションには [`--allow-spend`](/ja/docs/cli/mcp#課金ツール) が必要です。ドライランと見積もりを含め、それ以外はすべてローカルで動作します。例外は [`verbatra doctor --live`](/ja/docs/cli/doctor) で、DeepL、Google、LibreTranslate の言語リストを取得しますが、文字列は送信しません。
+
+`translate` の実行が送るのは、ロックファイル（[ロックファイルと来歴](/ja/docs/the-lock-file)を参照）と比べて欠落または変更されたキーだけです。[翻訳キャッシュ](/ja/docs/the-cache)のヒットは除き、共通のテキストは 1 回だけ送ります。DNS リゾルバーにはプロバイダーのホスト名が見えます。
+
+## 各プロバイダーが受け取るもの
+
+| プロバイダー | 送信される内容 | 送信先 |
+| --- | --- | --- |
+| `anthropic`、`openai`、`gemini`、`openai-compatible` | キーごとに、キー名、ソーステキスト、ソースファイルに含まれる説明や意味を送ります。リクエストごとに、ソースとターゲットのコード（[`localeMap`](/ja/docs/providers#プロバイダーに送られるロケールコード) の適用後）とその英語名、`tone`、ターゲットロケールの用語集の用語、バッチに複数形が含まれる場合はターゲットの複数形カテゴリ、verbatra の固定の指示、モデル名、出力トークンの上限を送ります。 | `api.anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com`、または設定した `baseUrl` です。ホスト型プロバイダーは [`*_BASE_URL`](/ja/docs/network-policy#ホスト型プロバイダー) でリダイレクトできます。 |
+| `opencode` | 1 行目と同じ | `opencode.ai` です。固定のエンドポイントで、`*_BASE_URL` ではリダイレクトされません。 |
+| `deepl` | 各キーのソーステキスト（プレースホルダーは[マスク](/ja/docs/providers#deepl)されます <AvailableFrom version="0.12.0" />）、言語コード、有料の API キーで `tone` が丁寧さを求める場合は丁寧さの設定、`glossaryId` を送ります。キー名、説明、用語集の用語は送りません。 | `api.deepl.com` です。`:fx` で終わる API キーでは `api-free.deepl.com` です。 |
+| `google-translate` | 各キーのソーステキスト（プレースホルダーは[マスク](/ja/docs/providers#google-cloud-translation)されます <AvailableFrom version="0.12.0" />）と言語コードを送ります。 | `translation.googleapis.com` |
+| `libretranslate` | 各キーのソーステキスト（プレースホルダーは[マスク](/ja/docs/providers#libretranslate)されます。ICU 構文を含む値は送りません）、言語コード、設定されている場合は `LIBRETRANSLATE_API_KEY` を送ります。 | 設定した `baseUrl` |
+| `none` | なし | なし |
+
+ベンダーの SDK は、ライブラリ、OS、Node.js のバージョンを示すヘッダーも送ります。API キーは設定したエンドポイントにだけ送られます（`google-translate` は `?key=` クエリ文字列で送ります）。
+
+## 機密情報ガード
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` は、上の表で送信される内容をリクエストの前にスキャンします。検出器、`patterns`、`allow` は[すべての設定キー](/ja/docs/config-file#すべての設定キー)にあります。`email` 検出器は、`example.com`、`example.org`、`example.net`（とそのサブドメイン）、および `.example`、`.test`、`.invalid`、`.localhost` のドメインを対象外にします。次のパターンは拒否されます。量指定子または選択肢を含むグループを繰り返すパターン、`*`、`+`、`{n,}` を 2 つ以上含むパターン、分岐が多すぎるパターンです。フィールドの先頭 2,000 文字を読み、1 秒後に打ち切ります。タイムアウトは検出結果になります（`pattern-timeout-<n>`）。
+
+| `mode` | 説明 |
+| --- | --- |
+| `warn` | 通常どおり送信し、通知でキーを示します。 |
+| `block` | キーを保留するため、ロケールは `partial` で終わります。 |
+| `redact` | 値の中の一致ごとに記号を送り、あとで一致箇所を復元します。説明や意味の中の一致は `[redacted]` として送ります。キー名の中の一致、スキャンのタイムアウト、記号がちょうど 1 回では戻ってこない場合は、キーを保留します。DeepL、Google、LibreTranslate では記号がプレースホルダーになるため、保護できない値は保留されます（`PLACEHOLDER_UNSUPPORTED`）。 |
+
+`block` と `redact` は、一致する用語集の用語も除外します。`verbatra init` は、`none` 以外のプロバイダーを選んだ場合に `warn` を書き込みます。誤検出の場合は、そのテキストを `allow` に追加するか、検出器を外します。[`verbatra check --sensitive`](/ja/docs/cli/check#機密情報) は、API キーなしでスキャンを実行します。自由記述の中の人名は検出されません。
+
+## ベンダーのデータ保持とデータ処理条件
+
+データ保持はベンダーと契約によって決まります。引用は 2026 年 9 月時点のものです。
+
+| プロバイダー | ベンダーの説明 | データ処理条件 |
+| --- | --- | --- |
+| Anthropic | 「For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation」（[データ保持](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)）。「By default, we will not use your inputs or outputs from our commercial products [...] to train our models」（[学習](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)）。ゼロデータ保持は組織ごとの設定です（[詳細](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)）。 | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| OpenAI | 「data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)」、「abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law」。Zero Data Retention と Modified Abuse Monitoring については「are subject to prior approval by OpenAI」とされており、verbatra が呼び出すエンドポイント `/v1/chat/completions` は対象として挙げられています（[データの扱い](https://developers.openai.com/api/docs/guides/your-data)）。 | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
+| Gemini | 無料枠（Unpaid Services）では、「human reviewers may read, annotate, and process your API input and output」とあり、規約は「sensitive, confidential, or personal information」を送信しないよう求めています。Paid Services では、「Google doesn't use your prompts [...] or responses to improve our products」とあり、プロンプトとレスポンスを「for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy」記録します。EEA、スイス、英国では、無料枠を含むすべての利用に Paid Services の規約が適用されます（[Gemini API terms](https://ai.google.dev/gemini-api/terms)）。verbatra はグラウンディングも明示的なキャッシュも使いません。Google の[ゼロデータ保持](https://ai.google.dev/gemini-api/docs/zdr)のページは、この 2 つを対象外としています。 | [Processor terms](https://business.safety.google/processorterms/)。Gemini API の規約が Paid Services について挙げています。 |
+| DeepL | DeepL API Free について、[プライバシーポリシー](https://www.deepl.com/en/privacy)は次のように述べています。「We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms.」Pro については、「your texts will not be used to improve the quality of our services」、「After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted.」とあります。 | Data Processing Agreement。[DeepL Pro の規約](https://www.deepl.com/en/pro-license)で参照されています。 |
+| Google Cloud Translation | 「text is held briefly in-memory in order to perform the translation and return the results to you」、「Google does not use the content you send to train and improve our Google Translation features」（[データの利用](https://docs.cloud.google.com/translate/data-usage)）。 | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
+| OpenCode | OpenCode と、そのルーティング先のモデルプロバイダーが決めます。社外秘の文字列を送る前に、[プライバシーポリシー](https://opencode.ai/legal/privacy-policy)を読んでください。 | [Terms of Service](https://opencode.ai/legal/terms-of-service) |
+| openai-compatible、LibreTranslate | 自分で用意したサーバーの動作によります。 | 自分で用意したサーバーの条件によります。 |
+
+## 文字列を社外に出さない
+
+| 選択肢 | 参照先 |
+| --- | --- |
+| 機械翻訳を使わない | [機械翻訳なしで実行する](/ja/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| 自分のモデル | Ollama、LM Studio、vLLM で [`openai-compatible`](/ja/docs/providers#openai-compatible) を使う |
+| 言語モデルを使わない機械翻訳 | [`libretranslate`](/ja/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| 強制する | CI で固定した `local-only` の[ネットワークポリシー](/ja/docs/network-policy) <AvailableFrom version="0.12.0" /> |
+
+## ローカルに書き込まれるもの
+
+| ファイル | 内容 | コミットするか |
+| --- | --- | --- |
+| ロケールファイル | 訳文 | はい |
+| `verbatra.lock.json` | 訳文の元になったソース文字列ごとのハッシュ | はい |
+| `verbatra.provenance.json` | キーごとの、値の書き込み経路、プロバイダー、モデルと、レビューの判断（レビュー担当者の名前付き）。訳文とタイムスタンプは含みません | はい |
+| `verbatra.limits.json` | キーごとの長さの上限 <AvailableFrom version="0.13.0" /> | はい |
+| `verbatra.cache.json` | ソーステキストとその訳文（プロバイダー、モデル、トーン、用語集、`localeMap` ごと） | いいえ。`verbatra init` が gitignore に追加します |
+| `.verbatra-local/` | 直近の実行の状態、レビューフラグ、トークン使用量、実行履歴（件数、使用量、費用）<AvailableFrom version="0.13.0" />、生成された疑似ロケール、保持者のホストと PID を示す書き込みロック | いいえ。gitignore 対象です |
+| `.env`、`.env.local` | 置いている場合は API キー | 絶対にコミットしません。`verbatra init` が両方を gitignore に追加します |
+
+## API キー
+
+プロバイダーのエラーと CLI の出力では、既知の [API キーの環境変数](/ja/docs/providers#api-キーは環境変数から読み込む)のうち 8 文字以上の値と、API キーの形をしたものがすべて `[REDACTED]` に置き換えられます。
+
+## Studio と MCP
+
+**Studio** は `127.0.0.1` だけにバインドし、[セッショントークン](/ja/docs/cli/studio)を使い、別の `Host` や `Origin` を拒否します。Content-Security-Policy は、インターネットへのフェッチをブロックします。
+
+**MCP サーバー**は stdio で通信し、ポートを開きません。読み取りツールは文字列、用語集、状態を返します。[`--redact-values`](/ja/docs/cli/mcp#redacted-values) は値を秘匿化します。`history.list` と `history.keyRevisions` は各コミットの作者名を示します（`--redact-values` では示しません）。メールアドレスは常に示しません。
+
+MCP クライアントや、Studio の `--expose-agent-tools` を使うブラウザーエージェントは、読み取った内容を AI モデルに送ります。その扱いはモデルのベンダーの規約によります。Studio のエージェントツールの出力は秘匿化されません。
+
+## AI が生成した訳文と来歴
+
+EU AI 法の透明性ルール（[Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)）が適用されるかどうかは、法務担当者が判断します。verbatra は、機械翻訳されたすべての値について、プロバイダーとモデルを[記録します](/ja/docs/the-lock-file#来歴各値を誰が書いたか)。
+
+### 監査ファイル
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance --json` は、その記録をキーごとの[監査ファイル](/ja/docs/provenance-evidence)にします。
+
+## DPA や NDA の審査用チェックリスト
+
+1. 文字列がネットワークの外へ出てよいかを決めます。出してはいけない場合は、[文字列を社外に出さない](#文字列を社外に出さない)を参照してください。
+2. ホスト型プロバイダーでは有料プランを使い（[ベンダーの条件](#ベンダーのデータ保持とデータ処理条件)）、そのデータ処理条件に署名します。
+3. `verbatra check --sensitive` を実行します。
+4. API キーはシークレットストアか gitignore 済みの `.env` に置き、`verbatra doctor` を実行します。
+5. Studio や MCP サーバーを使ってよい AI エージェントを決め、`--redact-values` が必要かどうかも決めます。
+6. `verbatra.provenance.json` をコミットし、リリースごとに `verbatra report provenance --json` をアーカイブします。
+7. 各ホストの [`verbatra doctor --data-flow --json`](/ja/docs/cli/doctor#データフロー) のマニフェストを添付します。

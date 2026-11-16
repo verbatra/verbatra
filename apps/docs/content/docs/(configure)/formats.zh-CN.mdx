@@ -1,0 +1,223 @@
+---
+title: 格式
+seoTitle: "verbatra 支持的 i18n 文件格式"
+description: "verbatra 支持的所有 i18n 文件格式，每种格式如何读写文件，以及写入时保留哪些内容，让译文文件的差异保持清晰。"
+type: reference
+---
+格式适配器把语言文件读成一种中立的结构，再以该格式自己的形式写回。把[配置文件](/zh-CN/docs/config-file)中的 `format` 配置项设为下列 id 之一：
+
+| `format` | 文件 | 占位符 | 复数 | 缺失的目标文件 | [原生占位符语法](/zh-CN/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| --- | --- | --- | --- | --- | --- |
+| `i18next-json` | i18next JSON（`.json`） | `{{name}}`、`$t(...)` | CLDR 键后缀 | 创建 | `{{name}}` |
+| `vue-i18n-json` | vue-i18n JSON（`.json`） | `{name}`、`{0}` | 值中的竖线 | 创建 | `{name}`、`%{name}`、`${name}` |
+| `next-intl-json` | next-intl JSON（`.json`） | ICU 参数和标签 | ICU `plural`、`selectordinal` | 创建 | `{name}`、`%{name}`、`${name}` |
+| `ngx-translate-json` | ngx-translate JSON（`.json`） | `{{name}}` | 无 | 创建 | `{{name}}` |
+| `xliff` | XLIFF 1.2 和 2.0（`.xlf`、`.xliff`） | 内联元素、`{...}` | 无 | 拒绝 | `{{name}}`、`{name}`、`%{name}`、`${name}` |
+| `yaml` | YAML（`.yml`、`.yaml`） | `{{name}}` | 无 | 创建 | `{{name}}` |
+| `arb` | Flutter ARB（`.arb`） | ICU 参数和标签 | ICU `plural`、`selectordinal` | 创建 | `{name}`、`%{name}`、`${name}` |
+| `properties` | Java/Spring properties（`.properties`） | MessageFormat `{0}`、`{count}` | 无 | 创建 | `{name}`、`%{name}`、`${name}` |
+| `apple-strings` | Apple `.strings`，连同 `.stringsdict` | printf `%@`、`%d` | `.stringsdict` 类别 | 创建 | printf `%s` |
+| `apple-xcstrings` | Xcode String Catalogs（`.xcstrings`） | printf `%@`、`%lld` | `variations.plural` | 拒绝 | printf `%s` |
+| `android-xml` | Android `strings.xml` | printf `%s`、`%1$s` | `<plurals>` 数量 | 创建 | printf `%s` |
+| `gettext-po` | gettext（`.po`、`.pot`） | printf、`%(name)s` | `msgstr[n]` | 创建 | printf `%s`、`%(name)s` |
+| `ini` | INI（`.ini`） | `{name}`、`{0}` | 无 | 创建 | `{name}`、`%{name}`、`${name}` |
+| `resx` | .NET 资源（`.resx`） | 复合格式 `{0}`、`{1:C}`，具名格式 `{name}` | 无 | 创建 | `{{name}}`、`{name}`、`%{name}`、`${name}` |
+
+格式决定完整性检查（见[翻译安全](/zh-CN/docs/translation-safety)）比较哪些占位符。
+
+## 四种 JSON 格式
+
+四种格式都读取以字符串为叶子的嵌套 JSON 对象。
+
+### i18next-json
+
+使用 `{{double-brace}}` 插值；复数来自 CLDR 键后缀（`_zero`、`_one`、`_two`、`_few`、`_many`、`_other`）。`$t(common.foo)` 和 `$t(common.foo, { options })` 这类嵌套引用按占位符保护；只识别默认的 `$t(` 前缀，且只识别选项中不含嵌套括号的引用。
+
+### vue-i18n-json
+
+单花括号的 `{name}` 和 `{0}` 记号，名称可用任意文字（`{número}`）。
+
+### next-intl-json
+
+值是 ICU MessageFormat：参数名和富文本标签名就是占位符，ICU 主体原样保留，只是每个 `plural` 和 `selectordinal` 会采用[目标语言的 CLDR 分支](/zh-CN/docs/translation-safety#各目标语言的复数分支)。无法解析为 ICU 的值会报告为无效并跳过。
+
+### ngx-translate-json
+
+使用 `{{double-brace}}` 插值，没有嵌套引用、复数或 ICU。文件可以是扁平的（带点号的键）或嵌套的，写入时各自保持原有风格；新建的目标采用嵌套结构。
+
+### 单花括号捏造防护
+
+<AvailableFrom version="0.9.0" />
+
+在 `i18next-json`、`ngx-translate-json` 和 `yaml` 下，`{name}` 记号是译文可以改写的字面文本，但源中从未出现过的记号会被当作捏造而拒绝。只防护这一个方向：自定义了单花括号的 `interpolation.prefix` 和 `suffix` 时，丢失的占位符不会被发现。
+
+## 命名空间布局
+
+[`files.pattern`](/zh-CN/docs/config-file#语言环境与文件) 是字面路径，不是 glob：`public/locales/{locale}/*.json` 会查找名为 `*.json` 的文件，并以 `SOURCE_UNREADABLE` 失败。单个命名空间按原样配置即可：
+
+```ts title="verbatra.config.ts"
+files: {
+  pattern: "public/locales/{locale}/common.json",
+},
+```
+
+### 每个命名空间一份配置
+
+有多个命名空间时，各写一份配置，依次运行：
+
+```bash
+verbatra translate --config verbatra.common.config.ts
+verbatra translate --config verbatra.auth.config.ts
+```
+
+<Callout type="warn" title="只有最后运行的命名空间保留更改检测">
+同一目录下的所有配置共用 `verbatra.lock.json`，每次运行都会用自己的键替换该语言环境的基线，因此较早命名空间中被编辑的字符串会显示为已同步，不会重新翻译。要重新翻译，删除该键（或目标文件），让它算作缺失。
+</Callout>
+
+## XLIFF
+
+XLIFF 1.2（`file/body/trans-unit`）和 2.0（`file/unit/segment`），都是扁平的翻译单元列表。
+
+- **键**：先用单元的 `id`，其次是 `resname`，最后是单元移动时会变化的位置，因此要给每个单元设置 `id`。有多个句段的 2.0 单元，键为 `<id>#<n>`。重复的键以 `INVALID_STRUCTURE` 失败。
+- **源还是译文**：文档的语言环境与其 `source-language`（2.0 中为 `srcLang`；仅有语言时匹配其地区形式）一致，且文档未把该语言环境声明为目标时，文档是源；其余都是译文。例外：两种语言都未声明的文档，在不含 `<target>` 时是源。目标与源语言相同（`en` 对 `en-GB`）时，必须声明 `target-language`（`trgLang`）。
+- **缺失的值**：`<target>` 不存在、为空，或在 1.2 中标记为 `state="new"` 或 `"needs-translation"`，都算缺失；2.0 中，`state="initial"` 的句段里目标与源相同，同样算缺失。`<source>` 文本从不会被复制进来。
+- **原地写入**：每个值写入其 `<target>`，不存在时在 `<source>` 之后创建；1.2 的 `new` 或 `needs-translation` 状态，以及 2.0 的 `initial` 状态（连同其 `subState`）会变为 `translated`。`<source>`、属性和 `<note>` 保持不变。
+- **缺失的单元会被添加**，作为源单元的副本（不含其目标和 1.2 的 `<alt-trans>`），放入匹配的 `<file>`。值没有可放入的单元时，写入以 `INVALID_STRUCTURE` 失败并指出该键；源不可读时同样失败，但不指出键。`verbatra extract` 追加的源单元只含 `<source>`；在 2.0 中，键必须是有效的 NMTOKEN（`u1#0` 会被拒绝）。
+- **内联标记**：1.2 的 `g`、`x`、`bx`、`ex`、`bpt`、`ept`、`ph`、`it`、`mrk`，2.0 的 `ph`、`pc`、`sc`、`ec`、`mrk`、`sm`、`em`、`cp`，以及任何 `{...}` 片段，在两个版本中都按占位符保护。写入时只有这些（再加上 1.2 中 `bpt`、`ept`、`ph`、`it` 内的 `<sub>`）保持为内联标记；其他内容，如 `<b>`，会变成文本。
+- **转义**：文本按文本读取（`A &amp; B` 即 `A & B`），写入时只转义一次；文本若恰好匹配某个允许的元素，如 `&lt;x id="1"/&gt;`，会写成该元素，而 `<!DOCTYPE` 和 `<!ENTITY` 写成文本。
+- **备注**（2.0 中单元的 `<notes>`）是只读的上下文（见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)）。
+- **被拒绝的输入**：含 DTD 或实体声明的文档以 `INVALID_XML` 失败。
+
+## YAML
+
+和 JSON 格式一样是嵌套树，使用 i18next 的 `{{double-brace}}` 插值和[捏造防护](#单花括号捏造防护)，按扩展名检测。注释不保留。非字符串的标量键会变成字符串（`1:` 读作 `"1"`），用映射或序列作键会以 `INVALID_STRUCTURE` 失败，语法错误以 `INVALID_YAML` 失败，别名展开有上限。
+
+## ARB
+
+Flutter 的 `.arb`：由消息组成的扁平对象，带 `@key` 元数据和 `@@` 全局项。
+
+- **消息是 ICU**，处理方式与 `next-intl-json` 完全相同。
+- **元数据**从不翻译，并原地合并回去；已有目标文件损坏时，写入失败。`@key.description` 是只读的上下文。
+- **写入只包含本次的消息**：被省略的消息（被清理，或在审校中被拒绝）连同其 `@key` 块一起删除；`@@` 全局项保留。
+- **`@@locale` 排在最前**：新建的目标以 `gen-l10n` 的写法（`pt_BR`）开头；已有目标中的 `@@locale` 保留原值并移到顶部；目标中没有 `@@locale` 时，也不会补上。与文件名不一致的值要手动修正，否则 `flutter gen-l10n` 会失败。
+
+## Properties
+
+Java 和 Spring 的 `.properties`：扁平的键值行，键原样保留。
+
+- **语法**遵循 `java.util.Properties`（分隔符、注释、续行、转义）。文件按 UTF-8 读取，非 ASCII 字符写成 `\uXXXX`。
+- **写入保留**键的顺序、注释和空行，把每个已有条目重新生成为 `key=value`（分隔符、间距和续行不保留），并按源顺序追加新键。重复的键保留第一次出现的位置和最后一个值。
+- **行尾跟随文件**：出现任何 CRLF 就全部用 CRLF，仅有 CR 的保持 CR，否则用 LF。
+- **占位符是 `java.text.MessageFormat`**：`{0}`、`{0,number}`、`{count}`（名称可用任意文字），以及 `plural`、`select`、`selectordinal` 和 `choice` 参数。不解释单引号转义，因此 `'{0}'` 仍算占位符。
+
+## Apple .strings
+
+<AvailableFrom version="0.10.0" />
+
+`"key" = "value";` 语句，复数放在同级的 `.stringsdict` 中（同目录、同基本名），两者一起读写。
+
+- **仅支持 UTF-8**：UTF-16 文件以 `INVALID_STRUCTURE` 失败；重新另存为 UTF-8。
+- **注释**：条目前的 `/* ... */` 注释是只读的上下文；`//` 注释保留。`\"`、`\\`、`\n`、`\t` 和 `\U` 转义会被解码，其他转义以 `INVALID_STRUCTURE` 失败；写入时只转义引号、反斜杠、换行和制表符。
+- **写入保留**顺序、注释和空行；删除的键连同它自己的注释一起删除。缺失的目标会被创建，包括 `.lproj` 目录和 `.stringsdict`。
+- **占位符是 printf**：`%@`、`%d`、`%1$@`、`%%`，标志、宽度和长度只是修饰；接受位置重排。单独的 `%`（`"50% off"`）不算占位符。
+- **复数**：每个 `.stringsdict` 类别变成 `<key>_<category>`（`photo_count_one`），往返时只保留该语言环境实际使用的类别。错误会指出文件和键。已有键的格式键、变量名和值类型在重写后保留；新键得到 `%#@<key>@`，以键作变量名，类型为 `d`。
+- **布局**：`{locale}.lproj/Localizable.strings` 不需要特殊的语言环境风格。
+
+## Xcode String Catalogs (.xcstrings)
+
+<AvailableFrom version="0.10.0" />
+
+一个包含所有语言环境的 JSON 消息目录文件，是 Xcode 15 用来取代 `.strings` 的格式。
+
+- **所有语言环境共用一个文件**：`files.pattern` 仍需要 `{locale}`，但 `{locale}` 会展开为空字符串，因此每个语言环境都解析到同一个文件（`{locale}Localizable.xcstrings` 就是 `Localizable.xcstrings`）。所有写入器都串行写它，因此即使用了 `--concurrency`，语言环境也是一次运行一个。
+- **键**：没有 `sourceLanguage` 本地化的键，用键文本作源；缺失的目标本地化算未翻译。
+- **复数**：`variations.plural` 下的复数变成 `<key>_<category>`，只包含已有的类别。
+- **占位符是 printf**，与 `.strings` 相同；`%lld` 等同于 `%d`。
+- **`shouldTranslate: false`** 的键从不发送，也不更改。
+- **写入会修补文档**：有新值的本地化会整体重写为 `state: "translated"`，其中的其他字段（设备变体、替换项）会丢失；其余部分在语义上保持不变，但文件会重新序列化为 2 空格缩进的 JSON。该消息目录文件必须已经存在，先在 Xcode 中创建它。
+- **错误**会指出文件、键和语言环境。
+
+## Android strings.xml
+
+<AvailableFrom version="0.10.0" />
+
+源用 `res/values/strings.xml`，每个目标用 `res/values-<qualifier>/strings.xml`；设置 `files.localeStyle: "android"`（[配置](/zh-CN/docs/config-file#语言环境与文件)）。
+
+- **条目**：一个 `<string name>` 是一个条目；`<plurals>` 的每个 `<item>` 变成 `key[quantity]`，只包含已有的数量。
+- **跳过**：`translatable="false"` 的资源、`<string-array>`，以及带内联元素（`<b>`、`<xliff:g>`、CDATA）的 `<string>`，保持原样；`formatted="false"` 正常翻译。
+- **转义**：`\'`、`\"`、`\n`、`\t` 以及开头的 `\@` 或 `\?` 会被解码，写入时重新转义。
+- **占位符是 printf**：`%s`、`%d`、`%1$s`、`%%`；单独的 `%` 不算占位符。
+- **写入**修补文件，删除已移除的键，缺失的文件连同目录一起创建。
+- **限制**：已翻译的键，若之后在源中变为不翻译的条目（见上文“跳过”），会从目标中删除。`--prune` 不了解复数数量，因此可能删除只存在于目标的数量。
+- **错误**会指出根元素不是 `<resources>`、名称或数量无效、键重复；含 DTD 或实体的文件会被拒绝。
+
+## gettext .po/.pot
+
+<AvailableFrom version="0.10.0" />
+
+`msgid`/`msgstr` 条目。
+
+- **`msgctxt`** 与其 `msgid` 用 U+E000 合并成一个键；源中含该字符会被拒绝。
+- **复数**按索引 `key[n]` 作键，不按 CLDR 类别。`Plural-Forms` 原样保留，只用其中的 `nplurals` 限定索引范围；没有它的复数条目会被拒绝，与 `msgfmt --check` 一致。
+- **标记和注释**：`#, fuzzy` 的值按当前值读取，标记保留。`#.` 注释是只读的上下文；`#:` 和其他标记保留，`#~` 块不参与处理，文件头从不改动。`msgstr` 为空的 `.pot` 可以正常读取，但在源语言环境的消息目录中，每个 `msgstr` 都是待翻译的文本，因此空的会以 [`SOURCE_VALUE_EMPTY`](/zh-CN/docs/error-codes#source_value_empty) 跳过。
+- **缺失的目标**会以最小的文件头创建；有复数时，`Plural-Forms` 的大小按最大索引确定（如需准确的复数规则，从真实模板初始化该文件）。
+- **占位符是 printf**，包括 `%(name)s`；不识别长度修饰符（`%ld`）。
+- **错误**会指出 `msgid` 和行号。`--prune` 不了解复数索引，因此可能删除只存在于目标的形式。
+
+## INI
+
+<AvailableFrom version="0.11.0" />
+
+`key=value` 行，外加一层 `[section]` 小节标题。
+
+- **键**：`[home]` 下的键是 `home.title`；第一个小节之前的键保持原名，字面的点号会被转义。
+- **写入**只更改值，保留拼写、间距、注释和空行。新键放到所在小节的末尾，新小节放到文件末尾。
+- **值**：双引号括起的值会去掉引号，并解码 `\\`、`\"`、`\n`、`\r`、`\t`；需要引号的值写入时加引号。行内的 `;` 属于值的一部分。
+- **占位符**是 `{name}` 和 `{0}`，名称可用任意文字；没有复数。
+- **错误**：格式错误的小节标题会抛出 `AdapterError`；没有 `=` 的行原样保留。
+
+## .NET .resx
+
+<AvailableFrom version="0.11.0" />
+
+`<root>` 下的 `<data name><value>` 元素，只按 `.resx` 扩展名识别。
+
+- **写入只修补值**：其余内容原样写回；字节顺序标记会被去掉，新的 `<data>` 元素，或值两端带空白的元素，会加上 `xml:space="preserve"`。
+- **不翻译**：带 `type` 或 `mimetype` 的 `<data>`，以及名称以 `>>` 或 `$` 开头的，保持原样。`<comment>` 是只读的上下文。
+- **占位符**是整体取用的复合格式项和具名占位项（`{0}`、`{1,-10}`、`{2:C}`、`{when:d}`），因此改名的占位项会被拒绝；`{{`、`}}` 和多余的花括号同样受保护。没有 ICU 检查，没有复数。
+- **缺失的目标**会以标准文件头创建。
+- **被拒绝的键**：目标中把某个值保存为带类型、设计器或内联标记的条目，或某个键无法读回，写入会以 `AdapterError` 失败并指出该键。
+- **错误**：无效的 XML、根元素不是 `<root>`，以及 DTD 或实体，都会被拒绝。
+
+## 文档键顺序
+
+JSON 格式、YAML 和 ARB 保持文档顺序：`"404"` 这类整数形式的键不会被提到前面，新键按源顺序追加，ARB 元数据保持其位置。XLIFF 的顺序从不改变。
+
+## 带点号的键与冲突
+
+`ngx-translate-json` 把带点号的键读成嵌套路径；其他所有树形格式（JSON 格式、YAML、ARB）把 `"foo.bar"` 这样的字面带点叶子按原样保留。同一路径两种写法并存（`"foo.bar"` 与 `"foo": { "bar": ... }` 并排）会以 `INVALID_STRUCTURE` 失败（`ngx-translate-json` 在任何扁平带点键与嵌套对象并存时，以及嵌套对象内出现带点键时，以 `MIXED_STRUCTURE` 失败）。
+
+## 文件如何读写
+
+- **限制**：输入大小和嵌套深度有上限（`INPUT_TOO_LARGE`、`MAX_DEPTH_EXCEEDED`）。
+- **原子写入**：临时文件被重命名到位，不会留下写了一半的文件。
+- **布局**：XML 格式保留行结束符和末尾换行，并像相邻元素一样缩进新元素。新的 gettext 条目前有一个空行；新建的 `.po` 在 `Language` 中写明其语言环境（`pt_BR`）。
+- **非字符串叶子**：在 JSON 格式、YAML 和 ARB 中，数字、布尔值或 null 叶子可以接受但从不翻译，重写时会丢弃；数组以 `INVALID_STRUCTURE` 失败。
+- **错误**是结构化的，且不含密钥；详见[适配器错误码](/zh-CN/docs/error-codes#adapter-error-codes)。
+
+## verbatra 之外的格式
+
+<AvailableFrom version="0.11.0" />
+
+其他格式可以来自你自己的适配器，使用 `custom:` id，例如 `custom:toml`，通过 SDK 作为受信任的代码运行：详见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)。
+
+## 值中的内联标记
+
+<AvailableFrom version="0.11.0" />
+
+[内联标记一致性检查](/zh-CN/docs/translation-safety#内联标记一致性)适用于每种格式，按标签逐个检查：
+
+- `xliff` 把自己的内联元素当作占位符保护；其他 HTML，如 `<b>`，按内联标记比较。
+- `next-intl-json` 和 `arb` 把成对的 `<b>...</b>` 当作占位符，把自闭合的 `<br/>` 按内联标记比较；带属性的标签是无效的 ICU，会被拒绝。
+- `android-xml` 比较解码后的值，因此 `&lt;b&gt;` 就是 `<b>`。
+- 其他所有格式没有内联标记的概念，因此只有这项检查能看到它。

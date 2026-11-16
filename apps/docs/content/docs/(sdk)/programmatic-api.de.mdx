@@ -87,10 +87,10 @@ if (summary.hasPendingChanges) {
 }
 ```
 
-## Deine Integration ohne Schlüssel testen
+## Deine Integration ohne API-Key testen
 
 Ein als `createProvider` übergebener Fake-Provider durchläuft den ganzen Flow, Dateien und
-Integritätsprüfung eingeschlossen, ohne Schlüssel, ohne Netzwerkaufruf und mit deterministischer
+Integritätsprüfung eingeschlossen, ohne API-Key, ohne Netzwerkaufruf und mit deterministischer
 Ausgabe: genau das, was ein Unit-Test deiner eigenen Tools braucht.
 
 ```ts title="fake-provider.ts"
@@ -178,7 +178,7 @@ if (summary.cancelled === true) {
 }
 ```
 
-Eine Locale, deren Start der Abbruch verhindert hat, trägt den [Fehlercode `RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), eine, die er mitten im Lauf gestoppt hat, die [Notice `RUN_CANCELLED`](/de/docs/error-codes#notice-run_cancelled). Ein Abbruch, der erst ankommt, wenn jede Locale fertig ist, lässt `cancelled` weg, und ein Fehler des ganzen Laufs beim Start schlägt weiterhin fehl.
+Eine Locale, deren Start der Abbruch verhindert hat, trägt den [Fehlercode `RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), eine, die er mitten im Lauf gestoppt hat, die [Hinweis `RUN_CANCELLED`](/de/docs/error-codes#notice-run_cancelled). Ein Abbruch, der erst ankommt, wenn jede Locale fertig ist, lässt `cancelled` weg, und ein Fehler des ganzen Laufs beim Start schlägt weiterhin fehl.
 
 ## Keys aus deinem Quellcode extrahieren
 
@@ -335,7 +335,7 @@ Was jede davon wirft, listet [`retranslateEntry`](/de/docs/sdk/review#retranslat
 <AvailableFrom version="0.12.0" />
 
 `retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, mit `KEY_PROTECTED` ab, auch
-den, den `editEntry` gerade gespeichert hat, außer du übergibst `includeHuman: true` oder die Config
+den, den `editEntry` gerade gespeichert hat, außer du übergibst `includeHuman: true` oder die Konfiguration
 setzt `humanEdits: "overwrite"`. Deshalb übergibt das Rezept es. Einen gepinnten Key lehnt es immer
 ab; siehe
 [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).

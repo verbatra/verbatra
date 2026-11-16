@@ -1,0 +1,80 @@
+---
+title: "CLI 参考"
+seoTitle: "verbatra CLI 参考：命令与全局选项"
+sidebarTitle: "概览"
+description: "verbatra 的每个子命令及其共用的全局选项，以及 CLI 如何读取环境、加载 .env 文件。"
+type: reference
+---
+`@verbatra/cli` 提供 `verbatra` 二进制文件，它是 [`@verbatra/sdk`](/zh-CN/docs/sdk) 之上的一层薄封装。
+
+## 命令
+
+下列命令负责实际工作：
+
+<Cards>
+  <Card title="init" href="/zh-CN/docs/cli/init">为当前项目创建 verbatra 配置和 `.env.example`。</Card>
+  <Card title="extract" href="/zh-CN/docs/cli/extract">扫描应用源代码中的翻译调用点，并把新键添加到源语言文件。</Card>
+  <Card title="translate" href="/zh-CN/docs/cli/translate">把每个目标语言环境翻译一次，然后退出。</Card>
+  <Card title="watch" href="/zh-CN/docs/cli/watch">每次源文件更改时重新翻译，直到被中断。</Card>
+  <Card title="check" href="/zh-CN/docs/cli/check">按语言环境报告哪些键缺失或过期，只读。</Card>
+  <Card title="diff" href="/zh-CN/docs/cli/diff">按语言环境列出将被添加、重新翻译或已孤立的确切键，只读。</Card>
+  <Card title="report" href="/zh-CN/docs/cli/report">输出只读报告：`report provenance` 列出哪些译文由机器编写，哪些经人工审校。</Card>
+  <Card title="doctor" href="/zh-CN/docs/cli/doctor">校验项目配置并一次报告所有问题，不调用提供商。</Card>
+  <Card title="pseudo" href="/zh-CN/docs/cli/pseudo">根据源字符串生成伪语言环境，不调用提供商。</Card>
+  <Card title="types" href="/zh-CN/docs/cli/types">为你的消息目录中的键及其消息参数生成 TypeScript 声明，不调用提供商。</Card>
+  <Card title="export" href="/zh-CN/docs/cli/export">导出未翻译的字符串交给人工译者，形式为 Excel 工作簿、每个语言环境一个 CSV 或 TSV 文件，或每个语言环境一个供 CAT 工具使用的 XLIFF 文件。</Card>
+  <Card title="import" href="/zh-CN/docs/cli/import">把填好的工作簿或分隔符文件导回语言文件。</Card>
+  <Card title="tmx" href="/zh-CN/docs/cli/tmx">把另一个工具中的 TMX 翻译记忆库导入本项目的翻译记忆库，或把本项目的翻译记忆库导出为 TMX 文件。</Card>
+  <Card title="studio" href="/zh-CN/docs/cli/studio">启动 Verbatra Studio，本地的翻译仪表盘。</Card>
+  <Card title="mcp" href="/zh-CN/docs/cli/mcp">启动 stdio MCP 服务器，把 verbatra 的工具提供给 MCP 客户端。</Card>
+</Cards>
+
+## 安装与调用
+
+把 `@verbatra/cli` 作为开发依赖安装：
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+然后通过包管理器运行该二进制文件：
+
+```verbatra-run
+<command>
+```
+
+需要 Node.js `^22.22.0 || >=24`（CLI 0.12.x 接受 `^22.18.0 || >=24`）。
+
+想在安装之前试用某个命令？`npx @verbatra/cli <command>`（npm）或 `pnpm dlx @verbatra/cli <command>`（pnpm）都不需要事先在本地安装。始终使用带作用域的名称：npm 上不带作用域的名称 `verbatra` 不属于本项目。
+
+## 全局选项
+
+这些选项在每个接受它们的命令上含义相同，因此各命令页面只列出它们自己的选项。最后一列列出不接受该选项的命令。
+
+| 选项 | 参数 | 默认值 | 作用 | 不适用于 |
+| --- | --- | --- | --- | --- |
+| `--cwd` | `<path>` | 当前目录 | 从这里开始查找配置，并以它为基准解析你传入的路径；语言文件相对于查找到的配置文件所在目录解析；`init` 把文件写到这里 | 无 |
+| `--config` | `<path>` | 自动查找 | 加载这个配置文件，不再查找；见[查找顺序](/zh-CN/docs/config-file#查找顺序) | `init` |
+| `--json` | 无 | 关闭 | 在 stdout 上输出机器可读的[信封](/zh-CN/docs/cli/output#json-输出)（envelope），每条记录一行；错误仍输出到 stderr | `mcp`、`studio` |
+| `-q`、`--quiet` | 无 | 关闭 | 只输出结果、警告和错误：不输出进度、提示或说明性的行；放在命令名之前或之后都有效 | 无 |
+| `--no-color` | 无 | 在终端中着色 | 输出从不着色；见[终端输出](/zh-CN/docs/cli/output#终端输出) | 无 |
+| `-h`、`--help` | 无 | 关闭 | 输出程序或命令的帮助，并以退出码 `0` 退出 | 无 |
+| `-V`、`--version` | 无 | 关闭 | 输出 CLI 版本，并以退出码 `0` 退出 | 无 |
+
+未知的命令或选项以退出码 `2` 退出，不带任何命令的裸 `verbatra` 也是如此：它把帮助输出到 stderr，找不到配置时还会建议运行 `verbatra init`。`mcp` 从不写入 stdout，因为 stdout 是它的协议通道，所以它以 `USAGE_ERROR` 拒绝 `--json`。从 0.12.0 起，指向不存在目录的 `--cwd` 在每个命令上都以退出码 `2` 和 [`INVALID_OPTION`](/zh-CN/docs/error-codes#invalid_option) 退出，且发生在读取或写入任何内容之前。
+
+## 环境文件
+
+`translate`、`watch`、`doctor`、`studio` 和 `mcp` 在运行前，会从工作目录加载 `.env.local`，然后加载 `.env`。当查找到的配置位于上级目录时，它们接着也从该目录加载同样两个文件；使用 `--config` 时只读取工作目录。MCP 客户端更改它的根目录时，MCP 服务器也会从新的项目根目录加载这两个文件。`doctor --literals` 是例外：它不读取 API 密钥，因此两个文件都不加载。优先级为：你真实环境中已设置的变量始终优先，其次是工作目录中的文件，再次是配置所在目录中的文件；`.env.local` 中的值优先于 `.env` 中的同名变量。API 密钥只从环境读取，绝不从配置文件或选项读取：见[提供商](/zh-CN/docs/providers)。只读命令（`check`、`diff`、`report`）、交接命令（`export`、`import`）、`extract`、`init`、`pseudo`、`types` 和 `tmx` 从不调用提供商，也不加载 `.env` 文件。
+
+## .gitignore 条目
+
+`translate`、`watch`、`import`、`tmx import` 或 `pseudo` 的真实运行，还会把项目根目录中现有 `.gitignore` 缺少的 `.env`、`.env.local`、`.verbatra-local/` 和 `verbatra.cache.json` 追加进去，并在 stderr 上指出它们（`--json` 和 `--quiet` 会去掉那一行）。这发生在配置一加载完成时，因此随后失败的运行已经做过这件事了。试运行不会动该文件，这些命令也都不会创建它；[`verbatra init`](/zh-CN/docs/cli/init) 会创建。若 `.gitignore` 是指向项目之外的符号链接，则保持不变，并给出警告，`--json` 和 `--quiet` 会保留该警告。
+
+## 终端输出
+
+颜色、加载动画（spinner）、`--quiet` 以及控制它们的变量，见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+退出码约定及其边界情况见[退出码与 JSON 输出](/zh-CN/docs/cli/output#退出码)。每个命令页面只列出该命令返回的退出码。

@@ -7,6 +7,7 @@ import { withInlineCode } from "@/lib/inline-code-text";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
@@ -42,7 +43,7 @@ export function DocsHomeHeader({
     <header className={cn("pt-8 md:pt-12", HOME_FRAME)}>
       <div className="not-prose">
         <p className="vk-label m-0">{eyebrow}</p>
-        <h1 className="vk-docs-home-title mt-2 max-w-[28ch]">{headline}</h1>
+        <h1 className="vk-docs-home-title mt-2 max-w-[28ch]">{breakBetweenWords(headline)}</h1>
         <p className="vk-docs-home-lead">{withInlineCode(lead)}</p>
       </div>
       {children}
@@ -183,7 +184,7 @@ export function DocsHomeSection({
     <section>
       <div className="not-prose">
         <h2 id={id} className="vk-h4">
-          {title}
+          {breakBetweenWords(title)}
         </h2>
         {lead ? (
           <p className="mt-2 max-w-[62ch] text-sm leading-7 text-pretty text-(--text-muted)">

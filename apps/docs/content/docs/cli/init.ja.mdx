@@ -1,0 +1,223 @@
+---
+title: verbatra init
+seoTitle: "verbatra init：プロジェクトの設定を作成する"
+description: ロケールファイルから検出して、このプロジェクト用の verbatra 設定ファイルと .env の例を作成します。対話式でも、完全な無人実行でも使えます。
+type: reference
+---
+プロジェクトの設定を作成します。`init` は、`verbatra.config.ts`、プロバイダーの API キー変数の名前を記した `.env.example`（API キーの値は書きません）、`.env`、`.env.local`、`.verbatra-local/`、`verbatra.cache.json` の `.gitignore` エントリを書き込みます。`i18next-json` の場合、設定ファイルにはコメントアウトされた `extract` ブロックも付き、コメントを外して使えます。`init` は最初にプロジェクトにすでにあるロケールファイルを読むので、通常はプロバイダーを伝えるだけで済みます。
+
+## 書式
+
+```bash
+verbatra init [flags]
+```
+
+## 例
+
+```bash
+# prompt for anything not passed or detected
+verbatra init --provider gemini
+
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--provider` | `<id>` | なし（質問されない場合は必須） | 作成する対象のプロバイダー：`anthropic`、`openai`、`gemini`、`deepl`、`google-translate`、`opencode`、`openai-compatible`、`libretranslate`、`none` のいずれか |
+| `--format` | `<id>` | 検出された値、なければ `i18next-json` | ロケールファイルのフォーマット。[フォーマット](/ja/docs/formats)にある ID のいずれか |
+| `--source` | `<locale>` | 検出された値、なければ `en` | 文字列が書かれているソースロケール |
+| `--targets` | `<locales>` | 検出された値、なければ `de` | 翻訳先のターゲットロケールを、カンマ区切りで指定 |
+| `--path` | `<pattern>` | 検出された値、なければフォーマットの通常のレイアウト（[検出](#検出)） | ロケールファイルのパターン（`{locale}` プレースホルダーが必須） |
+| `--model` | `<name>` | 作成時のデフォルト | モデル。`openai-compatible` では必須で、`anthropic`、`openai`、`gemini`、`opencode` では省略可能 |
+| `--base-url` | `<url>` | なし | サーバーの URL。`openai-compatible` と `libretranslate` のみで、どちらでも必須 |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | `openai-compatible` が API キーを読み込む変数 |
+| `--yes` | なし | オフ | 質問しない（渡されても検出されてもいない項目にはデフォルトを使用） |
+| `--force` | なし | オフ | 内容が異なる既存の `verbatra.config.ts` を上書きする |
+| `--agent` | なし | オフ | コーディングエージェント用のセクションを `AGENTS.md` または `CLAUDE.md` に、verbatra MCP サーバーを検出された各クライアントのプロジェクト設定にも書き込む（[コーディングエージェントを設定する](#コーディングエージェントを設定する)） |
+| `--client` | `<ids>` | 検出された値 | `--agent` が、検出されたクライアントの代わりに設定するクライアントをカンマ区切りで指定：`claude`、`cursor`、`vscode`、`codex`、`gemini`、`all`。`--agent` が必要 |
+| `--dry-run` | なし | オフ | `init` が書き込むまたは変更するすべてのファイルを報告し、何も書き込まない（[ドライラン](#ドライラン)） |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)のうち `--cwd` と `--json` は使えますが、`--config` は使えません。ここでの `--cwd` は、スキャンして書き込むディレクトリで、すでに存在している必要があります。`--json` では質問されません。
+
+## 動作
+
+### 対話式の質問
+
+<AvailableFrom version="0.12.0" />
+
+オプションが常に優先されます。省略したものは、まずプロジェクトから検出されます。そのうえで、stdin がターミナルで `--yes` も `--json` も指定されていなければ質問され、それ以外の場合は `--yes` を指定したときに限り、デフォルトが使われます。Enter を押すと、提案された値が採用されます。`--targets ''` のように空の値を渡したオプションは使い方の誤り（`INVALID_OPTION`）で、デフォルトを求めるものとして扱われることはありません。質問の途中で stdin が終了すると（Ctrl-D）、`init` は終了コード `2` と `MISSING_OPTIONS` で終了します。
+
+各回答は入力のたびにチェックされます。無効な回答は stderr に理由が示され、再度質問されます。最大 3 回で、それまでの回答は保たれます。3 回目も無効な場合、`init` はその回答のエラーコード（`INVALID_LOCALE` など）で停止し、代わりに渡すべきオプションを示して、何も書き込みません。
+
+### 検出
+
+`init` は、フォーマットアダプターが引き受けるファイルをディレクトリからスキャンします。隠しディレクトリ、`node_modules`、ビルド出力は飛ばします。そして各パスのうち、`de.json`、`messages_pt_BR.properties`、`de.lproj/`、Android の `values-de/` のようにロケールを表す部分を見つけます。最も多くのロケールをカバーするファイルパターンが採用され、次の項目が埋まります。
+
+- `format`：一致したすべてのファイルを読めるアダプターを持つ、唯一のフォーマット（JSON のアダプターはどれも `.json` を読むため、JSON ファイルでは `package.json` で一致する依存パッケージ（`i18next`、`vue-i18n`、`next-intl`、`@ngx-translate/core`）が 1 つだけの場合にそれで決まる）
+- `files.pattern` と `files.localeStyle`：ファイルが `pt_BR` と綴られていれば `posix`、`values-*` ディレクトリなら `android`、それ以外は `literal`
+- `sourceLocale`：`.xcstrings` カタログのソース言語。なければ `en`、または見つかった唯一の `en-*` ロケール。それもなければ、見つかった唯一のロケール
+- `targetLocales`：見つかった、ソース以外のすべてのロケール
+
+ロケールファイルの隣に、ロケール名のない文字列を保持するファイルがある場合（`messages.properties`、`Strings.resx`、gettext の `app.pot` など）、`unqualifiedSourceFile` として報告されます。verbatra はそのようなファイルからソースを読み取れないため、`init` はソースロケールを推測しません。`--yes` を付けていても `--source` を渡します。次の手順には、ベースファイルをリネームまたはコピーする先のファイル名が示されます。
+
+ロケールファイルがまったくない場合は、依存パッケージだけでフォーマットが決まります。パターンは、フォーマットごとの通常のレイアウトに従います。これは[技術スタックを選ぶ](/ja/docs/pick-your-stack)にフォーマットごとに載っているものです。
+
+`apple-xcstrings` カタログは、すべてのロケールで共有される 1 つのファイルで、verbatra が作成することはありません。先に Xcode で作成してください。`--format`、`--path`、`--source` は、検出に上書きされるのではなく、検出の範囲を絞ります。そのため `--format yaml` は YAML ファイルだけを対象にします。
+
+`init` は、同程度の候補から推測で選ぶことはありません。ファイルを読めるフォーマットが複数ある場合（i18n の依存パッケージがないプレーンな JSON）は、終了コード `2` と `FORMAT_AMBIGUOUS` で終了します。同点のファイルパターンが複数ある場合（名前空間ごとに 1 ファイル）は、終了コード `2` と `LAYOUT_AMBIGUOUS` で終了します。どちらも候補を一覧表示するので、`--format` または `--path` を渡して選びます。ターミナルでは、代わりに質問されます。
+
+### 無人実行
+
+ターミナルがない場合や `--json` を付けた場合、`init` は質問しません。渡されておらず、検出もされず、`--yes` のデフォルトもない値はエラーになります。`init` は終了コード `2` と `MISSING_OPTIONS` で終了し、指定されていないすべてのオプションを示します。あいまいさや無効なオプションがある場合も、まだ指定されていないオプションが一覧表示されるので、1 回の実行で、エージェントが渡すべきものがすべてわかります。`--provider` にはデフォルトがなく、`openai-compatible` の `--base-url` と `--model`、`libretranslate` の `--base-url` にもありません。エージェントが実行するコマンドは次のとおりです。
+
+```bash
+npx @verbatra/cli init --provider gemini --yes --json
+```
+
+### JSON 出力
+
+スキーマ：[`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) がエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、stdout にはちょうど 1 つの [JSON 出力](/ja/docs/cli/output#json-出力)のエンベロープ（envelope）が出力されます。その `result` の形は次のとおりです。
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  dryRun: boolean;                     // true under --dry-run: files holds the planned actions
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options?: Record<string, unknown> };
+    sensitiveData?: { mode: "warn" };
+  } | null;
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  } | null;
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  } | null;
+  agent: {                             // null without --agent
+    instructionsFile: "AGENTS.md" | "CLAUDE.md";
+    mcpServer: "added" | "present" | "differs" | "skipped" | null; // Claude Code; null when not wired
+    configKept: boolean;               // true when --agent kept an existing config
+    clients: {
+      id: "claude" | "cursor" | "vscode" | "codex" | "gemini";
+      file: string;                    // the client's config file, such as .mcp.json
+      server: "added" | "present" | "differs" | "skipped";
+      reason: "plugin" | "symlink" | null; // why the client was skipped
+      selectedBy: "flag" | "markers" | "default";
+      markers: string[];               // the client's marker files found in the project
+    }[];
+  } | null;
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+`confidence` は、ファイルだけですべてが決まった場合は `high`、規約や依存パッケージが空白を埋めた場合（`en` をソースとするなど）、または空白が残った場合は `medium`、ロケールファイルの裏付けがないフォーマットの場合は `low`、何も検出されなかった場合は `none` です。`sources` の `default` は、再確認すべき値です。`nextSteps` の末尾には、次に実行するコマンドそのものが入ります。
+
+`FORMAT_AMBIGUOUS`、`LAYOUT_AMBIGUOUS`、`INVALID_PROVIDER`、`INVALID_FORMAT` のエラーエンベロープには、選択肢となる値の `candidates` も含まれます。答えのないオプションが残るすべての使い方の誤りには、それらを示す `missing` が含まれます。たとえば `"--source <locale>"` です。
+
+### プロバイダー
+
+<AvailableFrom version="0.12.0" />
+
+- `--provider none` は、`options` のない人手のみのモード（[機械翻訳なしで実行する](/ja/docs/human-only-workflow)を参照）の設定ファイルを作成し、`.env.example` は書き込みません。API キーが読み込まれることがないためです。
+- `--provider openai-compatible` は、`--base-url` と `--model` からローカルまたはセルフホストのサーバー用の設定ファイルを作成し、`maxOutputTokens: 4096` を設定します。API キーは省略可能です。API キーが不要なサーバーでは、`OPENAI_COMPATIBLE_API_KEY` を未設定のままにします。`--api-key-env-var` は別の変数を指定するもので、`LLM_API_KEY` のように大文字で書きます。拒否された値は、API キー自体だった場合に備えて、そのまま表示されることはありません。
+- `--provider libretranslate` は、セルフホストの [LibreTranslate](/ja/docs/providers#libretranslate) サーバー用の設定ファイルを、`--base-url` だけから作成します。たとえば `http://localhost:5000` です。`--model` と `--api-key-env-var` は拒否します。`.env.example` には、`--api-keys` で起動したサーバー向けに `LIBRETRANSLATE_API_KEY` が書かれます。
+
+`init` は、変数の名前を設定ファイルと `.env.example` に書き込みますが、値は書きません。また、認証情報、クエリ文字列、フラグメントを含むベース URL（`https://user:key@host`、`https://host/v1?api-key=...`）は拒否します。API キーがコミットされる設定ファイルに入り込みかねないためです。
+
+### 既存のファイル
+
+同じ回答で `init` をもう一度実行しても、何も変わらず、成功します。内容が異なる `verbatra.config.ts` は、`--force` を渡さない限り `CONFIG_EXISTS` で拒否され、この拒否は質問やほかのエラーより先に起きます。ディレクトリにある別の verbatra 設定ファイル（`.verbatrarc.json`、または `package.json` の `verbatra` プロパティ）は、先に読み込まれてしまうため、`--force` を付けても拒否されます。`init` が拒否した場合、何も書き込まれません。親ディレクトリの設定ファイルがこのディレクトリを対象にしている場合は、stderr に警告が出ます（ドライランでも同様）。ここでは新しい `verbatra.config.ts` がそれを置き換えます。
+
+`init` が書き込めないディレクトリは、ファイルと、すでに書き込まれたファイルを示して `INIT_UNWRITABLE` で拒否されます。プロジェクトの外、または存在しない場所を指すシンボリックリンクになっている `verbatra.config.ts`、`.env.example`、`.gitignore` は、何も書き込まれる前に `INIT_UNWRITABLE` で拒否されます。既存の `.env.example` は残されます。そこに API キー変数の名前がまだない場合は、その 1 行だけが追加され、`--force` の下では、`init` 自身が書いたヘッダー行が新しいプロバイダー用に書き直されます。`.gitignore` には、足りないエントリだけが追加されます。
+
+### ドライラン
+
+<AvailableFrom version="0.12.0" />
+
+`--dry-run` は、実際の実行のすべてのチェックと拒否を実行します。ただし、読み取り専用ディレクトリなどによる書き込みの失敗は除きます。各ファイルについて `would create`、`would update`、`would overwrite`、`unchanged` を出力し、何も書き込みません。
+
+### コーディングエージェントを設定する
+
+<AvailableFrom version="0.12.0" />
+
+`--agent` は、プロジェクトをコーディングエージェント向けにも準備します。API キーの値は書き込まず、プロジェクトの外へのリンクを通して書き込むことは決してありません。次のものが追加されます。
+
+- **指示ファイル**：`<!-- verbatra:start -->` と `<!-- verbatra:end -->` のマーカーの間にある verbatra のセクションで、[エージェントに verbatra を教える](/ja/docs/agent-recipes#エージェントに-verbatra-を教える)のスニペットと一言一句同じです。書き込み先は `AGENTS.md` で、指示ファイルが `CLAUDE.md` だけの場合は `CLAUDE.md` です。両方ある場合は `AGENTS.md` が優先されます。すでにこのセクションがあるファイルでは、マーカーの間のテキストが現在の内容に置き換えられて `updated` と報告され、すでに一致していれば `unchanged` と報告されます。
+- **各クライアントの MCP 設定**：[MCP クライアントを接続する](/ja/docs/connect-an-mcp-client)の `verbatra` サーバーのエントリで、`--allow-spend` も `VERBATRA_MCP_ALLOW_SPEND` もない `npx -y @verbatra/mcp` です。そのため課金ツールは表示されません。`@verbatra/cli` はこれらのエントリを `AGENT_CLIENT_CONFIGS` としてエクスポートしています。
+
+| クライアント | `--client` | ファイル | 検出元 |
+| --- | --- | --- | --- |
+| Claude Code | `claude` | `.mcp.json` | `CLAUDE.md`、`.claude/`、`.mcp.json` |
+| Cursor | `cursor` | `.cursor/mcp.json` | `.cursor/`、`.cursorrules` |
+| VS Code | `vscode` | `.vscode/mcp.json`（`servers` の下） | `.vscode/mcp.json` |
+| Codex | `codex` | `.codex/config.toml`（`[mcp_servers.verbatra]` として） | `.codex/` |
+| Gemini CLI | `gemini` | `.gemini/settings.json` | `.gemini/`、`GEMINI.md` |
+
+`init` は、検出したすべてのクライアントを設定します。マーカーが見つからない場合は Claude Code だけです。`AGENTS.md` が決めるのは指示ファイルで、クライアントではありません。`mcp.json` のない `.vscode` フォルダーは設定されません。それを設定するコマンドが次の手順に示されます。Gemini CLI は `GEMINI.md` を読みます。設定ファイルまたは `GEMINI.md` が指示ファイルを読み込まない場合は、その方法が次の手順に示されます。検出されたクライアントのうち、設定ファイルのパスがシンボリックリンクを通るものは、理由 `symlink` と次の手順を付けてスキップされます。`--client` は検出を置き換えます。不明な ID、空のリスト、`--agent` なしの `--client` は、終了コード `2` と `INVALID_OPTION` で終了し、候補が示されます。
+
+マーカーの外には触れません。ファイルが 1 エントリ 1 行で記述されている場合、ほかのサーバーとキーのバイト列、インデント、改行コードはそのまま保たれます。そうでない場合は、同じ内容でファイルが書き直されます。Codex のテーブルは末尾に追加されます。既存の `verbatra` サーバーには触れません。ファイルは `unchanged` と報告され、クライアントの `server` は、エントリが作成内容と一致すれば `present`、一致しなければ `differs` になり、`differs` の場合は `nextSteps` にも注意書きが加わります。
+
+`.claude/settings.json` または `.claude/settings.local.json` で verbatra の Claude Code プラグインが有効になっている場合、`init` は `.mcp.json` をスキップします。Claude Code は理由 `plugin` と次の手順を付けて `skipped` と報告され、既存のエントリが削除されることはありません。シンボリックリンクの先にある設定ファイルは無視されます。
+
+設定ファイルがすでにある場合、`init --agent` はそれを残し、エージェント用のファイルだけを書き込んで、`kept verbatra.config.ts` と出力します。質問はせず、何も検出しません。JSON の結果では、設定ファイルは `unchanged` として一覧され、`agent.configKept` は `true` になり、`config`、`sources`、`apiKeyEnvVar`、`detection` は `null` になります。設定のオプションか `--force` を渡すと、`--agent` なしの場合と同じように、設定ファイルが実行に戻ります。
+
+`init` は、何も書き込む前に、次の場合に `AGENT_FILE_INVALID` で拒否します。クライアントのファイルが、プレーンな JSON ではない（コメントや末尾のカンマは書き直さない）、オブジェクトではない、キー名が重複している、または servers の値がオブジェクトではない場合。`.codex/config.toml` が `mcp_servers` または verbatra サーバーを、インライン、ドット付きキー、テーブルの配列で設定している、そのテーブルまたはその中のキー名が重複している、または文字列、配列、ヘッダーが閉じられていない場合。`--client` が指定するクライアントの設定ファイルのパスにシンボリックリンクがある、または指示ファイルがプロジェクトの外にリンクしている場合。指示ファイルに、対のないマーカー、順序が逆のマーカー、重複したマーカーがある場合。メッセージにファイルの内容が引用されることはありません。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | ファイルを書き込んだ、またはすでに最新 |
+| `2` | 使い方の誤り：`MISSING_OPTIONS`、`INVALID_PROVIDER`、`INVALID_FORMAT`、`INVALID_OPTION`、`INVALID_LOCALE`、`INVALID_LOCALES`、`FORMAT_AMBIGUOUS`、`LAYOUT_AMBIGUOUS`、`CONFIG_EXISTS`、`INIT_UNWRITABLE`、`AGENT_FILE_INVALID`、または回答が有効な設定ファイルにならない場合の `CONFIG_INVALID` |
+
+各コマンドがこれらのコードをどう使うかは、[終了コード](/ja/docs/cli/output#終了コード)の仕様を参照してください。
+
+## 関連項目
+
+- [AI エージェントで verbatra をセットアップする](/ja/docs/start-with-ai)は、このコマンドを使うエージェント向けのプロンプトです。
+- [クイックスタート](/ja/docs/quickstart)は、init から最初の実行までを順に説明します。
+- [設定ファイル](/ja/docs/config-file)は、作成された設定ファイルが設定するすべての設定キーを説明しています。
+- [プロバイダー](/ja/docs/providers)は、プロバイダーのオプションと API キー変数を扱います。

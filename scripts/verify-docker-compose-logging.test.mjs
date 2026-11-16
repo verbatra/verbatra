@@ -3,18 +3,25 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { assertLocaleTable, LOCALES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const COMPOSE_FILE = "docker-compose.yml";
-const POLICY_LOCALES = ["en", "de", "es", "fr"];
 const ROTATING_DRIVERS = new Set(["json-file", "local"]);
 
-const POLICY_BOUND = {
-  en: (files, megabytes) => `limited to ${files} files of ${megabytes} MB each`,
-  de: (files, megabytes) => `auf ${files} Dateien mit je ${megabytes} MB begrenzt`,
-  es: (files, megabytes) => `limitado a ${files} archivos de ${megabytes} MB cada uno`,
-  fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
-};
+const POLICY_BOUND = assertLocaleTable(
+  {
+    en: (files, megabytes) => `limited to ${files} files of ${megabytes} MB each`,
+    de: (files, megabytes) => `auf ${files} Dateien mit je ${megabytes} MB begrenzt`,
+    es: (files, megabytes) => `limitado a ${files} archivos de ${megabytes} MB cada uno`,
+    fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
+    "zh-CN": (files, megabytes) => `最多保留 ${files} 个文件，每个 ${megabytes} MB`,
+    "pt-BR": (files, megabytes) => `limitado a ${files} arquivos de ${megabytes} MB cada`,
+    ja: (files, megabytes) => `${files} 個のファイル（各 ${megabytes} MB）までに制限`,
+  },
+  "POLICY_BOUND",
+  LOCALES,
+);
 
 function readRepoFile(relativePath) {
   return readFileSync(resolve(REPO_ROOT, relativePath), "utf8");
@@ -50,7 +57,7 @@ describe(`${COMPOSE_FILE} keeps container log rotation configured`, () => {
 });
 
 describe("the privacy policy states the container log bound the compose file configures", () => {
-  it.each(POLICY_LOCALES)("%s section 3 names the configured file count and size", (locale) => {
+  it.each(LOCALES)("%s section 3 names the configured file count and size", (locale) => {
     const options = docsLogging()?.options ?? {};
     const files = String(options["max-file"]);
     const megabytes = String(options["max-size"]).replace(/m$/, "");

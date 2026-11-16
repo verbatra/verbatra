@@ -26,13 +26,13 @@ du an deinem eigenen Projekt kalibrierst, steht in [Kosten abschätzen](/de/docs
 Mit Gemini, denn mit seiner kostenlosen API-Stufe übersetzt du ein ganzes Projekt ohne Kosten, und
 ein späterer Wechsel heißt, eine `id` zu ändern. Halte vertrauliche Strings von der kostenlosen
 Stufe fern: siehe
-[Datenverarbeitung und Datenschutz](/de/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
+[Datenverarbeitung und Datenschutz](/de/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-provider).
 Alle Provider im Vergleich findest du unter [Provider](/de/docs/providers).
 
 ## Kann ich ein lokales Modell verwenden?
 
 Ja: Der Provider `openai-compatible` richtet verbatra auf jeden Server, der die OpenAI-Chat-API
-spricht, etwa LM Studio, Ollama oder vLLM, meist ohne Schlüssel. Ganz ohne Sprachmodell nutzt
+spricht, etwa LM Studio, Ollama oder vLLM, meist ohne API-Key. Ganz ohne Sprachmodell nutzt
 `libretranslate` einen selbst gehosteten LibreTranslate-Server. Siehe
 [Provider](/de/docs/providers#libretranslate).
 
@@ -56,7 +56,7 @@ die ihrer Quelle gleicht, und sie markiert, ohne sie zurückzuhalten. Jeder Grun
 ## Funktioniert verbatra in einem Monorepo?
 
 Ja. Die Suche nach der Konfiguration geht vom Arbeitsverzeichnis nach oben und hält beim nächsten
-`.git` an, sodass ein Paket seine eigene Konfiguration findet und die Wurzel die der Wurzel;
+`.git` an, sodass ein Paket seine eigene Konfiguration findet und die Wurzel ihre eigene;
 `--cwd` und `--config` zeigen auf jeden anderen Ort. Siehe [Die Konfigurationsdatei](/de/docs/config-file).
 
 ## Was soll ich committen?
@@ -67,8 +67,8 @@ Committe deine Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.jso
 
 ## Wie übersetze ich alles neu?
 
-Lösch die Locale-Datei und führe `verbatra translate` aus: Dann fehlt jeder Key und wird frisch
-übersetzt. Die Lock-Datei zu löschen reicht nicht, denn ohne Baseline gelten vorhandene
+Lösch die Locale-Datei und führe `verbatra translate --no-cache` aus: Dann fehlt jeder Key und wird
+erneut an den Provider gesendet. Ohne `--no-cache` füllen Treffer im Übersetzungsspeicher wieder auf, was sie enthalten. Die Lock-Datei zu löschen reicht nicht, denn ohne Baseline gelten vorhandene
 Übersetzungen als aktuell. Für einen einzelnen Key nimm die Neuübersetzen-Aktion in Studio oder
 `retranslateEntry`.
 
@@ -77,7 +77,7 @@ Lösch die Locale-Datei und führe `verbatra translate` aus: Dann fehlt jeder Ke
 Kein zusätzlicher Schritt: `@verbatra/cli` hängt von `@verbatra/sdk` ab, also kommt es mit. Nur
 `@verbatra/studio` und `@verbatra/mcp` sind eigene, optionale Installationen.
 
-## Wo leben API-Schlüssel?
+## Wo leben API-Keys?
 
 Nur in Umgebungsvariablen, die die CLI auch aus
 [`.env.local` und `.env`](/de/docs/cli#umgebungsdateien) liest. Die Konfiguration lehnt unbekannte Keys
@@ -93,16 +93,16 @@ Telemetrie. Mit `provider: { id: "none" }` verlässt nichts den Rechner. Siehe
 
 <AvailableFrom version="0.9.0" />
 
-Die Einrichtung in einem Durchgang, ohne Übersetzungsaufruf und ohne den Wert eines Schlüssels zu
+Die Einrichtung in einem Durchgang, ohne Übersetzungsaufruf und ohne den Wert eines API-Keys zu
 lesen, außer du übergibst `--live`, das ihn sendet, um die Sprachliste des Providers abzurufen:
-Konfiguration, Format, Provider, die Variable des API-Schlüssels, die Netzwerkrichtlinie,
-die Quelldatei und die Sprachunterstützung, dazu informative Berichte zu Pluralen, Locale-Codes und
-zurückgebliebenem Locale-Stand. [`verbatra doctor`](/de/docs/cli/doctor) hat die vollständige Tabelle
+Konfiguration, Format, Provider, die Variable des API-Keys, die Netzwerkrichtlinie,
+die Quelldatei und die Sprachunterstützung, dazu informative Berichte zu Pluralen, Locale-Codes,
+zurückgebliebenem Locale-Stand und `verbatra.limits.json`. [`verbatra doctor`](/de/docs/cli/doctor) hat die vollständige Tabelle
 der Prüfungen.
 
 ## Kann ein KI-Agent verbatra für mich einrichten oder bedienen?
 
-Ja, über vier Oberflächen: einen Einrichtungs-Prompt für Coding-Agenten
+Ja, über vier Einstiegspunkte: einen Einrichtungs-Prompt für Coding-Agenten
 ([Mit einem KI-Agenten einrichten](/de/docs/start-with-ai)), die `--json`-Ausgabe für deine eigenen
 Schleifen ([Rezepte für Agenten und Skripte](/de/docs/agent-recipes)), WebMCP-Tools in einem offenen
 Studio-Tab ([Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio)) und einen
@@ -124,22 +124,18 @@ gerade ansiehst:
   dass dieses Projekt MIT-lizenziert ist und Crawlen, Indexieren und Zitieren dieser Inhalte
   willkommen ist.
 
-Alle drei sind aus der Footer-Spalte "Für KI-Agenten" verlinkt.
+Alle drei sind aus der Footer-Spalte "Für Agenten" verlinkt.
 
 ## Ist der Inhalt dieser Seite KI-übersetzt?
 
 Größtenteils, auf zwei verschiedenen Wegen. Der UI-Rahmen (Navigationsbeschriftungen, Buttons, der
-Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und seinen `de`-, `es`-
-und `fr`-Geschwistern; die werden mit verbatra selbst maschinell übersetzt, gegen das Format
-`next-intl-json`, über den Gemini-Provider, indem nach einer Änderung der englischen Quelle
-`pnpm i18n` ausgeführt wird. Das Projekt nutzt hier sein eigenes Tool (Dogfooding), und der Workflow
+Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und je einer Geschwisterdatei für jede andere Sprache; die werden maschinell übersetzt, entweder mit verbatra selbst, gegen das Format `next-intl-json`, über den Gemini-Provider, indem nach einer Änderung der englischen Quelle `pnpm i18n` ausgeführt wird, oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ausgabe mit `verbatra import` importiert wird. Das Projekt nutzt hier sein eigenes Tool (Dogfooding), und der Workflow
 `docs-i18n-check` lässt einen Pull Request scheitern, dessen Locale-Dateien von der englischen
 Quelle abweichen. Die Doku-Prosa, die du gerade liest, jeder Guide und jede Referenzseite
-einschließlich dieser hier, ist locale-suffigiertes MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`,
-`page.fr.mdx`) und ebenfalls KI-übersetzt, nur außerhalb dieser automatisierten Pipeline:
+einschließlich dieser hier, ist MDX mit Locale-Suffix (`page.mdx` und je eine `page.<locale>.mdx` für jede andere Sprache) und ebenfalls KI-übersetzt, nur außerhalb dieser automatisierten Pipeline:
 `pnpm i18n` übersetzt nur die strukturierten [Locale-Dateiformate](/de/docs/formats), nie Markdown, es rührt
 diese Seiten also nie an. Stattdessen übersetzt ein KI-Agent eine Doku-Seite in derselben Änderung,
-die ihre englische Quelle bearbeitet, sodass alle vier Sprachen gemeinsam landen; deshalb trägt jede
+die ihre englische Quelle bearbeitet, sodass alle Sprachen gemeinsam landen; deshalb trägt jede
 nicht-englische Seite den Hinweis auf die maschinelle Übersetzung.
 
 Nicht alles kommt unverändert aus diesen beiden Schritten: Einige Texte, darunter Teile der
@@ -148,7 +144,6 @@ rechtlichen Seiten, wurden stattdessen direkt in den Locale-Dateien verfasst ode
 Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Die
 [Datenschutzerklärung](/privacy) beschreibt denselben Ablauf.
 
-Wenn dir im Deutschen, Spanischen oder Französischen etwas seltsam vorkommt, eröffne in beiden
-Fällen ein Issue: Bei UI-Texten landet die Korrektur in der englischen Quelle und wird neu
-übersetzt, oder direkt in der betroffenen Locale-Datei; bei Doku-Prosa bearbeite die MDX-Datei
+Wenn dir ein übersetzter Text seltsam vorkommt, eröffne in beiden
+Fällen ein Issue: Bei UI-Texten landet die Korrektur in der englischen Quelle und wird neu übersetzt oder neu importiert, oder direkt in der betroffenen Locale-Datei; bei Doku-Prosa bearbeite die MDX-Datei
 direkt und schicke einen Pull Request.

@@ -48,7 +48,7 @@ export interface ExtractResult {
   readonly withoutDefault: readonly string[];
   /** Call sites whose key argument was not a static string, reported rather than guessed at. */
   readonly dynamic: readonly SourceLocation[];
-  /** Keys found twice with two different default values. Neither value is written. */
+  /** Keys found at more than one call site with different default values. None of the values is written. */
   readonly conflicts: readonly KeyConflict[];
   /** Files and directories the scan could not read, which never abort the run. */
   readonly diagnostics: readonly ScanDiagnostic[];
@@ -187,8 +187,8 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  *
  * Everything the scan cannot resolve is reported as data rather than thrown. A call site whose key
  * argument is not a static string is reported in `dynamic` and never written with a guessed key; a
- * key found twice with two different defaults is reported in `conflicts` and neither value is
- * written; a file or directory that cannot be read is reported in `diagnostics` and the scan
+ * key found at more than one call site with different defaults is reported in `conflicts` and none
+ * of its values is written; a file or directory that cannot be read is reported in `diagnostics` and the scan
  * carries on. The result never carries a source file's contents, only keys, values, and locations.
  *
  * @param input - The config (whose `extract` block names the framework and roots), the working

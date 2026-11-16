@@ -120,12 +120,12 @@ if (summary.failed.length > 0 || !after.inSync) {
 ```
 
 La ejecución escribe archivos reales, así que prueba contra una copia temporal del proyecto. Un
-proveedor real se conecta de la misma forma; consulta [Proveedores personalizados](/es/docs/sdk/extend#proveedores-propios).
+proveedor real se conecta de la misma forma; consulta [Proveedores propios](/es/docs/sdk/extend#proveedores-propios).
 
 ## Vigila en un proceso de larga duración
 
 `watch` dispara una ejecución inmediatamente al arrancar, y luego una por cada cambio del origen,
-una vez pasado el anti-rebote, informando de cada una a través de `onRun`. Para un apagado limpio,
+una vez pasado el antirrebote, informando de cada una a través de `onRun`. Para un apagado limpio,
 haz `await controller.stop()`: cierra el watcher y espera a que termine la ejecución en curso antes
 de que salga tu proceso.
 
@@ -437,7 +437,7 @@ console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} fa
 ```
 
 Pasa `dryRun: true` a `importWorkbook` para validar un archivo devuelto sin escribir nada. Consulta
-[Traducción humana](/es/docs/manual-translation) para saber qué pueden editar los traductores y cómo se
+[Traducción manual](/es/docs/manual-translation) para saber qué pueden editar los traductores y cómo se
 validan las filas.
 
 ## El ciclo de ida y vuelta de TMX

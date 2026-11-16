@@ -5,6 +5,7 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { COMPARE_LAST_CHECKED, COMPARE_TOOLS } from "@/lib/landing-compare";
 import { formatLandingDate } from "@/lib/landing-date";
 import { homePath } from "@/lib/site";
+import { breakBetweenWords } from "@/lib/word-segments";
 import { CompareMatrix, ComparePairs, toolName } from "./compare-table";
 import { ComparePicker } from "./islands";
 
@@ -28,7 +29,7 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
     >
       <header className="vk-compare-intro">
         <h1 id={COMPARE_HEADING_ID} className="vk-compare-title">
-          {page("heading")}
+          {breakBetweenWords(page("heading"))}
         </h1>
         <p data-takeaway="" className="vk-compare-takeaway">
           {page("takeaway")}
@@ -36,9 +37,12 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
         <p data-scope="">{page("scope")}</p>
         <p data-stronger="">{page("stronger")}</p>
         <p data-last-checked="" className="vk-compare-checked">
-          {`${t("lastChecked")} `}
-          <time dateTime={COMPARE_LAST_CHECKED}>{checked}</time>
-          {`. ${page("noneFound")}`}
+          {page.rich("checkedLine", {
+            label: t("lastChecked"),
+            date: checked,
+            noneFound: page("noneFound"),
+            time: (chunks) => <time dateTime={COMPARE_LAST_CHECKED}>{chunks}</time>,
+          })}
         </p>
         <a href={`#${COMPARE_NEXT_ID}`} className="vk-compare-skip vk-prose-link" data-skip="">
           {page("skip")}
@@ -53,7 +57,7 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
       </div>
       <nav id={COMPARE_NEXT_ID} aria-labelledby="compare-next-heading" className="vk-compare-next">
         <h2 id="compare-next-heading" className="vk-h4 text-(--text-strong)">
-          {page("nextHeading")}
+          {breakBetweenWords(page("nextHeading"))}
         </h2>
         <ul className="flex flex-wrap gap-x-8 gap-y-2 text-base">
           <li>

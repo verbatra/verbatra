@@ -1,0 +1,167 @@
+---
+title: verbatra extract
+seoTitle: "verbatra extract：ソースコードからキーを探す"
+description: アプリケーションのソースから翻訳の呼び出し箇所をスキャンし、新しいキーをソースロケールファイルに追加します。
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+ロケールファイルではなく、コードから始めるコマンドです。`extract` は、設定したソースコードのルートディレクトリをたどり、その中の翻訳の呼び出し箇所を見つけて、ソースロケールファイルにまだないキーをすべて追加します。まだ国際化されていないプロジェクトでも verbatra を使えるようになります。費用はかかりません。プロバイダーも API キーもネットワークリクエストも使いません。
+
+## 書式
+
+```bash
+verbatra extract [flags]
+```
+
+## 例
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--dry-run` | なし | オフ | 追加される内容を報告し、何も書き込まない |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション) `--cwd`、`--config`、`--json` も使えます。`extract` のルートディレクトリは、[プロジェクトルート](/ja/docs/config-file#作業ディレクトリと-env)を基準に解決されます。
+
+## 動作
+
+### 設定
+
+`extract` は、設定ファイルの [`extract` ブロック](/ja/docs/config-file#extract)に従って動作します。ブロックがないまま実行すると、`EXTRACT_NOT_CONFIGURED` で失敗し、終了コード `2` で終了します。`i18next-json` では、`verbatra init` が生成する設定ファイルに、このブロックをコメントとして書き込みます。コメントを外し、`roots` を調整します。<AvailableFrom version="0.13.5" />
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  extract: {
+    framework: "i18next",
+    roots: ["src"],
+  },
+});
+```
+
+### 検出するもの
+
+`i18next` フレームワークでは、`.ts`、`.tsx`、`.js`、`.jsx`、`.mjs`、`.cjs`、`.mts`、`.cts` のファイルから、`t(...)`、`$t(...)`、`<object>.t(...)` の呼び出しの形を読み取ります。オプショナル呼び出しと、明示的な型引数リストにも対応します。キーは最初の引数です。デフォルト値は 2 番目の引数、またはオプションオブジェクトの `defaultValue` フィールドです。
+
+```ts
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
+```
+
+コメント、文字列、正規表現は解釈されます。そのため、コメント内の呼び出し箇所や、文字列内の引用符で囲まれた `t(` は拾われません。キーとデフォルト値は、それぞれ完全な 1 つのリテラルである必要があります。`t("user." + id)` は動的として報告されます。デフォルト値が連結されている場合は、途中で切れた値を入れるのではなく、デフォルト値なしでキーを追加します。空のパスセグメントを含むキー（`t("user.")`、`t(".lead")`、`t("a..b")`）は、アプリケーションが決して読まない名前のない子の下に入ってしまうため、これも動的として報告されます。
+
+### 名前空間はまだ解決しない
+
+`t("common:nav.home")` のような名前空間付きのキーは、動的として報告され、書き込まれません。verbatra の 1 つの設定ファイルが扱えるカタログファイルは 1 つだけで、i18next の構成が意味するとおりの書き込み先がないためです。プロジェクトがすべての呼び出し箇所で名前空間を指定している場合、実行は何も追加しません。現時点で `extract` が役立つのは、名前空間を 1 つだけ使い、接頭辞なしでキーを書いているプロジェクトです。
+
+### 書き込むもの
+
+書き込むのはソースロケールファイルだけで、しかも本当に新しいキーだけです。
+
+- カタログにすでにあるキーは、値がそのまま保たれます。呼び出し箇所のデフォルト値が、編集した値を上書きすることはありません。
+- カタログに複数形としてだけ含まれているキーは、存在するものとして数えます。`t("cart.items", { count })` は、`cart.items_one` と `cart.items_other` があれば何も追加しません。gettext の `msgid_plural` エントリと Android の `<plurals>` リソースでも同じです。YAML のように複数形を示さないフォーマットでは、i18next の複数形の接尾辞で終わるキーはすべて、存在するものとして数えます。
+- どの呼び出し箇所にも現れないカタログのキーには手を加えません。`extract` は何も削除しません。そのようなキーは [`verbatra diff --unused`](/ja/docs/cli/diff#使われていないソースキー) で一覧できます。
+- 新しいものが見つからない実行は何も書き込まないため、ファイルはバイト単位で同一のままです。
+- ターゲットロケールファイルは書き込みません。新しいキーを埋めるには、その後に [`verbatra translate`](/ja/docs/cli/translate) を実行します。空の値で追加されたキーは、ソースのテキストを書くまでスキップされ、実行では [`SOURCE_VALUE_EMPTY`](/ja/docs/error-codes#source_value_empty) として名前が示されます。
+
+`xliff` と `apple-xcstrings` のカタログは、何もない状態からは作成されません。先にソースカタログを作成してください（`.xcstrings` は Xcode で作成します）。`extract` はそこに追記します。
+
+### 推測せずに報告するもの
+
+スキャンで解決できないものはすべてデータとして返されます。そのため、扱いにくい 1 つのファイルが実行全体を中断することはありません。これらはどれも終了コードを変えません。
+
+| 報告される形 | 条件 |
+| --- | --- |
+| `dynamic` | キーが完全な静的文字列 1 つではない場合、または verbatra が指せないパスを表している場合です。変数、メンバー式、式を含むテンプレートリテラル、連結、名前空間付きのキー、空のパスセグメントがこれに当たります。書き込まれることはありません。 |
+| `conflicts` | 1 つのキーが 2 つの呼び出し箇所に、異なるデフォルト値で現れる場合です。どちらの値も書き込まれないため、カタログが走査の順序に左右されることはありません。 |
+| `withoutDefault` | 呼び出し箇所にデフォルト値がなく、キーが空の値で追加された場合です。値を埋めてから翻訳します。 |
+| `diagnostics` | ファイルまたはディレクトリを最後まで読めなかった場合です。ファイルが消えた、2,000,000 バイトの上限を超えている、スキャンが失敗した、閉じられていないコメント、テンプレートリテラル、JSX 要素、文字列が残りを読めなくした、のいずれかです。それより前に読み取れた内容は、引き続き報告されます。 |
+
+### スキャンの範囲
+
+設定した `roots` の外は何も読み取りません。`node_modules`、`.git`、`.next`、`.turbo`、`.verbatra`、`dist`、`build`、`coverage` は常にスキップされます。`extract.exclude` で独自のディレクトリ名を追加でき、シンボリックリンクはたどりません。結果に含まれるのは、キー、値、ファイルと行の位置だけで、ソースファイルの内容は含まれません。
+
+### JSON 出力
+
+スキーマ：[`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[エンベロープ](/ja/docs/cli/output#json-出力)に 1 つの結果が含まれます。
+
+```ts
+interface ExtractResult {
+  sourcePath: string;          // the source locale file, relative to the project root
+  scannedFiles: number;
+  added: { key: string; value: string; file: string; line: number }[];
+  existingKeys: number;        // keys found that were already in the catalog
+  withoutDefault: string[];
+  dynamic: { file: string; line: number }[];
+  conflicts: { key: string; values: string[]; locations: { file: string; line: number }[] }[];
+  diagnostics: { file: string; reason: "unreadable" | "too-large" | "unparseable" | "unreadable-directory" }[];
+  written: boolean;            // false for a dry run and for a run that added nothing
+  dryRun: boolean;
+}
+```
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+サマリーは stdout に出力されます。stderr には、スキャンしたファイル数を示すスピナー（spinner）の行が出ます。キーが追加された場合は、`verbatra translate` を促すヒントが表示されます。`--dry-run` の後は、同じ extract をオプションなしで実行するよう促します。`--quiet` を付けると、stderr の行は出力されません。
+
+```text output
+verbatra: scanning the source... done (0.6s)
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+  dynamic keys (1):
+    src/routes/product.tsx:88
+next: verbatra translate (translate the new keys)
+```
+
+各一覧には 10 行まで表示され、その後に `and N more` と表示されます。サマリーには、`written with an empty value`、`conflicting defaults`、`skipped` のファイルが加わる場合もあります。ドライランでは `would add` と表示され、`dry run, nothing written` で終わります。
+
+色、スピナー、それらを制御する変数については、[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | スキャンが実行された（結果は問わない） |
+| `2` | 実行できなかった：使い方の誤り、`extract` ブロックがない、フォーマットを解決できない、ソースカタログを解析できない、またはソースカタログを書き込めない |
+
+終了コード `1` はありません。動的な呼び出し箇所や競合するデフォルト値は、失敗ではなく検出結果だからです。すべてのコマンドに共通する規則は、[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [ソースコードからキーを抽出する](/ja/docs/extract-keys)は、呼び出し箇所から翻訳済みのキーまでの流れを順に説明します。
+- [設定ファイル](/ja/docs/config-file#extract)に、`extract` ブロックの説明があります。
+- [`verbatra translate`](/ja/docs/cli/translate) は、新しいキーができた後にターゲットロケールを埋めます。
+- [`verbatra types`](/ja/docs/cli/types) は、TypeScript 向けにキーを宣言します。
+- [`verbatra check`](/ja/docs/cli/check) は、新しいキーによって生じるドリフトを報告します。
+- [SDK](/ja/docs/sdk/inspect#extract) は、同じ機能を `extract()` として提供します。

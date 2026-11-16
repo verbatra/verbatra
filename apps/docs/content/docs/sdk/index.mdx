@@ -114,7 +114,7 @@ Moving a file aside and putting it back is two steps, so in rare interleavings t
 briefly both believe they hold the same lock. Every lock therefore records a random ownership
 token, and before each write the lock protects (the locale file, the lock file, the provenance
 file, the glossary) the holder checks that the lock file still carries its token. When it does not,
-the operation stops with `LOCK_CONTENDED` and writes nothing. A lock file found missing or holding
+the operation stops with `LOCK_CONTENDED` and the interrupted write is not made; an operation that writes more than one file may already have made an earlier write. A lock file found missing or holding
 another token on release is reported the same way when the operation succeeded, since the other
 process may have changed the same files since; an operation that failed throws its own error. The
 check and the write are still two steps, and nothing bounds the time between them: a holder paused

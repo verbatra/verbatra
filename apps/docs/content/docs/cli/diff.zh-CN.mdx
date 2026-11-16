@@ -1,0 +1,151 @@
+---
+title: verbatra diff
+seoTitle: "verbatra diff：预览一次运行会更改什么"
+description: "按语言环境显示一次运行会添加或重新翻译的键，以及会保留的孤立键，不写入文件，也不调用提供商。"
+type: reference
+---
+按目标语言环境列出确切的待处理键：运行会添加的、会重新翻译的，以及现已孤立的。`diff` 执行与 [`verbatra translate`](/zh-CN/docs/cli/translate) 相同的读取和比对，然后停止：不调用提供商，不写入文件，不更新锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)），也不需要 API 密钥。
+
+## 用法
+
+```bash
+verbatra diff [flags]
+```
+
+## 示例
+
+```bash
+# 列出每个语言环境的待处理键（有待处理键时退出码为 1）
+verbatra diff
+
+# 只处理德语和法语语言环境
+verbatra diff --locales de,fr
+
+# 供工具或 PR 评论使用的机器可读键列表
+verbatra diff --json
+
+# 同时列出代码中不再使用的源键
+verbatra diff --unused
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 所有已配置的目标 | 只比对这个以逗号分隔的子集；未配置的语言环境会以 `UNKNOWN_LOCALE` 失败，空列表会以 `INVALID_LOCALES` 失败，两者都以 `2` 退出 |
+| `--unused` | 无 | 关闭 | 同时列出在 [`extract` 的 `roots`](/zh-CN/docs/config-file#extract) 之下没有任何调用点引用的源语言环境键；见[未使用的源键](#未使用的源键) |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。
+
+## 行为
+
+### 待处理的键与孤立的键
+
+每个语言环境列出四类键：
+
+| 列表 | 含义 |
+| --- | --- |
+| `missing`（显示为 `add`） | 在源文件中，目标文件中没有：运行会添加它 |
+| `changed`（显示为 `re-translate`） | 上次翻译之后源文本有更改：运行会重新翻译它 |
+| `orphaned` | 在目标文件中，源文件中已没有：只报告 |
+| `emptySource`（显示为 `empty source`） | 源值为空或仅含空白字符：在你写入内容之前没有可翻译的内容，从不待处理 |
+
+语言环境至少有一个缺失或已更改的键时，它就有待处理的更改。孤立的键从不算作待处理，因为默认运行会保留它们；只有 [`verbatra translate --prune`](/zh-CN/docs/cli/translate) 会删除它们。[`verbatra check`](/zh-CN/docs/cli/check) 给出数量，`diff` 则给出键列表。
+
+### 未使用的源键
+
+<AvailableFrom version="0.11.0" />
+
+`--unused` 回答的问题与 `orphaned` 不同：源语言文件中的哪些键，你的应用已经不再引用？它用 [`verbatra extract`](/zh-CN/docs/cli/extract) 所用的读取器扫描 [`extract` 块](/zh-CN/docs/config-file#extract)的 `roots`，并列出没有任何静态引用的每个源键。这两个列表从不合并。扫描保持只读：不删除任何内容，也不读取 API 密钥。是否删除键由你决定。
+
+扫描模拟 i18next 运行时的行为。下面这些算作引用：
+
+- `roots` 之下任何位置的 `t(...)`、`$t(...)` 或 `<object>.t(...)` 调用，通过别名的调用也算，例如 `const { t: translate } = useTranslation()`、`const tr = i18n.t`、`t.bind(i18n)` 或 `i18n.getFixedT(...)`；
+- 静态的 `keyPrefix` 或 `getFixedT` 的第三个参数，它们同时覆盖该文件中每个静态键带前缀的形式；以及 `Trans` 上或对象中静态的 `i18nKey`；
+- 带命名空间的键（`common:nav.home` 同时覆盖 `nav.home`）、自然语言键，以及静态键数组的每一项；
+- 被引用键的复数或上下文变体（`t("items", { count })` 覆盖 `items_one` 和 `items_other`），以及被引用父级之下的每个键。
+
+键按消息目录格式自己的编码比较，所以扁平的带点号 JSON 键、gettext 的复数或 `msgctxt` 条目，以及 Android 的 `<plurals>` 条目，都能与你的代码所引用的键匹配。带静态开头的模板字面量，例如 `` t(`nav.${page}`) ``，会把 `nav.` 之下的键列在 `possiblyDynamic` 中，与 `unused` 分开，且从不使运行失败。
+
+报告带有 `status`：`complete`（每个可达的键都有明确范围，所以 `unused` 可信）、`unreliable`（所列的键可能仍在使用；`unreliableBecause` 写明每个原因及其数量和位置）或 `not-run`（不列出任何内容；`reason` 说明原因）：
+
+| 原因 | `status` | 条件 |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | 没有静态部分的键：`t(key)`、没有静态开头的模板字面量，或字符串拼接 |
+| `dynamic-key-prefix` | `unreliable` | 不是静态字符串的 `keyPrefix` 或 `getFixedT` 前缀 |
+| `trans-without-key` | `unreliable` | 没有静态 `i18nKey` 的 `Trans` 元素 |
+| `aliased-translate-function` | `unreliable` | `t` 被赋给了普通变量以外的对象，例如 `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | 翻译函数用在了直接调用、其绑定、本地别名、`Trans` 或 `Translation` 上的 `t={t}`、钩子依赖数组之外的任何地方：`renderRow(t)`、`{ t }`、`return t`、`export default t` |
+| `unrecognised-translate-source` | `unreliable` | 来自扫描未模拟的来源的 `t` 或 `$t`，例如返回 `useTranslation(...)` 的封装钩子、用展开语法构造的钩子选项，或导出的 `getFixedT` 结果 |
+| `template-files-not-scanned` | `unreliable` | `roots` 之下的 `.vue`、`.svelte`、`.html`、`.htm`、`.astro`、`.hbs`、`.handlebars`、`.ejs`、`.pug`、`.njk`、`.liquid` 或 `.mdx` 文件（列出前 20 个，全部都会计数） |
+| `incomplete-scan` | `unreliable` | 过大、无法读取或无法读到末尾的文件（也包括未闭合的 JSX 元素，或延伸到行尾的带引号字符串），或无法列出的目录 |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | 没有 `extract` 块 |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | SDK 调用方的文件系统无法列出目录 |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | 格式是 `next-intl-json`、`vue-i18n-json` 或 `ngx-translate-json`，扫描没有模拟它们的运行时 |
+| `NO_SOURCE_FILES` | `not-run` | `roots` 之下没有源文件 |
+| `NO_REFERENCES_FOUND` | `not-run` | 消息目录不为空，而扫描的文件没有引用任何键，也没有动态键位置，这通常说明 `roots` 没有覆盖你的代码 |
+
+能识别的翻译来源有：解构到本地、未导出绑定中的 `useTranslation(...)`（参数为静态）；参数为静态的本地 `i18n.getFixedT(...)`；对成员 `t` 的直接调用（`i18n.t("key")`、`this.props.t("key")`）及其本地别名；`<Translation>{(t) => ...}</Translation>`；带 `props.t(...)` 的 `withTranslation("ns")(Component)`；以及 `import { t } from "i18next"`。任何名为 `t` 或 `$t` 的变量或成员都会被判断，所以无关的 `frame.t + 1` 也可能使报告变得不可靠。在 `.tsx`、`.jsx` 和 `.js` 文件中，JSX 文本和带引号的属性值按标记语言读取，从不按代码读取。
+
+每个列出的键都显示其解码后的写法（gettext 的 `msgctxt` 条目显示为 `menu|Open`）；`--json` 还会带上适配器所写的 `catalogKey`。只在被扫描源码之外使用的键（服务器模板、CMS）应放入 [`extract.unused.ignore`](/zh-CN/docs/config-file#extract)：模式与解码后的键匹配，匹配到的键列在 `ignored` 之下，绝不会被丢弃。
+
+### 受保护的键
+
+<AvailableFrom version="0.12.0" />
+
+`translate` 会留给人处理的缺失键和已更改键（有人在 verbatra 之外编写、导入或更改了该值，或该键匹配 `pinnedKeys`）会在 `protected` 下再列一次，见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。它们仍是待处理的，所以依然留在 `add` 和 `re-translate` 中。`verbatra.provenance.json` 已损坏或来自更新的 verbatra 时，只列出固定的键。
+
+### JSON 输出
+
+Schema：[`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+`--json` 输出一个[信封](/zh-CN/docs/cli/output#json-输出)，其 `result` 是 `DiffSummary`。`hasPendingChanges` 恰好在命令因待处理的键而以 `1` 退出时为 true：
+
+```ts
+interface DiffSummary {
+  hasPendingChanges: boolean;
+  locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // 仅在使用 --unused 时
+}
+
+interface LocaleDiff {
+  locale: string;
+  missing: string[];           // 将被添加
+  changed: string[];           // 将被重新翻译
+  orphaned: string[];          // 仅报告
+  emptySource?: string[];      // 源值为空：从不待处理
+  hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // 来源记录文件无法读取时缺失
+  protected?: string[];        // translate 会保留不动的待处理键
+}
+```
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+`diff` 在工作时显示一行（`diffing and scanning the source`，使用 `--unused` 时附带不断增加的文件数），并建议下一条命令：
+
+```text output
+verbatra: diffing the locales... done (0.8s)
+next: verbatra translate (send the pending keys to your provider)
+```
+
+所有待处理的键都受保护时，它改为建议 `verbatra studio`；在 `provider: { id: "none" }` 下，它建议 `verbatra export`。这些行输出到 stderr，`--quiet` 会隐藏它们。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 所有语言环境都没有要添加或重新翻译的键，且没有任何 `complete` 状态的 `--unused` 扫描发现未使用的键 |
+| `1` | 至少有一个语言环境有缺失或已更改的键，或 `complete` 的 `--unused` 扫描发现了未使用的键 |
+| `2` | 无法运行：整次运行的错误、未配置的 `--locales` 值（`UNKNOWN_LOCALE`），或用法错误，例如空的 `--locales` 列表（`INVALID_LOCALES`） |
+
+孤立的键、可能动态的键、被忽略的键，以及 `unreliable` 或 `not-run` 的报告，本身从不导致 `1`。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [`verbatra check`](/zh-CN/docs/cli/check) 给出这些列表背后的各语言环境数量。
+- [`verbatra translate`](/zh-CN/docs/cli/translate) 应用待处理的更改；`--prune` 删除孤立的键。
+- [配置文件](/zh-CN/docs/config-file#extract)记录了 `extract` 块和 `unused.ignore`。
+- [在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes) 展示了流程中的 `diff`。

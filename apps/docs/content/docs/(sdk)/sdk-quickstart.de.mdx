@@ -1,10 +1,10 @@
 ---
 title: SDK-Schnellstart
 seoTitle: "verbatra-SDK-Schnellstart: aus Node.js übersetzen"
-description: "Installiere @verbatra/sdk, sieh dir einen Lauf ohne API-Schlüssel in der Vorschau an, übersetze aus deinem Skript, behandle Fehler und sichere die CI ab."
+description: "Installiere @verbatra/sdk, sieh dir einen Lauf ohne API-Key in der Vorschau an, übersetze aus deinem Skript, behandle Fehler und sichere die CI ab."
 type: tutorial
 ---
-Am Ende dieser Seite übersetzt ein TypeScript-Skript von dir eine englische Locale-Datei ins Deutsche, meldet, was passiert ist, und lässt einen CI-Job scheitern, sobald eine Locale nicht mehr synchron ist. Du brauchst Node.js `^22.22.0 || >=24` und etwa zehn Minuten. Die ersten drei Schritte brauchen keinen API-Schlüssel.
+Am Ende dieser Seite übersetzt ein TypeScript-Skript von dir eine englische Locale-Datei ins Deutsche, meldet, was passiert ist, und lässt einen CI-Job scheitern, sobald eine Locale nicht mehr synchron ist. Du brauchst Node.js `^22.22.0 || >=24` und etwa zehn Minuten. Die ersten drei Schritte brauchen keinen API-Key.
 
 Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien direkt aus, ein zusätzliches Flag brauchst du nicht. Die Skripte nutzen `import` und Top-Level-`await`, deshalb markiert der erste Schritt das Projekt auch als ES-Modul.
 
@@ -54,7 +54,7 @@ export default defineConfig({
 </Step>
 <Step>
 
-### Den Lauf ohne Schlüssel in der Vorschau ansehen
+### Den Lauf ohne API-Key in der Vorschau ansehen
 
 ```ts title="preview.ts"
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -75,7 +75,7 @@ node preview.ts
 de: would translate cart.empty, greeting
 ```
 
-Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. Übergib stattdessen `estimate: true`, um eine Token- oder Kostenzahl zu bekommen; siehe [Kosten schätzen](/de/docs/estimating-cost).
+Ein Dry Run baut keinen Provider, braucht also keinen API-Key, kostet nichts und schreibt nichts. Übergib stattdessen `estimate: true`, um eine Token- oder Kostenzahl zu bekommen; siehe [Kosten schätzen](/de/docs/estimating-cost).
 
 </Step>
 <Step>
@@ -114,7 +114,7 @@ if (failed.length > 0 || partial.length > 0) {
 }
 ```
 
-Der Provider liest seinen Schlüssel aus der Umgebung, und anders als die CLI lädt das SDK keine `.env`-Dateien, also reichst du ihn selbst weiter. [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) nennt die Variable für jeden Provider.
+Der Provider liest seinen API-Key aus der Umgebung, und anders als die CLI lädt das SDK keine `.env`-Dateien, also reichst du ihn selbst weiter. [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) nennt die Variable für jeden Provider.
 
 ```bash
 node --env-file=.env translate.ts
@@ -159,7 +159,7 @@ try {
 }
 ```
 
-Führst du es ohne Schlüssel aus, meldet es `PROVIDER_CONSTRUCTION_FAILED` und nennt die fehlende Variable, nie einen Schlüsselwert. [Fehlercodes](/de/docs/error-codes#sdk-error-codes) listet jeden Code.
+Führst du es ohne API-Key aus, meldet es `PROVIDER_CONSTRUCTION_FAILED` und nennt die fehlende Variable, nie einen API-Key-Wert. [Fehlercodes](/de/docs/error-codes#sdk-error-codes) listet jeden Code.
 
 </Step>
 <Step>
@@ -184,7 +184,7 @@ if (!summary.inSync) {
 node check.ts
 ```
 
-`check` ruft keinen Provider auf und schreibt nichts, braucht in der CI also keinen Schlüssel. Das Skript endet mit `1`, wenn ein Quelltext keine Übersetzung hat oder sich seit der Übersetzung geändert hat.
+`check` ruft keinen Provider auf und schreibt nichts, braucht in der CI also keinen API-Key. Das Skript endet mit `1`, wenn ein Quelltext keine Übersetzung hat oder sich seit der Übersetzung geändert hat.
 
 </Step>
 </Steps>

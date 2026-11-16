@@ -144,6 +144,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed. Before the first write nothing was written;
  * before a later one the locale file is already saved and its baseline or record is not.
+ * A lock that could not be reclaimed from an abandoned holder is refused the same way, and a
+ * lock taken over by another process before it was released leaves every write on disk.
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because

@@ -1,0 +1,201 @@
+---
+title: SDK クイックスタート
+seoTitle: "verbatra SDK クイックスタート：Node.js から翻訳"
+description: "@verbatra/sdk をインストールし、API キーなしで実行をプレビューし、自分のスクリプトから翻訳し、エラーを処理し、CI にゲートを設けます。"
+type: tutorial
+---
+このページを終えると、TypeScript のスクリプトが英語のロケールファイルをドイツ語に翻訳し、何が起きたかを報告し、ロケールが同期しなくなると CI ジョブを失敗させるようになります。必要なのは Node.js `^22.22.0 || >=24` と、約 10 分です。最初の 3 つの手順では API キーは不要です。
+
+各手順は、`node` で実行できる完結したスクリプトです。Node.js は TypeScript ファイルを直接実行するため、追加のオプションは不要です。スクリプトは `import` とトップレベルの `await` を使うので、最初の手順でプロジェクトを ES モジュールに設定します。
+
+## 手順
+
+<Steps>
+<Step>
+
+### SDK をインストールする
+
+```bash
+npm init -y
+npm pkg set type=module
+npm install --save-dev @verbatra/sdk
+```
+
+空のディレクトリで実行します。`npm init -y` が `package.json` を作成し、`npm pkg set type=module` がその `package.json` を ES モジュールに設定します。既存のプロジェクトでは `npm init -y` を省きます。pnpm が `ERR_PNPM_IGNORED_BUILDS` で終了した場合は、[インストール](/ja/docs/sdk#インストール)を参照してください。
+
+</Step>
+<Step>
+
+### ソースファイルと設定を追加する
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+`loadConfig` は、作業ディレクトリからこのファイルを探して検証します。フレームワークに合う `format` は[技術スタックを選ぶ](/ja/docs/pick-your-stack)にあり、すべてのプロバイダーとそのオプションは[プロバイダー](/ja/docs/providers)にあります。ファイルをまったく使わない場合は、同じオブジェクトを `configOverride` として渡します。詳しくは [SDK レシピ](/ja/docs/programmatic-api#ファイルを使わない設定)を参照してください。
+
+</Step>
+<Step>
+
+### API キーなしで実行をプレビューする
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+ドライランはプロバイダーを生成しないため、API キーが不要で、費用がかからず、何も書き込みません。代わりに `estimate: true` を渡すと、トークン数または費用の見積もりが得られます。詳しくは[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照してください。
+
+</Step>
+<Step>
+
+### 翻訳してサマリーを読む
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
+  },
+});
+
+const { succeeded, partial, failed, usage } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+プロバイダーは環境変数から API キーを読み込みます。CLI と違い、SDK は `.env` ファイルを読み込まないため、自分で渡します。各プロバイダーの変数名は [API キーは環境変数から読み込む](/ja/docs/providers#api-キーは環境変数から読み込む)にあります。
+
+```bash
+node --env-file=.env translate.ts
+```
+
+`locales/de.json` に両方のキーが入り、`{{name}}` はそのまま残ります。`partial` のロケールはキーが欠落したまま書き込まれたもので、スクリプトは `failed` と同じように、これも失敗として扱います。ロケールごとの問題は、サマリーのデータとして届きます。スローされるのは、実行全体の問題だけです。そのほかのオプションはすべて [`translate`](/ja/docs/sdk/run#translate) に載っています。
+
+</Step>
+<Step>
+
+### エラーを処理する
+
+<AvailableFrom version="0.12.0" />
+
+実行全体の問題は `SdkError` をスローします。安定した `code` で分岐し、次に取る手順として `errorHint` を出力します。
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  switch (error.code) {
+    case "CONFIG_NOT_FOUND":
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
+      break;
+    case "PROVIDER_CONSTRUCTION_FAILED":
+      console.error(`${error.code}: the provider could not be built, most often for a missing key`);
+      break;
+    default:
+      console.error(`${error.code}: ${error.message}`);
+  }
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+API キーなしで実行すると `PROVIDER_CONSTRUCTION_FAILED` が報告され、足りない変数名が示されます。API キーの値は示されません。すべてのコードは[エラーコード](/ja/docs/error-codes#sdk-error-codes)にあります。
+
+</Step>
+<Step>
+
+### check で CI にゲートを設ける
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+`check` はプロバイダーを呼び出さず、何も書き込まないため、CI でも API キーは不要です。ソース文字列に訳文がない場合、または翻訳後に変更された場合、スクリプトは `1` で終了します。
+
+</Step>
+</Steps>
+
+## CommonJS
+
+CommonJS のプロジェクトでは、`require("@verbatra/sdk")` が同じエクスポートを返します。トップレベルの `await` は使えないため、呼び出しを `async` 関数で包みます。
+
+## 次のステップ
+
+- [SDK レシピ](/ja/docs/programmatic-api)：見積もり、ウォッチモード、プロバイダーのテストダブル、レビューキュー、ブックと TMX の往復
+- [SDK リファレンス](/ja/docs/sdk)：すべてのエントリポイントと、その入力、スローするもの
+- [カスタムプロバイダー](/ja/docs/sdk/extend#カスタムプロバイダー)と[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)：verbatra が提供しないものを組み込む
+- [翻訳の安全性](/ja/docs/translation-safety)：verbatra が訳文を書き込む前に行うチェック

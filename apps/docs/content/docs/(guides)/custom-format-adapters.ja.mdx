@@ -1,0 +1,102 @@
+---
+title: カスタムフォーマットアダプターを書く
+seoTitle: "verbatra 用のカスタム i18n フォーマットアダプター"
+description: "verbatra にないフォーマットを追加します。custom: 識別子で名前を付け、アダプターのファクトリ関数で作り、インストール時に何を信頼するのかを理解します。"
+type: how-to
+status: new
+---
+<AvailableFrom version="0.11.0" />
+
+verbatra が標準では読み込めないフォーマットでロケールファイルを管理している場合に使います（[フォーマット](/ja/docs/formats)を参照）。アダプターは自分のパッケージで作成し、フォーマットに `custom:` 識別子で名前を付け、そのアダプターを含むレジストリを verbatra に渡します。verbatra に公開するものは何もなく、リリースも関係しません。
+
+プロジェクトに `@verbatra/sdk` が必要です。`verbatra` コマンドラインは、設計上プラグインを読み込みません（[何を信頼することになるか](#何を信頼することになるか)を参照）。そのため、カスタムフォーマットを使うプロジェクトでは、SDK 経由で verbatra を実行します。
+
+## フォーマットに名前を付ける
+
+verbatra の外部のフォーマットは、`custom:` に小文字とハイフン区切りの名前を続けたものです。たとえば `custom:toml` や `custom:my-format` です。組み込みの名前にはコロンを含むものがないので、組み込みの名前を覆い隠すことはありません。組み込みの名前と同じように、設定ファイルに書きます。
+
+```json title=".verbatrarc.json"
+{
+  "sourceLocale": "en",
+  "targetLocales": ["de"],
+  "format": "custom:toml",
+  "files": { "pattern": "locales/{locale}.toml" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
+}
+```
+
+設定ファイルが確認するのは、識別子の形だけです。アダプターは自分のパッケージにあるためです。アダプターを提供するものがなければ、実行は [`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format) で失敗します。Studio と MCP サーバーの `project.snapshot` は識別子をそのまま報告するので、エージェントはカスタムフォーマットと組み込みフォーマットを区別できます。
+
+## アダプターを作る
+
+アダプターのインターフェースを手で実装しないでください。2 つのファクトリ関数が、上限付きの読み取り、アトミックな書き込み、拡張子による検出、構造化されたエラーを提供し、フォーマット固有のパースだけを残します。
+
+すべてのエントリが入れ子のない 1 つのキーで指定される場合は、[`createFlatFileAdapter`](/ja/docs/sdk/extend#createflatfileadapter) を使います。
+
+```ts title="toml-adapter.ts"
+import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
+
+const TOKEN = /\{[a-z]+\}/g;
+
+const tokensIn = (value: string): readonly string[] =>
+  [...value.matchAll(TOKEN)].map((match) => match[0]);
+
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace) => parseToml(content, namespace),
+  serializeEntries: (entries) => serializeToml(entries),
+  extractPlaceholders: tokensIn,
+});
+```
+
+エントリが入れ子のオブジェクトを通るパスにある場合は、[`createTreeFileAdapter`](/ja/docs/sdk/extend#createtreefileadapter) を使います。ツリーに対する `parse` と `serialize`、および各リーフの `deriveEntry` を受け取ります。
+
+そのうえで、フォーマットに応じて次の対応をします。
+
+- 拡張子が一般的なものなら、ファクトリ関数に、内容のサンプルをチェックする `sniff` を渡します。ない場合、アダプターはその拡張子のすべてのファイルを引き受け、検出であいまいさが報告されます。
+- 1 つのファイルにソースとターゲットの両方のテキストが入っている場合や、ロケールが記録されている場合は、`parseEntries` と `serializeEntries` が受け取る追加の `locale` 引数を読みます。
+- フラットなトークンのリストではプレースホルダーの構造が失われる場合は、`comparePlaceholders` を追加します。フォーマットに複数形や select の分岐がある場合は、`compareBranchArms` を追加します。
+- フォーマットが内容を翻訳対象外とマークする場合は、内容を捨てずに、`parseEntries` から `{ entries, excludedLeafPaths }` を返します。
+- 読み書きには、ファクトリ関数が渡す `fs` ポートを使います。デフォルトは [`nodeAdapterFs`](/ja/docs/sdk/extend#nodeadapterfs) です。`node:fs` を直接使わないでください。これにより、上限付きの読み取りとアトミックな書き込みが保たれ、ディスクなしでアダプターをテストできます。
+
+## 登録して実行する
+
+組み込みのレジストリから始めると、自分のフォーマットがほかのフォーマットに加わります。そのレジストリを、すべての SDK フローが受け付ける `adapterRegistry` の依存関係として渡します。
+
+```ts title="translate.ts"
+import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
+import { tomlAdapter } from "./toml-adapter.js";
+
+const config = await loadConfig({ cwd: process.cwd() });
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+`register` はレジストリを返すので、登録を連鎖できます。レジストリにすでにあるフォーマットは [`DUPLICATE_FORMAT`](/ja/docs/error-codes#duplicate_format) で、`custom:TOML` のような不正な識別子は [`INVALID_FORMAT_ID`](/ja/docs/error-codes#invalid_format_id) で拒否します。そのため、同じ名前を選んだ 2 つのプラグインは、起動時に失敗します。
+
+## 適切なエラーをスローする
+
+`custom:` アダプターは登録時にラップされます。そのため、アダプターが予期せずスローすると、verbatra のせいにするのではなく、自分のフォーマット名とメソッド名を示す [`ADAPTER_FAILED`](/ja/docs/error-codes#adapter_failed) として現れます。このエラーのメッセージは、アダプター側のメッセージを含みません。ファイルを引用している可能性があるためです。元のエラーは `cause` から読み取ります。
+
+次の 2 種類のエラーは、そのまま通過します。
+
+- 自分でスローした `AdapterError` は、コードを保ちます。フォーマットが表現できない内容には、[`INVALID_STRUCTURE`](/ja/docs/error-codes#invalid_structure) をスローします。
+- `ENOENT` のような errno コードを持つエラーは、そのコードを保つので、ファイルがないことがそのまま報告されます。このチェックはエラーの形だけを見るので、独自の検証エラーに errno コードを付けないでください。
+
+## 何を信頼することになるか
+
+**フォーマットアダプターは完全に信頼されるコードで、インストールするどのパッケージとも同じ信頼レベルです。verbatra はサンドボックス化しません。**
+
+アダプターは、すべてのプロバイダー API キーがある `process.env` を読み取れます。プロセスが読み書きできるすべてのファイルを読み書きでき、ネットワーク接続も開けます。`fs` ポートは慣習であり、境界ではありません。
+
+また、アダプターは何をプレースホルダーとするかを決めます。プレースホルダーを 1 つも報告しないアダプターがあると、そのフォーマットではプレースホルダーの整合性チェックが通ってしまいます（[翻訳の安全性](/ja/docs/translation-safety)を参照）。そのため、補間を壊した訳文が、気づかれないまま出荷されます。アダプターにバグがある場合も、悪意がある場合も同じです。
+
+verbatra が保証するのは、読み込みが決して暗黙には行われないことです。プラグインを探さず、ディレクトリをスキャンせず、何もインストールせず、命名規則にも従いません。アダプターが動くのは、自分のコードがそれをインポートし、レジストリを verbatra に渡したからです。シークレットを読む依存パッケージと同じように扱い、中身を読み、バージョンを固定し、更新のたびにレビューしてください。
+
+## 関連項目
+
+- [アダプター、プロバイダー、秘匿化](/ja/docs/sdk/extend)：すべてのファクトリ関数のオプションとエクスポート
+- [フォーマットアダプターのエラーコード](/ja/docs/error-codes#adapter-error-codes)：各拒否の意味
+- [フォーマット](/ja/docs/formats)：verbatra が同梱するフォーマット

@@ -1,0 +1,111 @@
+---
+title: 交给翻译公司（XLIFF）
+seoTitle: "用 XLIFF 把译文交给翻译公司"
+description: "把需要翻译的字符串导出为 XLIFF 2.0 或 1.2 供 CAT 工具使用，再让返回的文件经过与任何运行相同的安全检查后导入。"
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+专业译者在 Trados、memoQ、OmegaT、Matecat 或 Phrase 等 CAT 工具（计算机辅助翻译工具）中工作时，用它。XLIFF 把内容以带状态、备注和受保护占位符的句段交给他们，他们的翻译记忆库和 QA 检查正是围绕这些构建的。verbatra 能从任何项目格式写出 XLIFF，不限于 XLIFF 项目，并通过与工作簿交接（见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)）相同的导入把它读回。
+
+## 往返流程
+
+```bash
+# 1. Export one XLIFF 2.0 file per target locale into handoff/
+verbatra export --format xliff2 --out handoff
+
+# 2. The agency translates handoff/de.xlf, handoff/fr.xlf ... in its CAT tool and sends them back
+
+# 3. Import every returned file, recording who signed off on the reviewed ones
+verbatra import handoff --format xliff2 --reviewer "Agency GmbH"
+```
+
+如果工具还不能读取 XLIFF 2.0，就用 `--format xliff12`。无论哪种，每个目标语言环境都会得到一个 `<locale>.xlf`。早先范围更广的导出遗留下来的文件，导入时会被拒绝，而不是被应用。
+
+要导入单个返回的文件，在命令中直接指定该文件。以 `.xlf` 或 `.xliff` 结尾的路径无需 `--format` 就按 XLIFF 读取，XLIFF 版本取自文件本身：
+
+```bash
+verbatra import handoff/de.xlf
+```
+
+语言环境取自文件名。如果工具重命名了文件（例如改成 `project_de.xlf`），则改用文件声明的目标语言，去匹配你配置的语言环境。
+
+## 文件中包含什么
+
+导出选取的键与工作簿导出相同：缺失的和已更改的键，加上用 `--include-unchanged` 带上的已是最新的键。每个键成为一个单元：
+
+- **键作为单元的名称**：XLIFF 2.0 中是单元的 `name`，XLIFF 1.2 中是 `trans-unit` 的 `id` 和 `resname`。
+- **占位符、内联标记和 ICU 语法成为内联代码**（`<ph>`），CAT 工具把它们显示为标签，译者可以放置但不能编辑。每个 ICU 分支内的文本仍可翻译。导入时，每个代码都会原样还原为原始文本。
+- **上下文以备注形式传递**：键的说明和含义，前提是项目格式带有它们。
+- **源哈希以元数据形式传递**，因此导入时可以判断自导出以来源文本是否更改。
+- **已更改的键把旧译文放进 target**，作为翻译起点，并处于初始状态。
+
+### 句段状态
+
+每个句段的状态来自锁文件和该键的[审校决定](/zh-CN/docs/the-lock-file#审校决定)：
+
+| 键的情况 | XLIFF 2.0 `state` | XLIFF 1.2 `state` |
+| --- | --- | --- |
+| 缺失 | `initial`，无 target | 无 target |
+| 过期（源文本已更改） | `initial`，旧译文作为 target | `needs-translation`，旧译文作为 target |
+| 已是最新，未审校 | `translated` | `translated` |
+| 已是最新且已批准 | `reviewed` | `signed-off`，并带 `approved="yes"` |
+| 已是最新但被拒绝 | `initial` | `needs-translation` |
+
+值的来源不会改变它的状态：机器翻译、翻译记忆库命中和人工输入的值，在有人批准之前都是 `translated`。
+
+### 机器翻译标记
+
+来源与状态一起传递，这样翻译公司能看出哪些 target 由机器写入。在 XLIFF 1.2 中，由机器（提供商、翻译记忆库、模糊匹配或智能体）写入且未经批准的 target 带有 `state-qualifier="mt-suggestion"`；在 XLIFF 2.0 中，单元的元数据带有它的来源和审校状态。导入时两者都会被忽略。详见[记录机器翻译证据](/zh-CN/docs/provenance-evidence#xliff)。
+
+## 导入接受什么
+
+每个返回的单元都要经过与[工作簿导入](/zh-CN/docs/manual-translation#导入接受什么)相同的检查：完整性门禁、源值过期防护、用 `[[CLEAR]]` 有意清空一个值，以及空 target 表示“尚未翻译”。XLIFF 另有以下规则：
+
+- **保持导出时原样的 target 不改变任何内容**：该键保持字节级一致，并保留它的来源记录。如果你想让过期键的旧译文沿用到新源文本，译者需要把该句段的状态改为 `initial` 之后的某个状态。
+- **任何其他 target 都算译文，无论状态如何**，因为有些工具会写入文本，却不改状态。
+- **`reviewed` 和 `final` 记录一次批准**：XLIFF 1.2 中的 `signed-off`、`final` 和 `approved="yes"` 同样如此。批准连同 `--reviewer` 的名字保存在 `verbatra.provenance.json` 中，并以 [`HANDOFF_REVIEWS_RECORDED`](/zh-CN/docs/error-codes#handoff_reviews_recorded) 报告。导入的值来源为 `import`；译者只是确认过的值保留它原有的来源，例如 `machine`。
+- **源哈希被去掉时，改为比对源文本**：如果单元的源仍然匹配，就导入；不匹配则按漂移搁置。
+- **损坏会被报告，不会中止**：键未知或内联代码损坏的单元，报告为格式错误的行，重复的键报告为重复项；文件的其余部分仍会导入。
+- **XML 会被安全解析**：声明了实体或内部 DTD 子集的文件会被拒绝，大于 32 MB 的文件也会被拒绝。
+
+先运行 `verbatra import --dry-run`，无需写入任何文件就能看到以上所有情况，包括批准。
+
+XLIFF 1.2 无法携带 XML 1.0 禁止的字符（例如 U+0007 这样的控制字符），因此这样的字符会从 1.2 导出中丢弃。XLIFF 2.0 能原样携带它，所以工具能读取时优先用 `xliff2`。
+
+## 手动检查工具：OmegaT
+
+自动化测试会像 CAT 工具那样编辑导出的文件，但并不运行 CAT 工具。要尝试一次真实的往返流程，可以用免费的 [OmegaT](https://omegat.org)：
+
+1. 导出交接文件：`verbatra export --format xliff12 --out handoff`（或 `xliff2`）。
+2. 在 OmegaT 中，用你的源语言和目标语言创建项目，并把 `handoff/de.xlf` 复制到项目的 `source` 文件夹。
+3. 打开项目。`{{name}}` 之类的占位符显示为标签：翻译它们周围的文本，用 Ctrl+T（macOS 上是 Cmd+T）插入每个标签，而不是手动输入。
+4. 翻译一些句段，留下一些不翻译，然后保存。
+5. 选择 Project，Create Translated Documents。OmegaT 会把 `de.xlf` 写入项目的 `target` 文件夹。
+6. 检查它：`verbatra import path/to/target/de.xlf --dry-run`。已翻译的句段列在 `translated` 下，未改动的列在 `unfilled` 下，除非标签丢失，否则不会拒绝任何内容。
+7. 导入它：`verbatra import path/to/target/de.xlf`，然后运行 `verbatra check`。
+
+## 通过 SDK 使用
+
+CLI 封装的是与工作簿交接相同的 [`exportWorkbook`](/zh-CN/docs/sdk/exchange#exportworkbook) 和 [`importWorkbook`](/zh-CN/docs/sdk/exchange#importworkbook)：
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "xliff2", out: "handoff" });
+
+const summary = await importWorkbook({
+  config,
+  workbook: "handoff",
+  format: "xliff2",
+  reviewer: "Agency GmbH",
+});
+```
+
+## 相关内容
+
+- [`verbatra export`](/zh-CN/docs/cli/export)：所有导出选项，包括 XLIFF 格式。
+- [`verbatra import`](/zh-CN/docs/cli/import)：所有导入选项，包括 `--reviewer`。
+- [用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)：工作簿交接，以及导入应用的所有检查。

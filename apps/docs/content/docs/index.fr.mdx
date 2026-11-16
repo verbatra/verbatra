@@ -49,7 +49,7 @@ Copie le prompt dans Claude Code, Cursor ou tout autre agent de code, et il conf
     },
     {
       goal: "Confier à des traducteurs",
-      page: "Traduction humaine",
+      page: "Confier avec Excel ou CSV",
       body: "Exporte un classeur qu'une personne traduit, puis réimporte-le.",
       href: "/docs/manual-translation",
     },
@@ -88,7 +88,7 @@ Ta stack n'est pas là ? Commence par le [démarrage rapide général](/fr/docs/
 
 <DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances `verbatra translate`.">
 
-Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/fr/docs/how-it-works) pour le pipeline complet.
+Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions obsolètes, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/fr/docs/how-it-works) pour le pipeline complet.
 
 <DocsHomeSteps />
 

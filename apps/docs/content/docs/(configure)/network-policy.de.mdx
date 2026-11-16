@@ -1,7 +1,7 @@
 ---
 title: Netzwerkzugriff einschränken
 seoTitle: "Netzwerkzugriff der Provider einschränken"
-description: "Leg fest, zu welchen Hosts ein Übersetzungs-Provider sich verbinden darf, damit verbatra ein rein lokales Setup durchsetzt, statt auf Konvention zu bauen."
+description: "Leg fest, mit welchen Hosts sich ein Übersetzungs-Provider verbinden darf, damit verbatra ein rein lokales Setup durchsetzt, statt auf Konvention zu bauen."
 type: how-to
 ---
 <AvailableFrom version="0.12.0" />
@@ -58,7 +58,7 @@ Ein unbekannter Wert wie `local_only` oder die Host-Liste ohne die Richtlinien-V
 
 Führ [`verbatra doctor`](/de/docs/cli/doctor) aus: Es meldet die wirksame Richtlinie, woher jeder Teil stammt, den Host des Providers und ob dieser Host erlaubt ist. Es löst keine Namen auf und sendet nichts, und die Sprachliste, die `doctor --live` abruft, unterliegt derselben Richtlinie.
 
-Ein abgelehnter Host stoppt `translate`, `watch` beim Start, das Neuübersetzen in Studio und MCP sowie `retranslateEntry` im SDK mit [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#network_policy_violation) und Exit-Code `2`, bevor ein Key gelesen wird. Ein Probelauf und `--estimate` rufen keinen Provider auf und werden deshalb nicht abgelehnt.
+Ein abgelehnter Host stoppt `translate`, `watch` beim Start, das Neuübersetzen in Studio und MCP sowie `retranslateEntry` im SDK mit [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#network_policy_violation) und Exit-Code `2`, bevor ein Key gelesen wird. Ein Dry Run und `--estimate` rufen keinen Provider auf und werden deshalb nicht abgelehnt.
 
 ## Wissen, wann Anfragen geprüft werden
 

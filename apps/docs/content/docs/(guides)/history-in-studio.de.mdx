@@ -21,7 +21,7 @@ Die Liste beginnt mit **Working tree (uncommitted)**, wenn die Datei auf der Pla
 | Wert | der Text in diesem Commit, in Sprache und Richtung der Locale, nie gekürzt |
 | Changes from the previous value | hinzugefügte oder entfernte Wörter, neben der Farbe durch Unterstreichung und Durchstreichung markiert und als „added“ und „removed“ vorgelesen |
 
-Alles ist reiner Text, nie Markup. Ein Schlüssel in einem Wert, einem Betreff oder einem Autorennamen wird durch `[REDACTED]` ersetzt.
+Alles ist reiner Text, nie Markup. Ein API-Key in einem Wert, einem Betreff oder einem Autorennamen wird durch `[REDACTED]` ersetzt.
 
 ## Stelle einen früheren Wert wieder her
 
@@ -30,13 +30,13 @@ Alles ist reiner Text, nie Markup. Ein Schlüssel in einem Wert, einem Betreff o
 
 Hast du ungespeicherte Änderungen, fragt Studio zuerst. **Save draft, then restore** behält deinen Entwurf und lädt dann den alten Wert, **Discard draft and restore** verwirft ihn, und **Keep editing** lässt alles, wie es war. Im Review-Editor steht die Frage oben im Dialog, und **Discard draft and restore** ist der einzige Weg, den Entwurf zu ersetzen.
 
-Eine Zeile bekommt kein **Restore** und sagt warum, wenn ihr Wert der ist, den der Key jetzt hat, wenn Studio den aktuellen Wert noch nicht oder nicht lesen konnte und wenn der Wert wie ein API-Schlüssel aussieht: History zeigt diesen Wert nicht, und er lässt sich von hier nicht wiederherstellen.
+Eine Zeile bekommt kein **Restore** und sagt warum, wenn ihr Wert der ist, den der Key jetzt hat, wenn Studio den aktuellen Wert noch nicht gelesen hat oder nicht lesen konnte und wenn der Wert wie ein API-Key aussieht: History zeigt diesen Wert nicht, und er lässt sich von hier nicht wiederherstellen.
 
 Ein Key in `pinnedKeys` ist für einen Menschen reserviert, daher geht eine in Studio gespeicherte Wiederherstellung durch, während die Bearbeitung durch einen Agenten abgelehnt wird.
 
 ### Wenn sich die Quelle geändert hat
 
-Hat sich der Quelltext seit diesem Commit geändert, fragt **Restore** zuerst nach einer Bestätigung, und kann Studio das nicht sagen (die Lock-Datei zu diesem Commit war nicht lesbar oder hat keinen Eintrag für den Key), sagt es das. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt ins Translation Memory, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** oder Escape lässt alles, wie es war.
+Hat sich der Quelltext seit diesem Commit geändert, fragt **Restore** zuerst nach einer Bestätigung, und kann Studio das nicht sagen (die Lock-Datei zu diesem Commit war nicht lesbar oder hat keinen Eintrag für den Key), sagt es das. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt in den Übersetzungsspeicher, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** oder Escape lässt alles, wie es war.
 
 ## Wisse, was die Liste auslässt
 
@@ -52,7 +52,7 @@ Fehlt Git, ist der Ordner kein Repository oder verweigert Git ihn, sagt Studio d
 
 ## Wisse, wie aktuell sie ist
 
-Der Tab liest erneut, wenn sich eine Locale-, Lock- oder Provenance-Datei ändert, wenn sich Gits Index oder `HEAD` ändert und wenn du zum Studio-Tab zurückkehrst. Die Lesezugriffe sind gestaffelt, sodass eine Folge von Commits Studio nicht überflutet. Ein Lesen im Hintergrund verschiebt nie deinen Fokus.
+Der Tab liest erneut, wenn sich eine Locale-, Lock- oder Herkunftsdatei ändert, wenn sich Gits Index oder `HEAD` ändert und wenn du zum Studio-Tab zurückkehrst. Die Lesezugriffe sind gestaffelt, sodass eine Folge von Commits Studio nicht überflutet. Ein Lesen im Hintergrund verschiebt nie deinen Fokus.
 
 Im Review-Editor öffnet **Show history** dieselbe Liste für diesen Eintrag, liest auf dieselbe Weise erneut, und **Restore** füllt sein Feld.
 

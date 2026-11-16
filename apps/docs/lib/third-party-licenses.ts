@@ -172,6 +172,22 @@ const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
     copyright: [],
   },
   {
+    name: "Noto Sans SC font",
+    license: "OFL-1.1",
+    usage:
+      "Subset to the Simplified Chinese social preview texts and embedded in those images (assets/og-fonts).",
+    textFile: "assets/og-fonts/OFL-NotoSansSC.txt",
+    copyright: [],
+  },
+  {
+    name: "Noto Sans JP font",
+    license: "OFL-1.1",
+    usage:
+      "Subset to the Japanese social preview texts and embedded in those images (assets/og-fonts).",
+    textFile: "assets/og-fonts/OFL-NotoSansJP.txt",
+    copyright: [],
+  },
+  {
     name: "Screenshots (public/screenshots)",
     license: "MIT",
     usage: "Own work of the verbatra project, under the project's MIT license.",

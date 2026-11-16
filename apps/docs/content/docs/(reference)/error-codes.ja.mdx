@@ -1,0 +1,1200 @@
+---
+title: エラーコード
+seoTitle: "verbatra のすべてのエラーコードと次の手順"
+description: "verbatra が報告するすべてのエラー、結果、通知のコードについて、意味、発生させるコマンド、終了コード、次の手順を説明します。"
+type: reference
+tocDepth: 2
+codeHeadings: true
+---
+verbatra が報告するすべての失敗には、安定したコードが付きます。stderr の `verbatra: error [CODE] message` の行、`--json` のエンベロープ（envelope）の `code` または `causeCode`、失敗したロケールの `error.code`、実行サマリーの通知として現れます。分岐には、メッセージではなく必ずコードを使ってください。各コードには固有のアンカーがあり、`/ja/docs/error-codes#` の後ろにコードを小文字で続けたものです。たとえば [`#config_not_found`](#config_not_found) です。
+
+エラーコードの**次の手順**は、エラー行の後に `next: ...` として verbatra が出力し、エンベロープの `hint` フィールドに入れるヒントです。ここには verbatra が出力するとおりに、英語のまま引用しています。SDK も同じテキストを [`errorHint`](/ja/docs/sdk/errors#errorhint) から返します。終了コードそのものとエンベロープの形は[終了コードと JSON 出力](/ja/docs/cli/output)に、症状から探せるヘルプは[トラブルシューティング](/ja/docs/troubleshooting)にあります。
+
+2 つのコードは、2 つの系統にまたがります。`CONFIG_INVALID`（SDK と、CLI の `init`）と `NETWORK_POLICY_VIOLATION`（SDK とプロバイダー）です。小文字のアンカーは SDK のエントリに移動し、もう一方のエントリにはプレフィックス付きのアンカーが付きます。
+
+## コード一覧
+
+すべてのエラーコードを、系統と、CLI の実行がそのコードで終了し得る終了コードとともに示します。どれが当てはまるかは、各系統のセクションに書かれています。
+
+
+| コード | 系統 | 終了コード |
+| --- | --- | --- |
+| [`AGENT_FILE_INVALID`](#agent_file_invalid) | CLI | `2` |
+| [`CLI_ERROR`](#cli_error) | CLI | `2` |
+| [`CONFIG_EXISTS`](#config_exists) | CLI | `2` |
+| [`CONFIG_INVALID`](#cli-config_invalid) | CLI | `2` |
+| [`FORMAT_AMBIGUOUS`](#format_ambiguous) | CLI | `2` |
+| [`INIT_UNWRITABLE`](#init_unwritable) | CLI | `2` |
+| [`INVALID_CONCURRENCY`](#invalid_concurrency) | CLI | `2` |
+| [`INVALID_DEBOUNCE`](#invalid_debounce) | CLI | `2` |
+| [`INVALID_DIRECTION`](#invalid_direction) | CLI | `2` |
+| [`INVALID_FORMAT`](#invalid_format) | CLI | `2` |
+| [`INVALID_LOCALE`](#invalid_locale) | CLI | `2` |
+| [`INVALID_LOCALES`](#invalid_locales) | CLI | `2` |
+| [`INVALID_LOCK_TIMEOUT`](#invalid_lock_timeout) | CLI | `2` |
+| [`INVALID_MAX_TOKENS`](#invalid_max_tokens) | CLI | `2` |
+| [`INVALID_OPTION`](#invalid_option) | CLI | `2` |
+| [`INVALID_OUT`](#invalid_out) | CLI | `2` |
+| [`INVALID_PORT`](#invalid_port) | CLI | `2` |
+| [`INVALID_PROVIDER`](#invalid_provider) | CLI | `2` |
+| [`INVALID_QA_OPTION`](#invalid_qa_option) | CLI | `2` |
+| [`INVALID_SEVERITY`](#invalid_severity) | CLI | `2` |
+| [`LAYOUT_AMBIGUOUS`](#layout_ambiguous) | CLI | `2` |
+| [`MISSING_OPTIONS`](#missing_options) | CLI | `2` |
+| [`REDACTION_UNSUPPORTED`](#redaction_unsupported) | CLI | `2` |
+| [`USAGE_ERROR`](#usage_error) | CLI | `2` |
+| [`CONFIG_NOT_FOUND`](#config_not_found) | SDK | `2` または `1` |
+| [`CONFIG_INVALID`](#config_invalid) | SDK | `2` または `1` |
+| [`UNKNOWN_FORMAT`](#unknown_format) | SDK | `2` または `1` |
+| [`UNKNOWN_LOCALE`](#unknown_locale) | SDK | `2` |
+| [`UNKNOWN_KEY`](#unknown_key) | SDK | なし |
+| [`KEY_PROTECTED`](#key_protected) | SDK | なし |
+| [`KEY_PINNED`](#key_pinned) | SDK | なし |
+| [`PROVIDER_CONSTRUCTION_FAILED`](#provider_construction_failed) | SDK | `2` |
+| [`MACHINE_TRANSLATION_DISABLED`](#machine_translation_disabled) | SDK | なし |
+| [`NETWORK_POLICY_VIOLATION`](#network_policy_violation) | SDK | `2` |
+| [`SOURCE_UNREADABLE`](#source_unreadable) | SDK | `2` または `1` |
+| [`SOURCE_INVALID`](#source_invalid) | SDK | `2` または `1` |
+| [`LOCK_FILE_INVALID`](#lock_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_INVALID`](#provenance_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_UNWRITABLE`](#provenance_file_unwritable) | SDK | なし |
+| [`REVIEW_VALUE_CHANGED`](#review_value_changed) | SDK | なし |
+| [`REVIEW_SOURCE_CHANGED`](#review_source_changed) | SDK | なし |
+| [`REVIEW_REJECT_UNSUPPORTED`](#review_reject_unsupported) | SDK | なし |
+| [`REVIEW_RESTORE_FAILED`](#review_restore_failed) | SDK | なし |
+| [`REVIEWER_INVALID`](#reviewer_invalid) | SDK | `2` |
+| [`LOCK_CONTENDED`](#lock_contended) | SDK | `1` |
+| [`GLOSSARY_NOT_FILE_BACKED`](#glossary_not_file_backed) | SDK | なし |
+| [`GLOSSARY_UNWRITABLE`](#glossary_unwritable) | SDK | なし |
+| [`LENGTH_LIMIT_INVALID`](#length_limit_invalid) | SDK | なし |
+| [`LIMITS_FILE_UNUSABLE`](#limits_file_unusable) | SDK | なし |
+| [`LIMITS_FILE_UNWRITABLE`](#limits_file_unwritable) | SDK | なし |
+| [`LOCALE_LAYOUT_INVALID`](#locale_layout_invalid) | SDK | `2` |
+| [`LOCALE_PATH_COLLISION`](#locale_path_collision) | SDK | `2` |
+| [`CONCURRENCY_INVALID`](#concurrency_invalid) | SDK | なし |
+| [`CONCURRENCY_BUDGET_CONFLICT`](#concurrency_budget_conflict) | SDK | `2` |
+| [`MAX_TOKENS_INVALID`](#max_tokens_invalid) | SDK | なし |
+| [`LOCK_TIMEOUT_INVALID`](#lock_timeout_invalid) | SDK | なし |
+| [`PAGE_CURSOR_INVALID`](#page_cursor_invalid) | SDK | なし |
+| [`PAGE_LIMIT_INVALID`](#page_limit_invalid) | SDK | なし |
+| [`FIND_TEXT_INVALID`](#find_text_invalid) | SDK | なし |
+| [`TARGET_UNWRITABLE`](#target_unwritable) | SDK | `1` または `2` |
+| [`PSEUDO_OUTPUT_CONFLICT`](#pseudo_output_conflict) | SDK | `2` |
+| [`SOURCE_UNWRITABLE`](#source_unwritable) | SDK | `2` |
+| [`EXTRACT_NOT_CONFIGURED`](#extract_not_configured) | SDK | `2` |
+| [`EXTRACT_FS_UNSUPPORTED`](#extract_fs_unsupported) | SDK | なし |
+| [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) | SDK | `2` |
+| [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
+| [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
+| [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`MEMORY_UNWRITABLE`](#memory_unwritable) | SDK | `2` |
+| [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
+| [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
+| [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
+| [`LOCALE_UNSUPPORTED_BY_PROVIDER`](#locale_unsupported_by_provider) | SDK | `2` |
+| [`NOT_A_LOCALE_FILE`](#not_a_locale_file) | SDK | `2` |
+| [`SENSITIVE_CONTENT_WITHHELD`](#sensitive_content_withheld) | SDK | なし |
+| [`RUN_CANCELLED`](#run_cancelled) | SDK | なし |
+| [`LOCALE_FAILED`](#locale_failed) | SDK | `1` |
+| [`MISSING_API_KEY`](#missing_api_key) | プロバイダー | `2` |
+| [`INVALID_REQUEST`](#invalid_request) | プロバイダー | `1` |
+| [`INVALID_RESPONSE`](#invalid_response) | プロバイダー | `1` |
+| [`OUTPUT_TRUNCATED`](#output_truncated) | プロバイダー | `1` |
+| [`PROVIDER_REFUSED`](#provider_refused) | プロバイダー | `1` |
+| [`PROVIDER_BLOCKED`](#provider_blocked) | プロバイダー | `1` |
+| [`RATE_LIMITED`](#rate_limited) | プロバイダー | `1` |
+| [`TIMEOUT`](#timeout) | プロバイダー | `1` |
+| [`AUTH_FAILED`](#auth_failed) | プロバイダー | `1` |
+| [`PROVIDER_UNAVAILABLE`](#provider_unavailable) | プロバイダー | `1` |
+| [`NETWORK_POLICY_VIOLATION`](#provider-network_policy_violation) | プロバイダー | `1` |
+| [`PROVIDER_ERROR`](#provider_error) | プロバイダー | `1` |
+| [`INVALID_JSON`](#invalid_json) | フォーマットアダプター | `1` または `2` |
+| [`INVALID_YAML`](#invalid_yaml) | フォーマットアダプター | `1` または `2` |
+| [`INVALID_XML`](#invalid_xml) | フォーマットアダプター | `1` または `2` |
+| [`INVALID_STRUCTURE`](#invalid_structure) | フォーマットアダプター | `1` または `2` |
+| [`MAX_DEPTH_EXCEEDED`](#max_depth_exceeded) | フォーマットアダプター | `1` または `2` |
+| [`INPUT_TOO_LARGE`](#input_too_large) | フォーマットアダプター | `1` または `2` |
+| [`MIXED_STRUCTURE`](#mixed_structure) | フォーマットアダプター | `1` または `2` |
+| [`ADAPTER_FAILED`](#adapter_failed) | フォーマットアダプター | なし |
+| [`DUPLICATE_FORMAT`](#duplicate_format) | フォーマットアダプター | なし |
+| [`INVALID_FORMAT_ID`](#invalid_format_id) | フォーマットアダプター | なし |
+
+## CLI のエラーコード [#cli-error-codes]
+
+CLI 自身がこれらのコードを報告します。同じ一覧は、`@verbatra/cli` から `CLI_ERROR_CODES`（型は `CliErrorCode`）として公開されます。どれも終了コード `2` で終了します。
+
+### AGENT_FILE_INVALID
+
+`init --agent` が、次のいずれかを見つけました。プレーンな JSON ではない、オブジェクトではない、またはオブジェクトではない servers の値を持つクライアント設定（`.mcp.json`、`.cursor/mcp.json`、`.vscode/mcp.json`、`.gemini/settings.json`）。安全にスキャンできない、または verbatra サーバーをインラインで、ドット付きキーで、テーブルの配列として、または 2 回設定している `.codex/config.toml`。書き込もうとするパス上のシンボリックリンク。`AGENTS.md` または `CLAUDE.md` 内の、対になっていない、または重複した verbatra のマーカー。何も書き込まれていません。
+
+- **発生元**：`init --agent`
+- **次の手順**：Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
+
+### CLI_ERROR
+
+失敗に固有のコードが付いていませんでした（フォールバック）。
+
+- **発生元**：すべてのコマンド
+
+### CONFIG_EXISTS
+
+`--force` なしの `init` が、別の内容の `verbatra.config.ts` を上書きしてしまう場合、またはディレクトリにある別の verbatra 設定ファイルが先に読み込まれる場合です。欠けている回答やあいまいな回答よりも先に報告され、ターミナルでは最初の対話式の質問の前に報告されます。
+
+- **発生元**：`init`
+- **次の手順**：Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
+
+### CONFIG_INVALID [#cli-config_invalid]
+
+`init` が、与えられた回答から有効な設定ファイルを作成できませんでした（読み込みに失敗する設定ファイルに対しては、SDK が同じコードをスローします）。
+
+- **発生元**：`init`
+- **次の手順**：Correct the init answers the message names, then run `verbatra init` again.
+
+### FORMAT_AMBIGUOUS
+
+`init` が、ロケールファイルを読み込めるフォーマットを複数見つけました。`candidates` にその一覧が入ります。報告されるのは、init が対話式の質問ができず（ターミナルがない、`--yes`、`--json`）、`--format` も渡されなかった場合だけです。ターミナルでは、init が代わりに質問します。
+
+- **発生元**：`init`
+- **次の手順**：Pass --format with one of the candidates.
+
+### INIT_UNWRITABLE
+
+`init` がディレクトリにファイルを書き込めませんでした。たとえば、読み取り専用である場合や、書き込むファイルがプロジェクトの内側に解決されないシンボリックリンクである場合です。メッセージには、ファイル、原因、すでに書き込まれたファイルが示されます。
+
+- **発生元**：`init`
+- **次の手順**：Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
+
+### INVALID_CONCURRENCY
+
+`--concurrency` が 1〜100 の整数ではありません。
+
+- **発生元**：`translate`、`watch`
+- **次の手順**：Pass --concurrency as a whole number from 1 to 100.
+
+### INVALID_DEBOUNCE
+
+`watch --debounce` が 1〜60000 ミリ秒の整数ではありません。
+
+- **発生元**：`watch`
+- **次の手順**：Pass --debounce as a whole number of milliseconds from 1 to 60000.
+
+### INVALID_DIRECTION
+
+`tmx` に `import` と `export` 以外の方向が渡されたか、`tmx export` にインポート専用のオプション（`--dry-run`、`--overwrite`）が渡されました。
+
+- **発生元**：`tmx`
+- **次の手順**：Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.
+
+### INVALID_FORMAT
+
+`export` または `import` の `--format` が、サポートされている受け渡しフォーマットではありません。または `init` の `--format` が、サポートされているロケールファイルのフォーマットではありません。
+
+- **発生元**：`export`、`import`、`init`
+- **次の手順**：Pass a supported --format value; the command's --help lists them.
+
+### INVALID_LOCALE
+
+`pseudo --locale` が、英字、数字、ハイフンからなる言語タグではありません。または、`init` の対話式の質問で回答したロケールが BCP 47 のコードではありません（`--source` と `--targets` のオプションでは、代わりに `CONFIG_INVALID` で失敗します）。
+
+- **発生元**：`pseudo`、`init`
+- **次の手順**：Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
+
+### INVALID_LOCALES
+
+`--locales` が指定されたものの、ロケールが 1 つも挙げられていません。または、`init` の対話式の質問で回答したターゲットロケールに、ソースロケールが含まれています。
+
+- **発生元**：`translate`、`watch`、`check`、`diff`、`export`、`tmx`、`report`、`init`
+- **次の手順**：Pass --locales as a comma-separated list of configured target locales, or omit it.
+
+### INVALID_LOCK_TIMEOUT
+
+`--lock-timeout` が 1〜3600 秒の整数ではありません。
+
+- **発生元**：`translate`、`watch`、`import`
+- **次の手順**：Pass --lock-timeout as a whole number of seconds from 1 to 3600.
+
+### INVALID_MAX_TOKENS
+
+`translate --max-tokens` が 1 以上の整数ではありません。
+
+- **発生元**：`translate`
+- **次の手順**：Pass --max-tokens as a whole number of at least 1.
+
+### INVALID_OPTION
+
+`init` のオプションがプロバイダーに合わないか、形式が正しくありません。次のものが該当します。`openai-compatible` または `libretranslate` ではないのに指定した `--base-url`、または認証情報、クエリ文字列、フラグメントを含む `--base-url`（対話式の質問への URL ではない回答や、`{locale}` を含まない `--path` の回答は、このコードで失敗します。同じ値をオプションとして渡した場合はここでは検査されず、後で [`CONFIG_INVALID`](#cli-config_invalid) として失敗します）。`openai-compatible` 以外のプロバイダーに指定した `--api-key-env-var`、または変数名ではない `--api-key-env-var`。モデルを取らないプロバイダー（`deepl`、`google-translate`、`libretranslate`、`none`）への `--model`。空の値を渡したオプション。ロケールを 1 つも挙げていない `--targets`。`--agent` なしの `--client`、クライアントを指していない `--client`、init が設定できないクライアントを指している `--client`。そのほか、`--cwd` が存在するディレクトリを指していない場合（`--cwd` を取るコマンドすべてで、実行前に検出されます）、`doctor --data-flow` が `--literals`、`--locales`、`--live` と一緒に指定された場合、`doctor --literals` が `--locales` または `--live` と一緒に指定された場合、`check --file` がファイルを指していない場合、または `--locales`、`--consistency`、`--require-reviewed`、`--sensitive` と一緒に指定された場合、`pseudo --mode` が `accented` と `bidi` 以外のモードを指している場合です。
+
+- **発生元**：`--cwd` を取るすべてのコマンドに加えて、`init`、`doctor`、`check`、`pseudo`
+- **次の手順**：Correct or remove the flag the message names.
+
+### INVALID_OUT
+
+`types` または `pseudo` の `--out` が指定されたものの、パスが指定されていません。
+
+- **発生元**：`types`、`pseudo`
+- **次の手順**：Pass --out with a file path, or omit it.
+
+### INVALID_PORT
+
+`studio --port` が 1〜65535 の整数ではありません。
+
+- **発生元**：`studio`
+- **次の手順**：Pass --port as a whole number from 1 to 65535.
+
+### INVALID_PROVIDER
+
+`init --provider` が、既知のプロバイダーを指していません。
+
+- **発生元**：`init`
+- **次の手順**：Pass --provider with a supported provider id; `verbatra init --help` lists them.
+
+### INVALID_QA_OPTION
+
+`check` に、`--qa` または `--file` なしで `--severity` または `--strict` が渡されたか、`--strict` が `--severity error` と一緒に渡されました。
+
+- **発生元**：`check`
+- **次の手順**：Add --qa or --file, and do not combine --strict with --severity error.
+
+### INVALID_SEVERITY
+
+`check --severity` が `error` でも `warning` でもありません。
+
+- **発生元**：`check`
+- **次の手順**：Pass --severity error or --severity warning.
+
+### LAYOUT_AMBIGUOUS
+
+`init` が、同じくらいよく合うファイルパターンを複数見つけました。`candidates` にその一覧が入ります。報告されるのは、init が対話式の質問ができず（ターミナルがない、`--yes`、`--json`）、`--path` も渡されなかった場合だけです。ターミナルでは、init が代わりに質問します。
+
+- **発生元**：`init`
+- **次の手順**：Pass --path with one of the candidates.
+
+### MISSING_OPTIONS
+
+`init` に、ある値の回答がありません。対話式の質問ができず（ターミナルがない、`--yes`、`--json`）、その値が渡されず、検出もされず、デフォルトもなかった場合です。または、デフォルトのない値について対話式の質問をした場合、あるいは質問に回答する前に入力が終わった場合です。メッセージには、指定されていないすべてのオプションが示されます。
+
+- **発生元**：`init`
+- **次の手順**：Pass the flags the message names, or --yes where the message offers it.
+
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` が、値の秘匿化を確認できない古い `@verbatra/mcp` を読み込みました。何かを提供する前に、サーバーが停止されました。
+
+- **発生元**：`mcp`
+- **次の手順**：Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
+### USAGE_ERROR
+
+引数のパーサーがコマンドラインを拒否しました（未知のオプション、引数の不足）。または、`mcp` が `--json` を含む、受け付けられないオプションを受け取りました。`hint` には、そのコマンドの `--help` が示されます。
+
+- **発生元**：すべてのコマンド
+- **次の手順**：Run the command with --help to see the options and arguments it accepts.
+
+## SDK のエラーコード [#sdk-error-codes]
+
+実行全体の失敗は、これらのコードのいずれかを持つ `SdkError` をスローします。クラスと、どのコードが `cause` を持つかは[エラー](/ja/docs/sdk/errors)で説明しています。CLI では、スローされたコードは実行を `2` で終了させます。1 つの失敗したロケールに記録されたコードは `1` で終了します。一覧が `2` または `1` としている場合、`doctor` はそのコードを失敗したチェックとして報告し、`1` で終了します。CLI のコマンドがないコードは、SDK、Studio、MCP サーバー経由で届きます。
+
+### CONFIG_NOT_FOUND
+
+探索しても設定ファイルが見つからなかった、または明示された `configPath` が存在しません（`loadConfig` がスローします）。
+
+- **発生元**：設定ファイルを読み込むすべてのコマンド
+- **次の手順**：Run `verbatra init` to create a config, or pass the path of an existing config file.
+
+### CONFIG_INVALID
+
+設定ファイルは見つかったものの、解析できないか検証に失敗した、または用語集ファイルを解決できませんでした。`translate`（ドライランも。プロバイダーが `none` の場合を除く）と `retranslateEntry` も、`VERBATRA_NETWORK_POLICY` または `VERBATRA_NETWORK_ALLOWED_HOSTS` が無効な値を持つ場合に、プロバイダーを生成する前にこれをスローします。`importWorkbook` は、設定されたターゲットではないロケールのシートや交換ファイルに対してはこれをスローせず、そのロケールが自身の `error` でこのコードにより失敗します。`exportTmx` と `importTmx` は、大文字と小文字や区切り文字を正規化するとソースロケールになるターゲットロケールに対して、`updateGlossaryTerm` は、無効な用語の編集や、サイズの上限を超える用語集ファイルに対して、これをスローします。
+
+- **発生元**：設定ファイルを読み込むすべてのコマンド
+- **次の手順**：Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
+
+### UNKNOWN_FORMAT
+
+設定されたフォーマットに対して登録されたアダプターがありません。ファイルを読み込む前にスローされます。
+
+- **発生元**：ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバー
+- **次の手順**：Set `format` in the config to a supported format, or register an adapter for this one.
+
+### UNKNOWN_LOCALE
+
+要求されたロケールが、設定されたターゲットロケールに含まれていません。
+
+- **発生元**：`translate`、`watch`、`check`、`diff`、`export`、`tmx`、`report`、Studio、MCP サーバー
+- **次の手順**：Use a locale from the config's `targetLocales`, or add it there first.
+
+### UNKNOWN_KEY
+
+要求されたキーがソースのリソースにありません（`keyValue`、`keyIntegrity`、`keyContext`、`setKeyLengthLimit`、`editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry`）。`keyHistory` がスローするのは、キーが空または長すぎる場合だけです。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Use a key that exists in the source locale file, or add it there first.
+
+### KEY_PROTECTED
+
+`retranslateEntry` が、人が書いた値、インポートした値、または verbatra の外で変更された値の置き換えを拒否しました。`includeHuman` も `humanEdits: "overwrite"` も、それを許可していなかったためです。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Keep the human-written value, or opt in to replacing it: include human edits for this call, or set `humanEdits: "overwrite"` in the config.
+
+### KEY_PINNED
+
+キーが設定の `pinnedKeys` に一致するため、機械による書き込みが拒否されました（`retranslateEntry`、および `actor: "agent"` の `editEntry`）。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Edit the value by hand, or remove the key from `pinnedKeys` in the config to let verbatra write it.
+
+### PROVIDER_CONSTRUCTION_FAILED
+
+プロバイダーを生成できませんでした。プロバイダー自身のエラーを包み、API キーがない場合も含みます。API キーがない場合、ヒントは、下記の次の手順ではなく変数名を示します。たとえば `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` です。SDK は `.env` ファイルを読み込みません。
+
+- **発生元**：`translate`、`watch`、Studio、MCP サーバー
+- **次の手順**：Check the config's `provider` block and its API key environment variable, then run `verbatra doctor`.
+
+### MACHINE_TRANSLATION_DISABLED
+
+設定が `provider: { id: "none" }` のため、プロバイダーの費用が発生する操作が、プロバイダーを生成する前に拒否されました（`retranslateEntry`、`assertMachineTranslationEnabled`）。`translate` と `watch` はこれをスローしません。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Translate the key by hand, or configure a machine provider in place of `provider: { id: "none" }`.
+
+### NETWORK_POLICY_VIOLATION
+
+有効な[ネットワークポリシー](/ja/docs/network-policy)が、プロバイダーのエンドポイントまたはそのプロキシを許可していません。ドライランではない `translate`、起動時の `watch`、`retranslateEntry` が、プロバイダーを生成する前、また API キーを読み取る前にスローします。
+
+- **発生元**：`translate`、`watch`、Studio、MCP サーバー
+- **次の手順**：Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### SOURCE_UNREADABLE
+
+ソースロケールファイルが存在しません。`import` と `tmx import` では、インポートするファイルまたはディレクトリが存在しません。
+
+- **発生元**：ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバー
+- **次の手順**：Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+- **`import` の次の手順**：Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
+- **`tmx import` の次の手順**：Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
+
+### SOURCE_INVALID
+
+ソースロケールファイルを読み取れない、または解析できませんでした。アダプターの読み取りエラーを包みます。`import` と `tmx import` では、インポートするファイルが大きすぎる、または読み取れる受け渡しファイルや TMX ドキュメントではありません。
+
+- **発生元**：ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバー
+- **次の手順**：Fix the file the message names so it parses under the configured format.
+- **`import` の次の手順**：Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
+- **`tmx import` の次の手順**：Fix the TMX file the message names, or export it again from the tool that wrote it.
+
+### LOCK_FILE_INVALID
+
+ロックファイルはありますが、破損している、大きすぎる、またはサポートされないバージョンです。
+
+- **発生元**：`translate`、`import`、`check`、`diff`、`export`、`report`、Studio、MCP サーバー
+- **次の手順**：Restore verbatra.lock.json from version control, then try again.
+
+### PROVENANCE_FILE_INVALID
+
+来歴ファイルはありますが、破損している、大きすぎる、または構造が正しくありません。何かを変更する前に、書き込み（`translate`、`watch`、`importWorkbook`、`editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry`）と `loadProvenance` がスローします。レポートはスローしません。より新しい verbatra のファイルには手を加えず、`translate`、`watch`、`importWorkbook` は通知 `PROVENANCE_VERSION_UNRECOGNIZED` を報告します。
+
+- **発生元**：`translate`、`watch`、`import`、Studio、MCP サーバー
+- **次の手順**：Restore verbatra.provenance.json from version control, then try again.
+
+### PROVENANCE_FILE_UNWRITABLE
+
+来歴ファイルがより新しい verbatra のものであるか、verbatra が読み戻せるサイズを超えてしまうため、レビューの判断を保存できませんでした（`approveEntry`、`rejectEntry`、`approveLocale`）。何も書き込まれません。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Upgrade verbatra if a newer version wrote verbatra.provenance.json, then record the decision again.
+
+### REVIEW_VALUE_CHANGED
+
+キーに値がない、値がレビュー担当者が見た `expectedValue` ではない、または `expectedValue` が文字列ではありません（`approveEntry`、`rejectEntry`）。次の場合もスローされます。`expectedValueHash` が文字列ではない、またはそれを生成した値マーカーなしで渡された場合。現在の値のハッシュと一致しない場合。`expectedValue` と `expectedValueHash` の両方が渡された場合です。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Reload the current value, review it again, and resend the decision.
+
+### REVIEW_SOURCE_CHANGED
+
+値が書き込まれた後にソースが変更されたか、そのロケールのキーに対するロックファイルのエントリがありません。そのため、どのソーステキストに対して書かれた値なのかを verbatra が判断できず、承認できません（`approveEntry`）。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Edit or retranslate the key first, then review its new value.
+
+### REVIEW_REJECT_UNSUPPORTED
+
+フォーマットが、値なしでファイルを書き込んでもキーの値を保持するもの（XLIFF など）であるか、ロケールファイルが大きすぎて復元用のコピーを保持できないため、`rejectEntry` はファイルをそのまま残しました。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Edit the value instead of rejecting it.
+
+### REVIEW_RESTORE_FAILED
+
+`rejectEntry` がロケールファイルを書き換えた後に失敗し、ロケールファイルまたは来歴ファイルの復元にも失敗しました。メッセージには、元の失敗（`cause` にも入ります）と、バージョン管理から復元すべきファイルが示されます。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Restore the files the message names from version control.
+
+### REVIEWER_INVALID
+
+`reviewer` が空、64 文字を超える、または制御文字を含んでいます（`approveEntry`、`rejectEntry`、`approveLocale`、`importWorkbook`）。
+
+- **発生元**：`import --reviewer`、Studio、MCP サーバー
+- **次の手順**：Pass a reviewer name of 1 to 64 characters with no control characters.
+
+### LOCK_CONTENDED
+
+ロケールの書き込みロック、または `updateGlossaryTerm` が取得する用語集の書き込みロックを、タイムアウトまでに取得できませんでした。または、それが保護する書き込みの前に別のプロセスがその書き込みロックを回収しました。そのため、その書き込みは行われません。同じ操作がそれより前に行った書き込みは、ディスクに残ります。メッセージには、書き込みロックのファイルのパスが示されます。
+
+- **発生元**：`translate`、`watch`、`import`、Studio、MCP サーバー
+- **次の手順**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
+
+### GLOSSARY_NOT_FILE_BACKED
+
+設定の用語集がインラインか、ありません。そのため、読み取りや書き換えの対象となる用語集ファイルがありません（`readGlossaryFile`、`updateGlossaryTerm`）。用語集がまったくない場合は、代わりに次のヒントが表示されます。Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Move the glossary into its own file and set the config's `glossary` to that file's path.
+
+### GLOSSARY_UNWRITABLE
+
+用語集ファイルを書き込めなかったか、用語集の書き込みロックを作成できませんでした。たとえば読み取り専用のプロジェクトの場合です。または、編集を保存した後で書き込みロックを解放できませんでした（`updateGlossaryTerm`）。ファイルシステムのエラーが `cause` になります。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Make the glossary file and its directory writable, then try again.
+
+### LENGTH_LIMIT_INVALID
+
+`setKeyLengthLimit` が入力を拒否しました。上限が 1〜9007199254740991 の整数（または `null`）ではない、キーが空または 1024 文字を超えている、上限が数値で、かつ設定の `maxLength` がすでにそのキーを設定している（これは [`verbatra.limits.json`](/ja/docs/config-file#maxlength) より優先されます）、または書き込みによってファイルが 10,000 件のエントリまたは 1 MiB を超えてしまう場合です。
+
+- **発生元**：`setKeyLengthLimit`（SDK）
+- **次の手順**：Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
+
+### LIMITS_FILE_UNUSABLE
+
+`verbatra.limits.json` を使用できません。通常のファイルではない、1 MiB を超えている、UTF-8 や JSON ではない、別の形や新しいバージョンである、または 10,000 件を超えるエントリを持っています。使用できないファイルは上書きされません。そのようなファイルに出会った実行はスローせず、[`LIMITS_FILE_IGNORED`](#limits_file_ignored) を返します。
+
+- **発生元**：`setKeyLengthLimit`（SDK）
+- **次の手順**：Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.
+
+### LIMITS_FILE_UNWRITABLE
+
+上限ファイルは存在しますが、読み取れませんでした（権限の問題）。または、そのファイルやプロジェクトの上限ファイルの書き込みロックを書き込めませんでした。たとえば読み取り専用のプロジェクトの場合です。あるいは、上限を保存した後で書き込みロックを解放できませんでした（メッセージにその旨が示され、上限は保存されたままです）。書き込みの失敗では、ファイルシステムのエラーが `cause` になります。拒否された読み取りでは `cause` はありません。
+
+- **発生元**：`setKeyLengthLimit`（SDK）
+- **次の手順**：Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
+
+### LOCALE_LAYOUT_INVALID
+
+`files.pattern` と `files.localeStyle` を組み合わせられないか、スタイルが、設定されたロケールに対して有効なパスの表記を持っていません。
+
+- **発生元**：ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバー
+- **次の手順**：Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.
+
+### LOCALE_PATH_COLLISION
+
+設定された 2 つのロケールが、同じ絶対ファイルパスに解決されます。
+
+- **発生元**：ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバー
+- **次の手順**：Change `files.pattern` or `files.localeStyle` in the config so each locale resolves to its own file.
+
+### CONCURRENCY_INVALID
+
+`concurrency` が設定されたものの、1 以上の整数ではありません。どのロケールの実行よりも前にスローされます。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a concurrency that is a whole number of at least 1.
+
+### CONCURRENCY_BUDGET_CONFLICT
+
+トークン予算（設定または実行ごとのもの）が適用されている間に、実際の実行が `concurrency` を 1 より大きく設定しました。プロバイダーを呼び出す前にスローされます（ドライランは対象外です）。
+
+- **発生元**：`translate`、`watch`
+- **次の手順**：Run with a concurrency of 1 while a token budget applies, or remove the budget.
+
+### MAX_TOKENS_INVALID
+
+`translate` の実行ごとの `maxTokens` が設定されたものの、1 以上の整数ではありません。何かを読み込んだり、費用が発生したりする前にスローされます。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a token budget that is a whole number of at least 1.
+
+### LOCK_TIMEOUT_INVALID
+
+`lockAcquireTimeoutMs` が設定されたものの、0 以上のミリ秒の整数ではありません（`translate`、起動時の `watch`、`importWorkbook`、`retranslateEntry`、`retranslateEntries`、`editEntry`、`approveEntry`、`rejectEntry`、`approveEntries`、`rejectEntries`、`approveLocale`、`applyValueReplace`、`updateGlossaryTerm`、`setKeyLengthLimit`）。何かを読み込んだり、ロックしたりする前にスローされます。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a lock timeout that is a whole number of at least 0.
+
+### PAGE_CURSOR_INVALID
+
+`localeValuesPage` または `provenanceReportPage` に渡された `cursor` が、形式が正しくない、`PAGE_CURSOR_MAX_LENGTH`（512）より長い、別のフィルターで作られた、またはページの間にファイルが変わったためにキーが移動した、もしくはなくなったキーを指しています。
+
+- **発生元**：SDK、Studio の `verbatra_locale_values` エージェントツール（MCP サーバーの `locale.values` と `report.provenance` は、`cursor` の入力が無効であるとして報告します）
+- **次の手順**：Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+`localeValuesPage` または `provenanceReportPage` に渡された `limit` が、1〜`PAGE_LIMIT_CAP`（1000）の整数ではありません。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a page limit that is a whole number from 1 to 1000.
+
+### FIND_TEXT_INVALID
+
+`previewValueReplace` または `applyValueReplace` に渡された `find` のテキストが、空または 20,000 文字を超えています。または、`find` か `replace` に、対になっていないサロゲートが含まれています。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates.
+
+### TARGET_UNWRITABLE
+
+ターゲットのロケールファイルを書き込めませんでした（ディレクトリが書き込み不可、存在しない、読み取り専用、または空き容量がない）。メッセージには、ターゲットのファイルとファイルシステムのコードが示されます。アトミックな書き込みが使う内部の一時ファイルは示されません。
+
+- **発生元**：`translate`、`import`、`pseudo`、Studio、MCP サーバー
+- **次の手順**：Make the target locale file and its directory writable, then try again.
+
+### PSEUDO_OUTPUT_CONFLICT
+
+`pseudolocalize` が、設定済みのロケールと同じ名前の疑似ロケールを求められたか、設定済みのロケールファイルに書き込む、そのようなファイルがあるディレクトリに書き込む、または `cwd` の外（絶対ディレクトリや `cwd` 自体を含む）に書き込む出力パスを求められました。シンボリックリンクを解決した後も同様です。何かを読み込んだり書き込んだりする前に拒否されます。
+
+- **発生元**：`pseudo`
+- **次の手順**：Choose a pseudolocale and an output path inside the project that name no configured locale.
+
+### SOURCE_UNWRITABLE
+
+ソースロケールファイルを書き込めませんでした（`extract` のみ）。`xliff` と `apple-xcstrings` は、まだカタログがない場合にこれに当たります。どちらも何もない状態からは作成されないためです。
+
+- **発生元**：`extract`
+- **次の手順**：Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.
+
+### EXTRACT_NOT_CONFIGURED
+
+`extract` ブロックを持たない設定で、`extract` が呼び出されました。`diff --unused` と `doctor --literals` は、チェックが実行されなかった理由として、スローせずにこれを報告します。
+
+- **発生元**：`extract`
+- **次の手順**：Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
+
+### EXTRACT_FS_UNSUPPORTED
+
+`readDirectory` を実装していない `deps.fs` が `extract` に渡されたため、ソースファイルを見つけられません。`diff --unused` は、チェックが実行されなかった理由として、スローせずにこれを報告します。
+
+- **発生元**：SDK のみ
+- **次の手順**：Pass a file system that implements `readDirectory`, or use the default one.
+
+### TYPES_OUTPUT_CONFLICT
+
+`generateTypes` が出力パスを拒否しました。ファイルを指していない（またはパス区切り文字で終わる）、絶対パスである、`cwd` の外に出る、または `cwd` 自体を指している、あるいは `.ts`、`.mts`、`.cts` で終わらないパスです。さらに、設定済みのロケールファイル、ロックファイル、来歴ファイル、翻訳メモリのキャッシュ、verbatra が設定を探すファイル、実行が読み込んだ設定ファイル、設定が指す用語集ファイルを指すパスも、シンボリックリンクを解決した後を含めて拒否されます。生成する実行は、verbatra のヘッダー行で始まっていない既存のファイルの置き換えも拒否します。
+
+- **発生元**：`types`
+- **次の手順**：Choose a relative `.ts`, `.mts` or `.cts` output path inside the project that names no file verbatra manages.
+
+### TYPES_UNWRITABLE
+
+`generateTypes` が生成する宣言ファイルを書き込めませんでした（ディレクトリが書き込み不可、存在しない、またはディスクの空き容量がない）。メッセージには、ファイルとファイルシステムのコードが示されます。
+
+- **発生元**：`types`
+- **次の手順**：Make the output file and its directory writable, then try again.
+
+### TMX_OUTPUT_CONFLICT
+
+`exportTmx` が出力パスを拒否しました。ファイルを指していない（またはパス区切り文字で終わる）、`cwd` の外、または `cwd` 自体に解決されるパスです。さらに、[`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) に挙げた verbatra が管理するファイルを指すパスも、シンボリックリンクを解決した後を含めて拒否されます。翻訳メモリを読み込む前に拒否されます。
+
+- **発生元**：`tmx export`
+- **次の手順**：Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### TMX_UNWRITABLE
+
+`exportTmx` が生成する TMX ファイルを書き込めませんでした（ディレクトリが書き込み不可、そのパスにすでにディレクトリがある、またはディスクの空き容量がない）。メッセージには、ファイルとファイルシステムのコードが示されます。
+
+- **発生元**：`tmx export`
+- **次の手順**：Make the output file and its directory writable, then try again.
+
+### MEMORY_UNWRITABLE
+
+`importTmx` が翻訳メモリのキャッシュ `verbatra.cache.json` を書き込めませんでした（ディレクトリが書き込み不可、そのパスにすでにディレクトリがある、またはディスクの空き容量がない）。メッセージには、ファイルとファイルシステムのコードが示されます。
+
+- **発生元**：`tmx import`
+- **次の手順**：Make verbatra.cache.json and its directory writable, then try again.
+
+### EXPORT_OUTPUT_CONFLICT
+
+`exportWorkbook` が出力パスを拒否しました。`cwd` の外に解決されるパスです。さらに、それ自体、またはエクスポートがその中に書き込むファイルが、[`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) に挙げた verbatra が管理するファイルを指すパスも、シンボリックリンクを解決した後を含めて拒否されます。ファイルを指していない、または `cwd` 自体を指している `xlsx` のパスも拒否されます。何かを読み込む前に拒否されます。
+
+- **発生元**：`export`
+- **次の手順**：Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### EXPORT_UNWRITABLE
+
+`exportWorkbook` が生成する受け渡しファイルを書き込めませんでした（ディレクトリが書き込み不可、ディレクトリやファイルがすでにそのパスにある、またはディスクの空き容量がない）。メッセージには、ファイルとファイルシステムのコードが示され、ファイルシステムのエラーが `cause` になります。
+
+- **発生元**：`export`
+- **次の手順**：Make the output file and its directory writable, then try again.
+
+### LOCALE_STATE_NOT_CARRIED_OVER
+
+`editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry`、`approveLocale` がスローします。このとき何も書き込まれません。それ以外では、`translate`、`watch`、`importWorkbook` が実行しなかったロケールの `error` に、または `applyValueReplace` のロケール失敗の `code` として記録されます。`pt_BR` のように表記の異なるコードのもとにある状態を、ロックファイルまたは来歴ファイルで移動できなかったためです。次回の実行で再試行されます（[表記の異なるロケールコード](/ja/docs/the-lock-file#表記の異なるロケールコード)）。
+
+- **発生元**：`translate`、`watch`、`import`、Studio、MCP サーバー
+- **次の手順**：Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
+
+### LOCALE_UNSUPPORTED_BY_PROVIDER
+
+設定された DeepL または Google Cloud Translation のプロバイダーが、verbatra が同梱する言語テーブルにソースロケールまたは選択されたターゲットロケールを載せていません。`translate`（ドライランと見積もりも）、起動時の `watch`、`retranslateEntry` が、プロバイダーを生成する前、API キーを読み取る前、どのロケールも開始する前にスローします。`localeMap` で明示的に対応付けられたロケールは、代わりに信頼されます（[実行前の対応確認](/ja/docs/language-support#実行前の対応確認)）。
+
+- **発生元**：`translate`、`watch`、Studio、MCP サーバー
+- **次の手順**：Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
+
+### NOT_A_LOCALE_FILE
+
+`checkFile` に、設定されたどのロケールのファイルでもないパス、またはファイルが存在しないパスが渡されました。
+
+- **発生元**：`check --file`
+- **次の手順**：Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
+
+### SENSITIVE_CONTENT_WITHHELD
+
+`sensitiveData.mode` が `block` または `redact` で、キーに、検出器やパターンに一致し、送信できない、または無傷で戻ってこなかった内容が含まれていたため、`retranslateEntry` がそのキーを送信しなかった、またはその回答を破棄しました（[機密情報ガード](/ja/docs/data-handling#機密情報ガード)）。`translate` と `watch` は、代わりにそのようなキーを `sensitiveWithheld` に一覧します。
+
+- **発生元**：Studio、MCP サーバー
+- **次の手順**：Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
+### RUN_CANCELLED
+
+`translate` または `retranslateEntry` に渡された `signal` が中断しました。`retranslateEntry` は、プロバイダーが応答する前に中断された場合にこれをスローし、何も書き込みません。`translate` は、キャンセルによって開始できなかった各ロケールにこれを記録し、サマリーを [`cancelled`](/ja/docs/sdk/run-summary) とします。`editEntry`、`approveEntry`、`updateGlossaryTerm` など、書き込みロックを取得するエントリポイントも、書き込みロックを取得しようとしたときに `releaseHeldLocks` が実行中であれば、これをスローします。
+
+- **発生元**：SDK のみ
+- **次の手順**：Run the operation again to finish the work the cancellation left pending.
+
+### LOCALE_FAILED
+
+スローされることはありません。失敗したロケールの `error` に記録される、フォールバックの `code` です。
+
+- **発生元**：`translate`、`watch`、`import`
+- **次の手順**：Fix the cause the locale's message names, then try again.
+
+## プロバイダーのエラーコード [#provider-error-codes]
+
+プロバイダーの失敗は、これらのコードのいずれかを持つ `ProviderError` をスローします（[構造化されたエラー](/ja/docs/providers#構造化されたエラー)）。`translate` と `watch` の内部では、失敗するのは、失敗が起きたそのリクエストだけです。そのキーは保留され、ロケールには、コードを示す `SUB_BATCH_FAILED` の通知が付き、キーは次回の実行で再び処理されます。Studio や MCP サーバーからの単一キーの再翻訳は、`ProviderError` を再スローします。失敗したリクエストは `1` で終了し、そのロケールは `partial` または `failed` で終わります。
+
+### MISSING_API_KEY
+
+必要な環境変数が未設定か空です。メッセージには変数名が示され、値は示されません。CLI では `PROVIDER_CONSTRUCTION_FAILED` の `causeCode` として届き、`2` で終了します。API キーが省略可能な LibreTranslate では、サーバーが API キーを要求したのに `LIBRETRANSLATE_API_KEY` が設定されていないことを意味します。
+
+- **次の手順**：Set the API key environment variable your provider reads, then run `verbatra doctor`.
+
+### INVALID_REQUEST
+
+リクエストが無効として拒否されました。ネットワーク通信の前に、形式が正しくないフィールド、DeepL が受け付けないコード（地域付きのソースコードを指す `localeMap` のエントリや、素の `en` または `pt` に解決されるターゲット）、Google Cloud Translation で BCP 47 として正しくないコードが検出された場合です。または、Google Cloud Translation や LibreTranslate サーバーの HTTP 400 の応答による場合です。LibreTranslate では、サーバーにモデルがない言語や、`--char-limit` または `--batch-limit` を超えるリクエストが該当します。再試行しても解決しません。
+
+- **次の手順**：Check the provider options in the config, such as the model name.
+
+### INVALID_RESPONSE
+
+出力が不正、不完全、またはリクエストとの照合に失敗しました。
+
+- **次の手順**：Try again; if it keeps failing, configure a different model.
+
+### OUTPUT_TRUNCATED
+
+モデルが出力トークンの上限に達しました。[出力トークンの上限](/ja/docs/providers#出力トークンの上限)を参照してください。
+
+- **次の手順**：Translate fewer keys at a time, or configure a model with a larger output limit.
+
+### PROVIDER_REFUSED
+
+OpenAI、`openai-compatible`、OpenCode のレスポンスに、訳文ではなく拒否が含まれていました。
+
+- **次の手順**：Review the source text the provider refused, or translate it by hand.
+
+### PROVIDER_BLOCKED
+
+リクエストまたはレスポンスが、安全性のためにブロックまたはフィルターされました。
+
+- **次の手順**：Review the source text the provider blocked, or translate it by hand.
+
+### RATE_LIMITED
+
+HTTP 429 または SDK のレート制限エラーです。Google Cloud Translation では、本文にクォータの理由（1 日または 1 分あたりの上限）を示す HTTP 403 も含まれます。この場合は、プロジェクトの Cloud Translation のクォータを引き上げてください。LibreTranslate も、エラーテキストに「too many」とある HTTP 403 を、このコードとして報告します。プロバイダーが示す待ち時間（Gemini の再試行までの遅延や `Retry-After` ヘッダー）はメッセージに示されます。5 分以上の場合は、クォータが使い切られている可能性が高いことも加わります。
+
+- **次の手順**：Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
+
+### TIMEOUT
+
+ネットワークまたはリクエストのタイムアウトです。上限は [`requestTimeoutMs`](/ja/docs/providers#リクエストのタイムアウト) で引き上げられます。
+
+- **次の手順**：Try again, or raise the provider's `requestTimeoutMs` in the config.
+
+### AUTH_FAILED
+
+HTTP 401 または 403 です。API キーが無効、失効している、または権限がありません。Gemini の `API_KEY_INVALID` を示す HTTP 400（`GEMINI_API_KEY` が示されます）も同様です。LLM プロバイダーでは、メッセージにステータスが示され、403 ではサーバーがポリシーまたは API キーの権限によりリクエストを拒否したことも加わります。Google Cloud Translation では、`GOOGLE_TRANSLATE_API_KEY` が、Cloud Translation API が有効なプロジェクトの、制限のない有効な API キーであることを確認してください。LibreTranslate も、API キーが設定されている場合に、エラーテキストが API キーに言及する HTTP 400 を、このコードとして報告します。再試行しても解決しません。
+
+- **次の手順**：Check that the provider's API key is valid and allowed to use the configured model.
+
+### PROVIDER_UNAVAILABLE
+
+HTTP 5xx です。プロバイダー側で失敗しており、リクエスト自体に問題はありません。プロバイダーが[再試行する](/ja/docs/providers#再試行)場合、一時的な 5xx は吸収されます。そのため、このコードに届くのは継続的な障害です。Google Cloud Translation と LibreTranslate は再試行しないため、5xx が 1 回あるだけで、すぐにここに現れます。
+
+- **次の手順**：Try again later, or check the configured endpoint.
+
+### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
+
+[ネットワークポリシー](/ja/docs/network-policy)が、送信の直前にリクエストを拒否しました。ホストが許可されていない、ホスト名がポリシーの許可しないアドレスに解決された、またはレスポンスが別のオリジンや無効な URL にリダイレクトされた場合です。メッセージには、ホストと拒否したルールが示されます。API キーやパスは示されません。再試行しても解決しません。
+
+- **次の手順**：Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### PROVIDER_ERROR
+
+分類できないすべてのものです。LLM プロバイダーでは、HTTP の失敗に、`HTTP 404` のようなステータスと、サーバーのエラー種別（英字、数字、アンダースコアからなる短いトークンの場合。たとえば `MissingSessionID`）が示されます。サーバー自身のメッセージ、レスポンス本文、URL のパスは現れません。`openai-compatible` の `baseUrl` では、404 または 405 の場合に `baseUrl` が API のルートかどうかの確認が加わり、400 または 422 の場合には、モデル名と、厳密な JSON スキーマ出力を伴う Chat Completions への対応の確認が加わります。`opencode` では、400、404、422 の場合に、モデルが OpenCode Zen の Chat Completions エンドポイントで提供されているものである必要があることが加わります。4xx のステータスは、再試行しても解決しません。それとわかるトランスポートの問題（接続拒否、ホスト名の解決失敗、接続の切断、ホストに到達できない、TLS 証明書の検証失敗）には、確認すべき点が示されます。それ以外は、シークレットを含まない固定のメッセージになります。プロバイダーのパッケージを読み込めなかった場合は、メッセージにパッケージ名が示され、`@verbatra/sdk` を再インストールするよう案内されます。
+
+- **次の手順**：Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
+
+## フォーマットアダプターのエラーコード [#adapter-error-codes]
+
+ファイルを処理できないフォーマットアダプターは、これらのコードのいずれかを持つ `AdapterError` をスローします。ソースロケールファイルでは `SOURCE_INVALID` に包まれて届き、アダプターのコードは `causeCode` になります。ターゲットファイルでは、そのロケールの `error.code` になります。ロケールファイルを読み込むすべてのコマンド、Studio、MCP サーバーがこれを発生させ得ます。CLI は、ソースファイルに問題がある場合は `2` で終了し、`translate` や `import` でターゲットファイルがそのロケールを失敗させる場合は `1` で終了します。`check --file` は、解析できないファイルを、代わりに `syntax` の検出結果として報告します。コードの集合は閉じています。[カスタムアダプター](/ja/docs/custom-format-adapters)は、独自のコードではなく、これらのコードのいずれかを発生させます。
+
+### INVALID_JSON
+
+JSON ベースのロケールファイルが有効な JSON ではありません。パーサーが行と列を報告する場合は、メッセージの末尾に示されます。
+
+- **次の手順**：Fix the syntax error the message names in that file.
+
+### INVALID_YAML
+
+YAML のロケールファイルが有効な YAML ではありません。パーサーが行と列を報告する場合は、メッセージの末尾に示されます。
+
+- **次の手順**：Fix the syntax error the message names in that file.
+
+### INVALID_XML
+
+XLIFF や Android の `strings.xml` など、XML ベースのロケールファイルが整形式の XML ではありません。
+
+- **次の手順**：Fix the syntax error the message names in that file.
+
+### INVALID_STRUCTURE
+
+ファイルは解析できますが、設定されたフォーマットが期待する形ではありません。たとえば、ドット付きキーとネストされたキーのパスが同じキーに解決される場合や、YAML のマッピングキーがマップまたはシーケンスである場合です。
+
+- **次の手順**：Reshape the file the message names to match the configured format.
+
+### MAX_DEPTH_EXCEEDED
+
+ファイルのネストが、verbatra が読み込める深さを超えています。
+
+- **次の手順**：Reduce the nesting depth of the file the message names.
+
+### INPUT_TOO_LARGE
+
+ファイルが、verbatra が読み込める大きさを超えています。
+
+- **次の手順**：Split the file the message names into smaller files.
+
+### MIXED_STRUCTURE
+
+`ngx-translate-json` のファイルが、フラットなドット付きキーとネストされたオブジェクトを混在させているか、それ自体がドットを含むネストされたキーを持っています。ほかのフォーマットではこれは発生しません。
+
+- **次の手順**：Use either flat or nested keys throughout the file the message names.
+
+### ADAPTER_FAILED
+
+`custom:` アダプターが予期しないエラーをスローしました。エラーにはアダプターのフォーマットが示され、アダプター自身のエラーが `cause` になります。フラットなアダプターの `parseEntries()` が、`Map` や、有効なエントリの `entries` Map を持つオブジェクト以外を返した場合にも発生します。アダプター自身がスローした `AdapterError` やファイルシステムのエラーは、そのまま通過します。
+
+- **発生元**：`custom:` アダプターを使う SDK（CLI はプラグインを読み込みません）
+- **次の手順**：Report the failure to the maintainer of the custom adapter the message names.
+
+### DUPLICATE_FORMAT
+
+レジストリがすでに持っているフォーマット識別子に対して、2 つ目のアダプターが登録されました。
+
+- **発生元**：SDK の `AdapterRegistry.register`
+- **次の手順**：Register only one adapter for each format identifier.
+
+### INVALID_FORMAT_ID
+
+不正な `custom:` 識別子でアダプターが登録されました。
+
+- **発生元**：SDK の `AdapterRegistry.register`
+- **次の手順**：Name the custom adapter `custom:` followed by a valid name.
+
+## レビューゲートのコード [#check-result-codes]
+
+`check --require-reviewed` は、失敗した理由を `result.review.code` として報告します（[レビュー済みの訳文を必須にする](/ja/docs/cli/check#レビュー済みの訳文を必須にする)）。
+
+### REVIEW_REQUIRED
+
+機械が書いた訳文（出どころが `machine`、`memory`、`fuzzy`、`agent`）が 1 件以上、コミット済みの `verbatra.provenance.json` で承認されていません。エンベロープは `ok: true` のままで、`result.locales[].review.unreviewed` にそのキーが示されます。
+
+- **発生元**：`check --require-reviewed`
+- **終了コード**：`1`
+- **次の手順**：一覧されたキーを、[Studio のレビューキュー](/ja/docs/review-in-studio)、または MCP ツールの `review.approve` と `review.reject` で承認または修正し、`verbatra.provenance.json` をコミットします。
+
+### REVIEW_STATE_UNREADABLE
+
+`verbatra.provenance.json` が破損しているか、より新しい verbatra のものです。そのためレビュー状態を読み取れず、ゲートは安全側で失敗します（fail closed）。
+
+- **発生元**：`check --require-reviewed`
+- **終了コード**：`1`
+- **次の手順**：`verbatra.provenance.json` をバージョン管理から復元します。より新しい verbatra が書いたものであれば、verbatra をアップグレードします。
+
+## 整合性による拒否の理由 [#integrity-refusal-reasons]
+
+[整合性ゲート](/ja/docs/translation-safety#整合性ゲート)は、候補訳を、次のいずれか 1 つの理由で拒否します。そのページが示す順序で、最初に当てはまるものです。理由は、`translate`、`watch`、`import` の後にロケールの `integrityRefusals`（人向けの出力では `integrity-withheld`）に、`editEntry` と `retranslateEntry` の結果（`reason` を伴う `accepted: false`）に、そして `check --qa` のエラーとして現れます。違いの内容を示す `details` が付くことも多くあります。拒否は、`check --qa` では `1` で終了します。`translate` と `import` では、ロケールが一部完了または失敗で終わった場合に `1` で終了します。この集合は `INTEGRITY_GATE_REASONS` タプルとして公開されています。
+
+### placeholder
+
+候補訳のプレースホルダーが、ソースのものと異なります。比較は多重集合として行われ、個数は問われますが、順序は問われません。何をプレースホルダーとするかは、[フォーマット](/ja/docs/formats)ごとに定められています。i18next、ngx-translate、YAML では、一重波かっこが単なるリテラルのテキストであるにもかかわらず、ソースにはなく候補訳が追加した `{name}` の形をした記号も拒否されます。details には、欠落した各プレースホルダーが `-` で、追加された各プレースホルダーが `+` で示されます。たとえば `-{{name}}` や `+{{nom}}` です。
+
+- **次の手順**：訳文にソースのプレースホルダーを戻すか、次回の実行で再翻訳させます。
+
+### markup
+
+候補訳のインライン HTML または XML のマークアップが、ソースのものと異なる、または整形式ではありません。details には、拒否の原因となった各タグが示されます。ソースにあったのに候補訳が削除したタグには `-` が、候補訳が作り出したタグには `+` が付きます。
+
+- **次の手順**：訳文に、ソースのタグ、属性名、保護された属性値をそのまま残します。
+
+#### マークアップの比較方法
+
+タグは、タグ名と属性名の多重集合として比較されます。
+
+- 拒否されるもの：削除されたタグ、作り出されたタグ、名前が変わったタグ、属性名の集合が変わったもの（右から左に書くターゲットに `dir` 属性を追加した場合を含みます）、閉じ方が対応していない、または入れ子が誤っているマークアップ（`<b>a<i>b</b></i>` など）、ソースでは兄弟だった同名のタグが、別のタグの内側に入れ子になって戻ってくるもの（2 つのリンクが気づかないうちに 1 つになる原因です）。
+- 受け入れられるもの：順序が異なる同じタグ、翻訳された `title` やローカライズされた `href` など変更された属性値（後述する属性値の制限の範囲内）、空要素のどちらの書き方も（`<br>` と `<br/>` は同じタグです）。
+- 単に気づくだけでなく、数えるもの：隣り合う 2 組が 1 組にまとめられたもの（`<b>a</b> <b>b</b>` が `<b>a b</b>` になる場合）は拒否されます。
+- 厳密に比較するため、大文字と小文字の違いも検出結果になります。HTML の空要素（`<br>`、`<img>`、`<hr>` など）は、大文字と小文字のどの表記でも閉じタグを必要としません。そのため、`<BR>` も `<br>` と同じく空要素として認識されます。
+
+マークアップがまったくないソースでも、そこにマークアップが作り出されることからは保護されます。次のような候補訳は拒否されます。追加したタグの組、空要素、自己終了タグがあるもの。開始タグのない閉じタグ（`Hallo</div>`）があるもの。名前以外のものを持つ、閉じられていない開始タグ（`<Enter onfocus=...>` や `<x-key onmouseover=...>`）があるものです。
+
+名前だけで、その名前が英字、数字、ハイフン、アンダースコアだけからなる、閉じられていない `<Word>` は、山かっこで囲まれた語として扱われます。`Druecke <Enter>` の `<Enter>` がその例です。山かっこで囲まれた語は、ソースが判定される前に、ソースと候補訳の両方から除外されます。そのため、そのような語を持つソースも、引き続き比較されます。`<Enter>` の隣の `<b>` の組を削除した候補訳や、その隣に `<script>` の組を作り出した候補訳は、拒否されます。ソースがタグを持つ場合は、山かっこで囲まれた語もタグと同様に数えられます。ソースがタグを持たない場合は、候補訳が追加した山かっこで囲まれた語は、通常の文章として読まれて受け入れられます。ただし、その名前が（大文字と小文字を問わず）標準の HTML 要素である場合（`Hallo <script>`）、パーサーが `<img>` に変換する `image` である場合、ハイフンを含むためカスタム要素になる場合（`Hallo <my-widget>`）は除きます。
+
+この名前の判定は意図的に慎重にしてあります。そのため、`<Del>`、`<Option>`、`<Select>`、`<Input>`、`<Menu>` のように、たまたま要素名になっている普通の語も、ソースにないものを訳文が追加すると拒否されます。回避策は、その山かっこで囲まれた語を、ソースの文字列にも書いておくことです。ソースと同じ山かっこで囲まれた語を持つ訳文は受け入れられます。
+
+コメント、CDATA セクション、宣言、処理命令はタグではなく、HTML パーサーが読むのと同じように読まれます。`<!-->` と `<!--->` は完全な空のコメントです。コメントは最初の `-->` または `--!>` で終わり、終わりのないコメントは値の残りを隠します。`<![CDATA[`、`<!DOCTYPE html>`、そのほかの `<!...`、`<?...`、また `</1 x>` のように英字以外が続く `</` は、すべて最初の `>` で終わります。一方、空の `</>` は、パーサーと同じく破棄され、`</0>` のような数字の閉じタグはタグとして比較されます。これらの構成要素は、空白の連続を 1 つにまとめたテキストの多重集合として比較されます。そのため、候補訳が追加、削除、書き換えをしたものは、翻訳されたコメントも含めて拒否されます。構成要素の終わりの後にあるタグは通常どおり比較されます。そのため、`Hallo <![CDATA[><img src=x onerror=...>]]>` は、構成要素と `<img>` の両方で拒否されます。
+
+生テキスト要素の内容もテキストです。`script`、`style`、`title`、`textarea`、`xmp`、`iframe`、`noscript`、`noembed`、`noframes` の開始タグの後は、閉じタグ（大文字と小文字を問わず、空白、`/`、`>` のいずれかが続くもの）までのすべてがテキストです。`<plaintext>` の後は、値の終わりまですべてがテキストです。そのような要素の内側に書かれたタグは比較されません。引用符で囲まれた属性値が、閉じタグをまたいで後続のものを隠すこともできません。`Füge ein <script><b x="</script><img src=x onerror=...>` は、`<img>` が原因で拒否されます。パーサーがその内容を 2 通りに読める場合、候補訳はソースそのままでない限り拒否され、`+<noscript>...</noscript>` のような details が付きます。内容が `<!--` で始まる `script`、内容に `<` を含む `noscript`（スクリプトが有効かどうかで読み方が決まるため）、`svg`、`math`、`select` のタグの後で内容に `<` を含む生テキスト要素（そもそも生テキストにならない可能性があるため）が該当します。同じ理由で、ソースまたは候補訳が `svg`、`math`、`select` を開いている値にある CDATA セクションや `image` タグは、候補訳がソースそのままでない限り拒否されます。
+
+`script`、`style`、`iframe`、`noembed`、`noframes`、`noscript`、`xmp`、`plaintext` の要素の内容は、表示されるのではなくページを実行したり装飾したりするため、翻訳されません。候補訳のそれぞれの要素は、ソースの同じ名前の要素の中で同じ位置にある要素の内容と、まったく同じ内容を持つ必要があります。そうでない場合、候補訳は `+<script> content` のような details で拒否されます。`title` と `textarea` の内容はテキストとして表示されるため、翻訳できます。そのため、これらのタグをそのまま含む文章は翻訳できなくなります。`Add a <script> tag` では `<script>` の後のすべてがその内容になるので、`Füge ein <script> Tag` は拒否されます。代わりに、ソースでタグをエスケープして `Add a &lt;script&gt; tag` と書きます。
+
+このチェックは意図的に誤検出を抑えてありますが、タグは HTML パーサーと同じように読みます。タグは、`<` または `</` の後に英字が続く場合、または `<0>` のような数字の付いたリッチテキストのタグでは数字が続く場合に始まります。名前は空白、`/`、`>` までで、引用符で囲まれた属性値には `>` を含められます。そのため、`5 < 10`、`x <= y`、エスケープされた `&lt;b&gt;` は通常のテキストのままです。一方、`<support@example.com>` と `<abbr title="a > b">` はタグです。`>` に届かない `<` は何も表示されず、タグではありません。ソースがすべてのタグを完結させている場合に、そのようにタグを未完のままにした候補訳は、`+<a` のように未完の開始部分を示す details とともに、引き続き拒否されます。ソース自身のタグが不正な場合も、同様に比較されます。フォーマットがプレースホルダーとして報告するタグと、山かっこで囲まれた語を取り除いた後、ソースは次のいずれかがあれば不正とみなされます。閉じられない開始タグ（空要素を除く）、開始タグのない閉じタグ、誤った順序で閉じられたタグです。文章が偶然これに当たることもあります。`a<b and c>d` では、`<b and c>` が、属性 `and` と `c` を持ち、閉じられない `b` の開始タグとなるため、ソースは不正とみなされます。このようなソースでは、入れ子の検査だけが省かれます。タグはほかのものと同じように多重集合として比較されます。そのため、`a<b and c>d` をそのまま保つ訳文は受け入れられ、その隣に `<img>` を追加した訳文は拒否されます。その連続部分の中の語を翻訳した訳文（`a<b und c>d`）も、パーサーが `und` を新しい属性として読むため、拒否されます。大きすぎて比較できないソースもありません。候補訳が拒否されるのは、ソースの 2 倍を超える数のタグと構成要素を持つ場合、またはソースが小さい場合は 256 を超える場合だけで、その上限を示す `+more than N inline tags` という details が付きます。
+
+属性値は、次の例外を除いて自由です。URL 属性（`href`、`src`、`action`、`formaction`、`xlink:href`、`poster`、`data`、`background`、`ping`、`cite`、`longdesc`、`srcset`、`manifest`、`codebase`、`archive`、および SVG アニメーションの属性 `to`、`from`、`values`、`by`）の値は、数値文字参照と `&colon;`、`&Tab;`、`&NewLine;`、`&sol;`、`&bsol;` をデコードし、タブ、改行、前後の制御文字を無視した後に読み取られます。その中の `javascript:`、`vbscript:`、`data:` のスキームは、ソースが同じタグと属性にまったく同じ値を持つ場合を除き、`+<a href="javascript:...">` のような details で拒否されます。それに加えて、値に含まれるすべての URL（`srcset`、`ping`、`archive`、`values` の一覧にある各 URL を含みます）は、同じタグと属性のソースの値が持つスキームとオーソリティ（ホストとポート、またはスキーム相対の `//host` URL のホスト）を保つ必要があり、相対 URL は相対のままである必要があります。そのため、`/docs` は `/de/docs` に、`https://verbatra.dev/en` は `https://verbatra.dev/de` に変えられますが、`/docs` を `https://evil.example/docs` や `//evil.example/docs` に変えることはできません。ローカライズされた絶対リンクも、同じホストを保つ必要があります。details には、`+<a href="https://evil.example...">` のように新しいオリジンが示されます。絶対リンクが相対にされた場合は `+<a href="./...">` です。パス、クエリ、フラグメントは自由に変えられます。`http`、`https`、`ws`、`wss`、`ftp`、`file` のスキームが明示されていない変更後の URL も、先頭のスラッシュまたはホストにバックスラッシュ（`\` または `%5C`）がある場合は拒否されます。ほかのスキームのページは、`//verbatra.dev\@evil.example/` を evil.example へのリンクとして読むためです。
+
+一部の属性値は、文字参照をデコードして比較したときに、ソースとまったく同じ値で戻ってくる必要があり、`+<meta content="...">` のような details が付きます。`meta` の `http-equiv` と `content`、`script` の `type`、`nomodule`、`integrity`、`crossorigin`、`link` の `rel`、`as`、`integrity`、`crossorigin`、`type`、`base` の `target`、`set`、`animate`、`animateTransform`、`animateMotion` の `attributeName` と `attributeType`、`iframe` の `sandbox`、`allow`、`allowfullscreen`、`form` の `method`、`enctype`、`target`、そして、すべての要素の `style`、`srcdoc`、`onclick` などのすべてのイベントハンドラーです。`title` や `alt` などの翻訳可能な属性は自由なままです。
+
+値全体を比較することから、フォーマットに由来する 2 つの制限が生じます。1 つの値に複数の複数形の分岐をパイプで区切って詰め込むフォーマット（Vue I18n）では、言語に必要な分岐を追加する訳文は、ソースのマークアップを繰り返すことになり、拒否されます。ICU 形式の複数形（`{count, plural, one {...} other {...}}`）を、ICU として解析せずプレーンテキストとして保存するフォーマット（i18next、ngx-translate、YAML）でも同じことが起こります。ソースと異なる数の分岐を持つ訳文は、その中のマークアップを繰り返すか削除することになり、拒否されます。どちらの場合も、以前の訳文が残ります。
+
+このチェックは、タグによっては対象から外れます。フォーマットがすでにプレースホルダーとして報告しているタグ（XLIFF のインライン要素、next-intl や ARB の ICU のリッチテキストタグ）は、開始と同じ数の閉じタグとともに、プレースホルダーのチェックに任され、二重に報告されることはありません。そのようなタグの開始タグを、候補訳が閉じないままにした場合は、引き続き拒否され、欠けている閉じタグ（`-</g>` など）で示されます。ほかのタグとの入れ子がソースと合わなくなったもの（たとえば、その内側にあった `<g>` をまたぐようになった `<b>`）や、ソースではコメントや生テキスト要素の内側にテキストとしてのみあり、外に出すと要素が作られてしまうものも同様です。同じ値にあるほかのすべてのタグは、2 つ目の `</g>` のような余分な閉じタグも含めて、引き続き比較されます。
+
+### icu
+
+next-intl と ARB で、候補訳が ICU メッセージとして解析できなくなった（`other` の分岐がない `plural` を含みます）、または `plural` や `selectordinal` の分岐がターゲット言語の CLDR のカテゴリに合っていない、あるいは `select` の分岐がソースのものと異なります。details には、誤っている各分岐が示されます。規則は[ターゲット言語ごとの複数形の分岐](/ja/docs/translation-safety#ターゲット言語ごとの複数形の分岐)で説明しています。
+
+- **次の手順**：メッセージを、解析でき、ターゲット言語が必要とする分岐を過不足なく持つように修正します。
+
+### degenerate
+
+候補訳が構造的に崩れています。繰り返しのループ、またはソースから大きく外れた長さです。すべてのプレースホルダーが残っていても、モデルが断片の繰り返しに陥った場合は、このように見えます。
+
+- **次の手順**：次回の実行でそのキーを再翻訳させるか、訳文を手で書きます。
+
+### empty
+
+ソースは空ではないのに、候補訳が空または空白だけです。訳文を消すのは意図的な操作です。それにはブックの `[[CLEAR]]` という特殊値を使います。
+
+- **次の手順**：訳文を書くか、ブックのインポートで `[[CLEAR]]` を使って、意図的に値を消します。
+
+## レビューの理由 [#review-reason-codes]
+
+レビューフラグは、受け入れられた訳文がもう一度確認する価値のあるものであることを示します。キーを保留することはなく、`check --qa` の警告でジョブが失敗するのは `--strict` のときだけです。この集合は `REVIEW_REASON_CODES` タプルとして公開されています。レビューの層については[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)で説明しています。
+
+### LENGTH_RATIO_OUTLIER
+
+訳文が、ソースに比べて極端に短い、または長くなっています。
+
+トリムしたソースの長さの 0.35 倍を下回る、または 3.0 倍を上回ると発生します。ごく短いソースは対象外です。長さは書記素クラスターで数えられ、各文字は文字体系によって重み付けされます。漢字 1 文字は 3.5、日本語のかな 1 文字は 1.5、ハングルの音節 1 つは 2 として数えます。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：訳文をソースと照らし合わせて読み、そのままにするか修正します。
+
+### MAX_LENGTH_EXCEEDED
+
+訳文が、そのキーの `maxLength` の予算より長くなっています。予算は、設定または [`verbatra.limits.json`](/ja/docs/config-file#maxlength) <AvailableFrom version="0.13.0" /> で設定します。
+
+長さは、書かれたとおりの値について、書記素クラスターで数えられます。予算は境界を含むため、ちょうど予算と同じ長さの値はフラグが付きません。予算のないキーは測定されません。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：訳文を短くするか、キーの `maxLength` の予算を引き上げます。
+
+### EQUALS_SOURCE
+
+ターゲットロケールが異なるにもかかわらず、トリムした訳文がトリムしたソースと同じです。
+
+ソースに、固定の用語の外側に、数字や記号以外の文字がある場合にだけ発生します。`doNotTranslate` の用語だけからなるソースや、訳語が用語自身である用語だけからなるソースは、フラグが付きません。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：値を翻訳します。その言語でも本当に同じテキストのままであれば、そのままにします。
+
+### GLOSSARY_TERM_MISSED
+
+ソースにある用語集の用語について、ターゲットロケールの訳語がない、または `doNotTranslate` の用語がない、もしくは変更されています。
+
+各ロケールは、ロケールごとの用語集にある、そのロケール自身の用語の訳語に照らして検査されます。照合は、用語が `caseSensitive` でない限り大文字と小文字を区別せず、各ロケールの規則（トルコ語の `İ` を含みます）で大文字と小文字を畳み込みます。ソース側では単語全体が必要なため、`Airport` の中の `AI` は見つかりません。ターゲット側では、翻訳された用語が周囲のテキストと融合するため、値のどこかに用語があれば足ります。単語の区切りのない文字体系（漢字、かな、タイ文字など）の用語は、含まれているかどうかで照合されます。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：用語集にある用語の訳語を使うか、用語をそのままにします。
+
+### GLOSSARY_FORBIDDEN_TERM
+
+訳文が、用語集の `forbidden` リストでターゲットロケールに対して除外されている訳し方を使っています。
+
+単語全体で、単語の区切りのない文字体系では含まれているかどうかで照合されます。そのため、活用形や複合した形は、それも一覧に載せた場合にだけ検出されます。ソース自身が含む訳し方は、訳文が引用している可能性があるため、フラグが付きません。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：禁止されている訳し方を、承認された訳し方に置き換えます。
+
+### INTEGRITY_REORDERED
+
+プレースホルダーは完全に一致していますが、ソースと異なる順序で現れています。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：新しい順序が、ターゲット言語で正しく読めることを確認します。
+
+### PROVIDER_DEGRADED
+
+このキーが属していたバッチを、プロバイダーが機能低下の状態で処理しました。たとえば、丁寧さの引き下げや、用語集の無視です。
+
+バッチに `FORMALITY_DOWNGRADED` または `GLOSSARY_IGNORED` の通知があった場合に発生します。これらは DeepL、Google Cloud Translation、LibreTranslate が報告します。`PLACEHOLDER_UNSUPPORTED` はこれを発生させません。そのエントリは、機能低下ではなく保留されるためです。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）
+- **終了コード**：なし
+- **次の手順**：値のトーンと用語集の用語を確認します。
+
+### FUZZY_CACHE_REUSE
+
+値が、その後に編集された、ほぼ同一の以前のソースに対するキャッシュから再利用されました。`fuzzyCache` が有効な場合にだけ発生します。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）
+- **終了コード**：なし
+- **次の手順**：再利用された値が、編集後のソースにまだ合っているかを確認します。
+
+### FOREIGN_PLACEHOLDER_CHANGED
+
+プロジェクトのフォーマットが補間しない、プレースホルダーの形をした記号を、訳文が削除または変更しました。たとえば、i18next の値の `{name}` や、YAML の値の `%{count}` です。
+
+そのような記号が、訳文よりもソースに、そのままの形でより多く出現する場合に発生します。フォーマット自身のプレースホルダーは整合性ゲートに任され、訳文が追加しただけの記号にはフラグが付きません。ICU の引数は、`{n, plural,` のような先頭部分で 1 回として数えるため、翻訳された分岐がこれを発生させることはありません。ICU の分岐の内側にある記号、文字や数字に連なった printf の記号、`%2F` のようなパーセントエンコードされたバイト、URL の内側にあるものは検査されません。サードパーティのアダプターのフォーマットも同様です。各フォーマットが保護する構文は、[フォーマット](/ja/docs/formats)に一覧があります。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として。`details` に、欠落した各記号が `-{name}` のように示されます）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：ライブラリがその記号を補間する場合は、訳文に記号を戻します。
+
+### BIDI_CONTROLS_CHANGED
+
+訳文に、周囲のテキストの順序を入れ替え得る不可視の方向制御文字があります。閉じられない埋め込み、オーバーライド、アイソレート、またはソースにないオーバーライドです。
+
+訳文の埋め込み（U+202A、U+202B）、オーバーライド（U+202D、U+202E）、アイソレート（U+2066〜U+2068）が、ソースでは対応しているのに、各段落の中で閉じ文字（U+202C、U+2069）と対にならない場合、または左から右、右から左のオーバーライドがソースより多い場合に発生します。閉じられない制御文字は、値の後にアプリが置くテキストへ、その方向を漏らします。U+200F などの方向を示すマークでは発生しません。ソースが持つ対応した制御文字を、訳文が削除した場合も発生しません。
+
+- **発生元**：`translate`、`watch`（`needsReview` に）、`retranslateEntry`（`reviewReasons` に）、`export`（レビュー列に）、`check --qa`（警告として）
+- **終了コード**：`translate` ではなし、`check --qa --strict` では `1`
+- **次の手順**：訳文の方向制御文字を閉じるか、削除します。
+
+## 実行の通知 [#sdk-notice-codes]
+
+通知は、ロケールの `notices` に入るデータで、スローされることはありません。実行が処理した状態を報告し、終了コードを変えるのは、エントリがそう示している場合だけです。通知がサマリーのどこにあるかは [RunSummary](/ja/docs/sdk/run-summary) を参照してください。
+
+### PLURAL_CATEGORIES_INCOMPLETE
+
+ターゲットロケールの複数形が、その言語が使う CLDR の複数形カテゴリを欠いています。たとえば、`one` と `other` しかないポーランド語の複数形です。`translate` と `watch` では、`i18next-json` フォーマットだけで、verbatra が残りを生成できなかった場合に報告されます。`check` と `doctor` は、複数形をカテゴリごとに保存するすべてのフォーマットで報告します。
+
+- **発生元**：`translate`、`watch`（`check` は複数形とともに一覧し、`doctor` は Plural completeness（複数形の完全性）の項目で報告します）
+- **終了コード**：単独ではなし、`check --qa --strict` では `1`
+- **次の手順**：欠落している複数形を手で追加します。
+
+### SUB_BATCH_FAILED
+
+プロバイダーのリクエストが失敗しました。通知にはプロバイダーのエラーコードが示されます。失敗が構造化されたプロバイダーのエラーではなかった場合は `PROVIDER_CALL_FAILED` です。そのリクエストのキーは `providerFailures` に一覧されます。`causeCode` には、ある場合はプロバイダーのコードが入り、CLI は実行後にそのコードの次の手順を出力します。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：`1`：ロケールが `partial` または `failed` で終わります
+- **次の手順**：通知が示すコードを[プロバイダーのエラーコード](#provider-error-codes)で調べます。キーは次回の実行で再び翻訳されます。
+
+### BLANK_ROW_BASELINE_RETAINED
+
+行のベースラインが記録された後にソースが変更されたキーについて、インポートされた行が空のままでした。そのため以前のベースラインが保たれ、ドリフトは引き続き報告されます。
+
+- **発生元**：`import`
+- **終了コード**：単独ではなし
+- **次の手順**：新しいエクスポートでそのキーを翻訳するか、`verbatra translate` を実行します。
+
+### HANDOFF_REVIEWS_RECORDED
+
+XLIFF の受け渡しでキーが reviewed または final とされ、`verbatra.provenance.json` に承認として記録されました。
+
+- **発生元**：`import`
+- **終了コード**：なし
+- **次の手順**：修正は不要です。`verbatra.provenance.json` をコミットします。
+
+### BUDGET_TOKENS_EXCEEDED
+
+実行がトークン予算に達しました。設定の `maxTokens`、または 1 回の実行に対する `--max-tokens` です。`"warn"` では実行が続きます。`"stop"` では、まだ試行していないキーが保留され、`budgetWithheld` に一覧されます。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：`budgetBehavior: "warn"` ではなし、`"stop"` でキーが保留された場合は `1`
+- **次の手順**：予算を引き上げるか、もう一度実行します。保留されたキーは次回の実行で翻訳されます。
+
+### CACHE_VERSION_UNRECOGNIZED
+
+`verbatra.cache.json` がより新しい verbatra によって書かれたため、手を加えず、実行はキャッシュを使いませんでした。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：なし
+- **次の手順**：verbatra をアップグレードするか、ファイルを削除して再構築します。
+
+### PROVENANCE_VERSION_UNRECOGNIZED
+
+`verbatra.provenance.json` がより新しい verbatra によって書かれたため、手を加えず、実行は書き込んだ値の来歴を記録しませんでした。
+
+- **発生元**：`translate`、`watch`、`import`
+- **終了コード**：なし
+- **次の手順**：記録を最新に保つため、verbatra をアップグレードします。
+
+### PROVENANCE_FILE_TOO_LARGE
+
+このロケールを記録すると、`verbatra.provenance.json` が verbatra の読み戻せるサイズを超えてしまうため、ファイルはそのまま保たれ、そのロケールが書き込んだ値には記録がありません。
+
+- **発生元**：`translate`、`watch`、`import`
+- **終了コード**：なし
+- **次の手順**：値は書き込まれたままで、記録だけがありません。次回の実行の前に、ファイルがここまで大きくなった理由を確認します。
+
+### LIMITS_FILE_IGNORED
+
+`verbatra.limits.json` を使用できなかった（読み取れない、通常のファイルではない、大きすぎる、UTF-8 や有効な JSON ではない、別の形、新しいバージョン、またはエントリが多すぎる）ため、呼び出しは設定の `maxLength` の予算だけで値を判定し、そのファイルが設定する上限に対してはフラグを付けませんでした。これは実行のすべてのロケールの通知であり、結果の `limitsNotice` です。ファイルはそのまま残されます。
+
+- **発生元**：`translate`、`watch`（`check --qa` と `check --file` は `qa.limitsNotice` として、`export`、`retranslateEntry`、`keyContext`、MCP ツールの `key.context` と `translation.retranslateEntry` は `limitsNotice` として返します。`doctor` は Length limits（長さの上限）の項目でこのファイルを報告します）
+- **終了コード**：なし
+- **次の手順**：`verbatra.limits.json` を修正するか削除します。何が問題かは `verbatra doctor` が示します。
+
+### LOCALE_STATE_CARRIED_OVER
+
+`pt_BR` のようなアンダースコア表記のもとで記録されていた状態が、設定された `pt-BR` に移動されました。[表記の異なるロケールコード](/ja/docs/the-lock-file#表記の異なるロケールコード)を参照してください。
+
+- **発生元**：`translate`、`watch`、`import`
+- **終了コード**：なし
+- **次の手順**：修正は不要です。ロックファイルと来歴ファイルをコミットします。
+
+### LOCALE_STATE_CARRY_OVER_SKIPPED
+
+ロックファイルのガードが競合したままだった、読み取れなかった、作成できなかった、またはファイルを書き込めなかったため、その移動は次回の実行に回されました。翻訳メモリだけが残った場合を除き、そのロケールは実行されず、`LOCALE_STATE_NOT_CARRIED_OVER` で失敗しました。
+
+- **発生元**：`translate`、`watch`、`import`
+- **終了コード**：ロケールが `LOCALE_STATE_NOT_CARRIED_OVER` で失敗した場合は `1`
+- **次の手順**：ほかの verbatra のプロセスが終了するのを待ってから、もう一度実行します。
+
+### LOCALE_UNVERIFIED_BY_PROVIDER
+
+送信されたコードが、プロバイダーの言語テーブルにありません。基本言語だけがある、または `localeMap` に由来するコードです。セルフホストの LibreTranslate サーバーでは、インストール済みのモデルを実行前に知ることができないため、すべてのターゲットロケールが、実行のたびにこの形で報告されます。`verbatra doctor --locales --live` が、サーバーに対してそれらを確認します。
+
+- **発生元**：`translate`（ドライランも）、`watch`（`doctor --locales` も報告します）
+- **終了コード**：なし
+- **次の手順**：`verbatra doctor --locales` を実行して送信されるコードを確認し、誤っている場合は `provider.options.localeMap` でそのロケールを対応付けます。
+
+### LOCALE_NOT_WELL_TESTED
+
+LLM プロバイダーが、十分に検証された言語の一覧に含まれない言語に翻訳しています。
+
+- **発生元**：`translate`（ドライランも）、`watch`（`doctor --locales` も報告します）
+- **終了コード**：なし
+- **次の手順**：このロケールの訳文を人にレビューしてもらいます。
+
+### GLOSSARY_UNSUPPORTED_BY_PROVIDER
+
+このロケールには用語集が設定されていますが、プロバイダーはそれを適用できません。確認されるのは翻訳の後だけです。
+
+- **発生元**：`translate`（ドライランも）、`watch`（`doctor --locales` も報告します）
+- **終了コード**：なし
+- **次の手順**：レビューで用語集の用語を確認するか、そのロケールに用語集を適用できるプロバイダーを選びます。
+
+### FORMALITY_UNSUPPORTED_BY_PROVIDER
+
+トーンが `formal` または `informal` ですが、プロバイダーにこのロケールの丁寧さの制御がありません。
+
+- **発生元**：`translate`（ドライランも）、`watch`（`doctor --locales` も報告します）
+- **終了コード**：なし
+- **次の手順**：レビューでトーンを確認するか、そのロケールに丁寧さを適用できるプロバイダーを選びます。
+
+### SOURCE_FOREIGN_PLACEHOLDERS
+
+このロケールがこれから翻訳するソース値に、プロジェクトのフォーマットが補間しない、プレースホルダーの形をした記号が含まれています。メッセージにはそのような値の件数が示され、最初のキーが挙げられます。
+
+DeepL、Google Cloud Translation、LibreTranslate では、そのような記号がプレースホルダーと同じようにマスクされます。マスクも復元もできない値は保留されます（[`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)）。LLM プロバイダーや人は、それをそのまま保つ必要があります。それを削除または変更した訳文には、[`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed) のフラグが付きます。この通知はロケールごとに、そのロケールに翻訳すべきそのようなキーがある場合だけ報告され、サードパーティのアダプターのフォーマットでは報告されません。
+
+- **発生元**：`translate`（ドライランも）、`watch`
+- **終了コード**：なし
+- **次の手順**：挙げられたキーの訳文をレビューするか、ライブラリがこれらの記号を補間しない場合は構文を切り替えます。
+
+### SOURCE_VALUE_EMPTY
+
+値が空、または空白だけのソースキー（[`extract`](/ja/docs/cli/extract) がデフォルトなしで追加したキーなど）は、ターゲットやロックファイルの内容にかかわらず、欠落でも、古くも、最新でもありません。`gettext-po` のソースカタログでは、空の `msgstr` がこれに当たります。それらについては、何も送信されず、書き込まれず、数えられません。ターゲットは持っている値をそのまま保ちます。メッセージにはキーの件数が示され、最初のキーが挙げられます。
+
+- **発生元**：`translate`（ドライランも）、`watch`
+- **終了コード**：なし
+- **次の手順**：挙げられたキーのソーステキストを書いてから、`verbatra translate` をもう一度実行します。
+
+### SENSITIVE_CONTENT_SENT
+
+`sensitiveData.mode: "warn"` では、このロケールが送信したキーまたは用語集の用語に、検出器やパターンに一致した内容が含まれています。それらは変更されずに送信されました。メッセージには、検出器と最初のキーが示されます。一致したテキストは、キー名の一部である場合を除き、示されません。
+
+- **発生元**：`translate`（ドライランも）、`watch`
+- **終了コード**：なし
+- **次の手順**：内容を削除するか、`sensitiveData.allow` で許可するか、`redact` または `block` に切り替えます。
+
+### SENSITIVE_CONTENT_REDACTED
+
+`"redact"` では、これらのキーの値の中の一致箇所が、送信前に記号に置き換えられ、訳文で元に戻されました。メッセージには最初のキーが完全な形で示されるため、キー名の中の一致箇所もそこに現れます。
+
+- **発生元**：`translate`（ドライランも）、`watch`
+- **終了コード**：なし
+- **次の手順**：対応は不要です。
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+`"block"` または `"redact"` では、一致があったためにキーが送信されず、`sensitiveWithheld` に一覧されました。または、一致のある用語集の用語がリクエストから除外されました。`"redact"` では、一致がキー名にある、プレースホルダーと重なる、または記号がちょうど 1 回では戻ってこなかった場合に、キーが保留されます。メッセージには最初のキーが完全な形で示されるため、キー名の中の一致箇所もそこに現れます。
+
+- **発生元**：`translate`（ドライランも）、`watch`
+- **終了コード**：保留されたキーがあるとロケールが `partial` または `failed` になるため `1`。用語集の用語だけが除外された場合は、ロケールが成功するため `0`
+- **次の手順**：内容を削除するか、`sensitiveData.allow` で許可します。キーは次回の実行で再試行されます。
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+このロケールの実行中に、実行の `signal` が中断しました。まだ翻訳されていないキーは送信されなかったか、そのリクエストが破棄されました。それらは次回の実行まで未処理のままで、ロケールは `partial` になります。ほかのキーが保留され、何も反映されなかった場合は `failed` です。中断の前に届いた訳文は書き込まれ、記録されました。メッセージには未処理のキーの件数が示されます。
+
+- **発生元**：呼び出し側が `signal` を渡した場合の SDK（MCP ツールの `translation.translatePending` は、クライアントのキャンセルシグナルを渡します）
+- **終了コード**：なし。これを報告する CLI のコマンドはありません
+- **次の手順**：`translate` をもう一度実行して、未処理のキーを送信します。
+
+## プロバイダーの通知 [#provider-notice-codes]
+
+プロバイダーの通知は、成功したリクエストで、処理を止めずに機能を一部落としたことを、ロケールの `notices` のデータとして報告します。機能低下したバッチのすべてのキーには、レビューの理由 `PROVIDER_DEGRADED` も付きます。
+
+### FORMALITY_DOWNGRADED
+
+要求された `formal` または `informal` のトーンが適用されませんでした。DeepL の無料枠、丁寧さの制御がない DeepL のターゲット言語、Google Cloud Translation Basic、そして制御を持たない LibreTranslate が該当します。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：なし
+- **次の手順**：レビューでトーンを確認するか、丁寧さに対応したプロバイダーまたはプランを使います。
+
+### GLOSSARY_IGNORED
+
+必須の訳語または保持すべき用語を持つ用語集が適用されませんでした。DeepL が適用するのはネイティブの用語集 ID だけで、Google Cloud Translation Basic と LibreTranslate は用語集に対応していません。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：なし
+- **次の手順**：レビューで用語集の用語を確認するか、用語集に従うべきテキストには LLM プロバイダーを使います。
+
+### PLACEHOLDER_UNSUPPORTED
+
+DeepL、Google Cloud Translation、LibreTranslate が、少なくとも 1 つの値を翻訳せずに残しました。値が保留されるのは、プレースホルダーが値の中でリテラルではない場合、またはプレースホルダーの外側のテキストに `<`、`>`、`{`、`}` が含まれる場合です。plural、select、number などの ICU の引数、プレースホルダーの隣のマークアップ、比較記号が該当します（LibreTranslate はマークアップのタグをそのまま通すため、そこでは波かっこだけが対象です）。Google は、改行、タブ、連続した空白を含む値も保留します。結果が破棄されるのは、マーカーが失われた、重複した、書き換えられた、または単独で戻ってきた場合、あるいは未知のエンティティや余分なタグが付いた場合です。マークアップがありプレースホルダーのない値は、マスクされずに送信されます。ここでは、フォーマットとは別のプレースホルダー構文の記号もプレースホルダーとして数えられます。
+
+- **発生元**：`translate`、`watch`
+- **終了コード**：`1`：キーは `providerFailures` に一覧され、ロケールは `partial` または `failed` で終わります
+- **次の手順**：それらの値を手で翻訳するか、それらには LLM プロバイダーを使います。

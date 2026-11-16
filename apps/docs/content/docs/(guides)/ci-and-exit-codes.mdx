@@ -85,7 +85,7 @@ Run [`verbatra translate`](/docs/cli/translate) and map the provider key from yo
 
 ## Preflight with doctor
 
-Put [`verbatra doctor`](/docs/cli/doctor) before either job to fail early on a broken setup. It checks the config, the format, the provider, the key variable, the network policy, the source file and locale support, and never calls a provider or reads a key value. It does report an unset key variable as a failed check, so map the key into any job where that check has to pass.
+Put [`verbatra doctor`](/docs/cli/doctor) before either job to fail early on a broken setup. It checks the config, the format, the provider, the key variable, the network policy, the source file and locale support, and calls no provider and reads no key value unless you pass `--live`. It does report an unset key variable as a failed check, so map the key into any job where that check has to pass.
 
 ## Exit codes
 

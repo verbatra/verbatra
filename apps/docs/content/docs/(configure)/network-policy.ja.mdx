@@ -1,0 +1,103 @@
+---
+title: ネットワークアクセスを制限する
+seoTitle: "翻訳プロバイダーのネットワークアクセスを制限する"
+description: 翻訳プロバイダーが接続できるホストを制限します。ローカルのみの構成を、慣習に頼らず verbatra が強制します。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+文字列を自社のネットワークの外に出したくない場合に使います。たとえば、`openai-compatible` の背後にセルフホストのモデルがある場合や、`libretranslate` の背後に LibreTranslate サーバーがある場合です。`baseUrl` の入力ミス、余分な `OPENAI_BASE_URL`、ホスト型プロバイダーへの切り替えがあると、文字列が公開エンドポイントに送られかねません。ネットワークポリシーを設定すると、verbatra はポリシーが許可しないホストを、リクエストがマシンの外に出る前に拒否します。リクエストの内容は[データの取り扱いとプライバシー](/ja/docs/data-handling)で説明しています。
+
+## ポリシーを設定する
+
+設定ファイルに `network` ブロックを追加します（リファレンスの [`network`](/ja/docs/config-file#network) を参照）。
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+}
+```
+
+| ポリシー | 許可する接続先 |
+| --- | --- |
+| `any` | すべてのホスト（`network` ブロックがない場合のデフォルト） |
+| `local-only` | ループバック（`127.0.0.0/8`、`::1`、およびループバックにのみ解決される `localhost` と `*.localhost`）、プライベート IPv4（`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`）、ユニークローカル IPv6（`fc00::/7`）、`allowedHosts` |
+| `allowlist` | `allowedHosts` に列挙したものだけ（1 件以上のエントリが必要） |
+
+`allowedHosts` の各エントリには、ホスト名（`llm.internal`。大文字と小文字は区別されません）、ワイルドカード（`*.corp.example`。サブドメインのみで、`*.` の後にラベルが 2 つ以上必要）、IP アドレス、または `100.64.0.0/10` のような CIDR 範囲を指定します。スキーム、ポート、パスは書きません。255 を超えるオクテット、アドレスより長いプレフィックス（`/32` または `/128` を超えるもの）、不正な形式の IPv6 アドレスは、設定または環境変数の読み込み時に拒否されます。
+
+`local-only` では、リンクローカルアドレス（クラウドのメタデータアドレスを含む `169.254.0.0/16` と `fe80::/10`）、キャリアグレード NAT の範囲 `100.64.0.0/10`、`0.0.0.0`、`::` は許可されません。サーバーが `0.0.0.0` で待ち受けている場合は、`baseUrl` を `127.0.0.1` に向けます。VPN の範囲を使う場合は、`allowedHosts` に列挙します。
+
+## ホスト型プロバイダー
+
+`local-only` では、`anthropic`、`openai`、`gemini`、`deepl`、`google-translate`、`opencode` は、エンドポイントが公開されているため拒否されます。許可するには、そのホストを列挙します。
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+ホストは、`api.anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com`、`api.deepl.com`（`:fx` で終わる API キーでは `api-free.deepl.com`）、`translation.googleapis.com`、`opencode.ai` です。`ANTHROPIC_BASE_URL`、`OPENAI_BASE_URL`、`GOOGLE_GEMINI_BASE_URL` が設定されている場合、verbatra は代わりにそのエンドポイントを確認します。Vertex AI モードの Gemini（`GOOGLE_GENAI_USE_VERTEXAI` または `GOOGLE_GENAI_USE_ENTERPRISE` を `true` に設定した場合）は、制限のあるポリシーの下では常に拒否されます。
+
+## 環境変数でポリシーを固定する
+
+リポジトリの設定ファイルの内容にかかわらず、CI でポリシーを強制するには、次のようにします。
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_ALLOWED_HOSTS` は、`allowedHosts` のエントリをカンマ区切りで並べたリストです。設定ファイルと環境変数の両方がポリシーを設定している場合、ホストは両方を満たす必要があります。そのため、環境変数が固定した内容を設定ファイルが緩めることはありません。
+
+`local_only` のような認識できない値や、ポリシー変数なしのホストリストは、すべてのホストを許可するのではなく、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid) で実行を失敗させます。`translate --dry-run` と `--estimate` もこれらの変数をチェックします。ただし、プロバイダーが `none` の場合は除きます。
+
+## ポリシーを確認する
+
+[`verbatra doctor`](/ja/docs/cli/doctor) を実行します。有効なポリシー、各設定の取得元、プロバイダーのホスト、そのホストが許可されているかどうかを報告します。名前を解決せず、何も送信しません。`doctor --live` が取得する言語リストにも、同じポリシーが適用されます。
+
+拒否されたホストがあると、`translate`、起動時の `watch`、Studio と MCP での再翻訳、SDK の `retranslateEntry` は、API キーが読み込まれる前に [`NETWORK_POLICY_VIOLATION`](/ja/docs/error-codes#network_policy_violation) と終了コード `2` で停止します。ドライランと `--estimate` はプロバイダーを呼び出さないので、拒否されません。
+
+## リクエストがチェックされるタイミングを知る
+
+最初のチェックは名前を解決しないため、`llm.internal` のように、それ単体では分類できないホスト名はこのチェックを通過します。`anthropic`、`openai`、`gemini`、`google-translate`、`opencode`、`openai-compatible`、`libretranslate` のすべてのリクエストは、送信の直前にもう一度チェックされます。
+
+- ホスト名を解決し、解決されたすべてのアドレスが許可されている必要があります。
+- 同じオリジンへの `307` または `308` だけを、最大 5 回連続でたどります。`https` から `http` への変更を含め、ほかのオリジンへのリダイレクトはリクエストを失敗させます。
+
+ここで拒否されたリクエストは、そのサブバッチをプロバイダーエラー [`NETWORK_POLICY_VIOLATION`](/ja/docs/error-codes#provider-network_policy_violation) で失敗させます。エラーが示すのはホストだけで、再試行もしません。
+
+## 制限事項
+
+- **DNS リバインディング**：名前はチェックのために 1 回、接続のためにもう 1 回解決されるので、回答が変わる DNS サーバーがあるとすり抜けられます。IP アドレスを書くか、解決せずに信頼される `allowedHosts` に名前を列挙します。
+- **DeepL のチェックは 1 回だけ**：プロバイダーを生成する前にチェックし、リクエストやリダイレクトごとにはチェックしません。
+- **プロキシ**：制限のあるポリシーの下では、プロバイダーが使うすべてのプロキシ自体が、IP アドレスまたは列挙した名前として許可されている必要があります。DeepL は `HTTPS_PROXY`、`HTTP_PROXY`、`ALL_PROXY`（またはその小文字表記）を使います。ほかのプロバイダーは `NODE_USE_ENV_PROXY=1` または `--use-env-proxy` を指定した場合にだけ使います。`NO_PROXY` は無視されます。
+- **カスタムプロバイダー**：SDK の `createProvider` で渡したプロバイダーは、生成される前にチェックされ、有効なポリシーを受け取ります。そのプロバイダー自身のリクエストにポリシーを適用するかどうかは、そのコード次第です。
+
+## 言語モデルを使わない機械翻訳
+
+NDA（秘密保持契約）の中には、言語モデルを禁止しながら、自社ハードウェア上の従来型の機械翻訳は認めるものがあります。[LibreTranslate](/ja/docs/providers#libretranslate) はまさにそれです。Argos Translate のモデルを使うオープンソースのサーバーです。必要な言語を指定して実行します。
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+続いて verbatra をそのサーバーに向け、ネットワークポリシーを固定します。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` は、ターゲットロケールごとにインストール済みのモデルと照合します。LibreTranslate が翻訳した値は、引き続き出どころ `machine` として記録されます。
+
+## 関連項目
+
+- [`network`](/ja/docs/config-file#network)：設定キー
+- [`verbatra doctor`](/ja/docs/cli/doctor)：翻訳せずにポリシーをチェックする
+- [データの取り扱いとプライバシー](/ja/docs/data-handling)：何がいつマシンの外に出るか

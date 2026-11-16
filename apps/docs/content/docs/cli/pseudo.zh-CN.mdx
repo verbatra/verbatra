@@ -1,0 +1,133 @@
+---
+title: verbatra pseudo
+seoTitle: "verbatra pseudo：生成伪语言环境"
+description: "根据源字符串生成伪语言环境，让被截断的按钮和未提取的标签一目了然，不调用提供商，也不读取 API 密钥。"
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+让你的应用运行在一种并不存在的语言中。`pseudo` 根据源字符串构建一个虚构的语言环境：每个值都带上重音、被加长，并用可见的标记包起来，于是被截断的按钮、拼接的句子和未提取的标签都会显现出来。使用 `--mode bidi` 时，它改为把每个字符串渲染为从右到左。它不构造提供商，不读取 API 密钥，也不发起网络请求，所以在任何密钥存在之前就能使用。
+
+## 用法
+
+```bash
+verbatra pseudo [flags]
+```
+
+## 示例
+
+```bash
+# 在 .verbatra-local/pseudo 下生成 en-XA
+verbatra pseudo
+
+# 在 ar-XB 中把每个字符串渲染为从右到左
+verbatra pseudo --mode bidi
+
+# 写到开发服务器已在提供静态文件的位置（不要提交 bidi 文件：GitHub 会标记其中隐藏的 Unicode 字符）
+verbatra pseudo --out public/locales-pseudo
+
+# 供脚本使用的机器可读结果
+verbatra pseudo --json
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> 转换方式：`accented` 或 `bidi`，后者把每个单词渲染为从右到左（其他值会报 `INVALID_OPTION`） |
+| `--locale` | `<code>` | `en-XA`（使用 `--mode bidi` 时为 `ar-XB`） | 要生成的伪语言环境；只能包含字母、数字和连字符（否则报 `INVALID_LOCALE`） |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | 写入伪语言环境的目录，相对于工作目录，且必须在项目根目录之内；空值会报 `INVALID_OUT` |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。
+
+## 行为
+
+### 转换做了什么
+
+| 步骤 | 你会看到 |
+| --- | --- |
+| 加重音 | 每个 ASCII 字母都变成带重音的相似字符，所以 `Save` 显示为 `Śáṽé` |
+| 加长 | 值增长约可翻译长度的三分之一，大致相当于德语比英语多需要的长度 |
+| 标记 | 值被 `[` 和 `]` 包起来，所以被截断或拼接的字符串一眼可见 |
+
+`Hello {{name}}, you have {{count}} unread messages` 会变成
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`。
+
+只有可翻译的文本会改变。占位符在格式适配器（见[格式](/zh-CN/docs/formats)）识别的每种语法中都保持不变，在 ICU 消息内部，参数名、`plural` 和 `select` 关键字以及分支选择器也保持原样。vue-i18n 用竖线分隔的复数形式会逐个转换：`car | cars` 变成 `[ćáŕ··] | [ćáŕś··]`。转换是确定的，所以文件的差异很干净。
+
+### 从右到左模式
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` 用从右到左的覆盖字符取代重音，这是 Android 和 Chromium 为各自的 `ar-XB` 伪语言环境所采用的做法，因此假定文本从左到右的布局，在任何从右到左的译文出现之前就会暴露出来。
+
+| 步骤 | 你会看到 |
+| --- | --- |
+| 覆盖 | 每个单词都被包在从右到左标记和覆盖字符中（前面是 `U+200F U+202E`，后面是 `U+202C U+200F`），所以 `Save` 渲染为 `evaS` |
+| 保留 | 占位符、ICU 语法、内联标记、数字和标点留在覆盖之外，按从左到右阅读，与真实的从右到左文本中一样 |
+
+不会加重音、加长或加方括号：宽度是默认模式要测试的内容。文件保留字母的存储顺序，每个值都通过同一道完整性门禁，所以占位符和复数分支保持逐字节相同。
+
+伪语言环境默认为 `ar-XB`，`Intl.Locale` 和大多数 i18n 库会把它解析为从右到左，所以根据语言环境推导 `dir` 的应用会自行翻转。`ar-XB` 遵循阿拉伯语的复数规则（`zero`、`one`、`two`、`few`、`many`、`other`）。ICU 消息、Android 的 `<plurals>`、gettext、Apple 消息目录和 vue-i18n 的竖线形式，会按文件中已有的形式来解析数量。`i18next-json` 把每种形式放在各自的 `_one` 或 `_other` 键下，所以文件还会得到源值所缺的每个类别（`_zero`、`_two`、`_few`、`_many`，序数形式同理），用源值的 `other` 形式填充，任何数量都不会回退到你的回退语言。要保留英语的复数规则，传入 `--locale en-XB`，并自行设置 `dir="rtl"`。
+
+净化器如果去除 Unicode 格式字符，也会移除覆盖字符，字符串又会按从左到右渲染。对隐藏的双向字符发出警告的编辑器和代码扫描器会标记该文件，这是它留在 `.verbatra-local` 下的又一个原因。
+
+### 不会有任何损坏的内容进入文件
+
+每个生成的值都通过与提供商译文相同的完整性门禁：占位符与源值相同，消息语法有效，不退化，不为空白。无法通过门禁的值会从源值原样复制，并列在 `copied verbatim` 下；这是一份报告，不是失败。
+
+### 输出写到哪里
+
+伪语言环境写在你真实的语言文件之外，默认位于 `.verbatra-local/pseudo` 下，[`verbatra init`](/zh-CN/docs/cli/init) 会把它加入 `.gitignore`（缺少该条目时，`pseudo` 会补上）。你的 `files.pattern` 在该目录内展开，所以使用 `locales/{locale}.json` 时，默认运行会写入 `.verbatra-local/pseudo/locales/en-XA.json`。把你的开发服务器指向那里，或传入 `--out`，写到你的构建已经提供服务的位置。
+
+`PSEUDO_OUTPUT_CONFLICT` 会在读取或写入任何内容之前拒绝：
+
+- 与源语言环境或某个目标语言环境同名的伪语言环境；
+- 把文件放进与某个已配置语言文件相同目录的 `--out`；
+- 为绝对路径、跳出项目根目录，或在解析符号链接之后落在项目之外、项目根目录上，或项目所依赖的文件上的 `--out`。
+
+因为该文件位于 `files.pattern` 之外，[`translate`](/zh-CN/docs/cli/translate) 从不为它产生花费，[`check`](/zh-CN/docs/cli/check) 和 [`diff`](/zh-CN/docs/cli/diff) 也从不报告它。
+
+### 通过修补已有文件来写入的格式
+
+`xliff` 和 `apple-xcstrings` 的写入器会修补目标文档中已有的单元，所以伪语言环境的文件在每次写入时都会从你的源文件重新复制，之后添加到源文件中的键也会出现在伪语言环境的文件中。复制出的 XLIFF 的 `target-language` 会被改写为该伪语言环境。
+
+### JSON 输出
+
+Schema：[`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，[信封](/zh-CN/docs/cli/output#json-输出)包含 `locale`、`mode`（`accented` 或 `bidi`）、`path`、`entries`（已写入的条目，包括 bidi 模式下添加的复数形式）、`transformed`（与源值不同的值）、`copied`（原样复制的键）以及 `written`（文件已是最新时为 `false`）。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+结果输出到 stdout；进度行和下一步输出到 stderr：
+
+```text output
+verbatra: pseudolocalizing the source... done (0.1s)
+verbatra pseudo
+  en-XA (accented): 118 of 120 entries pseudolocalized
+    copied verbatim: legal.disclaimer, brand.name
+  wrote .verbatra-local/pseudo/locales/en-XA.json
+next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
+```
+
+对未更改的源文件再运行一次，会报告 `unchanged` 而不是 `wrote`。`--quiet` 会去掉 stderr 的输出行。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 伪语言环境已生成，无论文件是否有更改；原样复制的值不会改变这一点 |
+| `2` | 无法运行：用法错误、配置或源文件问题，或被拒绝的伪语言环境或输出路径 |
+
+见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- 有了密钥之后，[`verbatra translate`](/zh-CN/docs/cli/translate) 会做真正的翻译。
+- [`verbatra doctor`](/zh-CN/docs/cli/doctor) 同样可以在不产生花费的情况下校验项目。
+- [格式](/zh-CN/docs/formats)列出了每种格式的占位符语法。
+- [配置文件](/zh-CN/docs/config-file)记录了决定生成文件布局的 `files.pattern`。

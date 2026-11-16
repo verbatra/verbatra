@@ -1,0 +1,192 @@
+---
+title: "适配器、提供商与脱敏"
+seoTitle: "用自定义适配器和提供商扩展 SDK"
+description: "构建 verbatra 未内置的格式适配器或翻译提供商，并对传给 SDK 的任何文本中的密钥脱敏。"
+type: reference
+---
+## 格式适配器
+
+<AvailableFrom version="0.11.0" />
+
+这里包含为 verbatra 未内置的格式构建格式适配器所需的一切，以及把它与内置适配器一起注册的方法。来自 verbatra 之外的格式用 `custom:` 标识符命名，例如 `custom:toml`，配置对它的接受方式与内置名称完全相同。完整的讲解见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)，其中也说明了安装第三方适配器时你所信任的是什么：它是完全受信任的代码，verbatra 不会为它设置沙箱。
+
+### createDefaultRegistry
+
+构建一个 `AdapterRegistry`，其中按检测顺序包含 verbatra 内置的每个适配器。请从这里开始，而不是从空注册表开始，这样你自己的格式会加入内置格式而不是取代它们，然后把结果作为 `deps.adapterRegistry` 传给任何流程。[`AdapterRegistry`](#adapterregistry) 介绍了 `register` 和 `resolve`。
+
+```ts title="签名"
+function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
+```
+
+**返回**：`AdapterRegistry`
+
+**示例**：[注册并运行](/zh-CN/docs/custom-format-adapters#注册并运行)
+
+```ts title="示例"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### AdapterRegistry
+
+保存已注册的适配器，并为文件解析出一个适配器。`new AdapterRegistry()` 从空开始，所以它只读取你注册的格式；通常的起点是 `createDefaultRegistry`。`register(adapter)` 把适配器追加到检测顺序中并返回注册表，因此注册可以链式调用。它会拒绝注册表已持有的格式和格式有误的 `custom:` 标识符，并包装 `custom:` 适配器，使其意外抛出的错误以指明该格式的 `AdapterError` 呈现。`resolve(filePath, options)` 为一个文件选出适配器：给定 `options.format` 时按它选择，否则按检测选择，`options.sample`（内容开头的样本）可以辅助检测。
+
+```ts title="签名"
+class AdapterRegistry {
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+`resolve` 接受这些选项：
+
+<SdkTypeTable name="ResolveOptions" />
+
+**返回**：`register` 返回注册表。`resolve` 返回一个 `AdapterResolution`，以 `status` 区分：`resolved` 带有 `adapter`，`no-match` 带有 `filePath` 和 `triedFormats`，`ambiguous` 带有 `filePath` 和相互竞争的 `candidates`，把其中一个作为 `format` 传入即可解决。无法解析的文件是一种状态，从不是异常。
+
+**抛出**：`AdapterError`：`register` 抛出 [`DUPLICATE_FORMAT`](/zh-CN/docs/error-codes#duplicate_format) 和 [`INVALID_FORMAT_ID`](/zh-CN/docs/error-codes#invalid_format_id)，`custom:` 适配器自身的 `canHandle` 在检测期间抛出时，`resolve` 抛出 [`ADAPTER_FAILED`](/zh-CN/docs/error-codes#adapter_failed)
+
+### createFlatFileAdapter
+
+为扁平的键值格式构建 `FormatAdapter`，即每个条目都由单个键寻址、没有嵌套的格式。你提供该格式自己的 `parseEntries`、`serializeEntries` 和 `extractPlaceholders`；工厂函数提供有大小限制的读取、原子写入、扩展名检测和结构化的错误处理。对于一个文件同时包含源文本和目标文本的格式，`parseEntries` 还会收到读取该文件所用的语言环境；`serializeEntries` 会收到调用方的写入上下文，其可选的 `sourcePath` 指明源语言文件，并且从 0.12.0 起还会收到正在写入的语言环境（第五个参数），供在文件内部记录其语言环境的格式使用。只要你的扩展名是通用扩展名，就提供 `sniff`；否则你的适配器会认领所有使用该扩展名的文件，检测只会报告歧义而不做选择。可选的钩子有 `validateMessage`、`computeInvalidIcuKeys`、`comparePlaceholders`，以及从 0.12.0 起的 `compareBranchArms`；`fs` 用来替换文件系统端口，默认是 `nodeAdapterFs`。
+
+```ts title="签名"
+function createFlatFileAdapter(
+  options: FlatFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="FlatFileAdapterOptions" />
+
+**返回**：`FormatAdapter`
+
+**示例**：[构建适配器](/zh-CN/docs/custom-format-adapters#构建适配器)
+
+`FormatAdapter` 把文件读取为 `LocaleResource`，这是每个适配器和流程共用的中立形式：
+
+<SdkTypeTable name="LocaleResource" />
+
+### createTreeFileAdapter
+
+为嵌套树形格式构建 `FormatAdapter`，即条目位于嵌套对象中某条路径上的格式。它接受针对树的 `parse` 和 `serialize`，一个报告每个叶子节点的占位符及其是否为复数形式的 `deriveEntry`，以及针对单个值的 `extractPlaceholders`，并自行处理展平和还原。与扁平工厂函数一样，它接受 `format`、`extensions` 和可选的 `sniff`。它还带有结构化格式需要的可选钩子：`validateTree`、`validateMessage`、`computeInvalidIcuKeys`、`comparePlaceholders`、`compareBranchArms`（从 0.12.0 起）、`deriveDescriptions`、`buildWriteTree` 和 `keyMode`；`fs` 用来替换文件系统端口，默认是 `nodeAdapterFs`。
+
+```ts title="签名"
+function createTreeFileAdapter(
+  options: TreeFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="TreeFileAdapterOptions" />
+
+**返回**：`FormatAdapter`
+
+### nodeAdapterFs
+
+文件系统端口，类型为 `AdapterFs`，每个适配器工厂函数在没有提供端口时都使用它：读取有大小限制，文件缺失或过大时报告为一种状态而不是抛出错误；写入经过临时文件和重命名，所以被中断的写入从不会留下写了一半的语言文件。在你自己的适配器中，请通过这个端口读写，而不要直接使用 `node:fs`。这是一种约定而不是边界，verbatra 无法对不属于它的代码强制执行。
+
+```ts title="签名"
+const nodeAdapterFs: AdapterFs;
+```
+
+### isCustomFormatId
+
+把格式标识符收窄为第三方标识符：对格式正确的 `custom:` 标识符为 true，对每个内置格式名称为 false。当你自己的工具需要区分两者时很有用，例如判断运行某个配置之前是否必须提供注册表。
+
+```ts title="签名"
+function isCustomFormatId(
+  format: string,
+): format is CustomFormatId;
+```
+
+**返回**：`format is CustomFormatId`
+
+## 密钥脱敏
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+从字符串中清除提供商 API 密钥的形态，以及任何已配置的提供商环境变量的当前确切值，并把每处匹配替换为 `[REDACTED]`。`@verbatra/studio` 和 `@verbatra/mcp` 都会对它们返回给调用方、且并非自己生成的每个值应用它，例如术语表条目、文件路径或上游错误信息，所以环境中已有的密钥，或写进项目文件的密钥，永远不会到达浏览器标签页、智能体或日志行。`verbatra` CLI 写入 stdout 和 stderr 的所有内容都会在最后一步经过它处理，`--json` 信封（envelope）也不例外。
+
+```ts title="签名"
+function redact(text: string): string;
+```
+
+**返回**：`string`
+
+这也包括 `openai-compatible` 提供商通过 `apiKeyEnvVar` 指定的变量。它在 `loadConfig` 加载了指定该变量的配置时，或构建该提供商时被声明，此后它的值会与内置变量完全一样被清除。声明从不会被移除。短于 8 个字符的值不会按值清除，所以较短的变量永远不会抹掉不相关的文本。
+
+DeepL 密钥只有在带有免费密钥的 `:fx` 后缀，或一个裸 UUID 处于密钥上下文中时，才仅凭形态被识别：即出现在 `DeepL-Auth-Key` 请求头之后，或出现在 `auth_key`、`authKey`、`--auth-key`、`api_key`、`deeplKey`、`DEEPL_API_KEY` 或 `DEEPL_AUTH_KEY` 等名称之后，并且后面跟着 `:`、`=`、URL 编码的 `%3D` 或空格，带引号与否均可，序列化进字符串的 JSON 内部也同样适用。其他任何 UUID（例如文件路径或请求 id 中的 UUID）保持可读。保存在 `DEEPL_API_KEY` 中的 Pro 密钥，无论出现在哪里，仍会按它的值被清除。
+
+`sk-` 令牌在 `sk-` 之后至少跟着 32 个字母和数字时会被脱敏，计数跨越它的 `-` 和 `_` 分段，与前缀无关。这一条规则涵盖了每种 OpenAI 和 Anthropic 密钥形态；`sk-proj-` 或 `sk-ant-` 等已知前缀本身不会让更短的令牌被脱敏。只有在字母或数字没有直接位于它前面时，该令牌才会被计入：JSON 转义（例如 `\n` 或 `\u0007`）、百分号编码的字符（例如 `%3D`）、ANSI CSI 序列（例如 `\x1b[31m`、`\x1b[2K` 或 `\x1b[?25h`）、ANSI 字符集指定序列（例如 `\x1b(B`），或以 `\u001b` 形式经 JSON 转义的这两种 ANSI 形式，也都构成边界。斯洛伐克语的语言环境路径或键（例如 `locales/sk-SK.json` 或 `sk-banner_headline`）保持可读。不过，很长的类斯洛伐克语键会达到阈值并被脱敏：`sk-SK_settings_notifications_email_digest` 在 `sk-` 之后有 34 个字母和数字，很长的驼峰式键（例如 `sk-onboardingWelcomeScreenPrimaryButton`）也是如此。
+
+Gemini 密钥仅凭形态即可识别：`AIza` 后跟 35 个字母、数字、`_` 或 `-`。
+
+### declareProviderKeyEnvVar
+
+<AvailableFrom version="0.12.0" />
+
+声明 `provider` 块指定为密钥来源的变量，使 `redact` 清除它的值。目前只有带 `apiKeyEnvVar` 的 `openai-compatible` 提供商会指定这样的变量；对其他任何提供商，这个调用不起任何作用。`loadConfig` 和构造提供商时已经会这样做，Studio 和 MCP 服务器也会对它们收到的配置这样做，所以只有当配置以其他方式进入你自己的代码时，才需要调用它。该声明作用于整个进程，并由进程中加载的每份 SDK 副本共享。
+
+```ts title="签名"
+function declareProviderKeyEnvVar(
+  provider: ProviderConfig,
+): void;
+```
+
+**返回**：`void`
+
+## 自定义提供商
+
+<AvailableFrom version="0.12.0" />
+
+SDK 未内置的提供商通过 `deps.createProvider` 接入，它是一个返回 `TranslationProvider` 的 `CreateProvider`。SDK 以类型的形式导出整套契约，所以这样的提供商可以按内置提供商实现的同一接口做类型检查。这也包括它的字段所用的类型：请求中的 `Tone`、`PluralCategories`、`PlaceholderExtractor` 和 `PlaceholderComparator`，结果中的 `Usage`、`ProviderNotice`、`ProviderNoticeCode` 和 `ReviewFlag`，以及 `ProviderNetwork` 中的 `NetworkPolicy` 和 `NetworkRule`。
+
+```ts title="示例"
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` 是唯一的契约：`id`、`kind`（一个 `ProviderKind`）、`supportsGlossary` 和 `translateBatch(request)`。请把请求中的每个值都当作不可信数据，从环境而不是从请求中读取任何 API 密钥，调用失败时抛出不含密钥的 `ProviderError`。
+- `ProviderKind` 是 `"llm"` 或 `"machine-translation"`。提供商对象上的 `kind` 只是描述性的：SDK 根据已配置的提供商 `id` 的种类，而不是这个字段，来决定生成哪些复数，以及敏感数据防护扫描什么。
+- `TranslateRequest` 带有 `sourceLocale`、`targetLocale`、要翻译的 `entries`，以及可选的 `glossary`（目标语言环境的 [`glossaryForLocale`](/zh-CN/docs/sdk/config#glossaryforlocale) 的结果）、`tone`、`maxLength` 和 `pluralCategories`。它还带有 `extractPlaceholders`，以及（对某些格式）`comparePlaceholders`，你的提供商用它们做完整性检查；另外还有中止正在进行的调用的 `signal`、`onRepair`，以及 `foreignPlaceholders`：按键给出另一种占位符语法的记号，需要像占位符一样加以保护。
+- `TranslateResult` 返回以条目键为索引的 `values` 和 `integrity`，以及可选的 `usage`、`notices` 和 `reviewFlags`。`values` 中缺失的键算作未翻译，所以提供商可以略过它无法安全翻译的值。无论如何，SDK 都会对返回的每个值运行它自己的完整性门禁。
+- `ProviderRetryListener` 是 `CreateProviderHooks.onRetry` 的类型。每次重试它都会收到一个 `ProviderRetry`，即 `{ attempt, delayMs?, status? }`，每次调用都会成为一个 `provider-retry` [进度事件](/zh-CN/docs/sdk/run#进度事件)。
+- 当网络策略限制提供商可以连接的位置时，`ProviderNetwork` 就是 `CreateProviderContext.network` 所持有的内容：有效的 `policy`、解析端点所用的 `env`，以及可选的测试用 `deps`。自定义提供商可以忽略它，但这样一来，只有 SDK 在调用工厂函数之前运行的检查才适用于它的请求。
+
+**示例**：[不用密钥测试你的集成](/zh-CN/docs/programmatic-api#不用密钥测试你的集成)

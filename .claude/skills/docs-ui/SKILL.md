@@ -261,6 +261,37 @@ Two families, loaded in `app/[lang]/layout.tsx` through `next/font/google` (lati
 differ by weight, size and tracking, not by family. You do not set a heading font per component.
 Adding a third family needs a reason that survives review.
 
+Chinese and Japanese pages ship no webfont (the CSP is untouched). `app/global.css` re-maps
+`--font-sans` under `:root:lang(zh-CN)` and `:root:lang(ja)`: Geist stays first, then the system faces for
+that script (PingFang SC, Microsoft YaHei, Noto Sans CJK SC and Noto Sans SC; Hiragino Sans, Yu Gothic UI,
+Meiryo, Noto Sans CJK JP and Noto Sans JP), then the generic fallbacks, so the Han glyph variants follow the
+page language. `--font-display` follows because it aliases `--font-sans` on the same element;
+`--font-mono` gets the same script faces after Geist Mono, so Han in a mono label resolves to the
+right variant. `next/font` sets `--font-geist-sans` to `"Geist", "Geist Fallback"` with no generic, and
+`Geist Fallback` is `local(Arial)` with metric overrides, which has no Han, so the script faces are reached.
+`lib/cjk-font-stacks.test.ts` pins both stacks.
+
+Every CJK rule lives in one block of `app/global.css`, right after those two font rules, scoped by
+`:lang(zh-CN)` and `:lang(ja)` so the Latin-script locales never match it. It resets `letter-spacing` (with
+`!important`, because several components set it inline) and `text-transform` to none, because tracked
+or uppercased Han looks gappy and uppercase turns "token" into "TOKEN"; zeroes the `--tracking-*`
+tokens and sets `--leading-display` and `--leading-heading` to 1.2 and 1.3, with `line-height: 1.3` on
+headings, because Han fills the em box; sets `font-style: normal` on `em`, `i`, `cite` and the lock-demo
+gap lines, because there is no italic face and the browser would slant the glyphs (emphasis is the
+plain weight, never a slant); puts `text-wrap: balance` on every heading and `text-wrap: pretty` on
+paragraphs and list items. Landing headings that come from message strings also get `word-break:
+keep-all` with `overflow-wrap: anywhere` (so a heading whose groups are wider than 320px still wraps), and
+`breakBetweenWords` in `lib/word-segments.tsx` inserts a `<wbr>` between the `Intl.Segmenter` words of a Han or
+kana string, so a heading breaks only between words. The ICU dictionary splits many words into single
+characters (每|个, 密|钥, 适|配|器), so `groupWordSegments` in `lib/word-count.ts` first joins
+consecutive one-character Han or kana segments into a run, then gives a run of up to three characters to the
+word-like segment before it (a longer run gives that word its first character and stays together after it;
+a run with nothing word-like before it joins the segment after it), so no group is a single Han character
+unless punctuation or the text edge surrounds it, and a break point sits only between two such groups; the compare notes' tail
+unit (`lastWordStart`) reads the same groups. `word-break:
+auto-phrase` is not used: Chrome ships it for Japanese only, and Firefox and Safari do not support it.
+MDX headings get no segmentation, only balanced lines, which never leave one character alone.
+
 The type scale is a major third (1.25) held in `packages/ui/src/tokens.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`; the marquee's centered `h2`, `.vk-marquee-heading`, is a small
 mono uppercase label instead), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
@@ -384,7 +415,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   and the stale field is already marked at rest (`--accent` text, dotted underline, radius `--radius-sm`). The tint fades over `--duration-fast` only under `prefers-reduced-motion: no-preference`;
   it is a paint-only change, the one transition on the landing that is neither opacity nor transform, and under `forced-colors` the lit field takes a `Highlight` outline and the coverage bar a `CanvasText` frame with a `Highlight` fill.
   The panes are consumers of `[data-reveal]`: `data-reveal` is the row (0 for CLI and Studio, 1 for SDK and MCP), so the second row starts 70ms later whatever the column count.
-  `highlights.test.tsx` pins the markup and the stylesheet, `e2e/highlights.spec.ts` the heights in all four locales, the reflow, the rail on the column grid, the gaps, the cross-highlight, the contrast and the reveal), `features.tsx` (`#features`, a bracketed label, a split
+  `highlights.test.tsx` pins the markup and the stylesheet, `e2e/highlights.spec.ts` the heights in every locale, the reflow, the rail on the column grid, the gaps, the cross-highlight, the contrast and the reveal), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and the command deck: `ol.vk-deck` of `LANDING_FEATURES` from `lib/landing-features.ts`, in
   workflow order (extract, types, doctor, watch, handoff, studio), each with its `command` and `docsPath`. Every `li.vk-deck-item`
   holds a `.vk-deck-row` (a radio, `input.vk-deck-radio`, one group, the first checked, `aria-controls` its pane; the `h3` whose
@@ -423,20 +454,20 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   applicable (the manual column). Marks are data, never translated text; the words come from one shared vocabulary,
   `landing.compare.verdicts` (Yes, No, Partial, Unknown, None found, n/a), and each cell's copy is `landing.compare.rows.<row>.<tool>`
   with an optional `value` and an optional `note` (the qualifier), cut by `lib/landing-copy.test.ts` at 8 words (10 for eleven listed
-  cells), a value at 4, in all four locales. There is no overall score, no rating per tool and no rating wording. Verbatra's providers
+  cells), a value at 4, in every locale. There is no overall score, no rating per tool and no rating wording. Verbatra's providers
   cell is a plain count derived from `MACHINE_PROVIDER_IDS` through `compareCellView` (`lib/compare-cells.ts`), no names. The numbered
   source list (`compareSource(n)`, `cellFootnote`) is kept for `/compare.md` and `llms-full.txt` only; the page shows no footnote
   number, no Sources section and no `#source-n` anchor, and each cell carries one arrow-only link per source URL
   (`a[data-source]`: an inline arrow SVG with `aria-hidden`, an `sr-only` name of tool, criterion and "source", at least 24px, set small and
   `--text-muted`, `scroll-margin-block-start: 6rem` so a backward Tab walk never leaves one under the sticky header row). The first
-  arrow of a cell sits in a no-wrap `.vk-compare-unit` with the last word (or hyphen segment) before it, and a verdict mark in one with
-  its first word, so an arrow never drops to a line of its own and a two-word verdict wraps after the mark and first word; further
-  arrows wrap freely. The qualifier is `--text-muted` and follows the verdict word after a plain space, with no dash. A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
+  arrow of a cell sits in a no-wrap `.vk-compare-unit` with the last word (or hyphen segment) before it (for a spaceless locale such as zh-CN, the last `groupWordSegments` group (never a single Han character) plus any opening bracket before it and any closing punctuation after it, via `tailCut` in `components/landing/compare-table.tsx`, so a Chinese clause still wraps; a note that ends in inline code gets a U+2060 word joiner before the arrow), and a verdict mark in one with
+  its first word, so an arrow never drops to a line of its own and a two-word verdict wraps after the mark and first word; every further
+  arrow of the cell sits in the same unit. The qualifier is `--text-muted` and follows the verdict word after a plain space, with no dash. A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
   question mark in `--text-muted`, never red, always beside the word, each a different shape so colour is never the only cue, drawn in
   `currentColor` so forced colors keep it. The page opens with the `h1`, one takeaway sentence, one scope sentence, one "where others are
   stronger" line and the "Last checked" date (`COMPARE_LAST_CHECKED`, with one short clause saying what "None found" means, `compare.noneFound`), then a skip
   link past the comparison, so the first comparison row sits within 400px at 1440 and at least two rows fit the first 391 by 844 screen
-  and one the first 320 by 640 screen, in all four locales (under 23rem the intro gaps tighten and its secondary lines drop to
+  and one the first 320 by 640 screen, in every locale (under 23rem the intro gaps tighten and its secondary lines drop to
   `--text-xs`; `compare.takeaway` and `compare.stronger` stay one line in the 46rem intro). Under the comparison come the two
   next-step links. The layout is one `.vk-compare` container (`container-type: inline-size`) with two views of the same data, chosen by
   its width, never the viewport: from 67.5rem the full eight-column matrix (`table.vk-compare-table`, `table-layout: fixed`, fitted to the
@@ -454,7 +485,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   and footer language switch by `carriedSearch` in `lib/locale-switch.ts`)
   through `history.replaceState`, so it is shareable and survives a reload; the server HTML starts on Lingo.dev. Words never break
   mid-word (`hyphens: manual`, never `hyphens: auto`, `overflow-wrap: normal`), so a long German word in a cell is a wording
-  problem, which `e2e/compare-page.spec.ts` checks at 1160, 1200, 1240, 1280 and 1440 in all four locales. The matrix verdict word is 13px (`calc(var(--text-xs) + 1px)`), the qualifier 12px. The article's single grid track is
+  problem, which `e2e/compare-page.spec.ts` checks at 1160, 1200, 1240, 1280 and 1440 in every locale. The matrix verdict word is 13px (`calc(var(--text-xs) + 1px)`), the qualifier 12px. The article's single grid track is
   `minmax(0,1fr)`. `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx` (with `compare-table.tsx`:
   `CompareMatrix`, `ComparePairs`, `CompareCellBody`). `/compare.md` (and `Accept: text/markdown` on `/compare`) is
   `lib/compare-markdown.ts` served by `app/[lang]/site.mdx/[page]/route.ts`: it keeps the full table, now with the verdict words, the
@@ -524,7 +555,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   (`components/footer-locale-links.tsx`) as `localeSwitch`; the global not-found page (every
   missing docs slug too) passes none, since the switch there would link to more missing pages, and
   so loads no island.
-  `e2e/footer.spec.ts` checks the surface, the contributors (axe, 44px targets, avatars loaded from this site) and every same-site link in all four locales, and on the
+  `e2e/footer.spec.ts` checks the surface, the contributors (axe, 44px targets, avatars loaded from this site) and every same-site link in every locale, and on the
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`, each item a bordered `--radius-card` `--surface-tile` panel: five
@@ -773,7 +804,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   outline carrying the format's own extension label (`FILE_GLYPH_LABELS` in `stack-icons.tsx`: `.po`, `XLF`,
   `INI`, `YAML`, `JSON`), an SVG `<text>` in `--font-mono`, bold, `currentColor` fill, its width fixed by
   `textLength` so no label leaves the outline; the glyph is drawn at 40px (`FILE_GLYPH_SIZE`) against 28px for the
-  rest, so the label stays legible and its thin ink balances the marks. The `custom` card has no label. `stack-cards.test.tsx` pins the mark set in all four locales.
+  rest, so the label stays legible and its thin ink balances the marks. The `custom` card has no label. `stack-cards.test.tsx` pins the mark set in every locale.
   Third-party logos appear in exactly three places: the GitHub mark
   (`components/landing/github-icon.tsx`), the marquee's brand marks and the stack cards' marks. The
   logo rule for those:
@@ -802,8 +833,8 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   a `badge` (the link reads "React, Quickstart"); every other card, and every card on
   `pick-your-stack` itself, jumps to a `pick-your-stack` section.
   `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to `SUPPORTED_FORMATS`,
-  a section card's anchor to the page's sections and a quickstart card's format to its stack, in all
-  four locales. Fumadocs' `Steps` and `Step` are registered there too, for numbered tutorial steps
+  a section card's anchor to the page's sections and a quickstart card's format to its stack, in
+  every locale. Fumadocs' `Steps` and `Step` are registered there too, for numbered tutorial steps
   such as the quickstart's.
 - **Stack quickstarts:** `<StackBlock name="..." />` and `<StackText field="..." />` are not
   React components. The remark plugin `remarkStackBlocks` (`lib/stack-blocks.ts`, first in
@@ -849,7 +880,7 @@ The policy, in one place:
   `motion-root.test.tsx` fails on any animated `.vk-banner` rule. The locale-file cards are static, server-rendered and `aria-hidden`;
   the install chip's `CommandRow` is the hero's only island, with no timer and no GSAP (`hero.test.tsx` fails on a static GSAP import
   and on any `HeroTracks` or `landing-tracks` reference there). `e2e/hero.spec.ts` pins the cards,
-  the install chip, the action row order and alignment in all four locales (primary and chip centred, the compare
+  the install chip, the action row order and alignment in every locale (primary and chip centred, the compare
   link content-width and flush-left with a 44px hit area, the empty row beside it inert, the Tab order primary,
   copy button, compare link) and 320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
@@ -860,7 +891,7 @@ The policy, in one place:
 - **Lock-file demo.** `lock-demo.tsx` (`#lock-demo`, a page section with a bracketed `.vk-eyebrow`
   label "The lock file" and a `stacked` `SectionHead` whose `h2` is `landing.lockDemo.heading`,
   `{count, plural, =2 {Two keys changed, two keys sent} ...}`, formatted with the fixture's changed
-  count so it falls back to digits, and fails `lock-demo.test.tsx` in all four locales, when the
+  count so it falls back to digits, and fails `lock-demo.test.tsx` in every locale, when the
   fixture changes) replaces the former statement and SDK playground. Every number, key, value and
   hash comes from one fixture, `lib/hero-terminal.ts` (`HERO_TERMINAL_SOURCE`): `lib/lock-demo.ts`
   turns it into three frames of `CodeLine`s, hashes with `contentHash` from `@verbatra/core` at build
@@ -965,7 +996,7 @@ The policy, in one place:
   They feed two registered numbers, `--vk-gate-out` and `--vk-gate-in` (from `--vk-gate-there`), that carry the frame's transitions, and `--vk-gate-arrive`, 1 for the frame that has arrived. The frame's opacity is
   `calc((1 - a * a) * c)` where `a` is `--vk-gate-away`, the larger of the two carriers' distances from rest (`GATE_FADE_EXPONENT`, 2), and `c` is `--vk-gate-current`, 1 only for the frame whose index equals `--vk-gate-shown` and 0 for every other, so only the shown frame ever paints and a frame the state copy skips (the middle one of a flick) never does; a frame stays readable for most of its travel and is gone exactly at the end of it, and its caption and card move by the carrier that is further from rest, the card also scaled from `scale(0.94)`, using only `calc`, `max`, `min` and `clamp` (no `abs()`, `sign()`, style query or `if()`). The carriers are transitions of a registered number
   because a transition's timing is read from the element's non-animated style, which is also why no delay is computed from the state: `--vk-gate-out` runs `GATE_EXIT_MS` (280ms) on `--ease-exit` and `--vk-gate-in` runs `GATE_ENTER_MS` (320ms) on `--ease-standard`, after the delay of the state copy, so whichever way a frame is going, the frame that leaves is readable (0.5 opacity or more) through at least 60 percent of its travel,
-  the frame that arrives is readable with at least 40 percent of its travel still to go, the stage is empty (every frame under 0.3) for at most 80ms and no two frames are above 0.3 at once, also when a reader turns back at any moment of the entrance (a sweep from 100 to 600ms in 5ms steps, both cuts, both directions, is in `e2e/gate.spec.ts`), settling within `GATE_REVERSAL_SETTLE_MS` (650ms) of the turn. A slide out to the left meets a slide in from the right when the state rises, mirrored when it falls, over at most `GATE_HANDOFF_CEILING_MS` (600ms). Every transition value is static, and the animation that steps the state never sits on the element whose transition it drives.
+  the frame that arrives is readable with at least 40 percent of its travel still to go, the stage is empty (every frame under 0.3) for at most 80ms and no two frames are above 0.3 at once, also when a reader turns back at any moment of the entrance (a sweep from 100 to 600ms in 5ms steps, both cuts, both directions, is in `e2e/gate.spec.ts`), settling within `GATE_REVERSAL_SETTLE_MS` (1000ms) of the turn (the handoff itself takes about 580ms; the bound leaves room for a loaded runner). A slide out to the left meets a slide in from the right when the state rises, mirrored when it falls, over at most `GATE_HANDOFF_CEILING_MS` (600ms). Every transition value is static, and the animation that steps the state never sits on the element whose transition it drives.
   A transition that is reversed halfway turns back from where it is. In an engine that does not start a transition from a value a scroll timeline steps (Firefox), the switch is instant and the rest is the same one whole frame; Firefox and WebKit were checked by hand and are not pinned by CI, which runs Chromium only. The slide distance is the same in and out (`--vk-gate-slide`: a plain 64px below 80rem, from 80rem the room left of the content held between 64px and 96px, registered with `@property` as a `<length>` so a resize repaints it). The page wrapper `.vk-home` clips sideways at the viewport edge and the document never scrolls sideways, so a frame that is not current waits one slide distance off to its side at opacity 0.
   At rest, once the transitions have ended, exactly one frame is at opacity 1 with no offset and no scale, every other frame is at opacity 0 with `pointer-events: none` and every frame stays in the accessibility tree and in find-in-page (never `visibility`). The pointer belongs to the frame of the current state through one discrete keyframe set per frame (`vk-gate-hit-candidate`, `-refused`, `-stale`, `pointer-events` only), stepped at the same cuts;
   the current card is what `elementFromPoint` returns at its middle. The CLI lines are part of their card: no line animates on its own, so a card never arrives hollow. The three accents are in their end state whenever their frame is current and are raised (12px, hidden) while another frame is current: the chip (`.vk-gate-slot`) and the exit badge (`.vk-gate-exit`) sit `GATE_DROP_PX` (12px) up and the stamp (`.vk-gate-stamp`) is scaled from `scale(1.6)` from its right edge so it never covers the badge beside it, and all three also take `translate` and `opacity` from `--vk-gate-arrive` through `.vk-gate-moves`.
@@ -1070,7 +1101,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 Fumadocs' own chrome (search, "On this page", page actions, sidebar aria-labels, pagination) is
 translated in `lib/ui-translations.ts`, added to `translations` in `lib/root-provider-options.ts`. The
 object is typed against `fumadocs-ui/i18n`'s `Translations`, and `lib/ui-translations.test.ts`
-fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
+fails when a Fumadocs upgrade adds a key that a translated locale lacks.
 
 ## One header for both surfaces
 
@@ -1169,7 +1200,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   64rem, all sized in rem so a tall narrow column never stretches them into a strip behind the
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
-  the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
+  the `.vk-banner-lead` subline (at most 25 words in English, 30 in every other locale, tested in every locale), `.vk-banner-ctas` with Get started
   (`/docs/quickstart`), the `.vk-banner-install` chip and last a "Compare with other tools" text link (`/compare`, `.vk-banner-compare` inside `.vk-banner-compare-row`, content-width, label on the column's left edge, never a second primary button; `align-items: center` keeps Get started at 50px beside the taller chip), the chip a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`, in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
@@ -1193,7 +1224,11 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   (`OFL-Geist.txt`), each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
-  A new character outside those ranges in a headline needs the subset rerun. `PromptCopyButton` is
+  A new character outside those ranges in a headline needs the subset rerun. A locale whose script Geist cannot draw gets its own face in `OG_LOCALE_FONTS` (`lib/og-locale-fonts.ts`, one
+entry per `Locale`, empty for the Latin-script locales): `loadOgFonts(locale)` loads it after Geist, and satori falls back to it
+per glyph. `pnpm --filter @verbatra/docs og:fonts --source-dir <dir>` (`scripts/build-og-font-subsets.mjs`)
+subsets each configured face to the characters of that locale's OG text (`lib/og-texts.ts`), and
+`lib/og-font-subsets.test.ts` fails when a committed subset lacks one. `PromptCopyButton` is
   `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding
   the exact prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line,
   its URL broken only after a path `/` and each flag, and the value after it
@@ -1288,7 +1323,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   The data stays when its release leaves the current line, so the marquee then shows no pill, and a
   future release marks items again by rewriting it; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
   `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of that
-  version directly under its `providers*.mdx` heading, in all four locales, exactly when
+  version directly under its `providers*.mdx` heading, in every locale, exactly when
   `RELEASE_BADGE` lists it, and `provider-none` is dated exactly by the page badge of
   `human-only-workflow*.mdx`. A badge placed directly under a heading is moved into it. Where a badge may
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
@@ -1373,8 +1408,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   1px `--accent` marker over the rail; `tableOfContent={{ single: true }}` keeps one entry active. TOC entries never break inside a word (`overflow-wrap: normal` on `#nd-toc`
   and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each underscore with
   `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A
-  page whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
-  locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
+  page whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (every
+  locale) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
   `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
   The phone TOC button carries an explicit `aria-label` (Fumadocs' localized "On this page",
   `onThisPageLabel`), so its accessible name is not the progress ring's value.
@@ -1402,7 +1437,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   two-column table fits a phone. Short code (`.vk-code-short`) in a cell, at every width, breaks
   only at the points `breakInlineCode` offers. The header row stays in the DOM for assistive
   technology. Short inline code (up to `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`)
-  gets `.vk-code-short` from the MDX `code` mapping and never wraps elsewhere; longer inline code
+  gets `.vk-code-short` from the MDX `code` mapping and never wraps elsewhere (a heading anchor under 768px is the one other place it may wrap, only at those break points, so a long identifier in a heading never widens the page); longer inline code
   wraps, in cells and in prose alike, and the mapping runs it through `breakInlineCode`
   (`lib/word-breaks.tsx`): a `<wbr>` after every underscore, so `verbatra_project_snapshot` wraps at
   `_` before anywhere else, a `.vk-code-break` (a zero-width space drawn by CSS, never copied) after
@@ -1466,13 +1501,14 @@ skill for them. Query Context7:
 
 Scope each query to one concept, per the Context7 convention already in use here.
 
-## Four locales, every time
+## Every locale, every time
 
-apps/docs ships `en`, `de`, `es`, `fr`. A UI change that adds or edits a user-facing string
-touches `messages/en.json` and needs the other three updated in the same change, by running
-`pnpm i18n` from `apps/docs`. `.github/workflows/docs-i18n-check.yml` only backstops
-`messages/*.json`. MDX locale siblings are not checked by CI. Full rules:
-`.claude/rules/docs.md`.
+The locale set is `LOCALES` in `apps/docs/lib/locales.ts`. A UI change that adds or edits a
+user-facing string touches `messages/en.json` and needs every other locale's file updated in the
+same change: by running `pnpm i18n` from `apps/docs`, or, for a value that is protected because it
+was imported, through `verbatra export` and `verbatra import`.
+`.github/workflows/docs-i18n-check.yml` only backstops `messages/*.json`. MDX locale siblings are
+not checked by CI. Full rules: `.claude/rules/docs.md`.
 
 ## Repository rules that bite in UI work
 

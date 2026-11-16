@@ -154,8 +154,9 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  *
  * @param input - The config, the optional locale filter, and whether to report unused keys.
  * @param deps - Optional adapter registry, file-system, and extractor-factory overrides.
- * @returns Per-locale missing, changed, and orphaned key lists, plus the unused-key report when
- *   asked for.
+ * @returns Per-locale missing, changed, orphaned, empty-source and protected key lists, the origins
+ *   of the changed keys, and a pending verdict per locale and for the project, plus the
+ *   unused-key report when asked for.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`

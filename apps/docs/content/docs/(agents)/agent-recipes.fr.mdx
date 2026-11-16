@@ -12,7 +12,7 @@ Le contrat lui-même est dans [Codes de sortie et sortie JSON](/fr/docs/cli/outp
 
 Les recettes lisent stdout avec `jq` ; n'importe quel analyseur JSON convient.
 
-## stdout ne porte que des enveloppes
+## Garder stdout propre
 
 La progression, les enregistrements d'attente de verrou et la ligne d'erreur lisible partent tous sur stderr, donc stdout ne porte que des enveloppes JSON. Jette stderr pour un flux propre, ou garde-le comme journal :
 
@@ -223,5 +223,5 @@ Dans Claude Code, le plugin verbatra installe les trois skills avec le serveur M
 - [Codes de sortie et sortie JSON](/fr/docs/cli/output) : l'enveloppe et le contrat des codes de sortie.
 - [JSON Schemas](/fr/docs/cli/output#schémas) : un schéma pour chaque enveloppe et chaque enregistrement stderr, pour valider la sortie avant d'agir dessus.
 - [Codes d'erreur](/fr/docs/error-codes) : chaque `code` qu'une sortie peut porter, avec l'étape suivante.
-- [Exécuter verbatra en CI](/fr/docs/ci-and-exit-codes) : les mêmes contrôles dans une pipeline.
+- [Exécuter verbatra en CI](/fr/docs/ci-and-exit-codes) : les mêmes contrôles dans un pipeline.
 - [Configure verbatra avec un agent IA](/fr/docs/start-with-ai) : un prompt qui adopte verbatra dans un projet existant.

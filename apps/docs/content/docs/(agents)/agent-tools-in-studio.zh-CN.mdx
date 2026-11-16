@@ -1,0 +1,130 @@
+---
+title: 用浏览器智能体操作 Studio
+seoTitle: "用浏览器 AI 智能体操作 Verbatra Studio"
+description: 把 Verbatra Studio 的审校操作注册为 WebMCP 工具，让浏览器 AI 智能体操作你已打开且已认证的仪表盘标签页。
+type: how-to
+---
+用它让浏览器 AI 智能体（如 Chrome 中的 Gemini 或 Claude）在你打开的 Studio 标签页中检查漂移、处理审校队列（Studio 中显示为 **Review queue**）并修正条目。它不用于项目配置或远程访问。
+
+你需要：
+
+- Studio 已在你的项目上运行（[在 Studio 中审校](/zh-CN/docs/review-in-studio#启动-studio)）；
+- Chrome 149 或更高版本，并启用 `chrome://flags/#enable-webmcp-testing`，或支持原生 WebMCP 的浏览器，且在普通窗口而非无头窗口中使用。
+
+<Callout title="实验性">
+WebMCP 是浏览器中需要通过标志开启的新功能，其接口仍可能变化。
+</Callout>
+
+## 开启工具
+
+```bash
+verbatra studio --expose-agent-tools
+```
+
+`VERBATRA_STUDIO_AGENT_TOOLS=1` 的效果相同，选项与环境变量如何解析见[花费与智能体工具](/zh-CN/docs/cli/studio#花费与智能体工具)。在支持 WebMCP 的浏览器中打开输出的 URL，该标签页上的智能体就能找到这些工具。
+
+要让智能体调用你的提供商，请同时用 `--allow-spend` 启动 Studio。
+
+智能体读取的每个值都未脱敏，与页面显示的一致，因为标签页上的智能体本来就能读取页面。例外是术语表工具和 `verbatra_history_keyRevisions`：它们的值会经过密钥脱敏，形如 API 密钥的值会以占位符返回。要对智能体隐藏这些值，请改用带 [`--redact-values`](/zh-CN/docs/cli/mcp#redacted-values) 的 MCP 服务器。涉及 NDA（保密协议）的项目见 [Studio 与 MCP](/zh-CN/docs/data-handling#studio-与-mcp)。
+
+## 了解智能体可以调用什么
+
+每个工具对应一个带 `verbatra_` 前缀的 Studio 操作。读取工具标记为只读，写入工具只更改你的本地文件，付费工具只有在使用 `--allow-spend` 时才会注册。
+
+### 读取工具
+
+| 工具 | 作用 |
+| --- | --- |
+| `verbatra_project_snapshot` | 已加载的配置、各项能力，以及 `capabilities.limits` 下 `retranslate`、`reviewDecision` 和两个值替换方法的速率限制 |
+| `verbatra_status_check` | 每个语言环境的覆盖率 |
+| `verbatra_status_diff` | 每个语言环境缺失、已更改和孤立的键 |
+| `verbatra_glossary_get` | 解析后的术语表，已做密钥脱敏 |
+| `verbatra_lock_state` | 每个语言环境的锁文件状态 |
+| `verbatra_history_list` | 语言文件的近期提交，附作者姓名（[绝不包含邮箱](/zh-CN/docs/data-handling#studio-与-mcp)） |
+| `verbatra_history_keyRevisions` | 某个语言环境中某个键的提交，附逐词差异，其中的 API 密钥已清除 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_integrity` | 对某个键做占位符、内联标记和 ICU 检查，覆盖其源值已更改的语言环境 |
+| `verbatra_review_queue` | 已提交文件中所有无人批准的机器译文 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_value` | 某个键的源值和目标值，以及目标值的编写者 |
+| `verbatra_key_context` | 某个键的描述、术语表术语和 `maxLength`，以及对可选 `draft` 的检查 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_locale_values` | 每个目标语言环境中各键的值，默认每页 200 个，可用 `locales`、`keys` 或 `query` 缩小范围 |
+| `verbatra_locale_integrity` | 所有未通过完整性检查的译文 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_translation_estimate` | 一次翻译待处理更改的调用会发送什么、花费多少，不调用提供商 |
+| `verbatra_usage_summary` | 上次运行的 token 用量、预算，以及有语言环境失败或中途停止时的 `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
+| `verbatra_usage_history` | 已记录的运行，最新的在前，含 token、费用和覆盖率，只给出计数 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+
+### 写入工具
+
+| 工具 | 作用 |
+| --- | --- |
+| `verbatra_glossary_write` | 更改文件型术语表中的一个术语 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_approve` | 记录指定人员对某个值的批准 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_reject` | 记录指定人员的拒绝，并删除该值 |
+| `verbatra_translation_editEntry` | 经完整性门禁写入一个值 |
+
+### 付费工具
+
+| 工具 | 作用 |
+| --- | --- |
+| `verbatra_translation_retranslateEntry` | 重新翻译某个语言环境中的一个键 |
+| `verbatra_translation_translatePending` | 翻译所有待处理的内容，可限定部分 `locales`，并受 `maxTokens` 上限约束 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+`verbatra_key_integrity` 只返回该键源值已更改的语言环境，所以列表为空表示无需检查。它的行比 MCP 服务器的 [`key.integrity`](/zh-CN/docs/cli/mcp#输入与结果) 更扁平。只有 MCP 服务器提供 `project.doctor` 和 `report.provenance`。`verbatra_locale_values` 的分页与 `locale.values` 相同，使用同样的 `limit` 和 `cursor`（[更多输入与结果](/zh-CN/docs/cli/mcp#更多输入与结果)）。
+
+## 了解工具遵循的规则
+
+每次调用都经过仪表盘自己的已认证回环 RPC，输入校验与完整性门禁（见[翻译安全](/zh-CN/docs/translation-safety)）都与仪表盘相同：未通过检查的值会被拒绝，不会写入。
+
+### 每次调用的规则
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+- **来源记录**：智能体的编辑以来源 `agent` 记录，并留在审校队列中；仪表盘中的编辑记为 `human`。读取工具会报告每个值的编写者（[锁文件与来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)）。
+- **人工成果**：重新翻译会拒绝人工编写的值并返回 `KEY_PROTECTED`（`humanEdits: "overwrite"` 除外），拒绝固定的键并返回 `KEY_PINNED`，编辑同样拒绝固定的键（[保留人工翻译](/zh-CN/docs/protecting-human-translations)）。
+- **审校决定**：批准和拒绝只转达你的决定。两者都需要 `reviewer`（人员姓名）和 `expectedValue`（所审校的文本）；值已更改时，调用会被拒绝并返回 `REVIEW_VALUE_CHANGED`。
+- **没有批量工具**：**Approve selected**（批准所选项）、**Reject selected**（拒绝所选项）、**Retranslate selected**（重新翻译所选项）、**Approve all in**（全部批准）和 **Search and replace**（搜索并替换）仍只能由人操作。
+- **先估算**：未知的语言环境会在产生任何花费之前被拒绝并返回 `UNKNOWN_LOCALE`，调用的 `maxTokens` 与配置的 `maxTokens` 取较小者（[运行前估算费用](/zh-CN/docs/estimating-cost)）。
+- **速率限制**：每个滚动分钟内，重新翻译 20 次、编辑 20 次、术语表写入 20 次、审校决定 60 次、翻译待处理的调用 5 次（同一时间只能运行一个）。
+
+## 读取失败的调用
+
+每个工具都返回仪表盘的信封（envelope），所以失败的形式为 `{ "ok": false, "error": { "code": ..., "message": ... } }`。除 SDK 自身的错误码外，RPC 层还会添加：
+
+| 错误码 | 含义 |
+| --- | --- |
+| `REQUEST_INVALID` | 请求或响应不是可读取的信封 |
+| `METHOD_UNKNOWN` | 该方法在此 Studio 版本中不存在 |
+| `SPEND_DISABLED` | 付费方法在花费关闭时被调用：Studio 未带 `--allow-spend` 运行，或提供商为 `none`；信息中会指明是哪一种 |
+| `PARAMS_INVALID` | 某个参数未通过校验；`issues` 列出每个字段 |
+| `METHOD_RATE_LIMITED` | 超出速率限制；`retryAfterSeconds` 告知何时可以再调用 |
+| `BATCH_TOO_LARGE` | 一个批次超出整个速率限制窗口；请发送更少的条目 |
+| `ALREADY_IN_PROGRESS` | 对仍在处理中的条目发起了第二次调用（HTTP 409） |
+| `SESSION_EXPIRED` | Studio 已用新令牌重启；请打开它输出的 URL |
+| `INTERNAL` | 处理程序出现意外错误（HTTP 500）；错误信息是通用文本 |
+
+## 修复降级的工具
+
+浏览器拒绝注册时，每个视图都会显示类似下面的警告：
+
+> Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
+
+控制台中有一行指明每个失败项：
+
+```text output
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+```
+
+先看那里的错误名称，再重新加载标签页，这会再次运行注册。缺少标志或浏览器不支持 WebMCP 时不会显示此通知，而是静默地不注册任何工具。未带 `--allow-spend` 的会话会少尝试注册两个工具，这不算失败。
+
+## 权衡花费风险
+
+这些工具不增加任何网络暴露：Studio 仍只绑定到 `127.0.0.1`，每个请求都带会话令牌，返回项目文本的工具会将其标记为不可信，智能体因此把它当作数据处理。
+
+<Callout type="warn">
+同时使用 `--allow-spend` 和 `--expose-agent-tools` 时，智能体可以在不逐次确认的情况下，在速率限制内花费你的提供商额度。Studio 无法区分智能体的调用和你的点击，所以不会增加确认对话框。若只需读取和编辑，请不要使用 `--allow-spend`。
+</Callout>
+
+## 相关内容
+
+- [在 Studio 中审校](/zh-CN/docs/review-in-studio)：手动完成同样的流程。
+- [`verbatra studio`](/zh-CN/docs/cli/studio)：所有选项和启动约定。
+- [连接 MCP 客户端](/zh-CN/docs/connect-an-mcp-client#verbatra-插件)：该插件附带 `verbatra-studio-agent-tools` 技能，但 Studio 仍需你自己启动。

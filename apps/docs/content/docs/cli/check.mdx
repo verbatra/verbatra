@@ -56,6 +56,15 @@ A key is missing when the source has it and the target does not, and stale when 
 
 ## Behavior
 
+Plain output:
+
+```text output
+verbatra check
+  de: 3 missing, 1 stale (1 protected), 38 up-to-date (out of sync)
+  fr: 0 missing, 0 stale, 42 up-to-date (in sync)
+out of sync (run verbatra translate to update)
+```
+
 ### Consistency report
 
 <AvailableFrom version="0.11.0" />
@@ -129,7 +138,7 @@ qa: 1 error, 1 warning
 Orphaned and missing keys are skipped, and source keys that are not valid ICU are listed once under `invalidSourceKeys`. Protected, pinned and rejected values are checked like any other. With `--json`, `result.qa` holds the totals and each locale its own `qa`:
 
 ```ts
-interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[] }
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[]; limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string } }
 interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
@@ -145,6 +154,7 @@ type QaFinding =
 ```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
 ```
 
 With `--json`, `result.review` is `{ reviewed, unreviewed, code? }`, where `code` is `REVIEW_REQUIRED`, or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer verbatra (the gate then fails). Each locale carries `review.unreviewed`, the keys in source order.
@@ -160,6 +170,7 @@ The `email` detector skips [reserved example domains](/docs/data-handling#sensit
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value
+  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors
 ```
 
 With `--json`, `result.sensitive` is `{ findings, glossaryTerms }`, each finding `{ key, fields, detectors }`; `detectors` may hold `pattern-timeout-<n>`.

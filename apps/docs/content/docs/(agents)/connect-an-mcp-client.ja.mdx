@@ -1,0 +1,414 @@
+---
+title: MCP クライアントを接続する
+seoTitle: "MCP クライアントを verbatra サーバーに接続する"
+description: "verbatra の stdio MCP サーバーをコーディングエージェントなどの MCP クライアントに組み込みます。プロバイダーの API キーはコミットするファイルに書きません。"
+type: how-to
+status: new
+---
+<StartHere />
+
+コーディングエージェントが、verbatra の stdio MCP サーバー経由で翻訳状況を読み取り、値を修正できるようにします。登録はクライアントごとに 1 回だけです。エントリを 2 つ登録すると、サーバーも 2 つ起動します。必要なものは、verbatra の設定ファイルがあるプロジェクト（[`npx @verbatra/cli init`](/ja/docs/cli/init)）と、Node.js `^22.22.0 || >=24` です。
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## 起動コマンドを選ぶ
+
+| コマンド | 必要なもの | `.env` ファイルを読むか |
+| --- | --- | --- |
+| `npx -y @verbatra/mcp` | インストール不要 | いいえ |
+| `npx @verbatra/cli mcp` | `@verbatra/cli` と `@verbatra/mcp` を開発依存関係として導入 | はい：`.env.local`、次に `.env` |
+
+`npx -y @verbatra/cli mcp` は避けてください。CLI は `@verbatra/mcp` をインストールしないため、終了コード `2` で終了します。サーバーが設定ファイルをどこで探すかは、[プロジェクトディレクトリ](/ja/docs/cli/mcp#プロジェクトディレクトリ)を参照してください。
+
+### MCP Registry
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+[公式の MCP Registry](https://registry.modelcontextprotocol.io) にも、`io.github.verbatra/verbatra` として登録されています。
+
+## エージェントに課金を許可するか決める
+
+サーバーは、読み取りとローカルの編集ツールだけで起動します。課金ツールは非表示のままで、API キーを読み取るツールはありません。
+
+<Accordions type="single">
+<Accordion title="課金と API キーのルール">
+
+エージェントに課金を許可するには、次の 2 つを両方とも追加します。
+
+- 引数の `--allow-spend`、または環境変数の `VERBATRA_MCP_ALLOW_SPEND=1`（[課金ツール](/ja/docs/cli/mcp#課金ツール)）
+- `ANTHROPIC_API_KEY` など、プロバイダーの API キーの変数（[プロバイダー](/ja/docs/providers)）
+
+<Callout type="warn">
+`.mcp.json`、`.codex/config.toml`、`.gemini/settings.json`、`.cursor/mcp.json`、`.vscode/mcp.json` など、コミットするファイルに API キーを書かないでください。
+</Callout>
+
+値をエージェントのモデルに渡したくない場合は、`--redact-values` を追加します。詳しくは [Studio と MCP](/ja/docs/data-handling#studio-と-mcp) を参照してください。
+
+</Accordion>
+</Accordions>
+
+### まず見積もる
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+課金の前には、エージェントに `translation.estimate` を実行し、承認を待つよう、サーバーが引き続き指示します。
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code", "その他"]}>
+<Tab value="Claude Code" forceMount>
+
+## Claude Code
+
+### init に書き込ませる
+
+<AvailableFrom version="0.12.0" />
+
+プロジェクトルートで、次のコマンドを実行することをおすすめします。
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+[`init --agent`](/ja/docs/cli/init#コーディングエージェントを設定する) は、エージェントの指示ファイルを書き込みます。Claude Code が見つかった場合（`CLAUDE.md`、`.claude/`、`.mcp.json`）、またはクライアントがまったく見つからない場合は、課金をオフにした次のエントリも、コミットする `.mcp.json` に書き込みます。`--client claude` を指定すると強制できます。
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Claude Code を再起動し、`verbatra` サーバーを承認します。サーバーには `CLAUDE_PROJECT_DIR` と環境変数が渡されます。1 回のセッションだけ課金を許可するには、API キーを export して次のように実行します。
+
+```bash
+VERBATRA_MCP_ALLOW_SPEND=1 claude
+```
+
+接続は `claude mcp list` で確認できます。詳しくは [Claude Code の MCP ドキュメント](https://code.claude.com/docs/en/mcp)を参照してください。
+
+### その他の方法
+
+#### CLI を使わない場合
+
+```bash
+claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
+```
+
+これで同じエントリが書き込まれます。ここで `--env KEY=value` を付けないでください。値が `.mcp.json` に書き込まれてしまいます。
+
+#### verbatra プラグイン
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`.mcp.json` の代わりに、プラグインを使えます。プラグインには、[verbatra のスキル](/ja/docs/agent-recipes#スキルパック)、このサーバー、Claude がロケールファイルを編集した後にそのファイルをチェックするフックがまとめて含まれています。
+
+<Callout type="warn">
+verbatra プラグインと、`.mcp.json` の `verbatra` エントリを併用しないでください。プラグインが 2 つ目のサーバーを持ち込みます。`.claude/settings.json` または `.claude/settings.local.json` でプラグインが有効な場合、`init --agent` はこのエントリを書き込みません。
+</Callout>
+
+```bash
+claude plugin marketplace add verbatra/skills
+claude plugin install verbatra@verbatra --scope project
+```
+
+- **サーバー**：バージョンを固定した `@verbatra/mcp` で、`--cwd` に開いているプロジェクトが設定されます。
+- **課金**：プラグインの `allowSpend` オプションをオンにするまでオフです（`--config allowSpend=true`、または `/config`）。コミットするファイルでオンにすることはできません。
+- **API キー**：`claude` を起動した環境から読み込まれます。
+- **フック**：プロジェクトの `verbatra check --file <path>` を実行し（CLI 0.12.0 以上）、壊れたプレースホルダー、マークアップ、ICU を報告します。プロバイダーは呼び出しません。
+
+詳しくは [Claude Code のプラグインリファレンス](https://code.claude.com/docs/en/plugins-reference)を参照してください。
+
+</Tab>
+
+<Tab value="Codex" forceMount>
+
+## Codex
+
+次のコマンドをおすすめします。`npx @verbatra/cli init --agent --client codex`（`.codex/` がある場合は `init --agent` だけで構いません）を実行すると、課金をオフにした次のテーブルが `.codex/config.toml` に追記されます。
+
+```toml title=".codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp"]
+startup_timeout_sec = 60
+```
+
+Codex がこれを読み込むのは、**Trust this folder?**（このフォルダーを信頼しますか）に答えた後だけです。これにはリポジトリのルートが含まれます。サブフォルダーから起動した場合、サーバーは見つかった設定ファイルの場所をルートにします。詳しくは [Codex の MCP ドキュメント](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)を参照してください。
+
+### Codex のユーザー設定
+
+課金を許可する場合は、代わりに `~/.codex/config.toml` を使います。`env_vars` は変数を名前で渡します。`env` テーブルや `codex mcp add --env` は値そのものを保存します。
+
+```toml title="~/.codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp", "--allow-spend"]
+cwd = "/path/to/your/project"
+env_vars = ["ANTHROPIC_API_KEY"]
+```
+
+</Tab>
+
+<Tab value="Gemini CLI" forceMount>
+
+## Gemini CLI
+
+次のコマンドをおすすめします。`npx @verbatra/cli init --agent --client gemini`（`.gemini/` または `GEMINI.md` がある場合は `init --agent` だけで構いません）を実行すると、課金をオフにした次のエントリが `.gemini/settings.json` に追加されます。
+
+```json title=".gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Gemini CLI がこれを読むのは、起動したフォルダーからだけです。プロジェクトルートで `gemini` を起動し、ダイアログまたは `/permissions trust` でそのフォルダーを信頼します。`trust` は未設定のままにしてください。ツールは `/mcp` で一覧できます。Gemini CLI が読むのは `AGENTS.md` ではなく `GEMINI.md` です。設定に `"context": { "fileName": ["AGENTS.md", "GEMINI.md"] }` を追加するか、`GEMINI.md` に `@AGENTS.md` を追加します。詳しくは [Gemini CLI の MCP ドキュメント](https://geminicli.com/docs/tools/mcp-server/)を参照してください。
+
+### Gemini CLI のユーザー設定
+
+課金を許可する場合は、ユーザー設定に絶対パスの `cwd` を指定して使います。
+
+```json title="~/.gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "cwd": "/path/to/your/project",
+      "env": {
+        "ANTHROPIC_API_KEY": "$ANTHROPIC_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Gemini CLI はサーバーに対して API キーの変数を隠すため、API キーは `env` で渡します。
+
+</Tab>
+
+<Tab value="Cursor" forceMount>
+
+## Cursor
+
+`init --agent` は、`.cursor/` または `.cursorrules` が見つかった場合や `--client cursor` を指定した場合に、Cursor の `.cursor/mcp.json` を書き込みます。
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "${workspaceFolder}"]
+    }
+  }
+}
+```
+
+課金を許可するには、`args` に `"--allow-spend"` を追加し、`"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }` を加えます。詳しくは [Cursor の MCP ドキュメント](https://cursor.com/docs/mcp)を参照してください。
+
+</Tab>
+
+<Tab value="VS Code" forceMount>
+
+## VS Code
+
+VS Code（GitHub Copilot のエージェントモード）は、`servers` をキーとする `.vscode/mcp.json` を読み込みます。`init --agent --client vscode` がこれを書き込みます。`--client` を付けない `init --agent` は、このファイルがすでにある場合だけ設定を書き込み、`.vscode/` フォルダーだけがある場合はコマンドを表示します。`--cwd` は不要です。
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+課金を許可するには、API キーを入力項目として宣言します。VS Code はこの値をファイルの外に保存します。
+
+```json title=".vscode/mcp.json"
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "anthropic-key",
+      "description": "Anthropic API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${input:anthropic-key}"
+      }
+    }
+  }
+}
+```
+
+<McpInstallLink client="vscode" />
+
+ファイルの代わりに、ボタンまたは次のコマンドでユーザープロファイルに追加できます。この場合、課金はオフです。方法は 1 つだけ選び、2 つを併用しないでください。
+
+```bash
+code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
+```
+
+詳しくは [VS Code の MCP 設定リファレンス](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)を参照してください。
+
+</Tab>
+
+<Tab value="その他" forceMount>
+
+## GitHub Copilot
+
+### Copilot クラウドエージェント
+
+リポジトリの管理者が、**Settings**（設定）、**Copilot**、**MCP servers**（MCP サーバー）の順に開き、サーバーを追加します。クラウドエージェントは確認なしでツールを呼び出します。そのため、書き込みもプロバイダーの呼び出しもしないツールだけを列挙します。
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"],
+      "tools": [
+        "project.snapshot",
+        "project.doctor",
+        "status.check",
+        "status.diff",
+        "glossary.get",
+        "lock.state",
+        "history.list",
+        "history.keyRevisions",
+        "key.integrity",
+        "locale.integrity",
+        "key.value",
+        "key.context",
+        "locale.values",
+        "translation.estimate",
+        "review.queue",
+        "report.provenance",
+        "usage.summary",
+        "usage.history"
+      ]
+    }
+  }
+}
+```
+
+`translation.editEntry` と `glossary.write` を追加するのは、エージェントに pull request の中で書き込ませたい場合だけにします。`review.approve` と `review.reject` は含めないでください。レビューの判断には人が必要です。確認するには、**View session**（セッションを表示）を開き、**Start MCP Servers**（MCP サーバーを起動）を展開します。詳しくは [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) を参照してください。
+
+### Copilot CLI
+
+```bash
+copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
+```
+
+これで `~/.copilot/mcp-config.json` が書き込まれます。Copilot CLI はサーバーに `PATH` だけを渡します。そのため、API キーはこのエントリの `env` に書き、プロジェクトのファイルには書きません。詳しくは [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers) を参照してください。
+
+## Windsurf
+
+Windsurf は、すべてのプロジェクトで 1 つの `mcp_config.json` を読み込みます。そのため、`--cwd` は絶対パスにします。
+
+```json title="mcp_config.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+課金を許可するには、`"--allow-spend"` を追加し、`"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }` を加えます。詳しくは [Cascade の MCP ドキュメント](https://docs.devin.ai/desktop/cascade/mcp)を参照してください。
+
+## Zed
+
+Zed は設定の `context_servers` を読み込みます。**Settings**、**AI**、**MCP Servers**（MCP サーバー）、**Add Server**（サーバーを追加）の順に開くと、エントリが書き込まれます。
+
+```json title="settings.json"
+{
+  "context_servers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
+      "env": {}
+    }
+  }
+}
+```
+
+`env` に書いた API キーはそのままの値として保存されます。そのため、API キーと `--allow-spend` はユーザー設定にだけ追加し、`.zed/settings.json` には追加しないでください。詳しくは [Zed の MCP ドキュメント](https://zed.dev/docs/ai/mcp)を参照してください。
+
+## JetBrains AI Assistant
+
+**Settings**、**Tools**（ツール）、**AI Assistant**、**Model Context Protocol (MCP)** の順に開き、サーバーを追加して次の内容を貼り付けます。
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+**Working directory**（作業ディレクトリ）にプロジェクトルートを設定し、このエントリは課金なしのままにします。詳しくは [AI Assistant の MCP ドキュメント](https://www.jetbrains.com/help/ai-assistant/mcp.html)を参照してください。
+
+## Claude Desktop
+
+**Settings**、**Developer**（開発者）、**Edit Config**（設定を編集）の順に開くと、`claude_desktop_config.json` が開きます。プロジェクトという単位がないため、`--cwd` は絶対パスにします。
+
+```json title="claude_desktop_config.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+課金を許可するには、`"--allow-spend"` を追加し、`"env": { "ANTHROPIC_API_KEY": "..." }` を加えてから、Claude Desktop を再起動します。詳しくは [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers) を参照してください。
+
+## その他の stdio クライアント
+
+クライアントに、コマンド `npx -y @verbatra/mcp` を指定します。クライアントがプロジェクトの内側でサーバーを起動しない場合は `--cwd /path/to/your/project` を、設定ファイルが別の場所にある場合は `--config <path>` も加えます。`--allow-spend` と API キーは、クライアントのシークレットの仕組みを通してだけ渡してください。
+
+</Tab>
+</Tabs>
+
+## 接続を確認する
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+エージェントに `project.snapshot` を呼び出してもらいます。ロケール、フォーマット、プロバイダーが返りますが、プロバイダーは呼び出されません。
+
+- **`configured: false`**：使用できる設定ファイルが見つかっていません。`project.doctor` を依頼してから、`npx @verbatra/cli init` を実行するか、`--cwd` を修正します。詳しくは[設定がない場合](/ja/docs/cli/mcp#設定がない場合)を参照してください。
+- **課金ツールがない**：課金の許可スイッチと、プロバイダーが `none` ではないかを確認します。
+- **設定を編集した場合**：再起動は不要です。[設定の変更後](/ja/docs/cli/mcp#設定の変更後)を参照してください。
+
+## 関連項目
+
+- [`verbatra mcp`](/ja/docs/cli/mcp)：オプションとすべてのツール
+- [JSON で verbatra をスクリプト化する](/ja/docs/agent-recipes#スキルパック)：`verbatra-mcp-tools` スキル

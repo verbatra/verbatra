@@ -32,7 +32,15 @@ const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-14", hash: "84fd558af3975d0c923183c6b13f9974dc38470f02d6ab5ccaaa59c88b274ba8" },
   { date: "2026-11-14", hash: "2615469acb19f18fe5a3108645e647c46a5e9fedbe4022e42499d6345c0d8cb8" },
   { date: "2026-11-14", hash: "f402a8ba481322e5362b5fd7e2d886b7c0506170362e6bac7c74ecbcf2cdeda8" },
+  { date: "2026-11-14", hash: "3fb857fa98e61e89fe24402162e2ce7949e9a47025b19441514ad0e5ec1b8acc" },
+  { date: "2026-11-14", hash: "707bd006b521e6dfa6af64b7922f404abcb5deb51f93bcbf8835bcaf26d580d4" },
+  { date: "2026-11-14", hash: "96bbdacbc49339a452ccbf8be491dde22028f9bc342301f8c6c0e0af874a182d" },
+  { date: "2026-11-14", hash: "ccd7060d6e41666f57aee1d5bd8ece9d59a67560412ef1a5f4d44e13215ce649" },
   { date: "2026-11-15", hash: "eb51f04d10b7abe1c45979e5f0d61920df4630413e225713cef9ba51984442b9" },
+  { date: "2026-11-15", hash: "16fb0e38ac5ab159b0a98d4b742c7d85973f2aef4d635d8c2c68285746881c97" },
+  { date: "2026-11-15", hash: "8956fafcbe8c34335175900a28132992e5b7cbb05caff59bace9a4299cfb596c" },
+  { date: "2026-11-15", hash: "405fe62ac5a04a0c3ba73e1fc7405e088366a27038bbfc7b88b5af59937d924e" },
+  { date: "2026-11-15", hash: "276cb90e6c3325c5e0b137b8db98b9d275b034dbb90615f7f108f7c135999878" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
@@ -40,6 +48,15 @@ const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-15", hash: "bee5f991697639ddc4bd5ffefe029d3a89e4fae191018a4bfebab5d0643e4cf0" },
   { date: "2026-10-15", hash: "041550318b67e6bb3c515675eb0979859f0a3fd8c91c007470689d131425adf7" },
   { date: "2026-11-13", hash: "7625b217ddcbdf4d318942b503f2683905f6406813c94523b4d357dc3000803a" },
+  { date: "2026-11-13", hash: "87aa29e8c91870b6b9258c1c5ef24fe144df8c5b00323fd904634ba92f69d020" },
+  { date: "2026-11-13", hash: "a930464c3c847b0aa98082f909291f8e78e0cb56a42165be9dd5d8028e4b062c" },
+  { date: "2026-11-13", hash: "a3c68428794e98f62778def8853c5a73c05f35a0c7a093e08ede41b6cc6eefa2" },
+  { date: "2026-11-13", hash: "1482c5b53b85928e76cf8f69fb61bd676e8be04d253e5103f806f71edc5d5964" },
+  { date: "2026-11-13", hash: "81e1cf5a8cb7a14c0432a29707d02b94b33b01b08be1130114ce3c67fdf4c034" },
+  { date: "2026-11-13", hash: "16fde8395d24a9c1159d7646060c51b815c481e70475302235aec54b47bf932d" },
+  { date: "2026-11-13", hash: "9ffc8aab8d00e23c88b5338156484bc5d1a230fe8c123c53098ee3c8f6e5332e" },
+  { date: "2026-11-13", hash: "b9c70b06c75d1d9152ad90e07fc0c69c6be7e5ed3070e03d53f86dafce2fb38b" },
+  { date: "2026-11-13", hash: "a88c91affd8b4257e544a516fd0c7789e82c92ddc15b5976a476edc111cbf90f" },
 ];
 
 function compareCellModel(): string {

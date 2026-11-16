@@ -69,6 +69,8 @@ An XLIFF file is read with the version it declares, and a single file whose name
 
 A blank `Translation` cell never fails a locale: the row is skipped, its lock baseline is kept, and the key is reported as `unfilled` while it still needs a translation. Importing a handoff nobody has filled in yet therefore succeeds and lists every pending key.
 
+A filled row whose source text changed since the export is withheld: its key is listed under `integrity-withheld` with no reason, the locale is partial, and the key is exported again.
+
 A single unreadable row is reported as a malformed row, and the rest of the locale still imports. A handoff that is oversized or cannot be parsed at all (for example, not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong.
 
 In a CSV, TSV or xlsx handoff, a filled row equal to the value an up-to-date key already holds is left alone and reported unchanged, not translated, once it passes the integrity gate <AvailableFrom version="0.13.0" />. See [Manual translation](/docs/manual-translation#what-import-accepts).

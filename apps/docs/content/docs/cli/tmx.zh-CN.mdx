@@ -1,0 +1,155 @@
+---
+title: verbatra tmx
+seoTitle: "verbatra tmx：以 TMX 复用翻译记忆库"
+description: "导入其他工具的 TMX 翻译记忆库，让之后的运行复用其中的字符串而不必再付费，或把本项目的翻译记忆库导出为 TMX。"
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+以 TMX（主流翻译平台使用的交换格式）把翻译记忆库导入或导出。`tmx import` 把其他工具的翻译记忆库放进本项目的翻译记忆库（见[翻译缓存](/zh-CN/docs/the-cache)），让之后的运行复用这些字符串，而不必再次付费；`tmx export` 把翻译记忆库写回文件。两个方向都不调用提供商，不读取 API 密钥，也不访问网络。真实导入还会向已有的 `.gitignore` 添加缺少的条目，见 [.gitignore 条目](/zh-CN/docs/cli#gitignore-条目)。
+
+## 用法
+
+```bash
+verbatra tmx <direction> [file] [flags]
+```
+
+- `<direction>`：`import` 或 `export`；其他值会以 `INVALID_DIRECTION` 报错。
+- `[file]`：要读取或写入的 TMX 文件，默认为项目根目录中的 `verbatra-memory.tmx`。
+
+## 示例
+
+```bash
+# 把其他工具的翻译记忆库导入本项目
+verbatra tmx import legacy.tmx
+
+# 报告会导入什么，不做任何更改
+verbatra tmx import legacy.tmx --dry-run
+
+# 文件与翻译记忆库不一致时，以文件为准
+verbatra tmx import legacy.tmx --overwrite
+
+# 把翻译记忆库写入 verbatra-memory.tmx
+verbatra tmx export
+
+# 只导出德语，写到指定路径
+verbatra tmx export out/memory.tmx --locales de
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 每个已配置的目标语言环境 | 只导入或导出这个以逗号分隔的目标语言环境子集 |
+| `--dry-run` | 无 | 关闭 | 仅限导入：校验并报告，不更改翻译记忆库；导出时使用它会以 `INVALID_DIRECTION` 报错 |
+| `--overwrite` | 无 | 关闭 | 仅限导入：让导入的单元替换翻译记忆库中已有的译文；导出时使用它会以 `INVALID_DIRECTION` 报错 |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。这里的配置查找和你传入的相对 `[file]` 都从 `--cwd` 解析，而翻译记忆库和默认的 `verbatra-memory.tmx` 从[项目根目录](/zh-CN/docs/config-file#工作目录与-env)解析。
+
+## 行为
+
+### 导入的单元必须满足什么
+
+来自其他工具的文件是不可信输入，而翻译记忆库中的单元可能在无人再次确认的情况下被复用。所以每条候选译文在进入翻译记忆库时，都要经过与提供商输出相同的完整性门禁（见[翻译安全](/zh-CN/docs/translation-safety)）：
+
+- 它的占位符与其源句段的占位符一致；
+- 它的内联 HTML 或 XML 标签与其源句段的标签一致，所以像 `<img onerror>` 这样被注入的标签会被拒绝；
+- 它是所配置格式的适配器下有效的 ICU 消息；
+- 它没有退化为失控的输出；
+- 源文本非空时，它不是空白。
+
+源句段为空白的单元不标识任何字符串，同样会被拒绝。内联标记（`bpt`、`ept`、`ph`、`it`）会被展平为其文本，所以占位符检查能发现带有重要内容的内联标记；`sub` 元素的文本是独立的内容流（工具提示、替代文本），会被排除在外。句段属性会被忽略，包括 verbatra 导出所写的 `x-origin` 和 `x-review`：翻译记忆库不记录来源。
+
+不会悄悄丢弃任何内容：每次拒绝、每个不可用的单元、在你的源语言环境中没有句段的单元、被展平的单元和被丢弃的 `sub` 文本，都会按原因计数。
+
+<AvailableFrom version="0.12.0" />
+
+每个被拒绝的单元还会列出其序号、原因，以及检查能说明时的具体问题，例如 `unit 12: icu ({count} plural: missing arm "few" required by the target language)`。
+
+### 匹配语言标签
+
+TMX 文件按其作者所用工具的方式书写语言。匹配规则从不猜测：
+
+1. 双方都转为小写，下划线变为连字符，所以 `pt_BR`、`pt-br` 和 `pt-BR` 是同一个语言环境。完全匹配优先。
+2. 否则，作为该标签子标签前缀的已配置语言环境会匹配，最长的优先（RFC 4647 查找）：配置了 `de` 和 `de-AT` 时，`de-AT-1996` 归入 `de-AT`，`de-CH-1901` 归入 `de`。
+3. 较短的标签也能匹配只多出地区或变体的已配置语言环境，但不会匹配多出文字的：`de` 归入 `de-DE`，`pt` 归入 `pt-BR`，但 `sr` 绝不会归入 `sr-Latn`。
+4. 文字或地区不同的标签绝不匹配：`zh-CN` 绝不会存为 `zh-TW`，`de-AT` 绝不会存为 `de-CH`。
+5. 只有当标签可能对应的语言环境不在同一条前缀链上时，该标签才有歧义，例如配置了 `pt-BR` 和 `pt-AO` 时的 `pt`。
+
+每个句段都会在一遍处理中，对照源语言环境和所有已配置的目标来解析，即使使用 `--locales` 也一样，所以源为 `pt` 的项目中的 `pt-BR` 目标绝不会被当作源。源句段与目标句段一样排序：完全匹配的标签优先于前缀匹配，值相同则一致，地位相同但值不同的句段（`en-US` 的“Color”和 `en-GB` 的“Colour”）会使该单元被拒绝。源和某个目标规范化后得到同一个标签的配置会被直接拒绝。
+
+两个对应到同一语言环境的目标句段，不会让后出现的一个胜出：完全匹配的标签优先于前缀匹配，两个地位相同但值不同的句段不会为该语言环境存储任何内容，并把该单元计为冲突。未匹配的标签按标签计数，第一个 `body` 之外的 `tu` 元素会被计数，头部中的 `srclang` 如果不是你的源语言环境，也会报告。
+
+### 文件与翻译记忆库不一致时
+
+以项目的翻译记忆库为准：导入的译文与已有的译文不同时，会被拒绝并计为保留，除非传入 `--overwrite`。在同一个文件中，同一个源的第一个单元胜出，后面的重复项计为重复，所以同一个文件导入两次，第二次不会写入任何内容。
+
+<Callout type="warn">
+`--overwrite` 会替换翻译记忆库中已有的译文，之后的运行会复用这些替换。先用 `--dry-run` 运行，查看 `overwritten` 的数量。
+</Callout>
+
+导入的单元按项目当前配置的指纹存储，所以只有提供商、模型、语气、verbatra 会发送的术语表条目和 `localeMap` 都保持不变，翻译记忆库才会复用它们。更改这些内容后，请重新导入文件。由更新版本的 verbatra 写成的翻译记忆库文件保持不动；仍会报告数量，与试运行一样。
+
+### 导入的单元与模糊复用
+
+被接受的单元的源文本会加入索引，模糊复用（见[翻译缓存](/zh-CN/docs/the-cache)）用它给已更改的字符串打分，所以与你某个字符串不同的导入源，可以被用于该字符串。这样的复用仍要对照你的真实条目通过完整性门禁，并带有 `FUZZY_CACHE_REUSE` 审校标记。导入的源与你的某个字符串相同、但哈希不同时（你的条目带有 TMX 无法携带的描述或含义），绝不会被复用。复数形式按其文本匹配：导入从你的源文件中获取复数标志，所以 `cart.items_one` 和 `cart.items_other` 会像其他键一样从翻译记忆库填充。要只允许精确匹配，在配置中省略 `fuzzyCache`。
+
+### 导出会写入什么
+
+每个不同的源字符串一个 `tu`，带有源句段，以及每个导出的语言环境一个目标句段，位于 TMX 1.4b 头部之下（`srclang`、`creationtool`、`creationtoolversion`、`segtype`、`o-tmf`）。只写入当前配置指纹下的条目；按更早的提供商、模型、语气或术语表配置存储的条目会被排除，并计为 `otherConfiguration`，在摘要中单独占一行。<AvailableFrom version="0.13.5" /> 语言标签以 BCP 47 形式写出（`en_US` 变为 `en-US`），XML 1.0 无法表示的字符会被移除并计数，空的翻译记忆库会生成有效的空文件。没有存储源文本的条目（从更旧的缓存沿用而来）会被排除并计数。摘要在总数中统计 `tu` 元素，并按语言环境统计目标句段，所以一个字符串被翻译成多个语言环境时，各语言环境的数量之和会大于总数。
+
+<AvailableFrom version="0.12.0" />
+
+每个目标句段都带有来自 `verbatra.provenance.json` 的 `<prop type="x-origin">`（`machine`、`human`、`import` 或 `unknown`），`machine` 句段还带有 `<prop type="x-review">`（`approved`、`unreviewed` 或 `rejected`）。无法读取来源记录文件或锁文件时，不写入任何属性，结果会显示 `provenanceMarkers: "unavailable"`。见[机器翻译证据](/zh-CN/docs/provenance-evidence#tmx)。
+
+文件只写入项目根目录之内。指向的不是文件、跳出项目根目录，或指向项目所依赖的文件（语言文件、锁文件、来源记录文件或缓存文件、配置文件、术语表文件）的路径，verbatra 会在读取翻译记忆库之前以 `TMX_OUTPUT_CONFLICT` 拒绝，解析符号链接之后也一样。磁盘上写入失败会以 `TMX_UNWRITABLE` 停止，并写明文件和文件系统错误码。
+
+### JSON 输出
+
+Schema：[`tmx-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/tmx-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，[信封](/zh-CN/docs/cli/output#json-输出)带有导入或导出的结果：
+
+```ts
+// tmx import
+{ dryRun: boolean; file: string; units: number; locales: ImportTmxLocaleResult[];
+  unmatchedLanguages: TmxLanguageReport[]; ambiguousLanguages: TmxLanguageReport[];
+  memoryWritable: boolean; /* plus the skipped, unmatched and conflicting unit counts */ }
+
+// tmx export
+{ path: string; units: number; locales: { locale: string; units: number }[];
+  withoutSource: number; otherConfiguration?: number; illegalCharactersRemoved: number;
+  provenanceMarkers: "written" | "unavailable" }
+```
+
+每个导入语言环境会报告 `added`、`unchanged`、`overwritten`、`kept`、`duplicates`、`conflicting` 和按原因分类的 `rejected` 计数，以及 `refusals` 列表。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+两个方向都会在 stderr 上显示一行进度。随后 `tmx import` 建议运行 `verbatra translate`，试运行之后则建议真实导入；建议的命令会沿用你传入的文件参数、`--overwrite`、`--locales`、`--cwd` 和 `--config`。`tmx export` 不给出任何建议：
+
+```text output
+verbatra: importing legacy.tmx into the memory... done (0.2s)
+next: verbatra translate (reuses the imported memory before calling a provider)
+```
+
+`--quiet` 会隐藏这些行。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 文件已读取或写入；被跳过或被拒绝的单元会被报告，不算失败 |
+| `2` | 无法运行：配置错误、TMX 文件缺失或无法读取（`SOURCE_UNREADABLE`）、文件过大或无法解析、源语言文件无法解析（`SOURCE_INVALID`）、导出路径被拒绝（`TMX_OUTPUT_CONFLICT`）、写入失败（`TMX_UNWRITABLE`、`MEMORY_UNWRITABLE`），或用法错误 |
+
+无效文件的错误信息会写明失败位置的行、列和单元；实体声明和内部 DTD 子集会被直接拒绝，外部 doctype 会被丢弃，从不抓取。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [翻译缓存](/zh-CN/docs/the-cache)说明翻译记忆库及其键的构成。
+- [用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)介绍把待处理字符串以 xlsx、CSV 和 TSV 交给人的流程。
+- [翻译安全](/zh-CN/docs/translation-safety)说明导入的单元要通过的检查。
+- [`tmxErrorLocation`](/zh-CN/docs/sdk/exchange#tmxerrorlocation) 从 SDK 读取 TMX 错误的位置。

@@ -1,0 +1,139 @@
+---
+title: "RunSummary"
+seoTitle: "RunSummary: o que uma execução retorna no SDK"
+description: "O que translate, importWorkbook e watch retornam, campo a campo, para que um script leia o uso e os avisos de uma execução."
+type: reference
+---
+## A anatomia do RunSummary
+
+`translate`, `importWorkbook` e cada execução bem-sucedida do `watch` retornam um `RunSummary`:
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // true when nothing was written and no provider was called
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; the CLI exits 1 on these
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // present when maxTokens is configured or passed to the run
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
+}
+
+interface LocaleSummary {
+  locale: string;
+  status: "succeeded" | "partial" | "failed";
+  translated: string[];          // keys translated this run (in dry-run, keys that would be)
+  cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
+  unchanged: string[];           // keys already up to date
+  orphaned: string[];            // target keys with no matching source key (always reported)
+  pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
+  invalidIcuSource: string[];    // source keys skipped for invalid ICU
+  emptySource?: string[];        // source keys with an empty value; nothing is sent or written for them
+  integrityMismatches: string[]; // translations the integrity gate withheld
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
+  providerFailures: string[];    // keys withheld because nothing was translated for them
+  budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
+  sensitiveWithheld: string[];   // keys sensitiveData kept from the provider (block or redact)
+  generated: string[];           // CLDR plural forms synthesized this run
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
+  malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
+  duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
+  notices: LocaleNotice[];       // provider notices and SDK notices for this locale
+  needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
+  usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
+}
+```
+
+O que vale saber:
+
+- **needsReview** lista as chaves aceitas e gravadas que as heurísticas de revisão sinalizaram, cada uma com seus códigos
+  de motivo, listados e explicados em [Sinalizações de revisão](/pt-BR/docs/translation-safety#sinalizações-de-revisão). O conjunto
+  vem como a tupla `REVIEW_REASON_CODES`, então monte qualquer schema de tempo de execução ou busca exaustiva a partir dela
+  em vez de redigitar os membros. Uma sinalização de revisão é consultiva e nunca retém uma chave, então uma chave
+  nunca aparece ao mesmo tempo em `needsReview` e em `integrityMismatches`. Veja
+  [Revisar no Studio](/pt-BR/docs/review-in-studio) para percorrer a fila.
+- **notices** ficam por locale, nunca no nível superior. Eles cobrem os avisos de provedores (por exemplo, uma degradação
+  do DeepL), listados em [Avisos dos provedores](/pt-BR/docs/error-codes#provider-notice-codes), e os avisos do SDK,
+  cujos códigos formam a união `SdkNoticeCode` e são explicados em
+  [Avisos da execução](/pt-BR/docs/error-codes#sdk-notice-codes). Um aviso de toda a execução, como o aviso de cache
+  (um arquivo, compartilhado por todos os locales), é anexado a cada locale da execução.
+- **usage** é `undefined`, nunca um zero inventado, sempre que nada naquele escopo relatou uso:
+  uma simulação nunca chama um provedor, e o DeepL nunca relata tokens. `RunSummary.usage` é a soma
+  dos locales.
+- **budget** só aparece quando `maxTokens` está configurado ou é passado à execução: `{ maxTokens, behavior, supported,
+  tokensUsed, exceeded }`. `supported` diz se `tokensUsed` é inteiramente o uso relatado pelo próprio provedor;
+  ele é `false` assim que uma requisição voltou sem um valor utilizável, e o
+  total passa a ser em parte uma projeção do verbatra, que é contada e imposta do mesmo jeito. Uma simulação,
+  ou qualquer execução que não enviou nenhuma requisição, relata `supported: true` com `tokensUsed: 0`: nada foi enviado,
+  então nada foi projetado. Com `behavior: "stop"`, o teto é
+  verificado antes de cada requisição que a execução envia, inclusive cada metade de uma requisição dividida de novo, então
+  `tokensUsed` fica igual ou abaixo de `maxTokens`, exceto por um resíduo: a última requisição admitida é
+  conferida com o que o provedor relatou, o que pode empurrar o total além do teto
+  a posteriori. Nada mais é enviado quando isso acontece. Duas coisas ficam fora do que uma reserva consegue limitar,
+  porque acontecem dentro de uma requisição que ela já admitiu: a camada do provedor envia uma chamada de reparo
+  própria quando chaves voltam ausentes, então um lote admitido pode custar até cerca do dobro da
+  projeção dele, e a contagem só é tão confiável quanto o que o provedor relata. As duas entram na
+  conferência, e nada mais é admitido depois que isso acontece. O orçamento limita uma única chamada de `translate`:
+  o `watch` começa um novo a cada execução, e o `retranslateEntry` não é coberto por ele de forma alguma.
+- **error.code** em um locale com falha é uma string preservada (o código subjacente do provedor ou do adaptador,
+  com `LOCALE_FAILED` apenas como fallback), então não a trate como um conjunto fechado. Um locale `failed`
+  nem sempre traz `error`: um cujas chaves foram todas retidas, e que portanto aparece em
+  `integrityMismatches`, `providerFailures` ou `budgetWithheld`, falha sem que nada seja lançado. O motivo
+  dele está nessas listas e nos seus `notices`, como `SUB_BATCH_FAILED` para um lote de provedor
+  com falha ou `BUDGET_TOKENS_EXCEEDED` para o orçamento de tokens. Teste `status`, nunca a presença de
+  `error`.
+- **cancelled** só aparece quando o `signal` da execução a abortou. [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled) diz o que isso deixa para trás.
+- **estimate** só aparece quando a execução pediu uma estimativa prévia. A lista `caveats` dela
+  nunca é vazia e nomeia o que o valor deixa de fora, como membros de `EstimateCaveatCode`:
+  - `CACHE_NOT_CONSULTED`: a memória de tradução não é lida, então as chaves que uma execução real atenderia
+    pelo cache continuam sendo contadas. Vale para toda estimativa.
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: uma execução real envia um representante por string de origem
+    idêntica; a estimativa conta todas as chaves. Vale para toda estimativa.
+  - `TRANSPORT_RETRIES_NOT_COUNTED`: uma chamada cobrável é contada por requisição planejada, embora os
+    SDKs dos provedores possam tentar de novo uma chamada com falha por baixo, e uma tentativa repetida ainda possa ser cobrada.
+    Vale para toda estimativa.
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`: a resposta é dimensionada a partir da origem mais uma margem fixa de
+    expansão, então um idioma de destino mais longo relata mais tokens de resposta. Só para provedores
+    cobrados por token.
+  - `TOKEN_COUNT_IS_HEURISTIC`: os tokens são derivados de contagens de caracteres, não do tokenizador
+    do próprio provedor. Só para provedores cobrados por token.
+  - `REPAIR_REQUESTS_NOT_COUNTED`: a rodada de reparo para chaves que voltaram ausentes e a nova tentativa
+    em metades para uma resposta cortada não são contadas. Só para provedores cobrados por token.
+- **cacheHits** lista as chaves atendidas pelo cache da memória de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)) em vez de
+  pelo provedor. **fuzzyHits** lista as chaves que reutilizaram uma tradução para uma string de origem
+  que havia mudado, cada uma com `key`, `similarity` e o `previousSource` com o qual correspondeu; ela fica
+  vazia a menos que `fuzzyCache` esteja ativado, e essas chaves nunca são contadas em **cacheHits**. **unfilled**, **malformedRows** e **duplicateKeys** só são preenchidas por
+  `importWorkbook` (uma execução de `translate` as deixa vazias): uma linha em branco cuja chave ainda precisa de
+  tradução no momento da importação (exportada como `new` ou como `changed`), uma linha da pasta de trabalho que o
+  leitor não conseguiu analisar e uma chave duplicada cuja primeira ocorrência prevaleceu. O `line` opcional das
+  duas últimas é a linha do arquivo em que o registro começa, presente só em uma importação de arquivo delimitado (`csv` ou `tsv`).
+  A única exceção é um projeto somente humano (veja [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow)): nele, `translate` e `watch` listam em **unfilled** toda chave para a qual a memória de tradução não tinha uma entrada exata, e **fuzzyHits** continua vazia porque a reutilização aproximada nunca é aplicada ali.
+- **protected** lista as chaves que uma execução de `translate` deixou como estavam, cada uma com seu `reason` (`human`, `import`, `external` ou `pinned`) e, sob `humanEdits: "suggest"`, uma `suggestion` (a resposta do provedor ou uma entrada exata da memória de tradução, nunca uma correspondência aproximada), que não foi gravada, e um `suggestionStatus`: `planned` em uma simulação, `suggested`, ou o motivo de não ter sido (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Uma sugestão com falha nunca altera o status do locale. Elas não estão em **translated**, nunca alteram o status de um locale e continuam obsoletas para o `check`. `importWorkbook` a deixa vazia. Veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations).
+
+Dois desses tipos de entrada são exportados por conta própria: cada entrada de `protected` é um `ProtectedKey`, e cada aviso do SDK em `notices` é um `SdkNotice`.
+
+<SdkTypeTable name="ProtectedKey" />
+
+<SdkTypeTable name="SdkNotice" />
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Classifica um `RunBudget` em um de três valores de `BudgetStanding`, a mesma classificação que a linha de orçamento
+da CLI, o Studio e a ferramenta de agente `usage.summary` relatam: `"within"` quando a execução nunca
+chegou ao teto, `"stopped-before-ceiling"` quando um orçamento `"stop"` reteve uma requisição enquanto
+`tokensUsed` ainda estava abaixo de `maxTokens`, e `"reached"` quando `tokensUsed` chegou a `maxTokens` ou o
+passou. Use-a em vez de ler só `exceeded`, que é `true` nos dois últimos
+casos.
+
+```ts title="Assinatura"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Retorna:** `BudgetStanding`

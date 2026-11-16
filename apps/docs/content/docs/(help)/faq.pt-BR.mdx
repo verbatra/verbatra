@@ -1,0 +1,142 @@
+---
+title: Perguntas frequentes
+seoTitle: "Perguntas frequentes sobre o uso do verbatra"
+description: "Respostas curtas às perguntas mais comuns ao usar o verbatra, de quanto custa uma execução ao que você deve incluir no commit."
+type: reference
+---
+Respostas curtas, cada uma com um link para a página com os detalhes. Para mensagens de erro, veja
+[Solução de problemas](/pt-BR/docs/troubleshooting) e [Códigos de erro](/pt-BR/docs/error-codes).
+
+## Como controlo o custo?
+
+As execuções são incrementais, então só as chaves ausentes ou alteradas chegam ao provedor, e um projeto
+sem alterações não custa nada para executar de novo. `verbatra translate --estimate` dimensiona uma
+execução sem chamar um provedor, e `--max-tokens` ou `maxTokens` na configuração a limita. Veja
+[Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost).
+
+## Quanto custa de fato uma execução?
+
+Pouco: 400 chaves em 3 locales no `gemini-2.5-flash` somam cerca de 72.000 tokens, que você precifica
+pelo preço atual do seu provedor, e as execuções seguintes pagam só pelas strings que você alterou. Como
+dimensionar uma execução, onde cada provedor publica seus preços e como calibrar com o seu próprio projeto
+estão em [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost).
+
+## Com qual provedor devo começar?
+
+Com o Gemini, porque o nível gratuito da API dele permite traduzir um projeto inteiro sem custo, e trocar
+depois significa editar um único `id`. Mantenha strings confidenciais fora do nível gratuito: veja
+[Retenção pelo fornecedor e termos de tratamento de dados](/pt-BR/docs/data-handling#retenção-pelo-fornecedor-e-termos-de-tratamento-de-dados). Todos os
+provedores são comparados em [Provedores](/pt-BR/docs/providers).
+
+## Posso usar um modelo local?
+
+Sim: o provedor `openai-compatible` aponta o verbatra para qualquer servidor que fale a API de chat da
+OpenAI, como LM Studio, Ollama ou vLLM, em geral sem chave de API. Sem nenhum modelo de linguagem,
+o `libretranslate` usa um servidor LibreTranslate auto-hospedado. Veja [Provedores](/pt-BR/docs/providers#libretranslate).
+
+## Quais idiomas o verbatra suporta?
+
+Qualquer idioma que seu provedor suporte, escrito como um código BCP 47 válido, como `pt-BR` ou `zh-Hant`.
+O DeepL e o Google Cloud Translation têm listas fixas; os provedores de LLM não têm. Veja
+[Idiomas e locales](/pt-BR/docs/language-support).
+
+## Como as chaves mantêm a ordem?
+
+As chaves existentes mantêm suas posições e as chaves novas são acrescentadas na ordem da origem, então um
+arquivo traduzido gera diffs limpos. Veja [Formatos](/pt-BR/docs/formats).
+
+## Por que uma tradução foi sinalizada para revisão?
+
+Uma heurística de revisão encontrou algo que merece uma segunda olhada, como uma tradução igual à sua
+origem, e a sinalizou sem retê-la. Todo código de motivo está listado em
+[Motivos de revisão](/pt-BR/docs/error-codes#review-reason-codes).
+
+## O verbatra funciona em um monorepo?
+
+Sim. A busca pela configuração sobe a partir do diretório de trabalho e para no `.git` mais próximo, então
+um pacote encontra a própria configuração e a raiz encontra a configuração da raiz; `--cwd` e `--config`
+apontam para qualquer outro lugar. Veja [Arquivo de configuração](/pt-BR/docs/config-file).
+
+## O que devo incluir no commit?
+
+Faça commit dos seus arquivos de locale, do `verbatra.lock.json` e do `verbatra.provenance.json`; nunca de
+`.env`, `.env.local`, `.verbatra-local/` ou `verbatra.cache.json`, que o `verbatra init` adiciona ao
+`.gitignore`. Veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file).
+
+## Como retraduzo tudo?
+
+Apague o arquivo de locale e execute `verbatra translate --no-cache`: cada chave passa a estar ausente e é
+enviada ao provedor de novo. Sem `--no-cache`, os acertos na memória de tradução preenchem de novo o que
+eles guardam. Apagar o arquivo de lock não resolve, porque, sem uma linha de base, as traduções existentes
+contam como atuais. Para uma única chave, use a ação de retradução do Studio ou `retranslateEntry`.
+
+## Usar a CLI significa instalar o SDK?
+
+Nenhum passo extra: `@verbatra/cli` depende de `@verbatra/sdk`, então ele vem junto. Só
+`@verbatra/studio` e `@verbatra/mcp` são instalações separadas e opcionais.
+
+## Onde ficam as chaves de API?
+
+Só em variáveis de ambiente, que a CLI também lê de
+[`.env.local` e `.env`](/pt-BR/docs/cli#arquivos-de-ambiente). A configuração rejeita opções desconhecidas, para que
+um segredo não vá parar em um arquivo versionado. Veja [Provedores](/pt-BR/docs/providers).
+
+## O verbatra envia minhas strings para algum lugar?
+
+Só ao provedor que você configura, e só quando um comando traduz; não há telemetria.
+Com `provider: { id: "none" }`, nada sai da máquina. Veja
+[Tratamento de dados e privacidade](/pt-BR/docs/data-handling).
+
+## O que o verbatra doctor verifica de fato?
+
+<AvailableFrom version="0.9.0" />
+
+A configuração do projeto, em uma só passada, sem nenhuma chamada de tradução e sem ler o valor de uma chave de API,
+a menos que você passe `--live`, que a envia para buscar a lista de idiomas do provedor: a configuração, o
+formato, o provedor, a variável da chave de API, a política de rede, o arquivo de origem e o suporte a
+locales, além de relatórios informativos sobre plurais, códigos de locale, estado de locale que sobrou e
+`verbatra.limits.json`. O [`verbatra doctor`](/pt-BR/docs/cli/doctor) tem a tabela completa de verificações.
+
+## Um agente de IA pode configurar ou operar o verbatra por mim?
+
+Sim, por quatro pontos de entrada: um prompt de configuração para agentes de programação
+([Configurar o verbatra com um agente de IA](/pt-BR/docs/start-with-ai)), a saída `--json` para seus próprios laços
+([Automatizar o verbatra com JSON](/pt-BR/docs/agent-recipes)), ferramentas WebMCP em uma aba aberta do Studio
+([Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio)) e um servidor MCP via stdio
+([`verbatra mcp`](/pt-BR/docs/cli/mcp)). O Studio e o servidor MCP só gastam com um provedor quando liberados pela
+flag `--allow-spend`; no laço com `--json`, um `translate` real gasta na hora, então seu script ou
+agente precisa obter antes a autorização de uma pessoa.
+
+## Este site publica algo para agentes de IA e rastreadores?
+
+Sim, três arquivos estáticos, gerados no build e sempre em inglês, seja qual for o locale
+em que você está navegando:
+
+- [`/llms.txt`](/llms.txt): um índice selecionado do título e da descrição de cada página da documentação,
+  agrupado como a barra lateral, em links Markdown.
+- [`/llms-full.txt`](/llms-full.txt): a documentação inteira em um único arquivo, com o conteúdo renderizado
+  de cada página concatenado em ordem, para um agente que ingere o conteúdo diretamente em vez de seguir
+  links.
+- [`/.well-known/ai.txt`](/.well-known/ai.txt): uma política de uso que informa aos rastreadores de IA que este
+  projeto tem licença MIT e que rastrear, indexar e citar este conteúdo é bem-vindo.
+
+Os três têm link na coluna “Para agentes de IA” do rodapé.
+
+## O conteúdo deste site é traduzido por IA?
+
+Em sua maior parte, sim, por dois mecanismos diferentes. A interface do site (rótulos de navegação, botões, o rodapé, o texto da
+página inicial, as perguntas frequentes da página inicial) fica em `messages/en.json` e em um arquivo irmão para cada outro idioma; esses são traduzidos automaticamente, seja com o próprio verbatra, no formato `next-intl-json`, pelo provedor Gemini, executando `pnpm i18n` depois que a origem em inglês muda, seja por um agente de programação de IA que trabalha no repositório e cuja saída é importada com `verbatra import`. Assim, este
+projeto usa a própria ferramenta (dogfooding), e o fluxo de trabalho `docs-i18n-check` reprova um pull request cujos
+arquivos de locale divergiram da origem em inglês. A prosa da documentação que você está lendo agora,
+todo guia e toda página de referência, inclusive esta, é MDX com sufixo de locale (`page.mdx` e um `page.<locale>.mdx` para cada outro idioma) que também é traduzido por IA, mas fora desse
+fluxo automatizado: o `pnpm i18n` só traduz os formatos estruturados de arquivo de locale (veja [Formatos](/pt-BR/docs/formats)), nunca Markdown,
+então nunca toca nestas páginas. Em vez disso, um agente de IA traduz cada página da documentação na mesma alteração que edita a origem em inglês, então todos os idiomas chegam juntos; é por isso que toda página em outro idioma
+traz o aviso de tradução automática.
+
+Nem tudo sai desses dois passos sem mudança: alguns textos, inclusive partes das páginas
+legais, foram escritos ou corrigidos diretamente nos arquivos de locale. As traduções são verificadas na medida do possível, e nem todo texto traduzido é revisado por uma pessoa antes de ser publicado, então
+uma tradução pode conter erros. A [política de privacidade](/privacy) descreve o mesmo processo.
+
+Se um texto traduzido soar estranho, abra uma issue em qualquer um dos casos: para o texto da interface, a
+correção vai para a origem em inglês e é retraduzida ou reimportada, ou direto para o arquivo de locale afetado; para a
+prosa da documentação, edite o arquivo MDX diretamente e envie um pull request.

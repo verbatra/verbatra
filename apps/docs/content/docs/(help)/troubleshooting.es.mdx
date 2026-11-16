@@ -10,8 +10,8 @@ salida y su siguiente paso. Busca por el código de `verbatra: error [CODE]`, nu
 mensaje.
 
 Ejecuta [`verbatra doctor`](/es/docs/cli/doctor) antes de ir entrada por entrada: comprueba la config,
-el formato, el proveedor, la variable de la clave de API y el archivo fuente de una sola pasada, no
-gasta nada y funciona antes de que exista el archivo de locale fuente.
+el formato, el proveedor, la variable de la clave de API y el archivo de origen de una sola pasada, no
+gasta nada y funciona antes de que exista el archivo de locale de origen.
 
 ## pnpm bloquea los scripts de instalación de una dependencia (ERR_PNPM_IGNORED_BUILDS)
 
@@ -96,7 +96,7 @@ y un registro que contenga su adaptador: consulta
 **Síntoma**: `The source locale file was not found at <path>.` o `The source locale file at
 <path> could not be read: ...`
 
-**Causa**: `files.pattern` con el locale fuente sustituido no apunta a ningún archivo, o el archivo
+**Causa**: `files.pattern` con el locale de origen sustituido no apunta a ningún archivo, o el archivo
 no se puede parsear. La ruta se resuelve contra la raíz del proyecto, el directorio de la configuración encontrada
 (o el directorio de trabajo con `--config`), así que un `--cwd` o un `--config` equivocado es una causa habitual, igual que un comodín: `files.pattern` es una ruta literal, no un
 glob (consulta [Diseños con namespaces](/es/docs/formats#diseños-con-namespaces)).
@@ -146,7 +146,7 @@ versión incompatible. `translate` e `import` detienen toda la ejecución por el
 confirmados antes de la parada conservan lo que escribieron.
 
 **Solución**: restaura el archivo desde el control de versiones. Borrarlo también quita el error,
-pero pierde las líneas base, así que los cambios anteriores en la fuente ya no se detectan como
+pero pierde las líneas base, así que los cambios anteriores en el origen ya no se detectan como
 obsoletos. Consulta [El archivo de bloqueo](/es/docs/the-lock-file). Código:
 [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid).
 
@@ -177,14 +177,14 @@ cuánto espera una ejecución. Código: [`LOCK_CONTENDED`](/es/docs/error-codes#
 
 ## Claves con puntos o claves YAML colisionan (INVALID_STRUCTURE)
 
-**Síntoma**: `A dotted key and a nested key path resolve to the same path.` o, en YAML,
+**Síntoma**: `A literal dotted leaf key and a nested key path resolve to the same path.` o, en YAML,
 `A mapping key is a map or sequence (expected scalar keys).`
 
 **Causa**: dos entradas de un archivo llevan a la misma clave, como `"a.b"` junto a
 `a: { b: ... }`, o una clave YAML no tiene forma de cadena. verbatra lo rechaza en lugar de
 descartar una.
 
-**Solución**: renombra una de las claves, o usa una clave YAML escalar. En el archivo fuente llega
+**Solución**: renombra una de las claves, o usa una clave YAML escalar. En el archivo de origen llega
 envuelto en `SOURCE_INVALID`. Código: [`INVALID_STRUCTURE`](/es/docs/error-codes#invalid_structure).
 
 ## La ejecución se quedó corta con algunas claves (presupuesto de tokens)
@@ -209,8 +209,8 @@ muestra `Rejected: inline markup mismatch` con las etiquetas culpables: `-<a hre
 candidato perdió, `+<i>` para una que inventó. `verbatra check --qa` informa de lo mismo para
 valores que ya están en disco.
 
-**Causa**: el candidato no lleva las etiquetas en línea de la fuente, o las lleva desequilibradas o
-mal anidadas, así que la puerta de integridad lo rechaza como a un marcador perdido.
+**Causa**: el candidato no lleva las etiquetas en línea del origen, o las lleva desequilibradas o
+mal anidadas, así que la puerta de integridad lo rechaza como a un placeholder perdido.
 
 **Solución**: vuelve a ejecutar la clave, o corrige el valor a mano en Studio o en un libro; la
 misma puerta juzga ambos. Qué se compara y qué rechazos son intencionados está en

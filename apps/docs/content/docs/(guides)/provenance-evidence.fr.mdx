@@ -7,14 +7,14 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Utilise ceci quand quelqu'un demande quelle partie de ton texte publié un fournisseur ou un agent d'IA a traduite, et si une personne l'a relue. verbatra consigne cela clé par clé dans `verbatra.provenance.json` ; tu l'en sors sous forme de rapport à archiver, ou de marqueurs dans les fichiers XLIFF et TMX que tu remets à d'autres outils.
+Utilise ceci quand quelqu'un demande quelle partie de ton texte publié un fournisseur ou un agent IA a traduite, et si une personne l'a relue. verbatra consigne cela clé par clé dans `verbatra.provenance.json` ; tu l'en sors sous forme de rapport à archiver, ou de marqueurs dans les fichiers XLIFF et TMX que tu remets à d'autres outils.
 
 <Callout type="warn" title="Élément de preuve à l'appui, pas un conseil juridique">
 Selon l'[article 50 du règlement européen sur l'IA](/fr/docs/data-handling#traductions-générées-par-ia-et-provenance), un texte qu'une
 personne a relu sous sa responsabilité éditoriale est traité différemment d'un texte qui ne l'a pas
 été. Le rapport et les marqueurs sont des éléments de preuve à l'appui pour la personne qui décide
 comment cela s'applique à ton produit. Ce ne sont
-pas des conseils juridiques, et les utiliser ne rend un produit conforme à rien du tout.
+pas des conseils juridiques, et les utiliser ne rend pas un produit conforme à quoi que ce soit.
 </Callout>
 
 ## Ce que la trace peut et ne peut pas te dire
@@ -28,7 +28,7 @@ Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'�
 
 Garde ces limites en tête quand tu remets la trace à quelqu'un :
 
-- **Elle n'est pas infalsifiable.** Quiconque peut modifier tes fichiers de locale peut la modifier ; sa valeur vient de ton historique git et de ta revue de code.
+- **Elle ne rend pas visible une altération.** Quiconque peut modifier tes fichiers de locale peut la modifier ; sa valeur vient de ton historique git et de ta revue de code.
 - **Elle n'a pas d'horodatage.** Le moment où une valeur a été écrite ou approuvée se trouve dans l'historique git (`git log -p verbatra.provenance.json`).
 - **Elle penche du côté de la machine.** Les correspondances de la mémoire, les correspondances approximatives et les modifications d'agent comptent toutes comme machine, et une valeur machine que personne n'a approuvée compte comme non relue, même si son texte est correct.
 
@@ -85,7 +85,7 @@ Le rapport est le `result` de l'[enveloppe JSON](/fr/docs/cli/output#sortie-json
 | `entries[].reviewState` | string | `unreviewed`, `approved` ou `rejected` |
 | `entries[].provider` | string, facultatif | l'`id` du fournisseur qui a répondu, pour une valeur `machine` |
 | `entries[].model` | string, facultatif | le modèle configuré, quand la trace en nomme un |
-| `entries[].reviewer` | string, facultatif | le relecteur nommé avec la décision, s'il a été indiqué |
+| `entries[].reviewer` | string, facultatif | le relecteur nommé avec la décision, s'il a été indiqué et que la décision s'applique encore |
 
 Quand le fichier de provenance est illisible, le résultat est `{ "available": false, "reason": "provenance-unreadable" }`. De nouveaux champs facultatifs peuvent être ajoutés plus tard ; les champs existants gardent leur sens.
 
@@ -123,7 +123,7 @@ XLIFF 2.0 n'a pas de qualificatif d'état, donc le groupe de métadonnées `verb
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` vaut `machine`, `human`, `import` ou `unknown` ; `x-review` vaut `approved`, `unreviewed` ou `rejected`. Une entrée de mémoire est une paire de textes, pas une clé, donc un segment est `machine` si une clé avec exactement ce texte est de classe machine, et `approved` seulement si toutes ces clés le sont. Un texte qu'aucune trace ne décrit est `unknown`.
+`x-origin` vaut `machine`, `human`, `import` ou `unknown` ; `x-review` vaut `approved`, `unreviewed` ou `rejected`. Une entrée de mémoire est une paire de textes, pas une clé, donc un segment est `machine` si une clé avec exactement ce texte est de classe machine, et `rejected` si une de ces clés est rejetée, sinon `approved` seulement si toutes ces clés le sont. Un texte qu'aucune trace ne décrit est `unknown`.
 
 ### Importer des fichiers marqués
 

@@ -219,6 +219,100 @@ samp {
   --grid-line: color-mix(in srgb, var(--border-default) 70%, transparent);
 }
 
+:root:lang(zh-CN) {
+  --font-sans:
+    var(--font-geist-sans, ui-sans-serif, system-ui), "PingFang SC", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root:lang(ja) {
+  --font-sans:
+    var(--font-geist-sans, ui-sans-serif, system-ui), "Hiragino Sans", "Yu Gothic UI", Meiryo,
+    "Noto Sans CJK JP", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root:lang(zh-CN) {
+  --font-mono:
+    var(--font-geist-mono, ui-monospace, monospace), "PingFang SC", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", ui-monospace, monospace;
+}
+
+:root:lang(ja) {
+  --font-mono:
+    var(--font-geist-mono, ui-monospace, monospace), "Hiragino Sans", "Yu Gothic UI", Meiryo,
+    "Noto Sans CJK JP", "Noto Sans JP", ui-monospace, monospace;
+}
+
+:root:is(:lang(zh-CN), :lang(ja)) {
+  --tracking-display: 0;
+  --tracking-heading: 0;
+  --tracking-snug: 0;
+  --tracking-tight: 0;
+  --leading-display: 1.2;
+  --leading-heading: 1.3;
+}
+
+:root:is(:lang(zh-CN), :lang(ja)) :is(:lang(zh-CN), :lang(ja)),
+:root:is(:lang(zh-CN), :lang(ja)) :is(:lang(zh-CN), :lang(ja))::before,
+:root:is(:lang(zh-CN), :lang(ja)) :is(:lang(zh-CN), :lang(ja))::after {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(em, i, cite, .vk-deck-empty, .vk-lock-line[data-kind="gap"]):is(:lang(zh-CN), :lang(ja)) {
+  font-style: normal;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(h1, h2, h3, h4, .vk-display, .vk-h2, .vk-h3, .vk-h4, .vk-banner-copy h1, .vk-closer h2):is(
+    :lang(zh-CN),
+    :lang(ja)
+  ) {
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(
+    .vk-banner-copy h1,
+    .vk-closer h2,
+    .vk-marquee-heading,
+    .vk-compare-title,
+    .vk-docs-home-title
+  ):is(:lang(zh-CN), :lang(ja)) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(
+    .vk-display,
+    .vk-h2,
+    .vk-h3,
+    .vk-h4,
+    .vk-faq-question,
+    .vk-compare-note,
+    .vk-compare-criterion,
+    .vk-compare-pair-row dt
+  ):is(:lang(zh-CN), :lang(ja)) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+:root:is(:lang(zh-CN), :lang(ja)) .vk-pill-new:is(:lang(zh-CN), :lang(ja)) {
+  font-size: 0.71875rem;
+}
+
+:root:is(:lang(zh-CN), :lang(ja)) :is(p, li, dd):not(.vk-lead):is(:lang(zh-CN), :lang(ja)) {
+  text-wrap: pretty;
+}
+
+:root:is(:lang(zh-CN), :lang(ja)) .vk-compare-intro:is(:lang(zh-CN), :lang(ja)) {
+  gap: 0.25rem;
+  line-height: 1.5;
+}
+
 html.light {
   color-scheme: light;
 
@@ -859,6 +953,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   position: relative;
   isolation: isolate;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 1.5rem;
   overflow: hidden;
@@ -3798,12 +3893,19 @@ html:has(.vk-home) {
   }
 
   #nd-page .group\/heading > a[data-card] {
-    display: inline-flex;
-    align-items: center;
+    display: block;
+    align-content: center;
     min-height: 44px;
   }
 
+  #nd-page .group\/heading > a[data-card] .vk-code-short {
+    white-space: normal;
+    overflow-wrap: normal;
+  }
+
   #nd-page .group\/heading > a[data-card]:has(.vk-available-from) {
+    display: inline-flex;
+    align-items: center;
     flex-wrap: wrap;
     column-gap: 0.5rem;
     row-gap: 0.25rem;

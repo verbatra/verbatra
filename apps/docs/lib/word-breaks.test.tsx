@@ -114,6 +114,22 @@ describe("keepCompoundsWhole", () => {
     expect(keepCompoundsWhole("Translate - then check")).toBe("Translate - then check");
     expect(keepCompoundsWhole("Gate pull requests")).toBe("Gate pull requests");
   });
+
+  it("keeps a hyphenated name whole inside Chinese text without swallowing the neighbouring words", () => {
+    expect(markup(keepCompoundsWhole("支持 OpenAI-compatible、Gemini，另有 x"))).toBe(
+      '<span>支持 <span class="whitespace-nowrap">OpenAI-compatible</span>、Gemini，另有 x</span>',
+    );
+    expect(keepCompoundsWhole("支持、Gemini，另有 x")).toBe("支持、Gemini，另有 x");
+  });
+
+  it("treats the Japanese long-vowel mark and middle dot as Japanese, never as a compound character", () => {
+    expect(keepCompoundsWhole("プロバイダー-x")).toBe("プロバイダー-x");
+    expect(keepCompoundsWhole("キー・ハッシュ-x")).toBe("キー・ハッシュ-x");
+    expect(markup(keepCompoundsWhole("サーバー next-intl-json を読む"))).toBe(
+      `<span>サーバー ${NOWRAP("next-intl-json")} を読む</span>`,
+    );
+    expect(keepCompoundsWhole("Mac-x")).not.toBe("Mac-x");
+  });
 });
 
 const SOFT = '<span class="vk-code-break"></span>';

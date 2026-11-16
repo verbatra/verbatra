@@ -2,10 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { assertLocaleTable, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const TOOLS_DIR = resolve(REPO_ROOT, "packages/mcp/src/tools");
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 function toolSources() {
   return readdirSync(TOOLS_DIR)
@@ -49,7 +49,18 @@ function toolNamesInOrder() {
   return toolNamesOf([...block[1].matchAll(/(\w+Tool)\b/g)].map((match) => match[1]));
 }
 
-const YES = { "": "yes", ".de": "ja", ".es": "sí", ".fr": "oui" };
+const YES = assertLocaleTable(
+  {
+    "": "yes",
+    ".de": "ja",
+    ".es": "sí",
+    ".fr": "oui",
+    ".zh-CN": "是",
+    ".pt-BR": "sim",
+    ".ja": "はい",
+  },
+  "YES",
+);
 
 function toolTableRows(page) {
   const lines = page.split("\n");

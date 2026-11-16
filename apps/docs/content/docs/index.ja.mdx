@@ -1,0 +1,132 @@
+---
+title: はじめに
+seoTitle: "verbatra とは：i18n 翻訳の自動化"
+description: "verbatra とは何か、どんな問題を解決するかを説明します。変更されたキーだけを翻訳する仕組みと、CLI、SDK、Studio、MCP サーバーの関係を紹介します。"
+type: overview
+---
+
+<DocsHomeHeader
+  eyebrow="ドキュメント"
+  headline="verbatra をセットアップして、すべてのロケールを同期した状態に保つ"
+  lead="CLI、SDK、Studio、MCP サーバーのガイドとリファレンスです。クイックスタートから始めるか、コーディングエージェントに verbatra をセットアップさせます。"
+>
+
+<DocsHomeTabs
+  label="主な入り口"
+  tabs={[
+    { label: "クイックスタート", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "MCP サーバー", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
+/>
+
+<DocsHomeAgentTip title="コーディングエージェントを使っていますか？">
+プロンプトを Claude Code、Cursor などのコーディングエージェントにコピーすると、verbatra をセットアップしてくれます。各手順は [AI エージェントで verbatra をセットアップする](/ja/docs/start-with-ai)にあります。エージェントに訳文を直接読み書きさせるには、[MCP サーバー](/ja/docs/cli/mcp)を接続します。
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
+
+<DocsHomeBody>
+
+<DocsHomeSection title="目的から始める" lead="やりたいことを選びます。各カードは、それを実現するページを開きます。">
+
+<DocsHomePaths
+  cards={[
+    {
+      goal: "プロジェクトを翻訳する",
+      page: "クイックスタート",
+      body: "CLI をインストールし、API キーなしで実行をプレビューしてから、最初のファイルを翻訳します。",
+      href: "/docs/quickstart",
+    },
+    {
+      goal: "pull request をゲートで止める",
+      page: "CI で verbatra を実行する",
+      body: "ロケールがドリフトしたら pull request を失敗させます。スクリプト向けに JSON 出力も使えます。",
+      href: "/docs/ci-and-exit-codes",
+    },
+    {
+      goal: "翻訳者に受け渡す",
+      page: "手動翻訳",
+      body: "人が翻訳するためのブックをエクスポートし、翻訳後にインポートして戻します。",
+      href: "/docs/manual-translation",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+<DocsHomeSection id="pick-your-stack" title="技術スタックを選ぶ" lead="「クイックスタート」の印が付いたカードは、そのスタック向けのステップごとのガイドを開きます。ほかのカードは、init コマンドとファイルのレイアウトを開きます。">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "クイックスタート", description: "React アプリで i18next の JSON ファイルを翻訳します。" },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "クイックスタート", description: "next-intl のメッセージファイルをすべてのロケールで同期した状態に保ちます。" },
+    { label: "Vue", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "クイックスタート", description: "Vue アプリで vue-i18n の JSON メッセージを翻訳します。" },
+    { label: "Nuxt", icon: "web", mark: "deviconNuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-i18n-を使う-vue-と-nuxt", description: "Nuxt アプリで vue-i18n の JSON メッセージを翻訳します。" },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "クイックスタート", description: "Angular アプリで ngx-translate の JSON ファイルを翻訳します。" },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "クイックスタート", description: "Flutter の gen-l10n 用の ARB ファイルを翻訳します。" },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "strings.xml リソースを翻訳します。ロケールごとに 1 つのフォルダーです。" },
+    { label: "iOS と macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-と-macos", description: ".strings、.stringsdict、String Catalogs を翻訳します。" },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "POT テンプレートから PO ファイルを翻訳します。" },
+    { label: "Java と Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "/docs/pick-your-stack#java-と-spring", description: ".properties のメッセージバンドルを翻訳します。" },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: ".resx リソースファイルを翻訳します。" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "ネストした YAML のロケールファイルを翻訳します。" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "翻訳ツールが交換するフォーマットの XLIFF ファイルを翻訳します。" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "フラットな INI のロケールファイルを翻訳します。" },
+  ]}
+/>
+
+<DocsHomeNote>
+技術スタックが見当たらない場合は、汎用の[クイックスタート](/ja/docs/quickstart)から始めるか、[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)ことで verbatra に独自のフォーマットを教えます。
+</DocsHomeNote>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="すべての実行は差分であり、書き換えではない" lead="`verbatra translate` を実行すると何が起きるかを説明します。">
+
+ソースロケールを 1 つ手作業で保守すると、ほかのすべてのロケールファイルがドリフトします。新しいキーがターゲットから欠落し、編集された文字列は古くなった訳文を残し、削除されたキーは孤立したキーとして残ります。verbatra は、コミットされたロックファイル `verbatra.lock.json` と各ターゲットを比較し、変更されたものだけを設定したプロバイダーに送ることで、この差を埋めます。翻訳するものがない 2 回目の実行では、プロバイダーをまったく呼び出しません。すべての結果は書き込む前にチェックされるため、壊れたプレースホルダーは保留されて再試行され、そのまま書き込まれることはありません。処理の流れ全体は[実行の仕組み](/ja/docs/how-it-works)を参照してください。
+
+<DocsHomeSteps />
+
+verbatra は、JSON や YAML から XLIFF、gettext、Android や Apple のカタログまで、一般的なロケールファイルのフォーマットを読み書きします。対応する LLM や機械翻訳のプロバイダーを 1 つのインターフェースの背後で使って翻訳します（プロバイダーなしで使う場合は[機械翻訳なしで実行する](/ja/docs/human-only-workflow)を参照）。同梱されていないフォーマットは、[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)ことで追加できます。一覧は[フォーマット](/ja/docs/formats)と[プロバイダー](/ja/docs/providers)にあります。
+
+</DocsHomeSection>
+
+<DocsHomeSection title="パッケージ" lead="1 つのエンジンを、4 つの方法で操作します。">
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      pkg: "cli",
+      body: "verbatra バイナリです。init や extract から translate、check、export、studio まで、すべてのコマンドを SDK の薄いラッパーとして提供します。まずはここから始めます。",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      pkg: "sdk",
+      body: "内部のエンジンです。translate、watch、check、diff、doctor、extract、疑似ローカライズ、型の生成、Excel と TMX の往復を、すべてコードから使えます。",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      pkg: "studio",
+      body: "ローカルのダッシュボードです。その場での編集、レビューキュー、対応率と実行を示す Overview、ブラウザーエージェントのツールを備えます。プロバイダーの課金は、明示的に有効にしない限りオフのままです。",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      pkg: "mcp",
+      body: "stdio の MCP サーバーです。翻訳の状態、用語集、編集ツールを、Claude Code、Cursor、そのほかの MCP クライアントに公開します。",
+      href: "/docs/cli/mcp",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+</DocsHomeBody>

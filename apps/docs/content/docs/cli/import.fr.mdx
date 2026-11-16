@@ -69,15 +69,17 @@ Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier isolé don
 
 Une cellule `Translation` vide ne fait jamais échouer une locale : la ligne est ignorée, sa base du verrou est conservée, et la clé est signalée comme `unfilled` tant qu'elle a encore besoin d'une traduction. Importer une remise que personne n'a encore remplie réussit donc et liste chaque clé en attente.
 
+Une ligne remplie dont le texte source a changé depuis l'export est retenue : sa clé est listée sous `integrity-withheld` sans motif, la locale est partielle et la clé est exportée de nouveau.
+
 Une seule ligne illisible est signalée comme ligne malformée, et le reste de la locale est quand même importé. Une remise trop volumineuse ou impossible à analyser (par exemple, pas un conteneur xlsx lisible) est une erreur `SOURCE_INVALID` de toute l'exécution, dont le message dit ce qui n'allait pas.
 
-Dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, non traduite, une fois qu'elle passe la barrière d'intégrité <AvailableFrom version="0.13.0" />. Voir [Traduction manuelle](/fr/docs/manual-translation#ce-que-limport-accepte).
+Dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, non traduite, une fois qu'elle passe la barrière d'intégrité <AvailableFrom version="0.13.0" />. Voir [Confier avec Excel ou CSV](/fr/docs/manual-translation#ce-que-limport-accepte).
 
 ### Retour dans le terminal
 
 <AvailableFrom version="0.12.0" />
 
-`import` affiche une ligne pendant qu'il lit et applique le fichier. Après un import propre, il suggère `verbatra check`, et après `--dry-run` le même import sans l'option. Si une locale échoue ou reste partielle, il suggère le même import une fois les lignes refusées corrigées ou, quand une locale a échoué avec une erreur qui a une prochaine étape, cette étape :
+`import` affiche une ligne pendant qu'il lit et applique le fichier. Après un import propre, il suggère `verbatra check`, et après `--dry-run` le même import sans l'option. Si une locale échoue ou reste partielle, il suggère le même import une fois les lignes refusées corrigées ou, quand une locale a échoué avec une erreur qui a une étape suivante, cette étape :
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)
@@ -108,7 +110,7 @@ Le contrat est celui de [`verbatra translate`](/fr/docs/cli/translate), donc une
 
 ## Voir aussi
 
-- [Traduction humaine](/fr/docs/manual-translation) couvre l'aller-retour complet export, remplissage, import et ce qu'un traducteur peut modifier.
+- [Confier avec Excel ou CSV](/fr/docs/manual-translation) couvre l'aller-retour complet export, remplissage, import et ce qu'un traducteur peut modifier.
 - [Sûreté de la traduction](/fr/docs/translation-safety) explique les vérifications qui peuvent retenir une valeur.
 - [Confier à une agence de traduction](/fr/docs/translation-agency) couvre l'aller-retour XLIFF via un outil de TAO.
 - [`verbatra export`](/fr/docs/cli/export) produit la remise que cette commande lit.

@@ -3,10 +3,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
-import de from "@/messages/de.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -28,15 +26,31 @@ beforeAll(async () => {
   root.innerHTML = renderToStaticMarkup(await FooterContributors());
 });
 
+const NEW_TAB_NOTE = /^(?:\(.+\)|（.+）)$/;
+
 describe("FooterContributors", () => {
   it("says a link opens a new tab in every locale", () => {
-    for (const catalog of [en, de, es, fr]) {
-      expect(catalog.landing.openSource.newTab).toMatch(/^\(.+\)$/);
+    for (const catalog of Object.values(MESSAGE_CATALOGS)) {
+      expect(catalog.landing.openSource.newTab).toMatch(NEW_TAB_NOTE);
     }
   });
 
+  it.each(["(opens in a new tab)", "（在新标签页中打开）"])(
+    "reads %s as a new-tab note",
+    (note) => {
+      expect(note).toMatch(NEW_TAB_NOTE);
+    },
+  );
+
+  it.each(["opens in a new tab", "(在新标签页中打开）", "（在新标签页中打开"])(
+    "does not read %s as a new-tab note",
+    (note) => {
+      expect(note).not.toMatch(NEW_TAB_NOTE);
+    },
+  );
+
   it("keeps only the contributor copy in the open source namespace", () => {
-    for (const catalog of [en, de, es, fr]) {
+    for (const catalog of Object.values(MESSAGE_CATALOGS)) {
       expect(Object.keys(catalog.landing.openSource)).toEqual([
         "newTab",
         "contributorsHeading",

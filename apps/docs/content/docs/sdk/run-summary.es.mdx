@@ -75,7 +75,7 @@ Las partes que conviene conocer:
   cualquier ejecución que no envió ninguna petición, informa `supported: true` con `tokensUsed: 0`:
   no se envió nada, así que no se proyectó nada. Con `behavior: "stop"` el techo
   se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
-  vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
+  vuelta a dividir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
   última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
   total por encima del techo a posteriori. Después de eso no se envía nada más. Dos cosas quedan
   fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa

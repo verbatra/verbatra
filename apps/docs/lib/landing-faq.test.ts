@@ -13,6 +13,7 @@ import {
   publishedProviders,
 } from "./landing-faq";
 import { providerShortLabel } from "./landing-providers";
+import { translationFilePattern } from "./locales";
 import { RELEASE_BADGE } from "./release-badge";
 
 describe("the providers answer", () => {
@@ -52,7 +53,7 @@ const DOCS_ROOT = fileURLToPath(new URL("../content/docs/", import.meta.url));
 
 function isLocaleFile(file: string, locale: string): boolean {
   if (locale !== i18n.defaultLanguage) return file.endsWith(`.${locale}.mdx`);
-  return file.endsWith(".mdx") && !/\.(?:de|es|fr)\.mdx$/.test(file);
+  return file.endsWith(".mdx") && !translationFilePattern().test(file);
 }
 
 function docsUrls(locale: string): ReadonlySet<string> {

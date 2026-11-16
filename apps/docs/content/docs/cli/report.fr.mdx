@@ -7,7 +7,7 @@ type: reference
 ---
 <AvailableFrom version="0.12.0" />
 
-`verbatra report provenance` lit `verbatra.provenance.json`, le fichier de verrouillage et les fichiers de locale, puis affiche par locale cible combien de valeurs une machine a écrites, combien une personne a relues et combien des personnes ont écrites ou importées. Il n'appelle aucun fournisseur, n'a besoin d'aucune clé d'API et n'écrit rien. Le rapport est une preuve d'appui, pas un conseil juridique.
+`verbatra report provenance` lit `verbatra.provenance.json`, le fichier de verrouillage et les fichiers de locale, puis affiche par locale cible combien de valeurs une machine a écrites, combien une personne a relues et combien de valeurs ont été écrites ou importées par des personnes. Il n'appelle aucun fournisseur, n'a besoin d'aucune clé d'API et n'écrit rien. Le rapport est une preuve d'appui, pas un conseil juridique.
 
 ## Synopsis
 
@@ -20,13 +20,13 @@ verbatra report <report> [flags]
 ## Exemples
 
 ```bash
-# décomptes par locale : machine non relue, machine relue, humaine, importée et le reste
+# counts per locale: machine and unreviewed, machine and reviewed, human, imported, and the rest
 verbatra report provenance
 
-# origine et état de relecture de chaque clé, pour un fichier d'audit
+# every key's origin and review state, for an audit file
 verbatra report provenance --json > provenance-report.json
 
-# seulement la locale allemande
+# only the German locale
 verbatra report provenance --locales de
 ```
 

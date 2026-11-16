@@ -1,0 +1,361 @@
+---
+title: "Revisar e retraduzir"
+seoTitle: "SDK: revisar e retraduzir traduções no verbatra"
+description: "Leia valores em massa ou página por página, aprove, rejeite ou retraduza uma chave, ou revise e retraduza várias de uma vez."
+type: reference
+---
+<SdkAnchorForward />
+
+## Operações em uma única chave
+
+Estas são as chamadas que o Verbatra Studio aciona; use-as para construir sua própria ferramenta de revisão. As que recebem um `locale` e uma `key` os resolvem de novo a cada chamada e lançam `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quando qualquer um dos dois não existe.
+
+### keyValue
+
+<AvailableFrom version="0.5.0" />
+
+Lê o valor de origem atual de uma chave e, quando existe, o valor de destino atual dela para um locale. Somente leitura.
+
+```ts title="Assinatura"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**Retorna:** `KeyValueResult`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key)
+
+**Exemplo:** [Editar e retraduzir uma única chave](/pt-BR/docs/programmatic-api#editar-e-retraduzir-uma-única-chave)
+
+Retorna `{ source, target? }`; `target` está ausente exatamente quando a chave ainda não existe nesse locale e, quando presente, vem com `provenance`, o `KeyProvenance` interpretado da chave: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
+<AvailableFrom version="0.12.0" />
+
+O resultado também traz `description` quando o arquivo de origem dá uma à chave: um `@key.description` do ARB, uma nota do XLIFF, ou um comentário do gettext, do `.strings` da Apple ou do `.resx` do .NET.
+
+### keyContext
+
+<AvailableFrom version="0.12.0" />
+
+Lê o que um tradutor precisa para escrever uma chave em um locale de destino: tudo o que `keyValue` retorna, mais os termos do glossário que se aplicam ao texto de origem e o `maxLength` da chave. Passe um `draft` para conferi-lo com esses termos. Somente leitura. Para reler do disco um glossário em arquivo, ele recebe `loaded` de `loadConfigWithMeta`, não uma configuração simples.
+
+```ts title="Assinatura"
+function keyContext(
+  input: KeyContextInput,
+  deps?: KeyContextDeps,
+): Promise<KeyContext>;
+```
+
+<SdkTypeTable name="KeyContextInput" />
+
+**Retorna:** `KeyContext`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key)
+
+Um glossário ilegível não lança erro: `glossary` fica vazio e `glossaryNotice` traz o código do erro e a mensagem ocultada. `draftCheck` diz, por termo aplicável, se o rascunho usa a tradução exigida e quais traduções proibidas ele usa.
+
+### localeHistory
+
+<AvailableFrom version="0.12.0" />
+
+Lista os commits recentes do git que tocaram o arquivo do locale de origem ou de um locale de destino, do mais novo ao mais antigo. Somente leitura; executa `git log` pelo `execFile` injetável.
+
+```ts title="Assinatura"
+function localeHistory(
+  input: LocaleHistoryInput,
+  deps?: LocaleHistoryDeps,
+): Promise<LocaleHistoryResult>;
+```
+
+<SdkTypeTable name="LocaleHistoryInput" />
+
+**Retorna:** `LocaleHistoryResult`
+
+**Lança:** [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+Cada commit traz `hash`, `author` (o nome depois do `.mailmap`, nunca o e-mail), `authorDate`, `subject` e `touchedPaths`. `limit` tem como padrão `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), no máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), no mínimo 1. `author` e `subject` perdem caracteres de controle e de direção, têm chaves de API conhecidas substituídas por `[REDACTED]` e são cortados em 200 e 500; um commit com metadados ilegíveis fica de fora. Um repositório ilegível, ou um `git log` que passe de `LOCALE_HISTORY_TIMEOUT_MS` ou `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, dá `{ available: false, reason }` com um motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Veja [Studio e MCP](/pt-BR/docs/data-handling#studio-e-mcp).
+
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+Lista quais arquivos de locale, `verbatra.lock.json` e `verbatra.provenance.json` diferem do último commit, e o branch em uso. Somente leitura; não recebe nenhum caminho de quem chama.
+
+```ts title="Assinatura"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**Retorna:** `LocaleGitStatusResult`
+
+**Lança:** [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+Cada arquivo alterado traz `path`, `locales` e um `state` de `LOCALE_GIT_FILE_STATES`. Um arquivo atrás de um link simbólico ou dentro de um submódulo nunca é listado; o `apple-strings` também observa o arquivo `.stringsdict`. O executor padrão inicia o git com um ambiente mínimo (configuração global só a partir de `HOME`) e com travas opcionais, `core.fsmonitor`, repositórios bare, busca sob demanda (lazy fetch), submódulos e filtros de conteúdo configurados desativados, compara caminhos literalmente e o encerra depois de `LOCALE_GIT_TIMEOUT_MS` ou `LOCALE_GIT_MAX_OUTPUT_BYTES`; um `execFile` que você injetar deve fazer o mesmo. Um clone parcial precisa do git 2.45 ou mais recente, senão `git-too-old`. O `verbatra.config.ts` de um projeto ainda é código que o verbatra executa. Quando o git não consegue ler o repositório, ou um `files.pattern` coloca um arquivo de locale fora da pasta do projeto (`outside-project`), o resultado é `{ available: false, reason }`, com um motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`.
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+Compara o arquivo de um locale em `HEAD` com o arquivo em disco, chave por chave. Somente leitura; recebe um locale, nunca um caminho, e não executa nenhum `git diff`, driver de conversão de texto nem diff externo.
+
+```ts title="Assinatura"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**Retorna:** `LocaleGitDiffResult`
+
+**Lança:** [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+`added` e `removed` listam `{ key, value }`, `changed` lista `{ key, before, after }`, e `state` é o estado do arquivo ou `unchanged`; um arquivo `conflicted` ou `unchanged` não lista nenhuma diferença. O arquivo versionado é lido com `git cat-file blob`, só se for um arquivo regular de no máximo `LOCALE_GIT_BLOB_MAX_BYTES`. No máximo `LOCALE_GIT_DIFF_MAX_ENTRIES` chaves são listadas e cada texto é cortado em `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caracteres, e qualquer um dos dois define `truncated`. Só o diff responde `custom-adapter`, para um formato `custom:` ou um `adapterRegistry`; um lado ausente é vazio, e um que não é um arquivo regular ou não pode ser analisado dá `revision-unreadable` ou `working-file-unreadable`. Os outros motivos são os de `localeGitStatus`.
+
+### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
+
+Executa o provedor de novo para uma chave e um locale pelo caminho do provedor e pela barreira de integridade que o `translate` usa e, se o valor for aceito, grava o arquivo de locale e a entrada do arquivo de lock somente dessa chave.
+
+```ts title="Assinatura"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**Retorna:** `RetranslateEntryResult`
+
+**Lança:** [`MACHINE_TRANSLATION_DISABLED`](/pt-BR/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/pt-BR/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key), [`KEY_PINNED`](/pt-BR/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/pt-BR/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/pt-BR/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/pt-BR/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/pt-BR/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/pt-BR/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid), [`SENSITIVE_CONTENT_WITHHELD`](/pt-BR/docs/error-codes#sensitive_content_withheld)
+
+**Exemplo:** [Editar e retraduzir uma única chave](/pt-BR/docs/programmatic-api#editar-e-retraduzir-uma-única-chave)
+
+Retorna `{ accepted: true, value, reviewReasons }` ou a recusa que `editEntry` retorna. Diferente do `translate`, uma falha do provedor aqui lança um erro: um `ProviderError`, exportado de `@verbatra/sdk`, com um `code` estável como `RATE_LIMITED` ou `AUTH_FAILED`. Sob `provider: { id: "none" }`, ele lança `MACHINE_TRANSLATION_DISABLED` primeiro, antes de ler ou travar qualquer coisa.
+
+<AvailableFrom version="0.13.0" />
+
+Os dois resultados trazem `usage`, as contagens de tokens do provedor, só quando ele as informa.
+
+O novo valor é registrado em `verbatra.provenance.json` como `machine`, com o `id` do provedor que respondeu e o modelo configurado. Um provedor vindo do seu `createProvider` é registrado sob o próprio `id`, e sem o modelo quando ele difere do configurado. Um arquivo de procedência corrompido lança `PROVENANCE_FILE_INVALID` antes de o provedor ser chamado.
+
+<AvailableFrom version="0.12.0" />
+
+Uma chave cujo valor uma pessoa escreveu, importou ou alterou fora do verbatra lança `KEY_PROTECTED` dentro da trava de escrita, antes de o provedor ser chamado, a menos que `includeHuman: true` seja passado ou a configuração defina `humanEdits: "overwrite"`; sob um arquivo de procedência de um verbatra mais novo, qualquer valor existente conta como protegido. Uma chave que corresponde a `pinnedKeys` lança `KEY_PINNED` antes de o provedor ser instanciado, mesmo com `includeHuman`.
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+Registra que uma pessoa revisou o valor atual de uma chave em um locale e o aceita. Grava somente `verbatra.provenance.json`, nunca um arquivo de locale nem o arquivo de lock, e não chama nenhum provedor. A aprovação também guarda o hash de origem do arquivo de lock para a chave, então ela volta a ser lida como não revisada quando a origem muda; qualquer gravação posterior que altere o valor inicia um registro novo, não revisado.
+
+```ts title="Assinatura"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Retorna:** `ReviewDecisionResult`
+
+**Lança:** [`REVIEWER_INVALID`](/pt-BR/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/pt-BR/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/pt-BR/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/pt-BR/docs/error-codes#provenance_file_unwritable)
+
+**Exemplo:** [Percorrer a fila de revisão](/pt-BR/docs/programmatic-api#percorrer-a-fila-de-revisão)
+
+Passe exatamente um entre `expectedValue` e `expectedValueHash`, este último com a dependência `valueMarker`: os dois, nenhum, um `expectedValue` que não é uma string, ou um hash sem o seu marcador lançam `REVIEW_VALUE_CHANGED` antes de qualquer leitura. `expectedValue` é o texto que quem revisou viu, ou passe `expectedValueHash` com o `valueMarker` que o produziu: a chamada lança `REVIEW_VALUE_CHANGED` quando a chave não tem valor ou tem um diferente, e `REVIEW_SOURCE_CHANGED` quando a origem mudou desde que o valor foi gravado. `reviewer` é texto livre opcional de 1 a 64 caracteres, sem caracteres de controle (`REVIEWER_INVALID` caso contrário), guardado no arquivo versionado e nunca preenchido pelo verbatra. Retorna `{ locale, key, provenance }`. Um valor sem registro ainda, ou alterado fora do verbatra, é registrado com o `origin` `unknown`.
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+Registra que uma pessoa revisou o valor atual de uma chave em um locale e o recusa, e o remove do arquivo de locale e do arquivo de lock, então `check` e `diff` o relatam como ausente e o próximo `translate` o preenche de novo (sob `provider: { id: "none" }`, ele continua ausente até alguém escrever um). O registro de procedência permanece como `rejected`, com um hash do texto removido, e a entrada correspondente na memória desta máquina é descartada; um `translate` posterior ignora qualquer acerto exato ou aproximado da memória para a chave que corresponda a esse hash, então a memória de nenhuma máquina traz o texto de volta. Não chama nenhum provedor.
+
+```ts title="Assinatura"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Retorna:** `ReviewDecisionResult`
+
+**Lança:** [`REVIEWER_INVALID`](/pt-BR/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/pt-BR/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/pt-BR/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/pt-BR/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/pt-BR/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/pt-BR/docs/error-codes#provenance_file_unwritable)
+
+**Exemplo:** [Percorrer a fila de revisão](/pt-BR/docs/programmatic-api#percorrer-a-fila-de-revisão)
+
+A entrada é verificada como no `approveEntry`, exceto que uma origem obsoleta não bloqueia uma rejeição. Retorna `{ locale, key, provenance }`. Um formato que mantém uma chave que não lhe foi dada, o XLIFF, lança `REVIEW_REJECT_UNSUPPORTED` depois de restaurar o arquivo.
+
+As duas chamadas obtêm a trava de escrita do locale com `lockAcquireTimeoutMs` e `onLockWait`, como no `editEntry`; `LOCK_TIMEOUT_INVALID` significa que o limite não é um número inteiro de milissegundos de pelo menos 0. O tempo limite não limita a trava sobre o arquivo de lock obtida para registrar a decisão, que sempre permite o padrão de dez minutos.
+
+Nenhuma das duas relata uma decisão que não conseguiu salvar: um arquivo de procedência de um verbatra mais novo, ou um que a decisão faria crescer além do tamanho que o verbatra lê de volta, lança `PROVENANCE_FILE_UNWRITABLE` antes de qualquer gravação.
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+Cria o marcador que uma interface usa para mostrar um valor sem o texto dele: `mark(value)` retorna `[redacted length=<n> hash=<h>]`, e `hash(value)` retorna `h`, um HMAC hexadecimal de 16 dígitos cuja chave é um salt aleatório (ou o `salt` informado), então um hash só corresponde sob o mesmo marcador. Passe esse marcador como `valueMarker` a `approveEntry` ou `rejectEntry` para aceitar `expectedValueHash` no lugar de `expectedValue`. O `verbatra mcp --redact-values` cria um a cada início do servidor.
+
+```ts title="Assinatura"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**Retorna:** `ValueMarker`
+
+## Leituras de conteúdo em massa
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Lê o texto de origem e de destino atual de todas as chaves nos locales de destino pedidos, em uma única passagem pelos arquivos em disco, por exemplo para buscar valores e não nomes de chaves: a contrapartida em massa de `keyValue`. Somente leitura.
+
+```ts title="Assinatura"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Retorna:** `readonly LocaleValues[]`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale)
+
+**Exemplo:** [Ler todos os valores em massa](/pt-BR/docs/programmatic-api#ler-todos-os-valores-em-massa)
+
+Um `locales` omitido cobre todos os locales de destino configurados. Retorna um `{ locale, keys, values }` por locale: `keys` lista todas as chaves na ordem da origem e depois as que existem só no destino, e `values` mapeia cada chave para `{ source?, target? }`. Sem `target` significa que ainda não foi traduzida ali; sem `source` significa órfã (ausente da origem). `values` não tem protótipo, então toda chave, até `__proto__` ou `constructor`, é uma propriedade própria e uma chave ausente é lida como `undefined`.
+
+Cada par com um `target` também traz `provenance`, o mesmo `KeyProvenance` que `keyValue` informa.
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+Lê uma página de `localeValues`, opcionalmente restrita a `keys` exatas ou a uma `query` comparada com a chave e com o texto de origem e de destino, sem diferenciar maiúsculas de minúsculas, e retorna um cursor para a próxima página. O servidor MCP e a ferramenta de agente `verbatra_locale_values` do Studio paginam com ela. Somente leitura.
+
+```ts title="Assinatura"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**Retorna:** `LocaleValuesPage`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/pt-BR/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/pt-BR/docs/error-codes#page_limit_invalid)
+
+Retorna `{ locales, nextCursor? }`: cada locale com uma entrada na página traz `entries`, cada uma `{ key, source?, target?, provenance? }` como `localeValues` informa, ordenadas por locale e depois por chave. Uma página tem no máximo `limit` entradas: `PAGE_LIMIT_DEFAULT` (200) por padrão, `PAGE_LIMIT_CAP` (1000) no máximo. Passe `nextCursor` de volta como `cursor`, com os mesmos filtros, até ele estar ausente. Toda chamada lê os arquivos de novo, então um cursor cuja chave se moveu ou sumiu é recusado em vez de pular ou repetir entradas.
+
+Um `cursor` tem no máximo `PAGE_CURSOR_MAX_LENGTH` (512) caracteres. O servidor MCP e o Studio aceitam uma `query` de no máximo `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) caracteres.
+
+## Revisão e retradução em lote
+
+<AvailableFrom version="0.12.0" />
+
+Cada uma destas executa a chamada de chave única correspondente uma vez por entrada, em ordem, e retorna `{ results }` com um resultado por entrada. Uma entrada com falha não interrompe o lote: o resultado dela é `{ locale, key, ok: false, code, message }`, com o código do `SdkError`, do erro de adaptador ou do `ProviderError` e uma mensagem ocultada. Qualquer outro erro interrompe o lote com um `BatchInterruptedError`. Uma lista `entries` vazia retorna um `results` vazio.
+
+### approveEntries
+
+Executa `approveEntry` por entrada, com as mesmas verificações; `reviewer` vale para todas as entradas. Um resultado bem-sucedido é `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` limita a espera de cada entrada pela trava de escrita do locale dela, e `onLockWait` informa essa espera. Uma entrada cuja trava continua ocupada além do tempo limite falha com `LOCK_CONTENDED`, e toda entrada posterior que precisa da mesma trava recebe `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` em vez de esperar de novo; as entradas de outros locales ainda são decididas.
+
+```ts title="Assinatura"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Retorna:** `ReviewEntriesResult`
+
+**Lança:** [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid)
+
+### rejectEntries
+
+Executa `rejectEntry` por entrada, removendo cada valor rejeitado. Um resultado bem-sucedido é `{ ok: true, locale, key, provenance }`. Um tempo limite de trava pula as entradas posteriores que precisam dessa trava, como no `approveEntries`.
+
+```ts title="Assinatura"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Retorna:** `ReviewEntriesResult`
+
+**Lança:** [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid)
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Aprova a fila de revisão inteira de um locale, ou só os valores dele com uma das `origins`, em uma única gravação de `verbatra.provenance.json` sob a trava de escrita do locale, cada um registrado como o `approveEntry` registra um. Ele não recebe valor esperado e aprova o que a fila contém quando é executado, então mostre antes a fila a quem revisa. Retorna `{ locale, approved, sourceChanged }`: as chaves aprovadas e as chaves da fila deixadas como não revisadas porque a origem delas mudou desde que foram gravadas. Não chama nenhum provedor e falha com `PROVENANCE_FILE_UNWRITABLE` em vez de relatar aprovações que não conseguiu salvar.
+
+```ts title="Assinatura"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**Retorna:** `ApproveLocaleResult`
+
+**Lança:** [`REVIEWER_INVALID`](/pt-BR/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/pt-BR/docs/error-codes#provenance_file_unwritable)
+
+### retranslateEntries
+
+Executa `retranslateEntry` por entrada, então faz até uma chamada ao provedor por entrada. Não é uma execução de `translate`: `maxTokens` e `budgetBehavior` não se aplicam, e o número de entradas é o único limite do que ele gasta. Um resultado concluído é `{ ok: true, locale, key, result }`, em que `result` é o que `retranslateEntry` retornou, inclusive um valor que a barreira de integridade recusou. Um valor que uma pessoa escreveu falha com `KEY_PROTECTED`, a menos que `includeHuman: true` seja passado. As opções de trava funcionam como no `approveEntries`, e a espera termina antes de o provedor ser chamado.
+
+```ts title="Assinatura"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**Retorna:** `RetranslateEntriesResult`
+
+**Lança:** [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid)
+
+<AvailableFrom version="0.12.0" />
+
+Um erro que faria todas as entradas falharem do mesmo modo interrompe as chamadas ao provedor: `MISSING_API_KEY`, `AUTH_FAILED`, `RATE_LIMITED` (que cobre uma cota esgotada), `NETWORK_POLICY_VIOLATION`, `PROVIDER_CONSTRUCTION_FAILED`, `CONFIG_INVALID` ou `MACHINE_TRANSLATION_DISABLED`. A entrada que o encontrou falha como de costume, e toda entrada depois dela recebe `{ locale, key, ok: false, skipped: true, code, message }` nomeando esse código, sem outra chamada ao provedor.
+
+Um tempo limite de trava pula as entradas posteriores que precisam dessa trava com `LOCK_CONTENDED`, como no `approveEntries`; para um formato que guarda todos os locales em um único arquivo, isso vale para toda entrada posterior.
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+Lançado por `approveEntries`, `rejectEntries` e `retranslateEntries` quando um erro que não é o resultado de uma entrada, como uma falha inesperada do sistema de arquivos, interrompe um lote no meio. `results` guarda os resultados das entradas concluídas antes dele, em ordem, cujas gravações permanecem em disco; `entry` nomeia o `{ locale, key }` que estava em execução, e `cause` é o erro original. As entradas depois de `entry` não foram executadas.
+
+```ts title="Assinatura"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />

@@ -40,7 +40,7 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--co
 
 ### Configuración
 
-`extract` se rige por el [bloque `extract`](/es/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`. Para `i18next-json`, `verbatra init` escribe el bloque como comentario en la configuración generada; quítale el comentario y ajusta `roots`.
+`extract` se rige por el [bloque `extract`](/es/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`. Para `i18next-json`, `verbatra init` escribe el bloque como comentario en la configuración generada; quítale el comentario y ajusta `roots`. <AvailableFrom version="0.13.5" />
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
@@ -74,7 +74,7 @@ Se entienden los comentarios, las cadenas y las expresiones regulares, así que 
 
 ### Los namespaces todavía no se resuelven
 
-Una clave con namespace como `t("common:nav.home")` se informa como dinámica y nunca se escribe: una configuración de verbatra direcciona un solo archivo de catálogo, así que no hay ningún sitio que signifique lo que tu configuración de i18next quiere decir. Si tu proyecto nombra un namespace en cada llamada, la ejecución no añade nada. Hoy `extract` es útil en un proyecto que mantiene un solo namespace y escribe sus claves sin el prefijo.
+Una clave con namespace como `t("common:nav.home")` se informa como dinámica y nunca se escribe: una configuración de verbatra direcciona un solo archivo de catálogo, así que no hay dónde ponerla con el significado que tiene en tu configuración de i18next. Si tu proyecto nombra un namespace en cada llamada, la ejecución no añade nada. Hoy `extract` es útil en un proyecto que mantiene un solo namespace y escribe sus claves sin el prefijo.
 
 ### Qué escribe
 
@@ -143,6 +143,8 @@ verbatra extract
     src/routes/product.tsx:88
 next: verbatra translate (translate the new keys)
 ```
+
+Cada lista muestra diez filas y luego `and N more`. El resumen también puede listar `written with an empty value`, `conflicting defaults` y los archivos `skipped`; una ejecución de prueba dice `would add` y termina con `dry run, nothing written`.
 
 Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
 

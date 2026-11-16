@@ -1,0 +1,1199 @@
+---
+title: 错误码
+seoTitle: "verbatra 的所有错误码及下一步"
+description: "verbatra 报告的每个错误、结果和通知码：含义、哪些命令会触发、退出码，以及下一步。"
+type: reference
+tocDepth: 2
+codeHeadings: true
+---
+verbatra 报告的每个失败都带有稳定的错误码：出现在 stderr 的 `verbatra: error [CODE] message` 行中，作为 `--json` 信封（envelope）的 `code` 或 `causeCode`，作为失败语言环境的 `error.code`，或作为运行摘要上的通知。请按错误码分支，不要按信息分支。每个错误码都有自己的锚点，即 `/docs/error-codes#` 后接小写的错误码，例如 [`#config_not_found`](#config_not_found)。
+
+错误码的**下一步**是 verbatra 在错误行之后以 `next: ...` 输出的提示，同时也写入信封的 `hint` 字段。这里原样引用 verbatra 输出的英文文本，SDK 通过 [`errorHint`](/zh-CN/docs/sdk/errors#errorhint) 返回同样的文本。退出码本身和信封的结构见[退出码与 JSON 输出](/zh-CN/docs/cli/output)；按症状查找的帮助见[故障排查](/zh-CN/docs/troubleshooting)。
+
+有两个错误码同属两个类别：`CONFIG_INVALID`（SDK，以及 CLI 中的 `init`）和 `NETWORK_POLICY_VIOLATION`（SDK 和提供商）。小写锚点指向 SDK 条目；另一个条目带有前缀锚点。
+
+## 错误码索引
+
+每个错误码及其类别，以及它可能让 CLI 运行以哪些退出码结束；具体适用哪一个，见其类别所在的章节。
+
+| 错误码 | 类别 | 退出码 |
+| --- | --- | --- |
+| [`AGENT_FILE_INVALID`](#agent_file_invalid) | CLI | `2` |
+| [`CLI_ERROR`](#cli_error) | CLI | `2` |
+| [`CONFIG_EXISTS`](#config_exists) | CLI | `2` |
+| [`CONFIG_INVALID`](#cli-config_invalid) | CLI | `2` |
+| [`FORMAT_AMBIGUOUS`](#format_ambiguous) | CLI | `2` |
+| [`INIT_UNWRITABLE`](#init_unwritable) | CLI | `2` |
+| [`INVALID_CONCURRENCY`](#invalid_concurrency) | CLI | `2` |
+| [`INVALID_DEBOUNCE`](#invalid_debounce) | CLI | `2` |
+| [`INVALID_DIRECTION`](#invalid_direction) | CLI | `2` |
+| [`INVALID_FORMAT`](#invalid_format) | CLI | `2` |
+| [`INVALID_LOCALE`](#invalid_locale) | CLI | `2` |
+| [`INVALID_LOCALES`](#invalid_locales) | CLI | `2` |
+| [`INVALID_LOCK_TIMEOUT`](#invalid_lock_timeout) | CLI | `2` |
+| [`INVALID_MAX_TOKENS`](#invalid_max_tokens) | CLI | `2` |
+| [`INVALID_OPTION`](#invalid_option) | CLI | `2` |
+| [`INVALID_OUT`](#invalid_out) | CLI | `2` |
+| [`INVALID_PORT`](#invalid_port) | CLI | `2` |
+| [`INVALID_PROVIDER`](#invalid_provider) | CLI | `2` |
+| [`INVALID_QA_OPTION`](#invalid_qa_option) | CLI | `2` |
+| [`INVALID_SEVERITY`](#invalid_severity) | CLI | `2` |
+| [`LAYOUT_AMBIGUOUS`](#layout_ambiguous) | CLI | `2` |
+| [`MISSING_OPTIONS`](#missing_options) | CLI | `2` |
+| [`REDACTION_UNSUPPORTED`](#redaction_unsupported) | CLI | `2` |
+| [`USAGE_ERROR`](#usage_error) | CLI | `2` |
+| [`CONFIG_NOT_FOUND`](#config_not_found) | SDK | `2` 或 `1` |
+| [`CONFIG_INVALID`](#config_invalid) | SDK | `2` 或 `1` |
+| [`UNKNOWN_FORMAT`](#unknown_format) | SDK | `2` 或 `1` |
+| [`UNKNOWN_LOCALE`](#unknown_locale) | SDK | `2` |
+| [`UNKNOWN_KEY`](#unknown_key) | SDK | 无 |
+| [`KEY_PROTECTED`](#key_protected) | SDK | 无 |
+| [`KEY_PINNED`](#key_pinned) | SDK | 无 |
+| [`PROVIDER_CONSTRUCTION_FAILED`](#provider_construction_failed) | SDK | `2` |
+| [`MACHINE_TRANSLATION_DISABLED`](#machine_translation_disabled) | SDK | 无 |
+| [`NETWORK_POLICY_VIOLATION`](#network_policy_violation) | SDK | `2` |
+| [`SOURCE_UNREADABLE`](#source_unreadable) | SDK | `2` 或 `1` |
+| [`SOURCE_INVALID`](#source_invalid) | SDK | `2` 或 `1` |
+| [`LOCK_FILE_INVALID`](#lock_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_INVALID`](#provenance_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_UNWRITABLE`](#provenance_file_unwritable) | SDK | 无 |
+| [`REVIEW_VALUE_CHANGED`](#review_value_changed) | SDK | 无 |
+| [`REVIEW_SOURCE_CHANGED`](#review_source_changed) | SDK | 无 |
+| [`REVIEW_REJECT_UNSUPPORTED`](#review_reject_unsupported) | SDK | 无 |
+| [`REVIEW_RESTORE_FAILED`](#review_restore_failed) | SDK | 无 |
+| [`REVIEWER_INVALID`](#reviewer_invalid) | SDK | `2` |
+| [`LOCK_CONTENDED`](#lock_contended) | SDK | `1` |
+| [`GLOSSARY_NOT_FILE_BACKED`](#glossary_not_file_backed) | SDK | 无 |
+| [`GLOSSARY_UNWRITABLE`](#glossary_unwritable) | SDK | 无 |
+| [`LENGTH_LIMIT_INVALID`](#length_limit_invalid) | SDK | 无 |
+| [`LIMITS_FILE_UNUSABLE`](#limits_file_unusable) | SDK | 无 |
+| [`LIMITS_FILE_UNWRITABLE`](#limits_file_unwritable) | SDK | 无 |
+| [`LOCALE_LAYOUT_INVALID`](#locale_layout_invalid) | SDK | `2` |
+| [`LOCALE_PATH_COLLISION`](#locale_path_collision) | SDK | `2` |
+| [`CONCURRENCY_INVALID`](#concurrency_invalid) | SDK | 无 |
+| [`CONCURRENCY_BUDGET_CONFLICT`](#concurrency_budget_conflict) | SDK | `2` |
+| [`MAX_TOKENS_INVALID`](#max_tokens_invalid) | SDK | 无 |
+| [`LOCK_TIMEOUT_INVALID`](#lock_timeout_invalid) | SDK | 无 |
+| [`PAGE_CURSOR_INVALID`](#page_cursor_invalid) | SDK | 无 |
+| [`PAGE_LIMIT_INVALID`](#page_limit_invalid) | SDK | 无 |
+| [`FIND_TEXT_INVALID`](#find_text_invalid) | SDK | 无 |
+| [`TARGET_UNWRITABLE`](#target_unwritable) | SDK | `1` 或 `2` |
+| [`PSEUDO_OUTPUT_CONFLICT`](#pseudo_output_conflict) | SDK | `2` |
+| [`SOURCE_UNWRITABLE`](#source_unwritable) | SDK | `2` |
+| [`EXTRACT_NOT_CONFIGURED`](#extract_not_configured) | SDK | `2` |
+| [`EXTRACT_FS_UNSUPPORTED`](#extract_fs_unsupported) | SDK | 无 |
+| [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) | SDK | `2` |
+| [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
+| [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
+| [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`MEMORY_UNWRITABLE`](#memory_unwritable) | SDK | `2` |
+| [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
+| [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
+| [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
+| [`LOCALE_UNSUPPORTED_BY_PROVIDER`](#locale_unsupported_by_provider) | SDK | `2` |
+| [`NOT_A_LOCALE_FILE`](#not_a_locale_file) | SDK | `2` |
+| [`SENSITIVE_CONTENT_WITHHELD`](#sensitive_content_withheld) | SDK | 无 |
+| [`RUN_CANCELLED`](#run_cancelled) | SDK | 无 |
+| [`LOCALE_FAILED`](#locale_failed) | SDK | `1` |
+| [`MISSING_API_KEY`](#missing_api_key) | 提供商 | `2` |
+| [`INVALID_REQUEST`](#invalid_request) | 提供商 | `1` |
+| [`INVALID_RESPONSE`](#invalid_response) | 提供商 | `1` |
+| [`OUTPUT_TRUNCATED`](#output_truncated) | 提供商 | `1` |
+| [`PROVIDER_REFUSED`](#provider_refused) | 提供商 | `1` |
+| [`PROVIDER_BLOCKED`](#provider_blocked) | 提供商 | `1` |
+| [`RATE_LIMITED`](#rate_limited) | 提供商 | `1` |
+| [`TIMEOUT`](#timeout) | 提供商 | `1` |
+| [`AUTH_FAILED`](#auth_failed) | 提供商 | `1` |
+| [`PROVIDER_UNAVAILABLE`](#provider_unavailable) | 提供商 | `1` |
+| [`NETWORK_POLICY_VIOLATION`](#provider-network_policy_violation) | 提供商 | `1` |
+| [`PROVIDER_ERROR`](#provider_error) | 提供商 | `1` |
+| [`INVALID_JSON`](#invalid_json) | 格式适配器 | `1` 或 `2` |
+| [`INVALID_YAML`](#invalid_yaml) | 格式适配器 | `1` 或 `2` |
+| [`INVALID_XML`](#invalid_xml) | 格式适配器 | `1` 或 `2` |
+| [`INVALID_STRUCTURE`](#invalid_structure) | 格式适配器 | `1` 或 `2` |
+| [`MAX_DEPTH_EXCEEDED`](#max_depth_exceeded) | 格式适配器 | `1` 或 `2` |
+| [`INPUT_TOO_LARGE`](#input_too_large) | 格式适配器 | `1` 或 `2` |
+| [`MIXED_STRUCTURE`](#mixed_structure) | 格式适配器 | `1` 或 `2` |
+| [`ADAPTER_FAILED`](#adapter_failed) | 格式适配器 | 无 |
+| [`DUPLICATE_FORMAT`](#duplicate_format) | 格式适配器 | 无 |
+| [`INVALID_FORMAT_ID`](#invalid_format_id) | 格式适配器 | 无 |
+
+## CLI 错误码 [#cli-error-codes]
+
+这些错误码由 CLI 自己报告。同一份列表以 `CLI_ERROR_CODES`（类型为 `CliErrorCode`）从 `@verbatra/cli` 导出。它们全部以 `2` 退出。
+
+### AGENT_FILE_INVALID
+
+`init --agent` 发现客户端配置（`.mcp.json`、`.cursor/mcp.json`、`.vscode/mcp.json` 或 `.gemini/settings.json`）不是纯 JSON、不是对象，或其 servers 值不是对象；或发现无法安全扫描的 `.codex/config.toml`，或其中以内联方式、带点号的键、表数组形式设置了 verbatra 服务器，或设置了两次；或发现它将要写入的路径上有符号链接，或 `AGENTS.md` 或 `CLAUDE.md` 中有不成对或重复的 verbatra 标记；没有写入任何内容。
+
+- **触发来源**：`init --agent`
+- **下一步**：Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
+
+### CLI_ERROR
+
+某个失败没有带自己的错误码（回退）。
+
+- **触发来源**：任意命令
+
+### CONFIG_EXISTS
+
+`init` 在没有 `--force` 时会覆盖另一个不同的 `verbatra.config.ts`，或目录中的另一个 verbatra 配置文件会被优先读取；它先于任何缺失或有歧义的回答报告，在终端中则先于第一次提问报告。
+
+- **触发来源**：`init`
+- **下一步**：Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
+
+### CONFIG_INVALID [#cli-config_invalid]
+
+`init` 无法根据给出的回答生成有效的配置（SDK 对加载失败的配置抛出同一个错误码）。
+
+- **触发来源**：`init`
+- **下一步**：Correct the init answers the message names, then run `verbatra init` again.
+
+### FORMAT_AMBIGUOUS
+
+`init` 发现有多种格式可以读取这些语言文件；`candidates` 列出它们。只有 init 无法提问（没有终端、使用了 `--yes` 或 `--json`）且未传入 `--format` 时才会报告；在终端中，init 会改为询问。
+
+- **触发来源**：`init`
+- **下一步**：Pass --format with one of the candidates.
+
+### INIT_UNWRITABLE
+
+`init` 无法向它的目录写入文件，例如目录是只读的，或它要写入的文件是一个没有解析到项目内部的符号链接；信息会给出文件、原因和已经写入的文件。
+
+- **触发来源**：`init`
+- **下一步**：Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
+
+### INVALID_CONCURRENCY
+
+`--concurrency` 不是 1 到 100 之间的整数。
+
+- **触发来源**：`translate`、`watch`
+- **下一步**：Pass --concurrency as a whole number from 1 to 100.
+
+### INVALID_DEBOUNCE
+
+`watch --debounce` 不是 1 到 60000 之间的整数毫秒数。
+
+- **触发来源**：`watch`
+- **下一步**：Pass --debounce as a whole number of milliseconds from 1 to 60000.
+
+### INVALID_DIRECTION
+
+`tmx` 收到的方向不是 `import` 或 `export`，或 `tmx export` 收到了只用于导入的选项（`--dry-run`、`--overwrite`）。
+
+- **触发来源**：`tmx`
+- **下一步**：Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.
+
+### INVALID_FORMAT
+
+`export` 或 `import` 的 `--format` 没有指向任何受支持的交接格式，或 `init` 的 `--format` 没有指向任何受支持的语言文件格式。
+
+- **触发来源**：`export`、`import`、`init`
+- **下一步**：Pass a supported --format value; the command's --help lists them.
+
+### INVALID_LOCALE
+
+`pseudo --locale` 不是由字母、数字和连字符组成的语言标签，或在交互式 `init` 提问中回答的语言环境不是 BCP 47 代码（`--source` 和 `--targets` 选项则改为以 `CONFIG_INVALID` 失败）。
+
+- **触发来源**：`pseudo`、`init`
+- **下一步**：Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
+
+### INVALID_LOCALES
+
+传入了 `--locales`，但没有列出任何语言环境，或在交互式 `init` 提问中回答的目标语言环境包含源语言环境。
+
+- **触发来源**：`translate`、`watch`、`check`、`diff`、`export`、`tmx`、`report`、`init`
+- **下一步**：Pass --locales as a comma-separated list of configured target locales, or omit it.
+
+### INVALID_LOCK_TIMEOUT
+
+`--lock-timeout` 不是 1 到 3600 之间的整数秒数。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **下一步**：Pass --lock-timeout as a whole number of seconds from 1 to 3600.
+
+### INVALID_MAX_TOKENS
+
+`translate --max-tokens` 不是不小于 1 的整数。
+
+- **触发来源**：`translate`
+- **下一步**：Pass --max-tokens as a whole number of at least 1.
+
+### INVALID_OPTION
+
+某个 `init` 选项与提供商不匹配或格式有误：`--base-url` 没有配合 `openai-compatible` 或 `libretranslate`，或带有凭据、查询字符串或片段（不是 URL 的提问回答，或不含 `{locale}` 的 `--path` 回答，会以这个错误码失败；以选项形式给出的同一个值不在这里检查，之后会以 [`CONFIG_INVALID`](#cli-config_invalid) 失败）；`--api-key-env-var` 搭配 `openai-compatible` 之外的提供商，或不是变量名；为不接受模型的提供商（`deepl`、`google-translate`、`libretranslate`、`none`）传入 `--model`；任何选项的值为空；`--targets` 没有指向任何语言环境；`--client` 没有配合 `--agent`、没有指向任何客户端，或指向 init 无法接入的客户端。又或者，`--cwd` 没有指向已存在的目录（任何命令，在运行之前），`doctor --data-flow` 与 `--literals`、`--locales` 或 `--live` 同时使用，`doctor --literals` 与 `--locales` 或 `--live` 同时使用，`check --file` 没有指向文件，或与 `--locales`、`--consistency`、`--require-reviewed` 或 `--sensitive` 同时使用，或 `pseudo --mode` 指定了 `accented` 或 `bidi` 之外的模式。
+
+- **触发来源**：每个接受 `--cwd` 的命令，以及 `init`、`doctor`、`check`、`pseudo`
+- **下一步**：Correct or remove the flag the message names.
+
+### INVALID_OUT
+
+`types` 或 `pseudo` 的 `--out` 已传入，但没有指向任何路径。
+
+- **触发来源**：`types`、`pseudo`
+- **下一步**：Pass --out with a file path, or omit it.
+
+### INVALID_PORT
+
+`studio --port` 不是 1 到 65535 之间的整数。
+
+- **触发来源**：`studio`
+- **下一步**：Pass --port as a whole number from 1 to 65535.
+
+### INVALID_PROVIDER
+
+`init --provider` 没有指向任何已知的提供商。
+
+- **触发来源**：`init`
+- **下一步**：Pass --provider with a supported provider id; `verbatra init --help` lists them.
+
+### INVALID_QA_OPTION
+
+`check` 收到 `--severity` 或 `--strict`，但没有 `--qa` 或 `--file`，或 `--strict` 与 `--severity error` 同时使用。
+
+- **触发来源**：`check`
+- **下一步**：Add --qa or --file, and do not combine --strict with --severity error.
+
+### INVALID_SEVERITY
+
+`check --severity` 既不是 `error` 也不是 `warning`。
+
+- **触发来源**：`check`
+- **下一步**：Pass --severity error or --severity warning.
+
+### LAYOUT_AMBIGUOUS
+
+`init` 发现有多个文件模式同样合适；`candidates` 列出它们。只有 init 无法提问（没有终端、使用了 `--yes` 或 `--json`）且未传入 `--path` 时才会报告；在终端中，init 会改为询问。
+
+- **触发来源**：`init`
+- **下一步**：Pass --path with one of the candidates.
+
+### MISSING_OPTIONS
+
+`init` 对某个值没有答案：它无法提问（没有终端、使用了 `--yes` 或 `--json`），而该值既没有传入、也没有检测到、也没有默认值；或它为一个没有默认值的值提问，或输入在回答提问之前就结束了；信息会列出每个缺失的选项。
+
+- **触发来源**：`init`
+- **下一步**：Pass the flags the message names, or --yes where the message offers it.
+
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` 加载了较旧的 `@verbatra/mcp`，它没有确认会对值脱敏；服务器在提供任何服务之前就已停止。
+
+- **触发来源**：`mcp`
+- **下一步**：Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
+### USAGE_ERROR
+
+参数解析器拒绝了命令行（未知选项、缺少参数），或 `mcp` 收到了它无法接受的选项，包括 `--json`；它的 `hint` 指向该命令的 `--help`。
+
+- **触发来源**：任意命令
+- **下一步**：Run the command with --help to see the options and arguments it accepts.
+
+## SDK 错误码 [#sdk-error-codes]
+
+整次运行的失败会抛出带有这些错误码之一的 `SdkError`；[错误](/zh-CN/docs/sdk/errors)介绍这个类，以及哪些错误码带有 `cause`。在 CLI 中，抛出的错误码让运行以 `2` 结束，而记录在某个失败语言环境上的错误码则以 `1` 退出。索引给出 `2` 或 `1` 的地方，`doctor` 把该错误码报告为一项失败的检查并以 `1` 退出。没有对应 CLI 命令的错误码，通过 SDK、Studio 或 MCP 服务器到达你这里。
+
+### CONFIG_NOT_FOUND
+
+查找没有找到配置，或显式给出的 `configPath` 不存在（由 `loadConfig` 抛出）。
+
+- **触发来源**：每个加载配置的命令
+- **下一步**：Run `verbatra init` to create a config, or pass the path of an existing config file.
+
+### CONFIG_INVALID
+
+找到了配置，但它无法解析或未通过校验，或它的术语表文件无法解析；`VERBATRA_NETWORK_POLICY` 或 `VERBATRA_NETWORK_ALLOWED_HOSTS` 的值无效时，`translate`（试运行同样如此，除非提供商为 `none`）和 `retranslateEntry` 也会在构造任何提供商之前抛出它。`importWorkbook` 对于语言环境不是已配置目标的工作表或交换文件不会抛出它：该语言环境在它自己的 `error` 上以此错误码失败；`exportTmx` 和 `importTmx` 在目标语言环境经大小写和分隔符规范化后等于源语言环境时抛出它；`updateGlossaryTerm` 在术语编辑无效，或术语表文件会超过其大小上限时抛出它。
+
+- **触发来源**：每个加载配置的命令
+- **下一步**：Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
+
+### UNKNOWN_FORMAT
+
+已配置的格式没有注册任何适配器；在读取任何文件之前抛出。
+
+- **触发来源**：每个读取语言文件的命令；Studio 和 MCP 服务器
+- **下一步**：Set `format` in the config to a supported format, or register an adapter for this one.
+
+### UNKNOWN_LOCALE
+
+请求的语言环境不在已配置的目标语言环境之中。
+
+- **触发来源**：`translate`、`watch`、`check`、`diff`、`export`、`tmx`、`report`；Studio 和 MCP 服务器
+- **下一步**：Use a locale from the config's `targetLocales`, or add it there first.
+
+### UNKNOWN_KEY
+
+请求的键不在源资源中（`keyValue`、`keyIntegrity`、`keyContext`、`setKeyLengthLimit`、`editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry`）；`keyHistory` 只对空键或过长的键抛出它。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Use a key that exists in the source locale file, or add it there first.
+
+### KEY_PROTECTED
+
+`retranslateEntry` 拒绝替换人写入、导入或在 verbatra 之外更改过的值，因为 `includeHuman` 和 `humanEdits: "overwrite"` 都没有允许它。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Keep the human-written value, or opt in to replacing it: include human edits for this call, or set `humanEdits: "overwrite"` in the config.
+
+### KEY_PINNED
+
+该键匹配配置中的 `pinnedKeys`，所以机器写入被拒绝（`retranslateEntry`，以及带 `actor: "agent"` 的 `editEntry`）。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Edit the value by hand, or remove the key from `pinnedKeys` in the config to let verbatra write it.
+
+### PROVIDER_CONSTRUCTION_FAILED
+
+无法构造提供商；它包装了提供商自己的错误，包括缺少 API 密钥。缺少密钥时，提示给出的是变量名，而不是下面的下一步，例如 `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` SDK 不读取任何 `.env` 文件。
+
+- **触发来源**：`translate`、`watch`；Studio 和 MCP 服务器
+- **下一步**：Check the config's `provider` block and its API key environment variable, then run `verbatra doctor`.
+
+### MACHINE_TRANSLATION_DISABLED
+
+配置设置了 `provider: { id: "none" }`，所以在构造任何提供商之前，就拒绝了会产生提供商花费的操作（`retranslateEntry`、`assertMachineTranslationEnabled`）；`translate` 和 `watch` 从不抛出它。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Translate the key by hand, or configure a machine provider in place of `provider: { id: "none" }`.
+
+### NETWORK_POLICY_VIOLATION
+
+生效的网络策略（见[限制网络访问](/zh-CN/docs/network-policy)）不允许访问提供商的端点或其代理；由非试运行的 `translate`、启动时的 `watch` 以及 `retranslateEntry` 抛出，此时尚未构造提供商，也未读取任何 API 密钥。
+
+- **触发来源**：`translate`、`watch`；Studio 和 MCP 服务器
+- **下一步**：Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### SOURCE_UNREADABLE
+
+源语言文件不存在；对 `import` 和 `tmx import`，则是要导入的文件或目录不存在。
+
+- **触发来源**：每个读取语言文件的命令；Studio 和 MCP 服务器
+- **下一步**：Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+- **`import` 的下一步**：Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
+- **`tmx import` 的下一步**：Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
+
+### SOURCE_INVALID
+
+无法读取或解析源语言文件；它包装了适配器的读取错误。对 `import` 和 `tmx import`，则是要导入的文件太大，或不是可读的交接文件或 TMX 文档。
+
+- **触发来源**：每个读取语言文件的命令；Studio 和 MCP 服务器
+- **下一步**：Fix the file the message names so it parses under the configured format.
+- **`import` 的下一步**：Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
+- **`tmx import` 的下一步**：Fix the TMX file the message names, or export it again from the tool that wrote it.
+
+### LOCK_FILE_INVALID
+
+锁文件存在，但已损坏、体积过大或版本不受支持。
+
+- **触发来源**：`translate`、`import`、`check`、`diff`、`export`、`report`；Studio 和 MCP 服务器
+- **下一步**：Restore verbatra.lock.json from version control, then try again.
+
+### PROVENANCE_FILE_INVALID
+
+来源记录文件存在，但已损坏、体积过大或结构有误；由写入（`translate`、`watch`、`importWorkbook`、`editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry`）在更改任何内容之前抛出，也由 `loadProvenance` 抛出，报告从不抛出它；来自较新 verbatra 的文件则保持不动，`translate`、`watch` 和 `importWorkbook` 报告通知 `PROVENANCE_VERSION_UNRECOGNIZED`。
+
+- **触发来源**：`translate`、`watch`、`import`；Studio 和 MCP 服务器
+- **下一步**：Restore verbatra.provenance.json from version control, then try again.
+
+### PROVENANCE_FILE_UNWRITABLE
+
+审校决定无法保存，因为来源记录文件来自较新的 verbatra，或会增长到超过 verbatra 能读回的大小（`approveEntry`、`rejectEntry`、`approveLocale`）；没有写入任何内容。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Upgrade verbatra if a newer version wrote verbatra.provenance.json, then record the decision again.
+
+### REVIEW_VALUE_CHANGED
+
+该键没有值，或它的值不是审校人员看到的 `expectedValue`，或 `expectedValue` 不是字符串（`approveEntry`、`rejectEntry`）。当 `expectedValueHash` 不是字符串，或缺少生成它的值标记，当它与当前值的哈希不一致，或同时传入 `expectedValue` 和 `expectedValueHash` 时，也会抛出它。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Reload the current value, review it again, and resend the decision.
+
+### REVIEW_SOURCE_CHANGED
+
+写入该值之后，源有更改，或锁文件中没有该键在这个语言环境中的条目，所以 verbatra 无法判断该值是为哪段源文本写的，因而它不能批准（`approveEntry`）。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Edit or retranslate the key first, then review its new value.
+
+### REVIEW_REJECT_UNSUPPORTED
+
+该格式在写入文件时不带某个键，仍会保留该键的值（XLIFF 就是如此），或语言文件太大，无法保留一份副本用于恢复，所以 `rejectEntry` 让文件保持原样。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Edit the value instead of rejecting it.
+
+### REVIEW_RESTORE_FAILED
+
+`rejectEntry` 在改写语言文件之后失败，而恢复语言文件或来源记录文件也失败了；信息会给出最初的失败原因（同时也是 `cause`），以及应从版本控制中恢复的文件。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Restore the files the message names from version control.
+
+### REVIEWER_INVALID
+
+`reviewer` 为空、超过 64 个字符，或包含控制字符（`approveEntry`、`rejectEntry`、`approveLocale`、`importWorkbook`）。
+
+- **触发来源**：`import --reviewer`；Studio 和 MCP 服务器
+- **下一步**：Pass a reviewer name of 1 to 64 characters with no control characters.
+
+### LOCK_CONTENDED
+
+语言环境的写锁，或 `updateGlossaryTerm` 获取的术语表锁，在超时之前无法获取，或另一个进程在它所保护的写入之前接管了它，因此这次写入不会进行；同一操作更早的写入会保留在磁盘上。信息会给出锁文件的路径。
+
+- **触发来源**：`translate`、`watch`、`import`；Studio 和 MCP 服务器
+- **下一步**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
+
+### GLOSSARY_NOT_FILE_BACKED
+
+配置的术语表是内联的或不存在，所以没有可读取或改写的术语表文件（`readGlossaryFile`、`updateGlossaryTerm`）。完全没有术语表时，提示改为：Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Move the glossary into its own file and set the config's `glossary` to that file's path.
+
+### GLOSSARY_UNWRITABLE
+
+无法写入术语表文件，或无法创建术语表写锁（例如在只读项目中），或保存编辑之后无法释放它（`updateGlossaryTerm`）；文件系统错误即为 `cause`。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Make the glossary file and its directory writable, then try again.
+
+### LENGTH_LIMIT_INVALID
+
+`setKeyLengthLimit` 拒绝了它的输入：上限不是 1 到 9007199254740991 之间的整数（也不是 `null`），键为空或超过 1024 个字符，或上限是数字而配置的 `maxLength` 已经设置了该键（它优先于 [`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength)），或这次写入会让文件超过 10,000 个条目或 1 MiB。
+
+- **触发来源**：`setKeyLengthLimit`（SDK）
+- **下一步**：Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
+
+### LIMITS_FILE_UNUSABLE
+
+`verbatra.limits.json` 无法使用：它不是普通文件，超过 1 MiB，不是 UTF-8 或 JSON，结构不同或版本较新，或包含超过 10,000 个条目。无法使用的文件永远不会被覆盖。遇到这种文件的运行不会抛出错误：它返回 [`LIMITS_FILE_IGNORED`](#limits_file_ignored)。
+
+- **触发来源**：`setKeyLengthLimit`（SDK）
+- **下一步**：Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.
+
+### LIMITS_FILE_UNWRITABLE
+
+上限文件存在，但无法读取（权限问题），或无法写入它或项目的上限写锁（例如在只读项目中），或保存上限之后无法释放锁（信息会这样说明，上限保留）。写入失败时，文件系统错误作为它的 `cause`；被拒绝的读取则没有。
+
+- **触发来源**：`setKeyLengthLimit`（SDK）
+- **下一步**：Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
+
+### LOCALE_LAYOUT_INVALID
+
+`files.pattern` 和 `files.localeStyle` 无法组合，或样式对某个已配置的语言环境没有有效的路径写法。
+
+- **触发来源**：每个读取语言文件的命令；Studio 和 MCP 服务器
+- **下一步**：Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.
+
+### LOCALE_PATH_COLLISION
+
+两个已配置的语言环境解析到同一个绝对文件路径。
+
+- **触发来源**：每个读取语言文件的命令；Studio 和 MCP 服务器
+- **下一步**：Change `files.pattern` or `files.localeStyle` in the config so each locale resolves to its own file.
+
+### CONCURRENCY_INVALID
+
+设置了 `concurrency`，但它不是不小于 1 的整数；在任何语言环境运行之前抛出。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a concurrency that is a whole number of at least 1.
+
+### CONCURRENCY_BUDGET_CONFLICT
+
+实际运行把 `concurrency` 设为大于 1，同时适用 token 预算（已配置的或单次运行的）；在任何提供商调用之前抛出（试运行除外）。
+
+- **触发来源**：`translate`、`watch`
+- **下一步**：Run with a concurrency of 1 while a token budget applies, or remove the budget.
+
+### MAX_TOKENS_INVALID
+
+设置了 `translate` 的单次运行 `maxTokens`，但它不是不小于 1 的整数；在读取或花费任何内容之前抛出。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a token budget that is a whole number of at least 1.
+
+### LOCK_TIMEOUT_INVALID
+
+设置了 `lockAcquireTimeoutMs`，但它不是不小于 0 的整数毫秒数（`translate`、启动时的 `watch`、`importWorkbook`、`retranslateEntry`、`retranslateEntries`、`editEntry`、`approveEntry`、`rejectEntry`、`approveEntries`、`rejectEntries`、`approveLocale`、`applyValueReplace`、`updateGlossaryTerm`、`setKeyLengthLimit`）；在读取或锁定任何内容之前抛出。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a lock timeout that is a whole number of at least 0.
+
+### PAGE_CURSOR_INVALID
+
+传给 `localeValuesPage` 或 `provenanceReportPage` 的 `cursor` 格式有误、超过 `PAGE_CURSOR_MAX_LENGTH`（512）、是在其他过滤条件下生成的，或指向的键已移动或已消失，因为文件在两页之间有更改。
+
+- **触发来源**：SDK；Studio 的 `verbatra_locale_values` 智能体工具（MCP 服务器的 `locale.values` 和 `report.provenance` 把它报告为 `cursor` 的无效输入）
+- **下一步**：Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+传给 `localeValuesPage` 或 `provenanceReportPage` 的 `limit` 不是 1 到 `PAGE_LIMIT_CAP`（1000）之间的整数。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a page limit that is a whole number from 1 to 1000.
+
+### FIND_TEXT_INVALID
+
+传给 `previewValueReplace` 或 `applyValueReplace` 的 `find` 文本为空或超过 20,000 个字符，或 `find` 或 `replace` 含有不成对的代理项。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates.
+
+### TARGET_UNWRITABLE
+
+无法写入目标语言文件（它的目录不可写、不存在、是只读的，或空间已满）；信息会给出目标文件和文件系统错误码，从不给出原子写入所用的内部临时文件。
+
+- **触发来源**：`translate`、`import`、`pseudo`；Studio 和 MCP 服务器
+- **下一步**：Make the target locale file and its directory writable, then try again.
+
+### PSEUDO_OUTPUT_CONFLICT
+
+`pseudolocalize` 被要求生成一个与已配置语言环境同名的伪语言环境，或要求写到会写入已配置语言文件之上、写入包含该文件的目录、或写到 `cwd` 之外（绝对目录或 `cwd` 本身也算）的输出路径，符号链接解析之后同样如此；在读取或写入任何内容之前被拒绝。
+
+- **触发来源**：`pseudo`
+- **下一步**：Choose a pseudolocale and an output path inside the project that name no configured locale.
+
+### SOURCE_UNWRITABLE
+
+无法写入源语言文件（仅 `extract`）；`xliff` 和 `apple-xcstrings` 在还没有消息目录时会遇到它，因为两者都不能从零创建。
+
+- **触发来源**：`extract`
+- **下一步**：Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.
+
+### EXTRACT_NOT_CONFIGURED
+
+`extract` 被调用时，配置中没有 `extract` 块。`diff --unused` 和 `doctor --literals` 不抛出它，而是把它报告为检查没有运行的原因。
+
+- **触发来源**：`extract`
+- **下一步**：Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
+
+### EXTRACT_FS_UNSUPPORTED
+
+给 `extract` 传入的 `deps.fs` 没有实现 `readDirectory`，所以无法发现任何源文件。`diff --unused` 不抛出它，而是把它报告为检查没有运行的原因。
+
+- **触发来源**：仅 SDK
+- **下一步**：Pass a file system that implements `readDirectory`, or use the default one.
+
+### TYPES_OUTPUT_CONFLICT
+
+`generateTypes` 拒绝了它的输出路径：没有指向文件（或以路径分隔符结尾）、是绝对路径、越出 `cwd` 或指向 `cwd` 本身，或不以 `.ts`、`.mts` 或 `.cts` 结尾的路径；以及指向已配置的语言文件、锁文件、来源记录文件、翻译记忆库缓存、verbatra 查找配置的文件、本次运行加载的配置文件，或配置指定的术语表文件的路径，符号链接解析之后同样如此；生成的运行还会拒绝替换不以 verbatra 的头行开头的现有文件。
+
+- **触发来源**：`types`
+- **下一步**：Choose a relative `.ts`, `.mts` or `.cts` output path inside the project that names no file verbatra manages.
+
+### TYPES_UNWRITABLE
+
+无法写入 `generateTypes` 生成的声明文件（它的目录不可写、不存在，或磁盘空间已满）；信息会给出文件和文件系统错误码。
+
+- **触发来源**：`types`
+- **下一步**：Make the output file and its directory writable, then try again.
+
+### TMX_OUTPUT_CONFLICT
+
+`exportTmx` 拒绝了它的输出路径：没有指向文件（或以路径分隔符结尾）、解析到 `cwd` 之外或 `cwd` 本身的路径，以及指向 verbatra 所管理文件的路径（见 [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) 下的列表），符号链接解析之后同样如此；在读取翻译记忆库之前被拒绝。
+
+- **触发来源**：`tmx export`
+- **下一步**：Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### TMX_UNWRITABLE
+
+无法写入 `exportTmx` 生成的 TMX 文件（它的目录不可写、该路径上已有目录，或磁盘空间已满）；信息会给出文件和文件系统错误码。
+
+- **触发来源**：`tmx export`
+- **下一步**：Make the output file and its directory writable, then try again.
+
+### MEMORY_UNWRITABLE
+
+`importTmx` 无法写入翻译记忆库缓存 `verbatra.cache.json`（它的目录不可写、该路径上已有目录，或磁盘空间已满）；信息会给出文件和文件系统错误码。
+
+- **触发来源**：`tmx import`
+- **下一步**：Make verbatra.cache.json and its directory writable, then try again.
+
+### EXPORT_OUTPUT_CONFLICT
+
+`exportWorkbook` 拒绝了它的输出路径：解析到 `cwd` 之外的路径，以及本身（或导出将写入其中的某个文件）指向 verbatra 所管理文件的路径（见 [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) 下的列表），符号链接解析之后同样如此；没有指向文件或指向 `cwd` 本身的 `xlsx` 路径也会被拒绝；在读取任何内容之前被拒绝。
+
+- **触发来源**：`export`
+- **下一步**：Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### EXPORT_UNWRITABLE
+
+无法写入 `exportWorkbook` 生成的交接文件（它的目录不可写、路径上已有目录或文件，或磁盘空间已满）；信息会给出文件和文件系统错误码，文件系统错误即为 `cause`。
+
+- **触发来源**：`export`
+- **下一步**：Make the output file and its directory writable, then try again.
+
+### LOCALE_STATE_NOT_CARRIED_OVER
+
+由 `editEntry`、`retranslateEntry`、`approveEntry`、`rejectEntry` 和 `approveLocale` 抛出，此时它们不写入任何内容；在其他情况下，它记录在 `translate`、`watch` 或 `importWorkbook` 没有运行的语言环境的 `error` 上，或作为 `applyValueReplace` 的语言环境失败的 `code`，原因是该语言环境在写法不同的代码（例如 `pt_BR`）之下的状态，无法在锁文件或来源记录文件中迁移到当前代码；下次运行会再试一次（[写法不同的语言环境代码](/zh-CN/docs/the-lock-file#写法不同的语言环境代码)）。
+
+- **触发来源**：`translate`、`watch`、`import`；Studio 和 MCP 服务器
+- **下一步**：Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
+
+### LOCALE_UNSUPPORTED_BY_PROVIDER
+
+已配置的 DeepL 或 Google Cloud Translation 提供商，在 verbatra 自带的语言表中没有列出源语言环境或某个选定的目标语言环境；由 `translate`（包括试运行和估算）、启动时的 `watch` 以及 `retranslateEntry` 抛出，此时尚未构造任何提供商、读取任何密钥，也未启动任何语言环境；在 `localeMap` 中显式映射的语言环境则被信任（[语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)）。
+
+- **触发来源**：`translate`、`watch`；Studio 和 MCP 服务器
+- **下一步**：Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
+
+### NOT_A_LOCALE_FILE
+
+给 `checkFile` 传入的路径不是任何已配置语言环境的文件，或该处没有文件。
+
+- **触发来源**：`check --file`
+- **下一步**：Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
+
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` 没有发送该键，或丢弃了它的应答，原因是 `sensitiveData.mode` 为 `block` 或 `redact`，而该键含有检测器或模式匹配到的内容，这些内容无法发送，或没有完整地返回（[敏感内容防护](/zh-CN/docs/data-handling#敏感内容防护)）。`translate` 和 `watch` 则把这类键列在 `sensitiveWithheld` 中。
+
+- **触发来源**：Studio 和 MCP 服务器
+- **下一步**：Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
+### RUN_CANCELLED
+
+传给 `translate` 或 `retranslateEntry` 的 `signal` 已中止。`retranslateEntry` 在提供商应答之前中止时抛出它，此时没有写入任何内容。`translate` 把它记录在每个因取消而没能启动的语言环境上，并把摘要标记为 [`cancelled`](/zh-CN/docs/sdk/run-summary)。获取写锁的入口函数（例如 `editEntry`、`approveEntry` 或 `updateGlossaryTerm`），在 `releaseHeldLocks` 正在运行、而它去获取锁时，也会抛出它。
+
+- **触发来源**：仅 SDK
+- **下一步**：Run the operation again to finish the work the cancellation left pending.
+
+### LOCALE_FAILED
+
+从不抛出：它是记录在失败语言环境的 `error` 上的回退 `code`。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **下一步**：Fix the cause the locale's message names, then try again.
+
+## 提供商错误码 [#provider-error-codes]
+
+提供商失败会抛出带有这些错误码之一的 `ProviderError`（[结构化错误](/zh-CN/docs/providers#结构化错误)）。在 `translate` 和 `watch` 内部，只有它自己的请求失败：它的键被搁置，语言环境得到列出该错误码的 `SUB_BATCH_FAILED` 通知，这些键在下次运行时重新处理。来自 Studio 或 MCP 服务器的单键重新翻译会重新抛出这个 `ProviderError`。失败的请求以 `1` 退出，它所在的语言环境以 `partial` 或 `failed` 结束。
+
+### MISSING_API_KEY
+
+所需的环境变量未设置或为空。信息会给出变量名，从不给出值；在 CLI 中，它作为 `PROVIDER_CONSTRUCTION_FAILED` 的 `causeCode` 出现，并以 `2` 退出。对密钥可选的 LibreTranslate，它表示服务器要求提供密钥，而 `LIBRETRANSLATE_API_KEY` 没有设置。
+
+- **下一步**：Set the API key environment variable your provider reads, then run `verbatra doctor`.
+
+### INVALID_REQUEST
+
+请求被拒绝为无效：在任何网络调用之前，因字段格式有误、DeepL 不接受的代码（`localeMap` 条目给出了带地区的源代码，或目标解析为单独的 `en` 或 `pt`），或不符合 Google Cloud Translation 要求的 BCP-47 格式的代码；或由 Google Cloud Translation 或 LibreTranslate 服务器的 HTTP 400 应答拒绝。对 LibreTranslate，这包括你的服务器没有对应模型的语言，以及超过其 `--char-limit` 或 `--batch-limit` 的请求。重试没有帮助。
+
+- **下一步**：Check the provider options in the config, such as the model name.
+
+### INVALID_RESPONSE
+
+输出格式有误、不完整，或与请求核对不一致。
+
+- **下一步**：Try again; if it keeps failing, configure a different model.
+
+### OUTPUT_TRUNCATED
+
+模型达到了它的输出 token 上限，详见[输出 token 上限](/zh-CN/docs/providers#输出-token-上限)。
+
+- **下一步**：Translate fewer keys at a time, or configure a model with a larger output limit.
+
+### PROVIDER_REFUSED
+
+OpenAI、`openai-compatible` 或 OpenCode 的应答带有拒绝，而不是译文。
+
+- **下一步**：Review the source text the provider refused, or translate it by hand.
+
+### PROVIDER_BLOCKED
+
+请求或应答被安全机制拦截或过滤。
+
+- **下一步**：Review the source text the provider blocked, or translate it by hand.
+
+### RATE_LIMITED
+
+HTTP 429 或 SDK 的速率限制错误。对 Google Cloud Translation，它还包括正文中指明配额原因（每日或每分钟的限制）的 HTTP 403。请提高项目的 Cloud Translation 配额。LibreTranslate 对错误文本中含有“too many”的 HTTP 403，同样以此错误码报告。提供商给出的等待时间（Gemini 的重试延迟、`Retry-After` 标头）会写入信息；达到 5 分钟及以上时，信息还会说明配额很可能已耗尽。
+
+- **下一步**：Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
+
+### TIMEOUT
+
+网络或请求超时；[`requestTimeoutMs`](/zh-CN/docs/providers#请求超时) 可以放宽这个上限。
+
+- **下一步**：Try again, or raise the provider's `requestTimeoutMs` in the config.
+
+### AUTH_FAILED
+
+HTTP 401 或 403：密钥无效、已被撤销，或缺少权限。Gemini 的 HTTP 400 `API_KEY_INVALID`（指明 `GEMINI_API_KEY`）也是如此。对 LLM 提供商，信息会给出状态码，在 403 时还会补充说明服务器根据其策略或密钥的权限拒绝了请求。对 Google Cloud Translation，请检查 `GOOGLE_TRANSLATE_API_KEY` 是否为有效且不受限制的密钥，且所属项目已启用 Cloud Translation API。已配置密钥时，LibreTranslate 对错误文本提到 API 密钥的 HTTP 400，同样以此错误码报告。重试没有帮助。
+
+- **下一步**：Check that the provider's API key is valid and allowed to use the configured model.
+
+### PROVIDER_UNAVAILABLE
+
+HTTP 5xx：提供商自身出现故障，请求本身没有问题。提供商会[重试](/zh-CN/docs/providers#重试)时，暂时的 5xx 会被吸收，所以到达这个错误码的 5xx 是持续的故障。Google Cloud Translation 和 LibreTranslate 不重试，所以单次 5xx 会立刻在这里出现。
+
+- **下一步**：Try again later, or check the configured endpoint.
+
+### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
+
+网络策略（见[限制网络访问](/zh-CN/docs/network-policy)）在请求发出之前拒绝了它：主机不被允许，主机名解析到了策略不允许的地址，或应答重定向到了另一个源站（origin）或无效的 URL。信息会给出主机和拒绝它的规则，从不给出密钥或路径。重试没有帮助。
+
+- **下一步**：Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### PROVIDER_ERROR
+
+任何无法归类的情况。对 LLM 提供商，HTTP 失败会给出状态码（例如 `HTTP 404`），以及服务器的错误类型（当它是由字母、数字和下划线组成的短记号时，例如 `MissingSessionID`）；服务器自己的信息、响应正文和 URL 路径从不出现。对 `openai-compatible` 的 `baseUrl`，404 或 405 会补充提示检查 `baseUrl` 是否为 API 根地址，400 或 422 会补充提示检查模型名称，以及是否支持带严格 JSON schema 输出的 Chat Completions；对 `opencode`，400、404 或 422 会补充说明，该模型必须是 OpenCode Zen 通过 Chat Completions 端点提供的模型。重试对 4xx 状态码没有帮助。可识别的传输问题（连接被拒绝、主机名无法解析、连接已关闭、主机不可达、TLS 证书未通过验证）会连同检查建议一起给出；其他任何情况得到固定的、不含密钥的信息。无法加载提供商包时，信息会给出该包的名称，并提示重新安装 `@verbatra/sdk`。
+
+- **下一步**：Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
+
+## 格式适配器错误码 [#adapter-error-codes]
+
+无法处理某个文件的格式适配器，会抛出带有这些错误码之一的 `AdapterError`。在源语言文件上，它被包装在 `SOURCE_INVALID` 中，适配器的错误码作为 `causeCode`；在目标文件上，它成为该语言环境的 `error.code`。每个读取语言文件的命令、Studio 和 MCP 服务器都可能抛出它；源文件有问题时，CLI 以 `2` 退出，而目标文件在 `translate` 或 `import` 中让其语言环境失败时，以 `1` 退出。`check --file` 则把无法解析的文件报告为 `syntax` 检查结果。这个集合是封闭的：自定义适配器（见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)）抛出的是其中的某个错误码，而不是它自己的错误码。
+
+### INVALID_JSON
+
+基于 JSON 的语言文件不是有效的 JSON。解析器报告行和列时，信息以它们结尾。
+
+- **下一步**：Fix the syntax error the message names in that file.
+
+### INVALID_YAML
+
+YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以它们结尾。
+
+- **下一步**：Fix the syntax error the message names in that file.
+
+### INVALID_XML
+
+基于 XML 的语言文件（例如 XLIFF 或 Android 的 `strings.xml`）不是格式良好的 XML。
+
+- **下一步**：Fix the syntax error the message names in that file.
+
+### INVALID_STRUCTURE
+
+文件可以解析，但不具备已配置格式所期望的结构，例如带点号的键与嵌套的键路径解析到同一个键，或 YAML 映射的键是映射或序列。
+
+- **下一步**：Reshape the file the message names to match the configured format.
+
+### MAX_DEPTH_EXCEEDED
+
+文件的嵌套深度超过 verbatra 能读取的范围。
+
+- **下一步**：Reduce the nesting depth of the file the message names.
+
+### INPUT_TOO_LARGE
+
+文件大于 verbatra 能读取的大小。
+
+- **下一步**：Split the file the message names into smaller files.
+
+### MIXED_STRUCTURE
+
+`ngx-translate-json` 文件把扁平的带点号的键与嵌套对象混用，或嵌套的键本身含有点号。其他格式都不会抛出它。
+
+- **下一步**：Use either flat or nested keys throughout the file the message names.
+
+### ADAPTER_FAILED
+
+`custom:` 适配器抛出了意外的错误。错误会给出适配器的格式，适配器自己的错误即为 `cause`。当扁平适配器的 `parseEntries()` 返回的不是 `Map`，也不是带有有效条目 `entries` Map 的对象时，同样会抛出它。适配器自己抛出的 `AdapterError` 或文件系统错误会原样传递。
+
+- **触发来源**：SDK，使用 `custom:` 适配器时（CLI 不加载任何插件）
+- **下一步**：Report the failure to the maintainer of the custom adapter the message names.
+
+### DUPLICATE_FORMAT
+
+为注册表中已有的格式标识符注册了第二个适配器。
+
+- **触发来源**：SDK 中的 `AdapterRegistry.register`
+- **下一步**：Register only one adapter for each format identifier.
+
+### INVALID_FORMAT_ID
+
+适配器以格式有误的 `custom:` 标识符注册。
+
+- **触发来源**：SDK 中的 `AdapterRegistry.register`
+- **下一步**：Name the custom adapter `custom:` followed by a valid name.
+
+## 审校门禁码 [#check-result-codes]
+
+`check --require-reviewed` 把失败原因报告为 `result.review.code`（[要求译文已审校](/zh-CN/docs/cli/check#要求译文已审校)）。
+
+### REVIEW_REQUIRED
+
+至少有一条机器写入的译文（来源为 `machine`、`memory`、`fuzzy` 或 `agent`）在已提交的 `verbatra.provenance.json` 中未获批准。信封保持 `ok: true`，`result.locales[].review.unreviewed` 列出这些键。
+
+- **触发来源**：`check --require-reviewed`
+- **退出码**：`1`
+- **下一步**：在 Studio 的 **Review queue**（审校队列，见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）中，或用 MCP 工具 `review.approve` 和 `review.reject`，批准或修正列出的键，然后提交 `verbatra.provenance.json`。
+
+### REVIEW_STATE_UNREADABLE
+
+`verbatra.provenance.json` 已损坏或来自较新的 verbatra，所以无法读取任何审校状态，门禁以失败告终（宁可拒绝也不放行）。
+
+- **触发来源**：`check --require-reviewed`
+- **退出码**：`1`
+- **下一步**：从版本控制中恢复 `verbatra.provenance.json`；如果它是由更新版本的 verbatra 写入的，请升级 verbatra。
+
+## 完整性拒绝原因 [#integrity-refusal-reasons]
+
+[完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)会以且仅以这些原因之一拒绝候选值，取该页给出的顺序中第一个适用的。该原因出现在 `translate`、`watch` 和 `import` 之后语言环境的 `integrityRefusals` 中（人类可读输出中为 `integrity-withheld`），出现在 `editEntry` 和 `retranslateEntry` 的结果中（`accepted: false` 带有 `reason`），也作为 `check --qa` 的一个错误出现，通常带有指明差异所在的 `details`。拒绝会让 `check --qa` 以 `1` 退出；当语言环境以部分完成或失败结束时，`translate` 和 `import` 也以 `1` 退出。这个集合以 `INTEGRITY_GATE_REASONS` 元组发布。
+
+### placeholder
+
+候选值的占位符与它的源不同，按多重集合比较：数量有影响，顺序没有。什么算占位符，按[格式](/zh-CN/docs/formats)各自定义。对 i18next、ngx-translate 和 YAML，候选值新增而源中从未有过的形如 `{name}` 的记号，同样会被拒绝，尽管在这些格式中单个花括号是字面文本。详情用 `-` 标出每个被丢弃的占位符，用 `+` 标出每个新增的占位符，例如 `-{{name}}` 或 `+{{nom}}`。
+
+- **下一步**：把源值中的占位符放回译文，或让下次运行重新翻译它。
+
+### markup
+
+候选值中的 HTML 或 XML 内联标记与它的源不同，或格式不良。详情列出拒绝所涉及的每个标签，源中有而候选值丢弃的标签前缀为 `-`，候选值臆造的标签前缀为 `+`。
+
+- **下一步**：在译文中保留源值的标签、属性名和受保护的属性值。
+
+#### 如何比较标记
+
+标签按“标签名加属性名”的多重集合比较：
+
+- 拒绝：丢弃的标签、臆造的标签、改名的标签、改变的属性名集合（包括为从右到左的目标语言添加 `dir` 属性）、返回时不平衡或嵌套错误的内联标记（例如 `<b>a<i>b</b></i>`），以及在源中本为同级的标签，在返回时嵌套进了另一个同名标签（两个链接就是这样悄悄变成一个的）。
+- 接受：顺序不同的相同标签、改变的属性值（例如翻译过的 `title` 或本地化的 `href`，受下文所述属性值限制的约束），以及空元素的两种写法，所以 `<br>` 和 `<br/>` 算同一个标签。
+- 要计数，而不只是留意：两对相邻的标签合并成一对（`<b>a</b> <b>b</b>` 变成 `<b>a b</b>`）会被拒绝。
+- 精确比较，所以大小写变化也是一条检查结果。HTML 的空元素（`<br>`、`<img>`、`<hr>` 等）在任何大小写下都不需要结束标签，所以 `<BR>` 与 `<br>` 一样会被识别为空元素。
+
+完全没有内联标记的源，也会受到保护，防止候选值凭空添加内联标记。候选值若添加了任何标签对、空元素或自闭合标签，若有没有对应开始标签的结束标签（`Hallo</div>`），或若有一个除名称之外还带有其他内容的未闭合开始标签（例如 `<Enter onfocus=...>` 或 `<x-key onmouseover=...>`），都会被拒绝。
+
+只有名称、没有其他内容的未闭合 `<Word>`，且名称只由字母、数字、连字符和下划线组成，属于尖括号词，例如 `Druecke <Enter>` 中的 `<Enter>`。在判断源之前，两侧的尖括号词都会先被放到一边，所以带有尖括号词的源仍会被比较：候选值在 `<Enter>` 旁边丢弃了一对 `<b>`，或在它旁边臆造了一对 `<script>`，都会被拒绝。源带有标签之后，尖括号词与标签一样计数。源不带任何标签时，候选值添加的尖括号词按普通文字读取并被接受，除非它的名称（不分大小写）是标准的 HTML 元素（`Hallo <script>`），是会被解析器转成 `<img>` 的 `image`，或含有连字符，那会使它成为自定义元素（`Hallo <my-widget>`）。
+
+这项名称检测有意保持谨慎，所以恰好是元素名的普通词，例如 `<Del>`、`<Option>`、`<Select>`、`<Input>` 或 `<Menu>`，在译文把它添加到本来没有它的源时，会被拒绝。变通办法是在你的源字符串中也保留这个尖括号词：带有与源相同的尖括号词的译文会被接受。
+
+注释、CDATA 节、声明和处理指令不是标签，按 HTML 解析器的读法读取。`<!-->` 和 `<!--->` 是完整的空注释，注释在第一个 `-->` 或 `--!>` 处结束，没有结尾的注释会隐藏值的其余部分。`<![CDATA[`、`<!DOCTYPE html>`、其他任何 `<!...`、`<?...`，以及后面跟的不是字母的 `</`（例如 `</1 x>`），都在第一个 `>` 处结束；而空的 `</>` 会像解析器那样被丢弃，数字结束标签（例如 `</0>`）则按标签比较。每个这样的结构都按空白折叠后的文本的多重集合比较，所以候选值添加、丢弃或改写的结构都会被拒绝，包括文本被翻译过的注释。结构结束之后的标签照常比较，所以 `Hallo <![CDATA[><img src=x onerror=...>]]>` 既因该结构、也因 `<img>` 被拒绝。
+
+原始文本元素的内容同样是文本。在开始标签 `script`、`style`、`title`、`textarea`、`xmp`、`iframe`、`noscript`、`noembed` 或 `noframes` 之后，直到它的结束标签（不分大小写，后面跟空白、`/` 或 `>`）为止的一切都是文本，而 `<plaintext>` 之后的一切直到值的末尾都是文本。写在这类元素内部的标签不参与比较，带引号的属性值也无法越过结束标签去隐藏后面的内容：`Füge ein <script><b x="</script><img src=x onerror=...>` 因 `<img>` 被拒绝。当解析器可以用两种方式读取这些内容时，除非候选值与源完全一致，否则候选值会被拒绝，并带有类似 `+<noscript>...</noscript>` 的详情：内容以 `<!--` 开头的 `script`；内容中含有 `<` 的 `noscript`，因为是否启用脚本决定了它的读法；以及在 `svg`、`math` 或 `select` 标签之后、内容中含有 `<` 的任何原始文本元素，因为那里它可能根本不是原始文本。出于同样的原因，在源或候选值打开了 `svg`、`math` 或 `select` 的值中，出现 CDATA 节或 `image` 标签时，除非候选值与源完全一致，否则会被拒绝。
+
+`script`、`style`、`iframe`、`noembed`、`noframes`、`noscript`、`xmp` 或 `plaintext` 元素的内容是用来运行或为页面设置样式的，而不是用来显示的，所以它从不翻译：候选值中每个这样的元素，其内容必须与源中同名元素里相同位置的那个元素的内容完全一致，否则候选值会被拒绝，并带有类似 `+<script> content` 的详情。`title` 和 `textarea` 的内容作为文本显示，可以翻译。这使得字面上含有这些标签的文字无法翻译，因为在 `Add a <script> tag` 中，`<script>` 之后的一切都是它的内容：`Füge ein <script> Tag` 会被拒绝。请改在源中对该标签转义，写成 `Add a &lt;script&gt; tag`。
+
+这项检查有意尽量少报，但它读取标签的方式与 HTML 解析器相同。标签以 `<` 或 `</` 开头，后面跟字母；对于数字形式的富文本标签（例如 `<0>`），则跟数字。它的名称一直延伸到空白、`/` 或 `>`，带引号的属性值可以含有 `>`。所以 `5 < 10`、`x <= y` 和转义过的 `&lt;b&gt;` 仍是普通文本，而 `<support@example.com>` 和 `<abbr title="a > b">` 是标签，永远到不了它的 `>` 的 `<` 什么也不渲染，也不是标签。源中每个标签都已写完时，候选值若这样留下一个未写完的标签，仍会被拒绝，详情列出未写完的开头，例如 `+<a`。源自己的标签格式有误时，仍然照常比较。在把格式报告为占位符的标签和所有尖括号词放到一边之后，源在以下情况下算作格式有误：有从未闭合的开始标签（空元素除外）、有没有开始标签的结束标签，或标签的闭合顺序有误。普通文字可能意外触发这一点：在 `a<b and c>d` 中，`<b and c>` 这一段是一个从未闭合的 `b` 开始标签，带有属性 `and` 和 `c`，所以该源算作格式有误。对这样的源，只跳过嵌套检查：它的标签与其他标签一样按多重集合比较，所以完全保留 `a<b and c>d` 的译文会被接受，在它旁边添加 `<img>` 的译文会被拒绝，翻译了这一段中的词（`a<b und c>d`）的译文也会被拒绝，因为解析器把 `und` 读作新的属性。也没有哪个源大到无法比较。只有当候选值的标签和结构数量超过其源的两倍，或对较小的源超过 256 个时，才会被拒绝，详情为指明该上限的 `+more than N inline tags`。
+
+属性值是自由的，但有以下例外。URL 属性（`href`、`src`、`action`、`formaction`、`xlink:href`、`poster`、`data`、`background`、`ping`、`cite`、`longdesc`、`srcset`、`manifest`、`codebase`、`archive`，以及 SVG 动画属性 `to`、`from`、`values` 和 `by`）的值，在解码数字字符引用以及 `&colon;`、`&Tab;`、`&NewLine;`、`&sol;` 和 `&bsol;`，并忽略制表符、换行符和两端的控制字符之后读取。其中的 `javascript:`、`vbscript:` 或 `data:` 协议会被拒绝，除非源在同一个标签和属性上带有完全相同的值，详情类似 `+<a href="javascript:...">`。除此之外，值中的每个 URL（包括 `srcset`、`ping`、`archive` 或 `values` 列表中的每个 URL）都必须保留同一标签和属性的某个源值所具有的协议和 authority 部分（主机和端口，或协议相对的 `//host` URL 的主机），并且相对 URL 必须保持为相对 URL。所以 `/docs` 可以变成 `/de/docs`，`https://verbatra.dev/en` 可以变成 `https://verbatra.dev/de`，但 `/docs` 不能变成 `https://evil.example/docs` 或 `//evil.example/docs`，本地化的绝对链接也必须保留相同的主机；详情会给出新的源站（origin），例如 `+<a href="https://evil.example...">`，或对变成相对形式的绝对链接给出 `+<a href="./...">`。路径、查询和片段可以随意更改。没有明确的 `http`、`https`、`ws`、`wss`、`ftp` 或 `file` 协议的已更改 URL，在其开头的斜杠或主机中出现反斜杠（`\` 或 `%5C`）时，也会被拒绝，因为使用另一种协议的页面会把 `//verbatra.dev\@evil.example/` 读作指向 evil.example 的链接。
+
+有些属性值必须与源中的完全一致返回，比较在解码字符引用之后进行，详情类似 `+<meta content="...">`：`meta` 上的 `http-equiv` 和 `content`；`script` 上的 `type`、`nomodule`、`integrity` 和 `crossorigin`；`link` 上的 `rel`、`as`、`integrity`、`crossorigin` 和 `type`；`base` 上的 `target`；`set`、`animate`、`animateTransform` 和 `animateMotion` 上的 `attributeName` 和 `attributeType`；`iframe` 上的 `sandbox`、`allow` 和 `allowfullscreen`；`form` 上的 `method`、`enctype` 和 `target`；以及任何元素上的 `style`、`srcdoc` 和每个事件处理属性（例如 `onclick`）。可翻译的属性（例如 `title` 或 `alt`）仍然是自由的。
+
+比较整个值，还带来两个与格式有关的限制。对把多个复数分支用竖线分隔、打包进一个值的格式（Vue I18n），添加其语言所需分支的译文会重复源的内联标记，因而被拒绝。对以纯文本存储 ICU 风格的复数（`{count, plural, one {...} other {...}}`）、而不是把它按 ICU 解析的格式（i18next、ngx-translate 和 YAML），也是如此：分支数量与源不同的译文，会重复或丢弃其中的内联标记，因而被拒绝。两种情况下，之前的译文都保留。
+
+这项检查还会按标签退让。格式已经报告为占位符的标签（XLIFF 内联元素、next-intl 或 ARB 的 ICU 富文本标签），连同数量不超过其开始标签数的结束标签，一并交给占位符检查处理，从不重复报告。这类开始标签若被候选值留着未闭合，仍会被拒绝，并以它缺少的结束标签命名，例如 `-</g>`。嵌套关系与源不再一致的也会被拒绝，例如 `<b>` 返回时与它原本所在的 `<g>` 交叉；源中只作为文本携带（在注释或原始文本元素内）的也一样，因为把它移出来会创建出该元素。同一个值中的其他每个标签仍会被比较，包括多余的结束标签，例如第二个 `</g>`。
+
+### icu
+
+对 next-intl 和 ARB，候选值不再能解析为 ICU 消息（包括没有 `other` 分支的 `plural`），或它的 `plural` 或 `selectordinal` 分支不符合目标语言的 CLDR 类别，或它的 `select` 分支与源不同。详情会列出每个有误的分支。规则见[各目标语言的复数分支](/zh-CN/docs/translation-safety#各目标语言的复数分支)。
+
+- **下一步**：修正该消息，使它能够解析，并且恰好带有目标语言所需的分支。
+
+### degenerate
+
+候选值在结构上已退化：出现重复循环，或长度与其源相比失控，这是模型陷入重复某个片段时的样子，即使每个占位符都保留了下来。
+
+- **下一步**：让下次运行重新翻译该键，或手动编写译文。
+
+### empty
+
+候选值为空或只有空白，而它的源并非如此。清空译文是有意的操作：工作簿的 `[[CLEAR]]` 特殊标记值可以做到。
+
+- **下一步**：写一条译文，或在工作簿导入中用 `[[CLEAR]]` 有意清空该值。
+
+## 审校原因 [#review-reason-codes]
+
+审校标记表示某条已接受的译文值得再看一眼；它从不搁置键，而 `check --qa` 的警告只有在 `--strict` 下才会让作业失败。这个集合以 `REVIEW_REASON_CODES` 元组发布；审校层的说明见[翻译安全](/zh-CN/docs/translation-safety#审校标记)。
+
+### LENGTH_RATIO_OUTLIER
+
+译文比它的源短得多或长得多。
+
+当长度低于去除首尾空白后源长度的 0.35 倍或高于 3.0 倍时触发；很短的源会被跳过。长度按字素簇计算，每个字符按其文字加权：一个汉字计 3.5，一个日文假名计 1.5，一个韩文音节计 2。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：对照源值阅读译文，然后保留或修正它。
+
+### MAX_LENGTH_EXCEEDED
+
+译文比为它的键配置的 `maxLength` 预算更长，预算来自配置或 [`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength) <AvailableFrom version="0.13.0" />。
+
+长度按值的原样以字素簇计算。预算是包含边界的，所以恰好等于预算的值不会被标记，没有预算的键从不测量。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：缩短译文，或提高该键的 `maxLength` 预算。
+
+### EQUALS_SOURCE
+
+两者去除首尾空白后，译文与源相同，尽管目标语言环境不同。
+
+只有当源中有固定术语之外的字母时才会触发：只由 `doNotTranslate` 术语组成的源，或由译文就是术语本身的术语组成的源，不会被标记。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：翻译该值；如果这段文本在该语言中确实保持不变，则保留它。
+
+### GLOSSARY_TERM_MISSED
+
+源中的术语表术语在目标语言环境中缺少它的译法，或 `doNotTranslate` 术语缺失或被改动。
+
+每个语言环境都按术语表中为该语言环境单独设置的译法检查。匹配不区分大小写，除非术语是 `caseSensitive`，并按各语言环境的规则折叠大小写（包括土耳其语的 `İ`）。源一侧需要整词匹配，所以在 `Airport` 中找不到 `AI`；目标一侧只需要术语出现在值中的任何位置，因为译过的术语会与周围的文字融在一起。在没有词分隔符的文字（汉字、假名、泰文等）中，术语按包含关系匹配。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：使用术语表中该术语的译法，或保持该术语不变。
+
+### GLOSSARY_FORBIDDEN_TERM
+
+译文使用了术语表的 `forbidden` 列表为该目标语言环境排除的译法。
+
+它按整词匹配；对没有词分隔符的文字，则按包含关系匹配，所以变形或复合的形式只有在你也列出它时才会被发现。源自身含有的译法不会被标记，因为译文可能引用它。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：用获准的译法替换被禁用的译法。
+
+### INTEGRITY_REORDERED
+
+占位符完全匹配，但出现的顺序与源中不同。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：检查新的顺序在目标语言中读起来是否正确。
+
+### PROVIDER_DEGRADED
+
+提供商降级处理了这个键所在的批次，例如降低正式程度或忽略术语表。
+
+批次带有 `FORMALITY_DOWNGRADED` 或 `GLOSSARY_IGNORED` 通知时触发，DeepL、Google Cloud Translation 和 LibreTranslate 会报告这些通知。`PLACEHOLDER_UNSUPPORTED` 不会触发它，因为那些条目是被搁置的，而不是被降级的。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）
+- **退出码**：无
+- **下一步**：检查该值的语气和术语表中的术语。
+
+### FUZZY_CACHE_REUSE
+
+该值是从缓存中复用的，来自较早的、几乎相同的源，而这个源此后已被编辑。它只在启用 `fuzzyCache` 时出现。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）
+- **退出码**：无
+- **下一步**：检查复用的值是否仍与修改后的源值相符。
+
+### FOREIGN_PLACEHOLDER_CHANGED
+
+译文丢弃或改动了形如占位符、但项目的格式不对其做插值的记号，例如 i18next 值中的 `{name}` 或 YAML 值中的 `%{count}`。
+
+当这样的记号在源中出现的次数多于它在译文中原样出现的次数时触发。格式自身的占位符交给完整性门禁处理，译文只是新增的记号不会被标记，ICU 参数只按它的开头计一次（例如 `{n, plural,`），所以译过的分支从不触发它。ICU 分支内的记号、紧贴字母或数字的 printf 记号、百分号编码的字节（例如 `%2F`）以及 URL 内的任何内容，从不检查，第三方适配器的格式也不检查。每种格式保护哪些语法，见[格式](/zh-CN/docs/formats)。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告，在 `details` 中列出每个缺失的记号，例如 `-{name}`）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：如果你的库会对该记号做插值，请在译文中恢复它。
+
+### BIDI_CONTROLS_CHANGED
+
+译文含有不可见的方向控制字符，它们可能重新排列周围的文本：一个从未闭合的嵌入、覆盖或隔离，或源中没有的覆盖。
+
+当译文的嵌入（U+202A、U+202B）、覆盖（U+202D、U+202E）和隔离（U+2066 到 U+2068）在每个段落内没有与它们的闭合字符（U+202C、U+2069）配对，而源中是配对的，或当它含有的从左到右或从右到左覆盖多于源时触发。未闭合的控制字符会把它的方向泄漏到你的应用在该值之后放置的文本中。U+200F 等方向标记从不触发它，译文丢弃源中成对平衡的控制字符也不会触发。
+
+- **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
+- **退出码**：`translate` 无；`check --qa --strict` 为 `1`
+- **下一步**：在译文中闭合或移除方向控制字符。
+
+## 运行通知 [#sdk-notice-codes]
+
+通知是语言环境的 `notices` 上的数据，从不抛出。它报告运行已处理的某种情况，只有条目中指明时，它才会改变退出码。通知在摘要中的位置见 [RunSummary](/zh-CN/docs/sdk/run-summary)。
+
+### PLURAL_CATEGORIES_INCOMPLETE
+
+目标语言环境中的某个复数缺少其语言使用的 CLDR 复数类别，例如只有 `one` 和 `other` 的波兰语复数。在 `translate` 和 `watch` 中，只有 `i18next-json` 格式会触发它，即 verbatra 无法生成其余部分时；`check` 和 `doctor` 对每种按类别存储复数形式的格式都会报告它。
+
+- **触发来源**：`translate`、`watch`；`check` 把它与复数一起列出，`doctor` 把它列在 Plural completeness 之下
+- **退出码**：它本身无；`check --qa --strict` 为 `1`
+- **下一步**：手动补上缺少的复数形式。
+
+### SUB_BATCH_FAILED
+
+某个提供商请求失败。通知会给出提供商的错误码，失败不是结构化的提供商错误时则给出 `PROVIDER_CALL_FAILED`，该请求的键列在 `providerFailures` 之下。它的 `causeCode` 带有提供商的错误码（有的话），CLI 在运行之后会打印该错误码的下一步。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：`1`：该语言环境以 `partial` 或 `failed` 结束
+- **下一步**：在[提供商错误码](#provider-error-codes)中查找它给出的错误码。这些键会在下次运行时重新翻译。
+
+### BLANK_ROW_BASELINE_RETAINED
+
+导入的行对某个键留空，而该键的源在该行的基线记录之后有更改，所以保留了之前的基线，漂移仍会被报告。
+
+- **触发来源**：`import`
+- **退出码**：它本身无
+- **下一步**：在新的导出文件中翻译该键，或运行 `verbatra translate`。
+
+### HANDOFF_REVIEWS_RECORDED
+
+XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.provenance.json` 中被记录为已批准。
+
+- **触发来源**：`import`
+- **退出码**：无
+- **下一步**：无需处理；提交 `verbatra.provenance.json` 即可。
+
+### BUDGET_TOKENS_EXCEEDED
+
+运行达到了它的 token 预算：配置中的 `maxTokens`，或单次运行的 `--max-tokens`。在 `"warn"` 下，运行继续；在 `"stop"` 下，尚未尝试的键被搁置，并列在 `budgetWithheld` 之下。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：`budgetBehavior: "warn"` 下无；`"stop"` 下一旦有键被搁置则为 `1`
+- **下一步**：提高预算，或再运行一次：被搁置的键会在下次运行时翻译。
+
+### CACHE_VERSION_UNRECOGNIZED
+
+`verbatra.cache.json` 由较新的 verbatra 写入，所以它保持不动，这次运行没有使用缓存。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：无
+- **下一步**：升级 verbatra，或删除该文件让它重建。
+
+### PROVENANCE_VERSION_UNRECOGNIZED
+
+`verbatra.provenance.json` 由较新的 verbatra 写入，所以它保持不动，这次运行没有为它写入的值记录来源。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **退出码**：无
+- **下一步**：升级 verbatra，让记录保持最新。
+
+### PROVENANCE_FILE_TOO_LARGE
+
+记录这个语言环境会让 `verbatra.provenance.json` 增长到超过 verbatra 能读回的大小，所以文件保持原样，该语言环境写入的值没有记录。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **退出码**：无
+- **下一步**：这些值已照常写入，只是缺少它们的记录。在下次运行之前，先查明该文件为何变得这么大。
+
+### LIMITS_FILE_IGNORED
+
+`verbatra.limits.json` 无法使用（无法读取、不是普通文件、太大、不是 UTF-8 或有效的 JSON、结构不同、版本较新，或条目过多），所以这次调用只按配置的 `maxLength` 预算检查值，没有按该文件设置的上限标记任何内容。它是一次运行中每个语言环境上的通知，也是结果的 `limitsNotice`。该文件保持原样。
+
+- **触发来源**：`translate`、`watch`；由 `check --qa` 和 `check --file` 作为 `qa.limitsNotice` 返回，由 `export`、`retranslateEntry`、`keyContext` 以及 MCP 工具 `key.context` 和 `translation.retranslateEntry` 作为 `limitsNotice` 返回；`doctor` 把该文件列在 Length limits 之下
+- **退出码**：无
+- **下一步**：修正或删除 `verbatra.limits.json`；`verbatra doctor` 会指出它有什么问题。
+
+### LOCALE_STATE_CARRIED_OVER
+
+以下划线写法（例如 `pt_BR`）记录的状态，已迁移到配置的 `pt-BR`。详见[写法不同的语言环境代码](/zh-CN/docs/the-lock-file#写法不同的语言环境代码)。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **退出码**：无
+- **下一步**：无需处理；提交锁文件和来源记录文件即可。
+
+### LOCALE_STATE_CARRY_OVER_SKIPPED
+
+这次迁移留给下次运行，因为锁文件防护一直被占用，或无法读取或创建，或有文件无法写入。除非只有翻译记忆库被留在原处，否则该语言环境没有运行，并以 `LOCALE_STATE_NOT_CARRIED_OVER` 失败。
+
+- **触发来源**：`translate`、`watch`、`import`
+- **退出码**：语言环境以 `LOCALE_STATE_NOT_CARRIED_OVER` 失败时为 `1`
+- **下一步**：等其他 verbatra 进程结束，然后再运行一次。
+
+### LOCALE_UNVERIFIED_BY_PROVIDER
+
+发送的代码不在提供商的语言表中：表中只有它的基础语言，或它来自 `localeMap`。对自托管的 LibreTranslate 服务器，在运行之前无法知道其已安装的模型，所以每个目标语言环境在每次运行中都这样报告；`verbatra doctor --locales --live` 会对照服务器检查它们。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
+- **退出码**：无
+- **下一步**：运行 `verbatra doctor --locales` 查看发送的代码；如果有误，在 `provider.options.localeMap` 中映射该语言环境。
+
+### LOCALE_NOT_WELL_TESTED
+
+LLM 提供商翻译的语言不在经过充分测试的语言列表中。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
+- **退出码**：无
+- **下一步**：请人工审校该语言环境的译文。
+
+### GLOSSARY_UNSUPPORTED_BY_PROVIDER
+
+为这个语言环境配置了术语表，而提供商无法应用它；只会在翻译之后检查。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
+- **退出码**：无
+- **下一步**：在审校中检查术语表中的术语，或选择对该语言环境应用术语表的提供商。
+
+### FORMALITY_UNSUPPORTED_BY_PROVIDER
+
+语气为 `formal` 或 `informal`，而提供商对这个语言环境没有正式程度控制。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
+- **退出码**：无
+- **下一步**：在审校中检查语气，或选择对该语言环境应用正式程度的提供商。
+
+### SOURCE_FOREIGN_PLACEHOLDERS
+
+这个语言环境即将翻译的源值含有形如占位符、但项目的格式不对其做插值的记号。信息给出此类值的数量，并列出前几个键。
+
+DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样遮蔽这类记号，并搁置它们无法遮蔽或还原的值（[`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)）。LLM 提供商或人必须保持它不变；丢弃或改动它的译文会被标记为 [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed)。该通知按语言环境触发，只在这个语言环境有这样的键需要翻译时才有，对第三方适配器的格式从不触发。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`
+- **退出码**：无
+- **下一步**：审校所列键的译文；如果你的库不对这些记号做插值，请改用其他语法。
+
+### SOURCE_VALUE_EMPTY
+
+值为空或只有空白的源键（例如 [`extract`](/zh-CN/docs/cli/extract) 添加的没有默认值的键），无论目标或锁文件中有什么，都从不算缺失、过期或最新；在 `gettext-po` 源消息目录中，它就是空的 `msgstr`。不会为它们发送、写入或计数任何内容，目标保留它现有的任何值。信息给出键的数量，并列出前几个。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`
+- **退出码**：无
+- **下一步**：写出所列键的源文本，然后再次运行 `verbatra translate`。
+
+### SENSITIVE_CONTENT_SENT
+
+在 `sensitiveData.mode: "warn"` 下，这个语言环境发送的键或术语表条目含有检测器或模式匹配到的内容。它们被原样发送。信息会列出检测器和前几个键，除非匹配的文本是键名的一部分，否则从不给出匹配的文本。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`
+- **退出码**：无
+- **下一步**：移除这些内容，在 `sensitiveData.allow` 中允许这些内容，或改用 `redact` 或 `block`。
+
+### SENSITIVE_CONTENT_REDACTED
+
+在 `"redact"` 下，这些键的值中的匹配项，在发送之前被替换为记号，并在译文中还原。信息完整列出前几个键，所以键名内的匹配项会出现在其中。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`
+- **退出码**：无
+- **下一步**：无需处理。
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+在 `"block"` 或 `"redact"` 下，因有匹配项而没有发送的键会列在 `sensitiveWithheld` 中，或有匹配项的术语表条目被排除在请求之外。在 `"redact"` 下，当匹配项在键名中或与占位符重叠，或某个记号没有恰好返回一次时，该键被搁置。信息完整列出前几个键，所以键名内的匹配项会出现在其中。
+
+- **触发来源**：`translate`（试运行同样如此）、`watch`
+- **退出码**：`1`，因为被搁置的键会让语言环境处于 `partial` 或 `failed`；只有术语表条目被排除时为 `0`，因为语言环境仍然成功
+- **下一步**：移除这些内容，或在 `sensitiveData.allow` 中允许这些内容；这些键会在下次运行时重试。
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+这个语言环境运行期间，运行的 `signal` 已中止。尚未翻译的键没有发送，或它们的请求被放弃：它们保持待处理状态，留到下次运行，语言环境为 `partial`；当其他键被搁置而没有任何键写入时，为 `failed`。中止之前已到达的译文已写入并记录。信息给出待处理键的数量。
+
+- **触发来源**：SDK，调用方传入 `signal` 时；MCP 工具 `translation.translatePending` 会传入客户端的取消信号
+- **退出码**：无：没有任何 CLI 命令会触发它
+- **下一步**：再次运行 `translate`，发送待处理的键。
+
+## 提供商通知 [#provider-notice-codes]
+
+提供商通知报告成功请求上的平稳降级，作为语言环境的 `notices` 上的数据。降级批次中的每个键还带有 `PROVIDER_DEGRADED` 审校原因。
+
+### FORMALITY_DOWNGRADED
+
+请求的 `formal` 或 `informal` 语气没有被应用：DeepL 的免费套餐或没有正式程度控制的 DeepL 目标语言、Google Cloud Translation Basic，以及没有此功能的 LibreTranslate。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：无
+- **下一步**：在审校中检查语气，或使用支持正式程度的提供商或套餐。
+
+### GLOSSARY_IGNORED
+
+带有必需译法或需保留术语的术语表没有被应用：DeepL 只应用原生术语表 id，Google Cloud Translation Basic 和 LibreTranslate 不支持术语表。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：无
+- **下一步**：在审校中检查术语表中的术语，或对受术语表约束的文本使用 LLM 提供商。
+
+### PLACEHOLDER_UNSUPPORTED
+
+DeepL、Google Cloud Translation 或 LibreTranslate 至少有一个值没有翻译。当某个占位符在值中不是字面形式，或占位符之外的文本含有 `<`、`>`、`{` 或 `}` 时，该值被搁置：例如 plural、select 或 number 这样的 ICU 参数、占位符旁的内联标记，或比较符号（LibreTranslate 会原样发送内联标记的标签，所以对它只有花括号才算）。Google 还会搁置含有换行、制表符或双空格的值。当某个标记返回时丢失、重复、被改写或是裸露的，或带有未知的实体或多余的标签时，结果被丢弃。含有内联标记而没有占位符的值不经遮蔽直接发送。与格式不同的另一种占位符语法的记号，在这里也算占位符。
+
+- **触发来源**：`translate`、`watch`
+- **退出码**：`1`：这些键列在 `providerFailures` 之下，语言环境以 `partial` 或 `failed` 结束
+- **下一步**：手动翻译这些值，或对它们使用 LLM 提供商。

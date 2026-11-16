@@ -36,7 +36,7 @@ verbatra types --json
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de la racine du projet ; les répertoires manquants sont créés |
-| `--check` | aucun | désactivé | compare octet par octet la déclaration commitée à une génération fraîche, sans rien écrire ; sortie `1` si elle est périmée ou manquante |
+| `--check` | aucun | désactivé | compare octet par octet la déclaration commitée à une génération fraîche, sans rien écrire ; sortie `1` si elle est obsolète ou manquante |
 
 Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
@@ -92,7 +92,7 @@ export type VerbatraMessageArguments<Key extends VerbatraMessageKey> =
 export type VerbatraPluralMessageKey = "cart.item_one" | "cart.item_other";
 ```
 
-Type ta propre fonction de traduction avec, et le compilateur fait le reste :
+Type ta propre fonction de traduction à partir de ces déclarations, et le compilateur fait le reste :
 
 ```ts
 import type { VerbatraMessageArguments, VerbatraMessageKey } from "./verbatra-types.js";
@@ -177,7 +177,7 @@ Les noms de fichiers sont comparés sans tenir compte de la casse, et les vérif
 
 ### Rester honnête en CI
 
-Lance `types --check` à côté de [`verbatra check`](/fr/docs/cli/check) dans le même job : `check` repère les locales qui prennent du retard sur la source, `types --check` tes types. La comparaison se fait octet par octet et la déclaration est toujours écrite avec des fins de ligne line feed, alors fixe-les dans `.gitattributes`, sinon un checkout qui les réécrit laisse le fichier périmé pour de bon :
+Lance `types --check` à côté de [`verbatra check`](/fr/docs/cli/check) dans le même job : `check` repère les locales qui prennent du retard sur la source, `types --check` tes types. La comparaison se fait octet par octet et la déclaration est toujours écrite avec des fins de ligne line feed, alors fixe-les dans `.gitattributes`, sinon un checkout qui les réécrit laisse le fichier obsolète pour de bon :
 
 ```text
 verbatra-types.d.ts text eol=lf
@@ -209,7 +209,7 @@ interface GenerateTypesResult {
 
 <AvailableFrom version="0.12.0" />
 
-Le résumé va sur stdout ; une ligne de spinner et, après l'écriture, une suggestion de committer le fichier vont sur stderr (`--check` ne suggère rien, et `--quiet` supprime les deux). Une exécution qui génère, une relance sans changement et un `--check` périmé :
+Le résumé va sur stdout ; une ligne de spinner et, après l'écriture, une suggestion de commiter le fichier vont sur stderr (`--check` ne suggère rien, et `--quiet` supprime les deux). Une exécution qui génère, une relance sans changement et un `--check` obsolète :
 
 ```text output
 verbatra: generating the declarations... done (0.2s)
@@ -237,7 +237,7 @@ Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal) 
 | Code | Signification |
 | --- | --- |
 | `0` | la déclaration a été générée, que le fichier ait changé ou non ; ou `--check` l'a trouvée à jour |
-| `1` | `--check` a trouvé la déclaration commitée périmée ou manquante (`is missing, run verbatra types to create it`) |
+| `1` | `--check` a trouvé la déclaration commitée obsolète ou manquante (`is missing, run verbatra types to create it`) |
 | `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, un chemin de sortie refusé (`TYPES_OUTPUT_CONFLICT`), ou une déclaration qui n'a pas pu être écrite (`TYPES_UNWRITABLE`) |
 
 Consulte [Codes de sortie](/fr/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.

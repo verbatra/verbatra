@@ -40,7 +40,7 @@ Avec `literals` activé, seules les vérifications `config` et `untranslated-lit
 
 <AvailableFrom version="0.12.0" />
 
-Seule une vérification en échec porte `fix`, une prochaine étape à l'impératif ; comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
+Seule une vérification en échec porte `fix`, une étape suivante à l'impératif ; comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
 
 ### dataFlow
 
@@ -147,7 +147,7 @@ Chaque `LocaleCheckSummary` porte aussi `incompletePlurals`, trié par clé : un
 manquent des catégories CLDR que la langue cible utilise. Ce n'est qu'un avertissement ; les formats
 et les règles sont dans [catégories de pluriel](/fr/docs/cli/check#catégories-de-pluriel).
 
-Avec `requireReviewed: true`, `check` exécute aussi la [barrière de relecture](/fr/docs/cli/check#exiger-des-traductions-relues), sans clé et sans rien écrire : chaque `LocaleCheckSummary` porte `review: { unreviewed }`, les clés de machine non approuvées, et le résumé porte `review: { reviewed, unreviewed, code? }` avec les codes que nomme cette section. Le rapport ne change jamais `inSync` ; une barrière de CI lit `review.reviewed`.
+Avec `requireReviewed: true`, `check` exécute aussi la [barrière de relecture](/fr/docs/cli/check#exiger-des-traductions-relues), sans clé et sans rien écrire : chaque `LocaleCheckSummary` porte `review: { unreviewed }`, les clés de classe machine non approuvées, et le résumé porte `review: { reviewed, unreviewed, code? }` avec les codes que nomme cette section. Le rapport ne change jamais `inSync` ; une barrière de CI lit `review.reviewed`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -157,7 +157,7 @@ Avec `sensitive: true`, `check` lance aussi l'analyse de [contenu sensible](/fr/
 
 <AvailableFrom version="0.12.0" />
 
-Vérifie un seul fichier de locale après qu'une personne ou un agent l'a modifié. Il lit ce
+Vérifie un seul fichier de locale après une modification. Il lit ce
 fichier, le fichier de limites (un avis s'il est inutilisable) et, pour une locale cible, le fichier source ; il n'appelle aucun fournisseur, ne lit
 aucune clé d'API et n'écrit rien.
 
@@ -324,7 +324,7 @@ Aucune config nécessaire.
 
 <AvailableFrom version="0.5.0" />
 
-Lit l'instantané des signalements de relecture et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
+Lit l'instantané des signalements de relecture et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors exécution à blanc a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
 
 ```ts title="Signature"
 function runStatus(
@@ -337,7 +337,7 @@ function runStatus(
 
 **Renvoie :** `RunStatusResult`
 
-Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` ; `incomplete: { failed, partial }` compte les locales de l'exécution enregistrée qui ont échoué ou se sont arrêtées en cours de route et est omis quand il n'y en a aucune.
+Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` ; `incomplete: { failed, partial }` compte les locales de l'exécution enregistrée qui ont échoué ou se sont arrêtées en cours de route et est omis quand il n'y en a aucune. <AvailableFrom version="0.13.5" />
 
 Un instantané antérieur à l'application du budget de tokens est toujours lu, sans un `budget` avec `supported: false` (son `tokensUsed: 0` n'était pas un décompte). Les nouveaux instantanés ajoutent seulement un champ marqueur, donc un lecteur plus ancien peut afficher un budget estimé comme non suivi. Un motif de relecture inconnu est ignoré, et une entrée qui n'en a plus aucun est retirée.
 
@@ -345,7 +345,7 @@ Un instantané antérieur à l'application du budget de tokens est toujours lu, 
 
 <AvailableFrom version="0.12.0" />
 
-Lit la file de relecture dans les fichiers commités : chaque clé dont la valeur actuelle a une origine de machine (`machine`, `memory`, `fuzzy` ou `agent`, le tuple `MACHINE_CLASS_ORIGINS`) et n'est pas approuvée, par locale cible et dans l'ordre de la source. Elle lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, donc tout le monde sur le même commit voit la même file. Une clé en sort dès que sa valeur est approuvée ou rejetée, ou qu'une personne écrit ou importe une nouvelle valeur ; une valeur réécrite par un agent reste, tout comme une approbation antérieure à une modification de la source. Le dernier instantané de `runStatus` n'ajoute que des détails : les `reasons` de chaque entrée (vides si l'exécution ne l'a pas signalée avec un motif connu), les `fuzzyHits` de la locale et `lastRunAt`.
+Lit la file de relecture dans les fichiers commités : chaque clé dont la valeur actuelle a une origine de classe machine (`machine`, `memory`, `fuzzy` ou `agent`, le tuple `MACHINE_CLASS_ORIGINS`) et n'est pas approuvée, par locale cible et dans l'ordre de la source. Elle lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, donc tout le monde sur le même commit voit la même file. Une clé en sort dès que sa valeur est approuvée ou rejetée, ou qu'une personne écrit ou importe une nouvelle valeur ; une valeur réécrite par un agent reste, tout comme une approbation antérieure à une modification de la source. Le dernier instantané de `runStatus` n'ajoute que des détails : les `reasons` de chaque entrée (vides si l'exécution ne l'a pas signalée avec un motif connu), les `fuzzyHits` de la locale et `lastRunAt`.
 
 ```ts title="Signature"
 function reviewQueue(
@@ -362,7 +362,7 @@ function reviewQueue(
 
 **Exemple :** [Traiter la file de relecture](/fr/docs/programmatic-api#traiter-la-file-de-relecture)
 
-Renvoie `{ available: true, locales, lastRunAt? }`, chaque locale sous la forme `{ locale, needsReview, approved?, fuzzyHits? }` et chaque entrée sous la forme `{ key, reasons, provenance }` ; `approved` liste les valeurs de machine approuvées et n'est présent qu'avec `includeApproved: true`. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, elle renvoie `{ available: false, reason: "provenance-unreadable" }`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Jusqu'à la 0.11, la file ne contenait que les signalements de la dernière exécution.
+Renvoie `{ available: true, locales, lastRunAt? }`, chaque locale sous la forme `{ locale, needsReview, approved?, fuzzyHits? }` et chaque entrée sous la forme `{ key, reasons, provenance }` ; `approved` liste les valeurs de classe machine approuvées et n'est présent qu'avec `includeApproved: true`. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, elle renvoie `{ available: false, reason: "provenance-unreadable" }`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Jusqu'à la 0.11, la file ne contenait que les signalements de la dernière exécution.
 
 ### provenanceReport
 

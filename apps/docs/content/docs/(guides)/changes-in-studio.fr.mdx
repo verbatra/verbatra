@@ -6,7 +6,7 @@ type: how-to
 ---
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Utilise ceci avant de committer une exécution : tu vois quels fichiers de locale une exécution de traduction ou une modification a touchés, et quelles clés ont changé dans chacun, sans quitter Studio. Studio ne fait que lire ; il ne fait jamais de stage, de commit ni de restauration.
+Utilise ceci avant de commiter une exécution : tu vois quels fichiers de locale une exécution de traduction ou une modification a touchés, et quelles clés ont changé dans chacun, sans quitter Studio. Studio ne fait que lire ; il n'indexe, ne commite et ne restaure jamais rien.
 
 ## Ouvre la section Changes
 
@@ -38,7 +38,7 @@ Tes fichiers de locale source et cible sont listés, ainsi que `verbatra.lock.js
 Studio explique au lieu de lever une erreur quand il ne peut pas comparer, par exemple quand :
 
 - le projet n'est pas dans un dépôt git, ou git n'est pas installé ou trop ancien pour un clone partiel ;
-- git refuse le dossier parce qu'un autre utilisateur en est propriétaire, ou que le dossier est dans un dépôt bare ;
+- git refuse le dossier parce qu'un autre utilisateur en est propriétaire, ou que le dossier est dans un dépôt nu ;
 - le dépôt configure un filtre de contenu que Studio n'exécute pas ;
 - un `files.pattern` place un fichier de locale hors du dossier du projet, par exemple avec `../`, si bien qu'une liste pourrait omettre ce fichier.
 

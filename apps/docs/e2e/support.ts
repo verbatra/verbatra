@@ -1,21 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { type APIResponse, expect, type Page } from "playwright/test";
 import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
-import type { Locale } from "@/lib/i18n";
+import { LOCALES, type Locale, localePrefix } from "@/lib/locales";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
 
-const LOCALE_PREFIXES: Readonly<Record<Locale, string>> = {
-  en: "",
-  de: "/de",
-  es: "/es",
-  fr: "/fr",
-};
-
-export const LOCALES = Object.keys(LOCALE_PREFIXES) as ReadonlyArray<Locale>;
-
-export { THEMES, type ThemeName };
+export { LOCALES, THEMES, type ThemeName };
 
 export const LEGAL_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
 
@@ -28,6 +19,7 @@ export const DOCS_PAGES = [
   "/docs/sdk/run",
   "/docs/sdk/extend",
   "/docs/error-codes",
+  "/docs/troubleshooting",
 ] as const;
 
 function varyTokens(response: APIResponse): ReadonlyArray<string> {
@@ -44,11 +36,11 @@ export function expectVaryAccept(response: APIResponse): void {
 }
 
 export function homeUrl(locale: Locale): string {
-  return LOCALE_PREFIXES[locale] || "/";
+  return localePrefix(locale) || "/";
 }
 
 export function pageUrl(locale: Locale, path: string): string {
-  return `${LOCALE_PREFIXES[locale]}${path}`;
+  return `${localePrefix(locale)}${path}`;
 }
 
 export async function applyTheme(page: Page, theme: ThemeName): Promise<void> {
@@ -88,6 +80,47 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
     return root.scrollWidth - root.clientWidth;
   });
   expect(overflow).toBeLessThanOrEqual(0);
+}
+
+export async function expectNoTableWiderThanItsWrapper(
+  page: Page,
+  options: { requireTable?: boolean } = {},
+): Promise<void> {
+  const { count, wide } = await page.evaluate(() => {
+    const wrappers = [...document.querySelectorAll("#nd-page table")]
+      .map((table) => table.parentElement)
+      .filter((wrapper): wrapper is HTMLElement => wrapper !== null);
+    return {
+      count: wrappers.length,
+      wide: wrappers
+        .filter((wrapper) => wrapper.scrollWidth > wrapper.clientWidth + 1)
+        .map((wrapper) => wrapper.scrollWidth - wrapper.clientWidth),
+    };
+  });
+  if (options.requireTable === true) expect(count, "tables on the page").toBeGreaterThan(0);
+  expect(wide).toEqual([]);
+}
+
+export async function expectHeadingControlsInsideViewport(page: Page): Promise<void> {
+  const outside = await page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    const controls = [
+      ...document.querySelectorAll(
+        "#nd-page .group\\/heading > a[data-card], #nd-page .group\\/heading > button",
+      ),
+    ];
+    return controls
+      .map((node) => ({
+        heading: node.parentElement?.textContent?.slice(0, 40) ?? "",
+        tag: node.tagName.toLowerCase(),
+        right: Math.round(node.getBoundingClientRect().right * 10) / 10,
+      }))
+      .filter((control) => control.right > viewport + 0.5)
+      .map(
+        (control) => `${control.tag} of "${control.heading}" right=${control.right} > ${viewport}`,
+      );
+  });
+  expect(outside).toEqual([]);
 }
 
 export async function expectNothingPastRightEdge(page: Page): Promise<void> {
@@ -188,7 +221,13 @@ export const wordsWithoutMargin = (selector: string): WordScan => ({
 });
 
 export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
-  const pattern = split === "space" ? /\S+/g : /[^\s\-/]+/g;
+  const spaceless = /^(zh|ja|th|lo|km|my)\b/.test(document.documentElement.lang);
+  const patternOf = (node: Text): RegExp => {
+    if (split === "space") return /\S+/g;
+    if (check === "overflow" || !spaceless || node.parentElement?.closest(".vk-compare-unit"))
+      return /[^\s\-/]+/g;
+    return /[A-Za-z0-9_][A-Za-z0-9_.:@]*/g;
+  };
   const textNodes = (root: Element): Text[] => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes: Text[] = [];
@@ -214,7 +253,7 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
       (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
     );
     return spoken.flatMap((node) =>
-      Array.from(node.data.matchAll(pattern))
+      Array.from(node.data.matchAll(patternOf(node)))
         .filter((match) => {
           const range = rangeOf(node, match);
           if (check === "broken") return isBroken(range);

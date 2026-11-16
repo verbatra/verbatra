@@ -1,7 +1,7 @@
 ---
 title: Entregar a una agencia (XLIFF)
 seoTitle: "Entrega traducciones a una agencia con XLIFF"
-description: "Exporta las cadenas por traducir como XLIFF 2.0 o 1.2 para una herramienta TAO e importa el archivo devuelto con las mismas comprobaciones de siempre."
+description: "Exporta las cadenas por traducir en XLIFF 2.0 o 1.2 para una herramienta TAO e importa el resultado con las comprobaciones de seguridad de cualquier ejecución."
 type: how-to
 ---
 <AvailableFrom version="0.12.0" />
@@ -56,7 +56,7 @@ De dónde viene un valor no cambia su estado: una traducción automática, un ac
 
 ### Marcas de traducción automática
 
-El origen viaja junto al estado, para que la agencia vea qué destinos escribió una máquina. En XLIFF 1.2, un destino escrito por una máquina y sin aprobar lleva `state-qualifier="mt-suggestion"`; en XLIFF 2.0 los metadatos de la unidad llevan su origen y su estado de revisión. La importación ignora ambos. Consulta [Registrar evidencia de traducción automática](/es/docs/provenance-evidence#xliff).
+El origen viaja junto al estado, para que la agencia vea qué destinos escribió una máquina. En XLIFF 1.2, un destino sin aprobar escrito por una máquina (un proveedor, la memoria, una coincidencia aproximada o un agente) lleva `state-qualifier="mt-suggestion"`; en XLIFF 2.0 los metadatos de la unidad llevan su origen y su estado de revisión. La importación ignora ambos. Consulta [Registrar evidencia de traducción automática](/es/docs/provenance-evidence#xliff).
 
 ## Qué acepta la importación
 

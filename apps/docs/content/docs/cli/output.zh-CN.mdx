@@ -1,0 +1,140 @@
+---
+title: 退出码与 JSON 输出
+seoTitle: "verbatra 退出码与 --json 输出格式"
+description: "退出码约定、每个 --json 命令输出的 JSON 信封、CLI 自身报告的错误码，以及 verbatra 如何向 stderr 和终端写入。"
+type: reference
+---
+脚本或 CI 步骤可以在各个命令之间依赖的全部内容。每个命令页面（见 [CLI 参考](/zh-CN/docs/cli)）只补充该命令特有的内容。
+
+## 退出码
+
+CI 步骤按退出码分支，它就是约定：
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 成功，具体含义按表下列出的各命令而定 |
+| `1` | 已运行，但结果不干净：`translate` 或 `import` 结束时至少有一个失败或部分完成的语言环境；`check` 发现有语言环境不同步（或者，带 `--qa` 时，已提交的译文有完整性错误，在 `--strict` 下有审校警告或不完整的复数；带 `--require-reviewed` 时，有无人批准的机器译文；带 `--sensitive` 时，源文件或术语表中有看起来敏感的内容）；`check --file` 在文件中发现语法或完整性错误（在 `--strict` 下，还包括审校警告或不完整的复数）；`diff` 发现缺失或已更改的键（带 `--unused` 时，完整扫描发现未使用的源键）；`report provenance` 发现 `verbatra.provenance.json` 已损坏或来自较新的 verbatra；`doctor` 发现至少一项检查失败；`types --check` 发现已提交的声明已过期；或 `studio` 或 `mcp` 在关闭其服务器时失败 |
+| `2` | 无法运行：整次运行的错误（配置有误、源文件无法读取、锁文件已损坏、提供商不支持某个语言环境）；用法错误（空的 `--locales` 列表、`INVALID_LOCALES`，或无效的 `--debounce` 或 `--port`）；未配置的 `--locales` 值（`UNKNOWN_LOCALE`）；`init` 缺少所需的选项、找到多个合适的格式或文件模式、拒绝覆盖现有配置，或无法生成有效的配置；`watch` 无法启动或停止；`studio` 无法加载配置、导入 `@verbatra/studio` 或启动其服务器；`mcp` 收到不存在的 `--config` 路径，或无法导入 `@verbatra/mcp`、启动其服务器，或无法在已安装的 `@verbatra/mcp` 上遵从 `--redact-values`（查找时配置缺失或无效，则以未配置状态启动） |
+| `3` | 在纯人工项目（`provider: { id: "none" }`，见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）中，`translate`（包括试运行和 `--estimate`）干净地结束，但留下了需要人工翻译的键；失败或部分完成的语言环境仍以 `1` 退出 |
+| `130` | `translate` 或 `import` 在释放写锁之后被 Ctrl-C（SIGINT）中断，或 `watch`、`studio` 或 `mcp` 被第二次中断强制停止 |
+| `143` | `translate` 或 `import` 在释放写锁之后被 SIGTERM 停止 |
+
+退出码 `0` 对各命令的含义是：
+
+- `translate` 或 `import`：每个语言环境都已完整完成
+- `check`：每个语言环境都已同步
+- `diff`：没有待处理的更改
+- `report`：已打印报告
+- `doctor`：没有设置问题
+- `extract`：已完成扫描
+- `pseudo`：已生成伪语言环境
+- `types`：已生成声明
+- `export`：已写入工作簿
+- `tmx`：已导入或导出翻译记忆库
+- `init`：已生成项目，或发现项目已是最新
+- `watch`、`studio` 或 `mcp`：已干净地停止
+- `--help` 或 `--version`：已打印帮助或版本
+
+在 `130` 和 `143` 时，stderr 以 `verbatra: interrupted (SIGINT), released locks`（或 `SIGTERM`）结尾；使用 `--json` 时则以记录 `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` 结尾。如果释放锁失败，或在 5 秒内没有完成，该行会改为说明这一点（`could not release locks: <reason>` 或 `lock release did not finish within 5s`，后面各跟如何找到并删除遗留的锁），JSON 记录则带有 `"locksReleased":false`，以及 `"reason":"failed"`（外加 `message`）或 `"reason":"timed-out"`（外加 `deadlineMs`）。
+
+几个值得了解的边界情况：
+
+<AvailableFrom version="0.9.0" />
+
+- **部分完成**的语言环境算作失败。它表示文件已写入，但仍有一些键缺失，通常是因为某个提供商子批次失败，或完整性门禁拒绝了某条译文。它与失败的语言环境一样以 `1` 退出。要区分两者，请看摘要中的 `partial`。一个语言环境没有写入任何值时才是 `failed` 而不是部分完成，所以在一次部分完成的 `import` 之后重新运行同一个 `import`，读取为失败：之前写入的内容现在没有更改，只剩被拒绝的行。子批次失败时，语言环境上会留下 `SUB_BATCH_FAILED` 通知，列出提供商的错误码；失败不是结构化的提供商错误时，则为 `PROVIDER_CALL_FAILED`。
+- **提供商不支持的语言环境**同样是整次运行的错误，而不是某一个语言环境的失败。`translate`（包括试运行和 `--estimate`）、启动时的 `watch`，以及单键重新翻译，都会在构造任何提供商或产生任何花费之前，以 `LOCALE_UNSUPPORTED_BY_PROVIDER` 拒绝它，并以 `2` 退出。判断依据是 verbatra 为 DeepL 和 Google Cloud Translation 自带的语言表；LLM 提供商接受任何语言环境。用 `--locales` 去掉该语言环境，即可翻译其他语言环境；运行 [`verbatra doctor --locales`](/zh-CN/docs/cli/doctor#语言环境支持) 可查看原因。详见[语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)。
+- **损坏的锁文件**在 `translate` 和 `import` 中都是整次运行的错误，而不是某一个语言环境的失败。它是一个共享的单一文件，所以运行过程中锁文件变得损坏时，运行以 `2` 停止，而不是继续处理其余语言环境。中止之前已写入的内容保留在磁盘上；修复锁文件后重新运行命令。
+- 单次中断是干净的停止，三个长时间运行的命令（`watch`、`studio` 和 `mcp`）遇到它都以 `0` 退出。除此之外，不要假定它们的行为相同：如果停止本身失败，`watch` 以 `2` 退出，而 `studio` 和 `mcp` 以 `1` 退出。
+- `watch` 期间失败的运行以输出流上的一条记录出现，从不体现为非零退出码。
+- `export` 没有按语言环境的失败模式：它以 `0` 或 `2` 退出，从不以 `1` 退出。
+- `doctor` 对损坏配置的处理与其他命令不同：查找时没有找到的配置，或未通过校验的配置，是一项失败的检查并以 `1` 退出，因为报告的正是这类问题，这是该命令的职责。只有完全无法运行时才以 `2` 退出，例如显式的 `--config` 路径不存在。
+- 有一种失败模式在约定之外：不属于用法错误的解析失败会被重新抛出，二进制文件不会捕获它，所以适用的是 Node 对 unhandled rejection（未处理的 Promise reject）的默认处理，而不是这六个退出码中的任何一个。
+- 受保护的键（见[保留人工翻译](/zh-CN/docs/protecting-human-translations)；人写入、导入或在 verbatra 之外更改过的过期值，或固定的键），在有提供商的项目中不会改变 `translate` 的退出码：它以 `0` 退出，并在 stderr 上说明留下了多少个键（固定的键不计入）。`check` 仍会为它以 `1` 退出，因为该键保持过期，直到有人解决。在纯人工项目中，它计入退出码 `3`。
+
+## JSON 输出
+
+除 `studio` 和 `mcp` 外，每个命令都接受 `--json`，在 stdout 上输出机器可读的内容：`translate`、`watch`、`check`、`diff`、`report`、`export`、`import`、`tmx`、`doctor`、`pseudo`、`types`、`extract` 和 `init`。每条记录占一行，每条记录外面都包着相同的信封（envelope），所以你只需按一个字段分支，不必猜测手里拿的是哪个命令的载荷：
+
+```ts
+type Envelope<TResult> =
+  | { ok: true; version: 1; command: string; result: TResult }
+  | {
+      ok: false;
+      version: 1;
+      command: string | null;
+      code: string;
+      message: string;
+      causeCode?: string; // the code of the error this one wraps, when it has one
+      candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
+    };
+```
+
+`version` 是这一信封结构的版本，不是包版本。它是整数，所以用 `===` 比较即可，无需按范围解析；只有现有字段的含义改变或字段消失时它才会变化。新字段可能在不升版本的情况下出现，所以忽略你不认识的字段。
+
+整体失败的运行会向 stdout 恰好写入一条 `ok: false` 记录，并以 `2` 退出。它的 `code` 与 stderr 行中的稳定错误码相同，所以应按它分支：
+
+```json
+{ "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
+```
+
+只有失败发生在子命令确定之前时，`command` 才为 `null`。`candidates` 只出现在要求你选择的错误上，例如 `init` 的 `FORMAT_AMBIGUOUS`，它列出可供选择的值。`missing` 出现在仍有选项未回答的 `init` 用法错误上，并列出仍需传入的每个选项。`causeCode` 在错误包装了另一个带错误码的错误时出现，例如由 `MISSING_API_KEY` 引起的 `PROVIDER_CONSTRUCTION_FAILED`；此时 stderr 行以 `(cause: MISSING_API_KEY)` 结尾。
+
+<AvailableFrom version="0.12.0" />
+
+错误有下一步时会出现 `hint`：一句能解决该错误的简短祈使句，例如缺少密钥时的 `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."`，或 `USAGE_ERROR` 的 `` "Run `verbatra check --help` to see the options and arguments it accepts." ``。按它行动，而不是解析 `message`。它会列出变量、选项和路径，从不包含密钥的值。每个 SDK、提供商和格式适配器的错误码都有一条（SDK 以 [`errorHint`](/zh-CN/docs/sdk/errors#errorhint) 导出同样的文本），除 `CLI_ERROR` 外的每个 [CLI 错误码](/zh-CN/docs/error-codes#cli-error-codes)也有。不带 `--json` 时，同样的文本以 `next: ...` 的形式跟在 stderr 的错误行之后，除非设置了 `--quiet`。`mcp --json` 是例外：它会被拒绝，stderr 上只有一行 `USAGE_ERROR`，没有信封，也没有 `next:`。`studio` 和 `mcp` 的启动错误同样没有 `next:` 行。
+
+成功信封的 `result` 因命令而异，在各命令页面的“JSON 输出”下说明：[`extract`](/zh-CN/docs/cli/extract)、[`translate`](/zh-CN/docs/cli/translate)、[`watch`](/zh-CN/docs/cli/watch)、[`check`](/zh-CN/docs/cli/check)、[`diff`](/zh-CN/docs/cli/diff)、[`report`](/zh-CN/docs/cli/report)、[`doctor`](/zh-CN/docs/cli/doctor)、[`pseudo`](/zh-CN/docs/cli/pseudo)、[`types`](/zh-CN/docs/cli/types)、[`export`](/zh-CN/docs/cli/export)、[`import`](/zh-CN/docs/cli/import)、[`tmx`](/zh-CN/docs/cli/tmx)、[`init`](/zh-CN/docs/cli/init)。
+
+## Schema
+
+<AvailableFrom version="0.12.0" />
+
+`--json` 输出的每条记录都有对应的 JSON Schema（draft 2020-12）。这些 schema 随 npm 包一起发布，并在稳定的 URL 上提供，所以脚本、智能体或编辑器可以校验输出，而不必阅读文字说明。每个输出 schema 都允许它没有列出的属性，正如上面的信封约定所承诺的；如果你复制其中一个，请保持这一点。配置 schema 是有意的例外：它描述你写入的内容，所以会拒绝未知的键，以便发现拼写错误。
+
+| 文档 | URL | 包中的文件 |
+| --- | --- | --- |
+| 任意信封，成功或错误 | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
+| 某个命令的信封，含其 `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
+| 错误信封 | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| 单独的 `init` 结果，不含信封 | [`init-result.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-result.json) | `@verbatra/cli/schemas/init-result.json` |
+| stderr 上的一行 JSON：进度、锁等待、中断 | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
+| 配置文件 | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json`，或 `@verbatra/sdk/config-schema.json`：同一个 schema，但没有 `$id` 和 `title` |
+
+每个命令页面在“JSON 输出”下链接它的信封，[https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) 列出每个文档及其标题。命令信封在 `$ref` 中通过 URL 指向它的 `result` schema，所以校验器会通过网络加载它；先注册 `node_modules/@verbatra/sdk/dist/schemas` 中的文件，也可以从那里加载。
+
+`v1` 对应信封的 `version: 1`，并始终提供最新发布版本。新增字段仍留在 `v1`；破坏载荷的更改会提高信封的 `version`，并新增 `/schema/v2/`。配置 schema 使用同样的 URL 方案，但跟随配置自身的更改。该 URL 始终提供最新发布版本，而来自 npm 的副本停留在它自己的版本，所以在 schema 列出封闭取值的地方（例如 stderr 记录的 `type` 或信封的 `command`），较旧的副本可能拒绝来自较新 CLI 的记录。
+
+## CLI 错误码
+
+<AvailableFrom version="0.12.0" />
+
+这些错误码由 CLI 自己报告。同一份列表以 `CLI_ERROR_CODES`（类型为 `CliErrorCode`）从 `@verbatra/cli` 导出，所以脚本可以据此检查某个错误码。其他任何错误码都来自 SDK、提供商或格式适配器。每个错误码的含义、哪些命令会报告它，以及它的下一步，见[错误码](/zh-CN/docs/error-codes#cli-error-codes)。
+
+## stderr 上的错误
+
+每个错误都以一行结构化文本（`verbatra: error [CODE] message`）输出到 stderr，两种模式都是如此。在 0.12.0 及之后的版本中，这也包括参数解析错误（未知选项或命令、缺少参数）：它会打印 `verbatra: error [USAGE_ERROR] unknown option '--nope'` 并以 `2` 退出，而此前打印的是 commander 自己的 `error: unknown option '--nope'`，没有错误码。`init` 在 0.12.0 及之后的版本中遵循同样的语法；在此之前，缺少提供商时会打印 `verbatra: --provider is required (...)`，没有错误码。在 0.12.0 及之后的版本中，不带 `--json` 时，提示以 `next: ...` 的形式跟在该行之后；使用 `--json` 时，解析错误会向 stdout 写入带 `hint` 的 `USAGE_ERROR` 信封；`mcp` 把 stdout 留给协议，所以它只在 stderr 上拒绝 `--json`。`studio` 和 `mcp` 的启动是结构化行的例外：未安装 `@verbatra/studio` 或 `@verbatra/mcp` 时，stderr 上只有安装说明，没有 `verbatra:` 前缀。使用 `--json` 时，解析错误的 `message` 是 commander 自己的文本，包括 `error: ` 前缀。不带 `--json` 时，失败的运行仍然完全不向 stdout 写入任何内容。进度和锁等待记录始终输出到 stderr，所以 stdout 上只有信封。
+
+## 终端输出
+
+<AvailableFrom version="0.12.0" />
+
+结果输出到 stdout。进度、通知、提示、警告和错误输出到 stderr，verbatra 会根据 stderr 的去向调整它们：
+
+- 在交互式终端中，`error`、`[ok]` 和 `next:` 等固定标签带颜色，耗时超过 300 毫秒的步骤会显示 ASCII 加载动画（spinner，字符为 `| / - \`）。
+- 当 stderr 通过管道传给其他程序或被重定向、`CI` 被设为空、`0` 或 `false` 以外的任何值，或 `TERM` 为 `dumb` 时，输出是纯文本、只追加的行，没有颜色，也没有动画。
+- stdout 上 [`doctor`](/zh-CN/docs/cli/doctor) 报告的状态标签（`[ok  ]`、`[warn]`、`[fail]`、`[skip]`）在 stdout 本身是交互式终端时带颜色，所以重定向的报告保持纯文本，除非 `FORCE_COLOR` 开启颜色。
+- `--json` 从不添加颜色或动画，stdout 上只有信封。纯文本的 `verbatra:` 警告行仍可能到达 stderr，所以使用方只解析以 `{` 开头的 stderr 行。详见 [JSON 输出](/zh-CN/docs/cli/output#json-输出)。
+
+| 选项或变量 | 作用 |
+| --- | --- |
+| `-q`, `--quiet` | 只输出结果、警告和错误：去掉进度行、`next:` 提示和信息性的 stderr 行，而结果摘要（包括其通知）保留。放在命令名之前或之后都有效 |
+| `--no-color` | 输出永不着色 |
+| `NO_COLOR`、`NODE_DISABLE_COLORS`、`VERBATRA_NO_COLOR` | 任何非空值都会关闭颜色；`VERBATRA_NO_COLOR` 还会覆盖 `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`、`2`、`3`、`true` 或空值会开启颜色，即使 stderr 或 stdout 不是终端；其他任何值（包括 `0`）都会关闭颜色。一旦设置，它优先于 `NO_COLOR`、`NODE_DISABLE_COLORS`、`CI` 和 `TERM=dumb`；`--no-color` 和 `VERBATRA_NO_COLOR` 仍然优先 |
+| `VERBATRA_NO_SPINNER` | 任何非空值都会把加载动画替换为静态的 `label... done (1.2s)` 行，适用于屏幕阅读器和终端录屏 |
+
+各命令页面上的 `output` 示例显示的是纯文本形式。交互式终端会把正在运行的步骤显示为加载动画行，结尾是 `[ok]` 和已用时间。
+
+状态词是纯 ASCII（`[ok]`、`[warn]`、`[fail]`、`[skip]`），所以输出在每个终端和日志中读起来都一样。每一行都经过与其余输出相同的密钥脱敏，只有固定标签会着色，键、路径和消息从不着色。

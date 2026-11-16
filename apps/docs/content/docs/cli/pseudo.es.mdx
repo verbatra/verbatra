@@ -7,7 +7,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Ejecuta tu app en un idioma que no existe. `pseudo` construye un locale falso a partir de tus cadenas de origen: cada valor se acentúa, se alarga y se envuelve en marcadores visibles, así que los botones recortados, las frases pegadas a trozos y las etiquetas nunca extraídas saltan a la vista. Con `--mode bidi` muestra en cambio cada cadena de derecha a izquierda. No construye ningún proveedor, no lee ninguna clave de API ni hace peticiones de red, así que funciona antes de que exista una clave.
+Ejecuta tu app en un idioma que no existe. `pseudo` construye un locale falso a partir de tus cadenas de origen: cada valor se acentúa, se alarga y se envuelve en marcadores visibles, así que los botones recortados, las frases concatenadas y las etiquetas nunca extraídas saltan a la vista. Con `--mode bidi` muestra en cambio cada cadena de derecha a izquierda. No construye ningún proveedor, no lee ninguna clave de API ni hace peticiones de red, así que funciona antes de que exista una clave.
 
 ## Sinopsis
 
@@ -47,7 +47,7 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--co
 
 | Paso | Lo que ves |
 | --- | --- |
-| Acentuar | cada letra ASCII pasa a un doble acentuado, así que `Save` se lee `Śáṽé` |
+| Acentuar | cada letra ASCII pasa a una variante acentuada parecida, así que `Save` se lee `Śáṽé` |
 | Alargar | el valor crece alrededor de un tercio de su longitud traducible, más o menos lo que el alemán necesita frente al inglés |
 | Marcar | el valor se envuelve entre `[` y `]`, así que una cadena recortada o concatenada se ve enseguida |
 

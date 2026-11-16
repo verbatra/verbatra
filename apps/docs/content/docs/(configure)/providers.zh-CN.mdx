@@ -1,0 +1,386 @@
+---
+title: 提供商
+seoTitle: "verbatra 中的 AI 与机器翻译提供商"
+description: "verbatra 支持的所有 AI 与机器翻译提供商，包括各自的选项和 API 密钥变量，以及它们共有的行为。"
+type: reference
+---
+在[配置文件](/zh-CN/docs/config-file)的 `provider` 块中，用 `id` 选择提供商。Anthropic、OpenAI、Gemini、OpenCode 和 openai-compatible 是语言模型；DeepL、Google Cloud Translation 和 LibreTranslate 是机器翻译服务；`none` 关闭机器翻译。语言覆盖范围见[语言与语言环境](/zh-CN/docs/language-support)，各提供商收到什么见[数据处理与隐私](/zh-CN/docs/data-handling)。
+
+## 我该选哪一个？
+
+每个提供商都适用于所有格式和命令，以后切换只需编辑一个 `id`。
+
+| 如果你想要 | 使用 |
+| --- | --- |
+| 免费，用于字符串不涉密的小项目 | **Gemini**：有免费 API 套餐，Google 可能在欧洲经济区、瑞士和英国之外安排人工审查请求（[条款](/zh-CN/docs/data-handling#服务商数据保留与数据处理条款)）。 |
+| 生产应用的最佳质量 | **Anthropic** 或 **OpenAI**，两者都是付费的。 |
+| 大批量、原生术语表、不用 LLM | **DeepL**，免费或付费套餐。 |
+| 用 Google Cloud 上的 API 密钥获得最广的语言覆盖 | **Google Cloud Translation**（Basic，v2）。 |
+| 离线、零费用、数据不离开你的网络 | **openai-compatible**，搭配 LM Studio、Ollama 或 vLLM。 |
+| 不用语言模型，但要自托管 | 你自己服务器上的 **LibreTranslate**。 |
+| 完全不用机器翻译 | **none**：只用翻译记忆库和人工。 |
+
+## 密钥来自环境变量
+
+verbatra 从不从配置中读取密钥。每个托管提供商读取一个变量：
+
+| 提供商 id | 环境变量 |
+| --- | --- |
+| `anthropic` | `ANTHROPIC_API_KEY` |
+| `openai` | `OPENAI_API_KEY` |
+| `gemini` | `GEMINI_API_KEY` |
+| `deepl` | `DEEPL_API_KEY` |
+| `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
+| `opencode` | `OPENCODE_API_KEY` |
+
+把它设在 `.env`（`verbatra init` 会将其加入 gitignore）、你的 shell 或 CI 的密钥库中，并且绝不要提交。变量未设置或为空时，运行会以 [`MISSING_API_KEY`](/zh-CN/docs/error-codes#missing_api_key) 失败，错误信息会指明变量名，但绝不包含值。`openai-compatible` 和 `libretranslate` 通常不需要密钥。
+
+## Anthropic
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "anthropic",
+  options: {
+    model: "claude-sonnet-4-6", // example model id
+    maxTokens: 4096,
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `model` | string | 必填 | 模型 id。 |
+| `maxTokens` | 正整数 | 必填 | 限制单次响应的输出 token（[上限](#输出-token-上限)）；与顶层预算无关。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制每次请求尝试的时长（[请求超时](#请求超时)）。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码（[语言环境代码](#发送给提供商的语言环境代码)）。 |
+
+读取 `ANTHROPIC_API_KEY`。
+
+## OpenAI
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai",
+  options: {
+    model: "gpt-5.4-mini", // example model id
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `model` | string | 必填 | 模型 id。 |
+| `maxOutputTokens` | 正整数 | 必填 | 限制单次响应的输出 token。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制每次请求尝试的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+读取 `OPENAI_API_KEY`。
+
+## Gemini
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "gemini",
+  options: {
+    model: "gemini-2.5-flash", // example model id
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `model` | string | 必填 | 模型 id。 |
+| `maxOutputTokens` | 正整数 | 必填 | 限制单次响应的输出 token。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制每次请求尝试的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+读取 `GEMINI_API_KEY`。
+
+<Callout title="免费套餐及其限制">
+来自 [Google AI Studio](https://aistudio.google.com/apikey) 的密钥无需开通计费，但它每分钟和每天的上限可能会让涉及许多语言环境的首次运行中途停止：一次只翻译一个语言环境，或调低 `maxBatchSize`，再重新运行处理其余部分。
+</Callout>
+
+## DeepL
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "deepl",
+  options: {
+    glossaryId: "<your-glossary-id>",
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `glossaryId` | string | 无 | 你在 DeepL 中创建的术语表，以原生方式应用。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 每次尝试的最短等待时间，最多尝试 6 次。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+读取 `DEEPL_API_KEY`；`options` 可以是 `{}`。DeepL 没有模型，也没有输出 token 上限，出现问题时以通知降级，而不是失败：
+
+- **占位符**以编号标记的形式放在被忽略的标签中传输（`Hello {{name}}` 变为 `Hello <x>{0}</x>`），随后还原。当值含标签、占位符不是字面量，或占位符之外的文本含 `<`、`>`、`{` 或 `}` 时，`PLACEHOLDER_UNSUPPORTED` 会整条搁置该值；标记丢失、重复、被更改或单独出现、出现未知实体或多余的标签的结果则整条丢弃。只有内联标记、没有占位符的值按纯文本发送。<AvailableFrom version="0.12.0" />
+- **语气**映射为正式程度（`formal` 对应更正式，`informal` 对应更不正式，`neutral` 不发送）。免费套餐的密钥不发送正式程度，并报告 `FORMALITY_DOWNGRADED`。付费密钥会请求 `prefer_more` 或 `prefer_less`，所以不支持正式程度的语言（如瑞典语）会带着同样的通知回退。[术语表](#各提供商的语气与术语表)不适用。
+
+<AvailableFrom version="0.12.0" />
+
+verbatra 内置 DeepL 带日期的[语言表](https://developers.deepl.com/docs/getting-started/supported-languages)，并在产生任何花费之前以 `LOCALE_UNSUPPORTED_BY_PROVIDER` 拒绝表中没有的语言。只有两种语言都在 DeepL 的术语表语言列表中（如 `DE`、`EN`、`FR`、`JA`、`ZH`）时，`glossaryId` 才会生效。
+
+## Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "google-translate",
+  options: {},
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+读取 `GOOGLE_TRANSLATE_API_KEY`，即已启用 Cloud Translation API 的 Google Cloud 项目的 API 密钥。只有 Basic（v2）可用：Advanced（v3）需要服务账号。
+
+- **占位符**的遮蔽方式与 DeepL 相同，放在 `<span translate="no">` 中；含换行符、制表符或连续空格的已遮蔽值也会被整条搁置。<AvailableFrom version="0.12.0" />
+- **代码**：每个发送的代码在任何调用之前都会按格式正确的 BCP 47 检查（`en_US` 会以 `INVALID_REQUEST` 失败）。允许带地区的代码；Google 拒绝的语言对会由 API 返回 `INVALID_REQUEST` 而失败。
+
+<AvailableFrom version="0.12.0" />
+
+verbatra 内置 Google 带日期的[语言表](https://docs.cloud.google.com/translate/docs/languages)，并在产生任何花费之前拒绝表中没有的语言。语言只作为整体列出的带地区代码（如 `de-AT`）会按原样发送，并给出警告。
+
+## OpenCode
+
+<AvailableFrom version="0.12.0" />
+
+这里只支持通过 `/chat/completions` 提供服务的 [OpenCode Zen](https://opencode.ai/docs/zen/) 模型（模型表列出了每个模型的端点）。OpenCode 把 Go 和免费的 Zen 模型留给它自己的客户端。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "opencode",
+  options: {
+    model: "glm-5.3", // example: a Zen model served over Chat Completions
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `model` | string | 必填 | 模型 id。 |
+| `maxOutputTokens` | 正整数 | 必填 | 限制单次响应的输出 token。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制每次请求尝试的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+端点固定，没有 `baseUrl`。读取 `OPENCODE_API_KEY`。
+
+## openai-compatible
+
+任何支持 OpenAI Chat Completions API 的服务器：LM Studio、Ollama、vLLM，或托管 API。
+
+服务器必须在 `<baseUrl>/chat/completions` 提供 Chat Completions，并支持严格的 JSON schema 输出。只为自家客户端应用提供服务的网关不适用。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "http://192.168.178.74:1234/v1",
+    model: "qwen2.5-14b-instruct", // example: whatever your server exposes
+    maxOutputTokens: 1024,
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `baseUrl` | `http` 或 `https` URL | 必填 | API 根地址，通常以 `/v1` 结尾。以 `/chat/completions` 或 `/completions` 结尾的 URL 会被拒绝；缺少 `/v1` 的 URL 能通过校验，但会在请求时失败。 |
+| `model` | string | 必填 | 你的服务器提供的任意模型。 |
+| `maxOutputTokens` | 正整数 | 必填 | 限制单次响应的输出 token。 |
+| `apiKeyEnvVar` | 变量名 | 无 | 保存此服务器密钥的变量。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制每次请求尝试的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+托管 API（如 Mistral）的写法：
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "https://api.mistral.ai/v1",
+    model: "mistral-large-latest", // example: check Mistral's current model list
+    maxOutputTokens: 4096,
+    apiKeyEnvVar: "MISTRAL_API_KEY",
+  },
+}
+```
+
+响应使用与 `openai` 相同的严格 schema；verbatra 会从周围的文字或代码围栏中取出第一个平衡的 JSON 对象并校验。`verbatra init --provider openai-compatible --base-url <url> --model <name>` 会写入这个块（[init](/zh-CN/docs/cli/init#提供商)），`--api-key-env-var <NAME>` 会加上变量名。
+
+### 密钥是可选的
+
+密钥按以下顺序解析：
+
+1. **`apiKeyEnvVar`**：已设置时，其变量必须保存密钥，否则运行以 `MISSING_API_KEY` 失败。
+2. **`OPENAI_COMPATIBLE_API_KEY`**：已设置且非空时使用。
+3. **`"local"`**：固定的非机密占位值，无密钥的服务器因此能正常工作。
+
+`apiKeyEnvVar` 不能指向托管提供商的变量，客户端也从不读取 `OPENAI_API_KEY`，所以托管密钥绝不会发往自定义的 `baseUrl`。
+
+<Callout type="warn" title="真实密钥经 http 以明文传输">
+使用密钥并且 URL 是非回环的 `http://` 时，密钥会在你的网络上未加密传输，且没有警告，所以需要密钥的服务器请使用 `https://`。
+</Callout>
+
+### 选择本地模型
+
+优先选择经过指令微调、非推理、多语言，并且在你的硬件能流畅运行的前提下尽可能大的模型，如 `qwen2.5-14b-instruct`。推理模型和高度量化的版本容易包裹或截断答案，导致 `INVALID_RESPONSE` 或 `OUTPUT_TRUNCATED` 失败。
+
+## LibreTranslate
+
+<AvailableFrom version="0.12.0" />
+
+自托管的 [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) 服务器（Argos Translate，没有语言模型）。verbatra 只调用它的 HTTP API，所以该服务器的 AGPL-3.0 许可证不会延伸到你的项目。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: {
+    baseUrl: "http://localhost:5000",
+  },
+}
+```
+
+| 选项 | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `baseUrl` | `http` 或 `https` URL | 必填 | API 根地址，不含 `/translate`。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长。 |
+| `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
+
+它支持的语言就是你的服务器上安装的模型：
+
+```bash
+docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+- **密钥**：只有设置了 `LIBRETRANSLATE_API_KEY` 时，才会作为 `api_key` 发送。服务器用 `--api-keys` 启动时，变量未设置会让运行以 `MISSING_API_KEY` 失败，密钥被服务器拒绝会以 `AUTH_FAILED` 失败。
+- **占位符**的遮蔽方式与 DeepL 相同，使用裸的 `{0}` 标记；内联标记会保留，所以在含标签的值中，只有占位符之外的花括号才算数。
+- **内联标记**：含 HTML 风格标签的值以 `html` 格式发送：标签内的文本会翻译，标签保留（跨标签的措辞可能受影响），被更改的标签会被拒绝。
+- **语言检查**：每个目标语言环境在每次运行时都会警告 `LOCALE_UNVERIFIED_BY_PROVIDER`；`verbatra doctor --locales --live` 会对照服务器检查它们。
+
+`verbatra init --provider libretranslate --base-url <url>` 会写入这个块。
+
+## none
+
+<AvailableFrom version="0.12.0" />
+
+按策略关闭机器翻译，适用于禁止把字符串发送给任何服务的规定。
+
+```ts title="verbatra.config.ts"
+provider: { id: "none" }
+```
+
+`options` 可以省略或为 `{}`。不会构造提供商，不读取密钥，也不发出请求；各命令改为做什么见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)。
+
+## 各提供商的语气与术语表
+
+请求只携带其目标语言环境的术语表术语，每个输出都会对照这些术语检查。
+
+| 提供商 | `tone` | `glossary` |
+| --- | --- | --- |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 发送并遵循 | 译文、禁用的译法、不翻译的术语和备注，作为有约束力的数据发送 |
+| DeepL | 映射为正式程度 | `GLOSSARY_IGNORED`；只有 `glossaryId` 生效 |
+| Google Cloud Translation、LibreTranslate | `formal` 或 `informal` 时为 `FORMALITY_DOWNGRADED` | `GLOSSARY_IGNORED` |
+
+## 所有提供商共有的行为
+
+### 分批
+
+一个语言环境的工作以顺序的子批次发出，每个子批次最多 [`maxBatchSize`](/zh-CN/docs/config-file#maxbatchsize) 个条目。失败的子批次会被搁置，下次运行重试，其余部分继续。DeepL 和 Google Cloud Translation 还会拆分子批次，以符合各自的请求上限。
+
+### 重试
+
+速率限制和服务器错误会带退避地重试：OpenAI、OpenCode、openai-compatible、Anthropic 和 DeepL 由客户端重试，Gemini 由 verbatra 重试。Google Cloud Translation 和 LibreTranslate 不重试。Gemini 会遵守最长 5 秒的明确等待时间，更长的等待（每日配额已用尽）会立即以 `RATE_LIMITED` 失败，并指明等待时间。
+
+### 请求超时
+
+`requestTimeoutMs`（默认 `120000` 毫秒）防止一直不应答的服务器拖住运行，并占用某个语言环境的写锁。本地模型较慢或 `maxBatchSize` 较大时，请调高它。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "http://192.168.178.74:1234/v1",
+    model: "qwen2.5-14b-instruct",
+    maxOutputTokens: 1024,
+    requestTimeoutMs: 300000, // 5 minutes
+  },
+}
+```
+
+- **按每次尝试计算**：每次[重试](#重试)都有完整的超时时间。LLM 提供商也会重试超时的尝试，除 Gemini 外还会重试连接错误，所以挂起的服务器最多需要三倍超时加退避的时间。
+- **错误会指明原因**：`TIMEOUT` 表示某次尝试在规定时间内没有得到应答；连接被反复拒绝则以 `PROVIDER_ERROR` 失败。
+- **DeepL** 无法中止正在进行的请求，所以被中断的运行会让它在 DeepL 端自行结束。
+
+### 发送给提供商的语言环境代码
+
+<AvailableFrom version="0.12.0" />
+
+语言文件、锁文件和翻译记忆库使用你配置中的代码。只有请求会被转换为提供商期望的形式：
+
+| 提供商 | 源语言环境 | 目标语言环境 |
+| --- | --- | --- |
+| DeepL | 只取语言：`en-US` 变为 `EN`，`zh-Hant-TW` 变为 `ZH`。 | `zh-Hant`、`zh-TW`、`zh-HK`、`zh-MO` 变为 `ZH-HANT`；`zh-Hans`、`zh-CN`、`zh-SG` 变为 `ZH-HANS`。DeepL 的变体保持不变（`EN-GB`、`EN-US`、`PT-BR`、`PT-PT`、`ES-419`、`FR-CA`、`FR-FR`、`DE-CH`、`DE-DE`）。带拉丁美洲或加勒比地区的西班牙语（`MX`、`AR`、`CO`、`CL`、`PE`、`VE`、`EC`、`GT`、`CU`、`BO`、`DO`、`HN`、`PY`、`SV`、`NI`、`CR`、`PA`、`UY`、`PR`、`US`、`419`）变为 `ES-419`。其他地区和文字会被丢弃：`de-AT` 变为 `DE`。 |
+| Google Cloud Translation | `zh-Hant`（`zh-HK`、`zh-MO`）变为 `zh-TW`，`zh-Hans`（`zh-SG`）变为 `zh-CN`，`nb` 变为 `no`；其余按原样。 | 与源语言环境相同。 |
+| LibreTranslate | 只取语言（`de-AT` 变为 `de`），但 `pt-BR` 保持不变，中文以 `zh-Hans` 或 `zh-Hant` 发送（`zh-TW` 变为 `zh-Hant`）。 | 与源语言环境相同。 |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 按原样。 | 与源语言环境相同。 |
+
+LLM 还会收到[语言、文字与地区名称](/zh-CN/docs/translation-safety#语言文字与地区名称)。DeepL 没有通用的英语或葡萄牙语目标，所以最终成为裸 `en` 或 `pt` 的目标（如 `en-AU`）会在运行前被拒绝：请把它映射为 `EN-GB`、`EN-US`、`PT-BR` 或 `PT-PT`。
+
+`localeMap` 按语言环境覆盖代码：
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "deepl",
+  options: {
+    localeMap: {
+      "en-AU": "EN-GB",
+      "fr-BE": "FR-FR",
+    },
+  },
+}
+```
+
+- **键**必须是 `sourceLocale` 或配置中的某个目标语言环境，否则配置以 `CONFIG_INVALID` 失败。映射放在 `options` 下，除 `none` 外所有提供商都适用。
+- **值**是非空字符串，最多 64 个字符，原样发送：对机器翻译提供商作为代码，对 LLM 则替换代码（`"pt-BR (Brazilian Portuguese)"` 可用），其语言名称仍来自键。DeepL 的裸 `EN` 或 `PT` 会以 `INVALID_REQUEST` 失败；提供商拒绝的值会让其子批次失败。
+- **对翻译记忆库的影响**：只有新增和已更改的字符串会带着新代码发出。非空映射属于翻译记忆库指纹（见[翻译缓存](/zh-CN/docs/the-cache)）的一部分，所以更改它会开启一个单独的分组。
+
+### 检查提供商的语言支持
+
+<AvailableFrom version="0.12.0" />
+
+产生任何花费之前，每个已配置的语言环境都会被评估：
+
+| 提供商 | 评估依据 | 运行前拒绝 | 发出警告 |
+| --- | --- | --- | --- |
+| DeepL | 内置语言表，含每种语言的术语表和正式程度支持 | 表中没有的源语言或目标语言 | 术语表语言之外的语言对使用了术语表、语言不支持正式程度却设置了语气、部分列出的代码 |
+| Google Cloud Translation | 内置语言表 | 表中没有的语言 | 任何术语表、`formal` 或 `informal` 语气、只作为语言列出的带地区代码 |
+| LibreTranslate | 运行前没有依据；用 `doctor --live` 时依据服务器的 `/languages` | 从不 | 每次运行的每个目标语言环境、任何术语表、`formal` 或 `informal` 语气 |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 无：LLM 接受任何语言 | 从不 | [经过充分测试的列表](/zh-CN/docs/language-support#运行前检查支持情况)之外的语言 |
+| none | 不适用 | 从不 | 从不 |
+
+不受支持的语言环境会在构造任何提供商之前被拒绝，错误码为 [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/zh-CN/docs/error-codes#locale_unsupported_by_provider)（退出码 `2`）；警告从不拒绝，而是以[通知](/zh-CN/docs/error-codes#sdk-notice-codes)出现。[`verbatra doctor`](/zh-CN/docs/cli/doctor#语言环境支持) 会报告每个评估结果，它的 `--live` 选项会检查提供商当前的列表，但 `translate` 始终使用内置语言表。对于内置语言表之后才新增的语言，请在 `localeMap` 中映射该语言环境：显式指定的代码会带警告发送，而不会被拒绝。
+
+### 结构化错误
+
+提供商失败会以[结构化、不含密钥的错误](/zh-CN/docs/translation-safety#错误不会泄露信息)出现，只影响它自己的子批次。`PROVIDER_ERROR` 只会指明 openai-compatible 或 LibreTranslate 的 `baseUrl` 的主机和端口，对 Google 则只指明 `translation.googleapis.com`，绝不包含携带其密钥的查询字符串。
+
+### 输出 token 上限
+
+LLM 提供商会限制每次响应的 token；模型在上限处停止时会抛出 [`OUTPUT_TRUNCATED`](/zh-CN/docs/error-codes#output_truncated)。verbatra 会把被截断的子批次重新拆成两半，只搁置仍然溢出的条目。要解决此问题，请调低 `maxBatchSize`，或调高 `maxTokens`（Anthropic）或 `maxOutputTokens`。推理模型的隐藏 token 共用这份预算，所以要留出余量。
+
+### 审校标记
+
+任何提供商给出的可疑译文都会被标记为待审校，而不是被拒绝。见[审校原因](/zh-CN/docs/error-codes#review-reason-codes)和[在 Studio 中审校](/zh-CN/docs/review-in-studio)。

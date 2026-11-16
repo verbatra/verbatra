@@ -1,0 +1,109 @@
+---
+title: 在 CI 中运行 verbatra
+seoTitle: "在 CI 中运行 verbatra，拦住翻译漂移"
+description: 用 CLI 在任意 CI 系统中让 pull request 因翻译漂移、值损坏或未审校的机器译文而失败，并在推送时翻译。
+type: how-to
+---
+当 CI 流程需要发现与源文件发生漂移的语言文件，或需要在推送时替你翻译时，使用本指南。每一步运行的都是你在本地运行的同一个 CLI，因此适用于任何 CI 系统；示例使用 GitHub Actions。
+
+开始之前，你需要：
+
+- 把 `@verbatra/cli` 作为开发依赖，并提交包管理器的锁文件（如 `pnpm-lock.yaml`）。CLI 需要 Node `^22.22.0 || >=24`。
+- 已提交的配置、语言文件和 [`verbatra.lock.json`](/zh-CN/docs/the-lock-file)。
+- 仅在翻译时需要：你的提供商的 API 密钥，存放在 CI 的密钥库中。
+
+如果你使用 GitHub Actions，想要注解和作业摘要又不想自己写作业，改用 GitHub Action（见[使用 GitHub Action](/zh-CN/docs/github-action)）。
+
+## 添加漂移门禁
+
+[`verbatra check`](/zh-CN/docs/cli/check) 比较源文件、目标文件和锁文件，当某个语言环境有缺失或过期的键时以退出码 `1` 退出。它不调用任何提供商，因此作业不需要密钥，也可以在来自 fork 的 pull request 上运行：
+
+```yaml title=".github/workflows/i18n.yml"
+name: i18n
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  check-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<commit-sha>
+      - uses: pnpm/action-setup@<commit-sha>
+      - uses: actions/setup-node@<commit-sha>
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec verbatra check
+```
+
+想知道漂移背后的键名时，把 `check` 换成 [`verbatra diff`](/zh-CN/docs/cli/diff)，例如把键名贴到 pull request 评论里。它在相同条件下退出码为 `1`；孤立的键会出现在输出中，但单凭它们不会让命令失败。
+
+只对部分语言环境设门禁时，传入 `--locales de,fr`。`--locales` 的值若包含未配置的语言环境，即使旁边还有有效的，也会以退出码 `2` 退出，因此拼写错误不会让门禁变绿。
+
+### 按翻译质量设门禁
+
+<AvailableFrom version="0.12.0" />
+
+漂移不是唯一值得拦截的失败。加上 `--qa`，还会对每条已提交的译文运行完整性门禁和审校标记，因此手动编辑后占位符损坏、内联标记损坏或 ICU 复数分支不合适的值，会让作业失败：
+
+```bash
+verbatra check --qa
+```
+
+- 加上 `--strict`，审校警告和缺失的复数类别同样会导致失败。
+- 在编辑钩子中，`verbatra check --file <path>` 单独检查一个语言文件。
+
+详见[质量检查](/zh-CN/docs/cli/check#质量检查)和[单个文件](/zh-CN/docs/cli/check#单个文件)。[GitHub Action](/zh-CN/docs/github-action#检查翻译质量) 用 `qa: "true"` 运行同一道门禁。
+
+### 按审校决定设门禁
+
+<AvailableFrom version="0.12.0" />
+
+加上 `--require-reviewed`，只要有任何机器编写的译文未在已提交的 `verbatra.provenance.json` 中获得批准，就会失败；Studio 的 **Review queue**（审校队列，见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）和 MCP 审校工具会写入这个文件：
+
+```bash
+verbatra check --require-reviewed
+```
+
+它同样不需要密钥。它报告的错误码见[要求译文已审校](/zh-CN/docs/cli/check#要求译文已审校)。
+
+## 推送时翻译
+
+运行 [`verbatra translate`](/zh-CN/docs/cli/translate)，并把提供商密钥从你的密钥库映射到该步骤的环境中。CLI 不接受密钥参数，也不从配置中读取密钥；每个提供商读取哪个变量，列在[提供商](/zh-CN/docs/providers#密钥来自环境变量)中。
+
+```yaml
+      - run: pnpm exec verbatra translate --json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+- 该步骤把语言文件写入检出的工作区，到此为止。自己添加一步来提交它们或创建 pull request，并且只给那个作业授予 `contents: write` 或 `pull-requests: write`。
+- 想先预览，运行 `verbatra translate --dry-run` 或 `--estimate`：两者都不调用提供商，也不需要密钥。详见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+- 面对有速率限制的提供商，用 `--locales` 每步只翻译一个语言环境。
+
+## 用 `doctor` 预检
+
+在任一作业之前加上 [`verbatra doctor`](/zh-CN/docs/cli/doctor)，以便在配置有问题时尽早失败。它检查配置、格式、提供商、密钥变量、网络策略、源文件和语言环境支持；除非传入 `--live`，否则它不调用提供商，也不读取密钥的值。它会把未设置的密钥变量报告为检查失败，因此在需要该检查通过的作业中，要映射好密钥。
+
+## 退出码
+
+根据退出码判断结果，不要解析输出文本。每个退出码的含义及其边界情况见[退出码与 JSON 输出](/zh-CN/docs/cli/output#退出码)；输出中的错误码在[错误码](/zh-CN/docs/error-codes)中说明。
+
+## JSON 输出
+
+传入 `--json`，在 stdout 上为每条记录输出一个信封（envelope）。它的字段见[退出码与 JSON 输出](/zh-CN/docs/cli/output#json-输出)，每个命令的 `result` 见该命令的页面。[用 JSON 编写 verbatra 脚本](/zh-CN/docs/agent-recipes)提供了解析它的实用示例。
+
+## 密钥与安装
+
+- 用 `pnpm install --frozen-lockfile` 或 `npm ci` 安装，这样作业运行的正是包管理器的锁文件（如 `pnpm-lock.yaml`）所记录的 `@verbatra/cli` 版本。
+- 不调用提供商的作业中不要放密钥：`check`、`diff`、`report`、`export`、`import`、`extract`、`pseudo`、`types` 和 `tmx`。
+- 在 CI 中依靠 `env:`。哪些命令还会加载 `.env.local` 和 `.env`，见[环境文件](/zh-CN/docs/cli#环境文件)。
+
+## 相关内容
+
+- [使用 GitHub Action](/zh-CN/docs/github-action)：同样的门禁，附带注解和作业摘要。
+- [`verbatra check`](/zh-CN/docs/cli/check) 和 [`verbatra diff`](/zh-CN/docs/cli/diff)：这两道门禁的所有选项。
+- [退出码与 JSON 输出](/zh-CN/docs/cli/output)：CI 步骤读取的约定。
+- [错误码](/zh-CN/docs/error-codes)：每个错误码的含义及其下一步。

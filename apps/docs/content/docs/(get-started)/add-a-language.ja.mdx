@@ -1,0 +1,89 @@
+---
+title: 言語を追加する
+seoTitle: "verbatra プロジェクトにターゲット言語を追加する"
+description: 設定ファイルを 1 行変更して翻訳を 1 回実行するだけで、既存の verbatra プロジェクトにターゲットロケールを追加します。既存のロケールには影響しません。
+type: how-to
+---
+すでにいくつかの言語に翻訳しているプロジェクトに、もう 1 つ言語を追加する場合の手順です。必要なのは設定ファイルの 1 行の変更と 1 回の実行だけです。verbatra は新しいロケールをすべてのキーが欠落した状態として扱い、そこを埋めます。既存のロケールには費用がかかりません。ロックファイルに最新として記録されているためです。
+
+動作するプロジェクトが必要です。設定ファイル、ソースロケールファイル、プロバイダーの API キーを用意してください。まだない場合は、先に[クイックスタート](/ja/docs/quickstart)を進めます。
+
+## 設定にロケールを追加する
+
+`verbatra.config.ts` の `targetLocales` にコードを追加します。
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"], // [!code highlight]
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+### ロケールコードのルール
+
+<AvailableFrom version="0.12.0" />
+
+コードは BCP 47 の形式で、ハイフンを使って書きます。`pt_BR` ではなく `pt-BR` です。ファイル名にアンダースコアを使っている場合も、設定には `pt-BR` と書き、`files.localeStyle` を `posix` に設定します。verbatra は `pt_BR.json` というファイル名をそのまま使います。無効なコード、ソースロケール、大文字と小文字だけが異なる 2 つのコードは、設定の読み込み時に拒否されます。詳しいルールは[ロケールコード](/ja/docs/config-file#ロケールコード)を参照してください。新しい言語にプロバイダーが対応しているかどうかは、[`verbatra doctor`](/ja/docs/cli/doctor) で確認できます。
+
+## 作業量をプレビューする
+
+費用をかける前に、実行で何が起きるかを確認します。
+
+```bash
+verbatra diff --locales fr
+```
+
+新しいロケールのファイルはまだないため、ソースのすべてのキーが欠落として一覧に出ます。`--locales` を外すと、ほかのロケールに何も表示されないことを確認できます。`diff` はプロバイダーを呼び出さず、何も書き込みません。費用の見積もりは `verbatra translate --estimate` で確認します。詳しくは[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照してください。
+
+## 翻訳する
+
+```bash
+verbatra translate
+```
+
+実行すると、ソースのすべてのキーを新しいロケールに翻訳し、`files.pattern` のパス（ここでは `locales/fr.json`）にファイルを書き込みます。プロバイダーが呼び出されるのは新しいロケールだけです。ほかのロケールには、ロックファイルのベースラインと比べて欠落しているキーも変更されたキーもないため、何も送信されません。
+
+新しいロケールについて何も保持されなかった場合は、ファイルは作成されません。すべてのキーがチェックに失敗した場合、プロバイダーへのリクエストが失敗した場合、トークン予算で保留された場合が該当します。キーは欠落したままで、次回の実行で再試行します。
+
+その後、新しいロケールを含むすべてのロケールが同期していれば、`verbatra check` は `0` で終了します。
+
+## 複数形カテゴリが多い言語
+
+言語によっては、ソースより多くの複数形が必要です。英語には `one` と `other` がありますが、ポーランド語は 4 つ、アラビア語は 6 つ必要で、フランス語は `many` が加わります。デフォルトでは、verbatra はソースにある形だけを翻訳し、ほかの形は作りません。実行は成功し、欠落している形を示す `PLURAL_CATEGORIES_INCOMPLETE` の通知が報告されます。
+
+### 欠けている形を生成する
+
+<AvailableFrom version="0.3.0" />
+
+i18next JSON と LLM プロバイダーを使っている場合は、欠落している形を verbatra に書かせられます。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  generatePlurals: true,
+});
+```
+
+生成された形にも、通常の訳文と同じ整合性チェックが適用されます。
+
+### CLDR の複数形
+
+<AvailableFrom version="0.12.0" />
+
+言語に必要な形は、Node.js に組み込まれた CLDR の複数形ルールから決まります。すべての言語が対象で、序数も含みます。ICU 系のフォーマット（next-intl と ARB）は 1 つの値に複数形全体を持つため、生成は不要です。プロバイダーには、ターゲット言語が使う複数形の分岐を過不足なく依頼します。通知にフォールバックする条件は [`generatePlurals`](/ja/docs/config-file#generateplurals) を、言語に必要な形を verbatra がどう判断するかは[複数形](/ja/docs/language-support#複数形)を参照してください。
+
+## ソースだけを保守し続ける
+
+今後編集するのはソースロケールだけです。そこに文字列を追加して `translate` をもう一度実行すると、verbatra が追加したばかりのロケールを含むすべてのターゲットに反映します。
+
+## 関連項目
+
+- [`verbatra translate`](/ja/docs/cli/translate) と [`verbatra diff`](/ja/docs/cli/diff)：このページで使ったすべてのオプション
+- [設定ファイル](/ja/docs/config-file#ロケールとファイル)：`targetLocales`、`files.pattern`、`files.localeStyle`
+- [言語とロケール](/ja/docs/language-support)：各プロバイダーが対応する言語、文字体系、地域バリアント、右から左に書くテキスト
+- [ロックファイルと来歴](/ja/docs/the-lock-file)：再実行しても既存のロケールに費用がかからない理由

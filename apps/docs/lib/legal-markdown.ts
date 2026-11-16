@@ -60,7 +60,7 @@ export async function imprintMarkdown(locale: Locale): Promise<string> {
     await frontmatter(locale, "/imprint"),
     `# ${IMPRINT_TITLE}`,
     t("intro"),
-    `*${t("lastUpdatedLabel")}: ${LEGAL_LAST_UPDATED}*`,
+    `*${t.markup("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks: string) => chunks })}*`,
     `## ${IMPRINT_PROVIDER_HEADING}`,
     [
       ...IMPRINT_PROVIDER_LINES,
@@ -79,7 +79,7 @@ export async function privacyMarkdown(locale: Locale): Promise<string> {
     ...linkTags(privacyLinkHrefs(locale)),
     strong: (chunks: string) => `**${markupChunks(chunks)}**`,
   };
-  const lastUpdated = `*${t("lastUpdatedLabel")}: ${LEGAL_LAST_UPDATED}*`;
+  const lastUpdated = `*${t.markup("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks: string) => chunks })}*`;
   const sections = PRIVACY_SECTION_KEYS.map((key) => {
     const body = t.markup(`${key}.body`, tags);
     return blocks(`## ${t(`${key}.heading`)}`, key === PRIVACY_OBJECTION_KEY ? `> ${body}` : body);

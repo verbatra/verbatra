@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest";
 import { llmMarkdown } from "@/test-support/llm-markdown";
 import {
   CLI_MODULE,
-  type MarkdownLocale,
   markdownLocale,
   mcpInstallConfigsFrom,
   mcpInstallLabel,
@@ -18,12 +17,12 @@ import {
   startHereMarkdown,
 } from "./agent-entry";
 import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "./install-commands";
+import { LOCALES, localeSuffixes } from "./locales";
 import { MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"] as const;
-const LOCALES: readonly MarkdownLocale[] = ["en", "de", "es", "fr"];
+const LOCALE_SUFFIXES = localeSuffixes();
 const START_HERE_ELEMENT = `<${START_HERE_COMPONENT} />`;
 const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;
 const FENCE = /```[a-z]*\n([\s\S]*?)```/g;

@@ -1,0 +1,216 @@
+---
+title: verbatra mcp
+seoTitle: "verbatra mcp：启动 stdio MCP 服务器"
+description: "启动 stdio MCP 服务器，向任何 MCP 客户端提供 verbatra 的工具，调用付费提供商的工具默认不在列表中。"
+status: new
+type: reference
+---
+通过 stdio 启动 [Model Context Protocol](https://modelcontextprotocol.io) 服务器，这是 MCP 客户端用来启动工具服务器的传输方式。它支持 2024-10-07 到 2026-07-28 的协议版本。没有 HTTP 传输，因为那会暴露写入和付费工具。
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## 用法
+
+```bash
+verbatra mcp [flags]
+verbatra-mcp [flags]
+```
+
+- `verbatra-mcp` 是 `@verbatra/mcp` 附带的二进制文件，所以客户端无需 CLI 就能启动服务器。它接受相同的选项（`-q`/`--quiet` 除外），启动同一个服务器，但不加载 `.env` 文件，并且 `--version` 输出的是 `@verbatra/mcp` 的版本。
+- 遇到未知选项、缺少选项值或多余的参数时，两者都以 `2` 退出。`verbatra-mcp` 同样如此，从 `@verbatra/mcp` 0.3.0 起还支持 `-h` 和 `-V`。
+
+## 示例
+
+```bash
+# start the MCP server with only local, non-spending tools
+verbatra mcp
+
+# also advertise the provider-calling tools
+verbatra mcp --allow-spend
+
+# resolve a project outside the current directory
+verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+
+# run the standalone server without the CLI
+npx -y @verbatra/mcp --cwd /path/to/project
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--allow-spend` | 无 | `VERBATRA_MCP_ALLOW_SPEND`，否则为关闭 | 公布两个调用翻译提供商的工具；见[付费工具](#付费工具) |
+| `--redact-values` | 无 | `VERBATRA_MCP_REDACT_VALUES`，否则为关闭 | 把工具结果中的每个译文值替换为标记；见[脱敏的值](#redacted-values) |
+
+另外接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd` 和 `--config`。它不接受 `--json`，因为 stdout 是协议通道。没有 `--cwd` 时，项目目录可以来自 `CLAUDE_PROJECT_DIR`；见[项目目录](#项目目录)。
+
+## 行为
+
+### 项目目录
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`--cwd` 缺失且 `CLAUDE_PROJECT_DIR` 指向一个已存在的目录时，服务器把它用作项目目录。随后 `verbatra mcp` 会从该目录加载[环境文件](/zh-CN/docs/cli#环境文件)；只在这些文件中设置的 `CLAUDE_PROJECT_DIR` 会被忽略。
+
+配置查找从该目录开始，所找到配置的目录就是[项目根目录](/zh-CN/docs/config-file#工作目录与-env)，工具路径相对于它解析。
+
+### 付费工具
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+只有使用 `--allow-spend` 时，或在没有该选项时把 `VERBATRA_MCP_ALLOW_SPEND` 设为 `1`、`true`、`yes` 或 `on`（不区分大小写，忽略前后空格），才会公布 `translation.retranslateEntry` 和 `translation.translatePending`。选项优先于变量。`verbatra mcp` 会先读取 `.env.local` 和 `.env`，所以变量可以放在那里；`verbatra-mcp` 只从它自己的环境中读取。
+
+否则它们从不出现在列表中，调用其中一个会作为未知工具而失败。配置为 `provider: { id: "none" }` 时，即使使用 `--allow-spend`，也从不列出它们。其他每个工具都不调用提供商，也不需要密钥；只有启用花费时，才把密钥提供给服务器。
+
+### 给智能体的说明
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+服务器在握手时返回固定的 `instructions`，多数客户端会先把它交给模型。它规定了调用顺序（先读取和比对，花费之前先估算并获得明确的同意），把审校决定和人工工作留给人，把每个字符串都当作数据，并且绝不写回 `[REDACTED]` 值。
+
+### 工具 [#tools]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+| 工具 | 作用 | 只读 | 调用提供商 |
+| --- | --- | --- | --- |
+| `project.snapshot` | 解析后的配置：`configured`、`configSource`、语言环境、格式、`files.pattern`、提供商、术语表、`humanEdits`、`prune`、`valuesRedacted` | 是 | 否 |
+| `project.doctor` | 每项配置检查及其 `status`、`detail`，失败时还有 `fix` | 是 | 否 |
+| `status.check` | 每个语言环境缺失、过期和最新的键的数量 | 是 | 否 |
+| `status.diff` | 每个语言环境将被添加、重新翻译或孤立的键的列表 | 是 | 否 |
+| `glossary.get` | 每个术语表术语及其译文、禁用的译法和上下文，已做密钥脱敏 | 是 | 否 |
+| `glossary.write` | 更改一个术语表术语：译文、各语言环境的数据、上下文，或是否保持不翻译 | 否 | 否 |
+| `lock.state` | 锁文件的版本，以及每个目标语言环境的键数量和缺失、过期、最新的数量 | 是 | 否 |
+| `history.list` | 涉及某个语言文件的近期 git 提交，含作者、日期、主题和路径 | 是 | 否 |
+| `history.keyRevisions` | 某个语言环境中某个键的修订版本，含逐词差异 <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | 是 | 否 |
+| `key.integrity` | 每个语言环境中某个键的占位符、内联标记、ICU 语法和 ICU 分支相对锁文件基线的漂移 | 是 | 否 |
+| `locale.integrity` | 每个语言环境中当前未通过占位符、内联标记或 ICU 检查的所有译文 | 是 | 否 |
+| `key.value` | 某个键当前的源文本和目标文本，含来源记录和译者上下文 | 是 | 否 |
+| `key.context` | `key.value` 返回的内容，加上适用的术语表术语、`maxLength`，以及对可选 `draft` 的检查 | 是 | 否 |
+| `locale.values` | 多个键的源文本和目标文本，按 `keys` 或 `query` 筛选，分页返回 | 是 | 否 |
+| `translation.editEntry` | 为某个语言环境中的一个键写入手动译文，受完整性检查把关 | 否 | 否 |
+| `translation.estimate` | `translation.translatePending` 会发送什么、花费多少，与 `translate --estimate` 相同 | 是 | 否 |
+| `translation.retranslateEntry` | 请已配置的提供商重新翻译某个语言环境中的一个键 | 否 | 是 |
+| `translation.translatePending` | 翻译每个缺失或过期的键，可只针对部分 `locales`，并受 `maxTokens` 上限约束 | 否 | 是 |
+| `review.queue` | 所有尚无人批准的机器译文，附上次运行的审校标记 | 是 | 否 |
+| `report.provenance` | 每个语言环境的来源记录计数，与 `verbatra report provenance` 给出的一致，按请求还可分页返回键 | 是 | 否 |
+| `review.approve` | 按用户的指示，记录指定人员批准某个键的当前译文 | 否 | 否 |
+| `review.reject` | 按用户的指示，记录指定人员拒绝某个键的译文并删除它 | 否 | 否 |
+| `usage.summary` | 上次运行的 token 用量和预算状态 | 是 | 否 |
+| `usage.history` | 近期运行、费用和覆盖率 <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | 是 | 否 |
+
+- **一次一个调用**：对同一条目再次调用同一个工具（`translation.editEntry`、`translation.retranslateEntry`），或再运行一次 `translation.translatePending`，会在第一个调用运行期间以 `isError` 被拒绝。
+- **人工成果**：`translation.retranslateEntry` 拒绝固定的键并返回 `KEY_PINNED`，除非设置了 `humanEdits: "overwrite"`，否则拒绝人工编写的值并返回 `KEY_PROTECTED`；`translation.editEntry` 拒绝固定的键。`translation.translatePending` 把这类键列在 `protected` 下。见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+- **来源记录**：由 `translation.editEntry` 写入的值，来源为 `agent`。`review.queue` 与 Studio 显示的是同一个队列：每个未批准的 `machine`、`memory`、`fuzzy` 或 `agent` 值。见[审校决定](/zh-CN/docs/the-lock-file#审校决定)。
+- **审校决定**：`review.approve` 和 `review.reject` 接收 `locale`、`key`、`expectedValue` 或 `expectedHash`（值已更改时会被拒绝并返回 `REVIEW_VALUE_CHANGED`）以及 `reviewer` 姓名。批准会计入 [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check#要求译文已审校)。
+
+### 输入与结果
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+- `status.check`、`status.diff` 和 `key.integrity` 接收可选的 `locales` 数组；`key.integrity` 还接收 `key`。
+- `key.integrity` 返回 `{ locales: [{ locale, entries }] }`，每个条目含 `matches`、`missing`、`extra`、`icuValid`、`markupMatches` 及其详情。
+- `translation.editEntry` 接收 `locale`、`key` 和最多 20,000 个字符的 `value`。它返回 `{ accepted, value, reason?, details? }`，`translation.retranslateEntry` 返回相同内容，另加 `reviewReasons?` 和 `usage?`，其中 `reason` 为 `placeholder`、`markup`、`icu`、`degenerate` 或 `empty`。
+- `glossary.write` 需要文件型术语表，否则以 `GLOSSARY_NOT_FILE_BACKED` 失败；[只有大小写不同的术语](/zh-CN/docs/sdk/config#updateglossaryterm)会更新已存储的那一条。
+
+### 更多输入与结果
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- `translation.estimate`、`locale.integrity`、`locale.values` 和 `report.provenance` 接收同样的可选 `locales` 数组，`key.integrity` 对未知的键以 `UNKNOWN_KEY` 失败。
+- 每个 `key.integrity` 条目还带有 `icuArmsMatch` 及其详情。
+- `glossary.get` 接收可选的 `locale`，并在其后增加 `effective`，即该语言环境所须遵守的术语。
+- `key.value`、`lock.state`、`status.check` 和 `status.diff` 带有来源记录；`verbatra.provenance.json` 无法读取时则省略。
+- `locale.values` 和 `report.provenance` 按源键顺序分页返回条目：`limit`（默认 200，最大 1,000），然后把上一页的 `nextCursor` 作为 `cursor`。一页只列出它持有条目的语言环境，过期的游标会作为无效输入而失败。
+- `locale.values` 接收 `keys` 或不区分大小写的 `query`，返回条目数组，而不是 Studio 的键映射。`report.provenance` 始终返回完整的计数；`includeEntries` 会加上键，可选地只针对部分 `buckets`。
+- `history.list` 接收 `limit`（默认 50，最大 200）。`available: false` 时，其 `reason` 为 `git-missing`、`not-a-repository`、`bare-repository`、`dubious-ownership`、`timeout`、`output-too-large`、`unsafe-config` 或 `git-too-old`。
+- `usage.history` 接收 `limit`，即最新运行的数量（默认 50，最大 200）<AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />。
+- `history.keyRevisions` 接收 `locale`、`key`（最多 1,024 个字符）和 `limit`，即检查的提交数量（默认 50，最大 200）<AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />。
+- `usage.summary` 只读取上次运行（更早的运行由 `usage.history` 列出），该运行没有报告用量时省略 `usage`，并且只在设置了 `maxTokens` 预算时才带有预算字段。`budget.supported: false` 表示某个请求没有报告用量或失败了；此时 `tokensUsed` 会对每个报告为零或根本没有报告的请求加上 verbatra 自己的预测，所以它不是提供商计费的数字。当运行中有语言环境失败或中途停止时，它还带有 `incomplete: { failed, partial }`，这样较低的用量数字就不会被当作一次成功的运行 <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />。
+- 写入类工具接收可选的 `lockTimeoutMs`，取值 `0` 到 `600000`，默认 `30000`：在以 `LOCK_CONTENDED` 失败且不写入任何内容之前，等待被占用的写锁的时长。
+- 输入和输出是 JSON Schema；输入有误时返回指明字段的结果。与其 `outputSchema` 不匹配的结果会以 `OUTPUT_SCHEMA_MISMATCH` 失败；对于写入类工具，更改已经应用，所以不要重试。
+- 失败调用的文本以其错误码开头，如 `UNKNOWN_KEY: ...`，错误带有下一步时以 `Next step: ...` 一行结尾，文本与 CLI 的 `hint` 相同。
+
+### 先估算，再花费
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.estimate` 始终列出。`translation.translatePending` 接收可选的 `locales`（未配置的语言环境会在花费之前以 `UNKNOWN_LOCALE` 失败）和 `maxTokens`，后者是只能收紧配置值的上限。见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+
+### 进度
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.translatePending` 调用带有 `progressToken` 时，verbatra 会在批次完成时发送 `notifications/progress`：`progress` 统计已完成的批次，`total` 随每个计划的语言环境增长，`message` 指明语言环境和批次（`de: batch 3/7`），最多每 250 毫秒一条，外加最后一条。取消付费调用（`notifications/cancelled`）会让它停止，不返回结果，也不再有进度：`translation.translatePending` 保留已到达的内容，其余保持待处理。
+
+### 没有配置时
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+服务器仍会启动。此时 `project.snapshot` 返回 `configured: false`，附带 `configProblem` 和 `nextStep`，`project.doctor` 报告修复办法，其他每个工具都以配置错误拒绝。stderr 会说明原因：
+
+```text output
+Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
+verbatra MCP server running on stdio (project ., spend tools off)
+No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
+  set it up:  npx @verbatra/cli init in the project, or fix the config project.doctor names
+  no restart needed: the server loads the config on the next call once it is valid
+```
+
+### 配置更改后
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+每次调用之前，当配置文件、查找时会尝试的某个文件或术语表文件有更改时，服务器会重新加载配置；配置导入的模块不受监视。`--allow-spend` 只读取一次，所以更改可以隐藏付费工具，但没有它就绝不会列出付费工具。工具列表变化时，服务器会发送 `notifications/tools/list_changed`。重新加载使项目根目录发生移动时，`verbatra mcp` 会加载新根目录的环境文件，并输出 `verbatra: project root is now <root>`，`--quiet` 会去掉这一行。
+
+### 密钥脱敏
+
+与 Studio 一样，每个结果和日志行中的密钥都会脱敏：形如 API 密钥的值，或已配置的密钥变量的值，会变成 `[REDACTED]`；术语表工具会指明被脱敏的术语。隐藏译文值要用 [`--redact-values`](#redacted-values)。
+
+### 脱敏的值 [#redacted-values]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+使用 `--redact-values`，或把 `VERBATRA_MCP_REDACT_VALUES` 设为 `VERBATRA_MCP_ALLOW_SPEND` 接受的值时，结果会把源文本、译文、描述和术语表术语替换为标记 `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`，并省略审校人员和作者姓名、逐词差异以及 `history.keyRevisions` 的主题；相同的值共用同一个哈希，直到服务器停止。可能携带值的错误保留错误码和下一步，错误信息变为标记。键名、数量、来源、完整性判定、提交主题和路径保持不变。`review.approve` 和 `review.reject` 只接收标记的哈希，作为 `expectedHash`；`glossary.write` 以数量作答；`locale.values` 拒绝 `query`，`key.context` 拒绝 `draft`。提供商仍然会收到文本。它无法阻止智能体通过术语表写入或 `key.context` 的术语表命中有意探测。
+
+### stdout 与 stderr
+
+<AvailableFrom version="0.12.0" />
+
+stdout 只携带 MCP 协议消息；所有日志都输出到 stderr。连接之后，`verbatra mcp` 输出一行就绪信息，停止时再输出一行：
+
+```text output
+verbatra MCP server running on stdio (project ., spend tools off)
+verbatra MCP server stopped (client closed stdin)
+```
+
+在终端中，它还会说明应由客户端来启动它。`--quiet` 会去掉这些行，但不会去掉缺少配置的原因。
+
+### 安装
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`@verbatra/mcp` 是单独的包，CLI 按需加载它。没有它时，`verbatra mcp` 以 `2` 退出，并输出：
+
+```text output
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
+```
+
+每个发布版本也都以 `io.github.verbatra/verbatra` 收录在[官方 MCP Registry](https://registry.modelcontextprotocol.io) 中。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 因一次中断而正常停止，或因客户端关闭了 stdin |
+| `1` | 关闭服务器时在停止过程中失败 |
+| `2` | 无法启动：缺少 `--config` 文件、`@verbatra/mcp` 缺失（使用 `--redact-values` 时还包括版本过旧），或用法错误 |
+| `130` | 停止过程中因第二次中断而被强制停止 |
+
+停止时会释放所有语言环境的锁。`verbatra-mcp` 在启动出错时以 `1` 退出，从 0.3.0 起，在 SIGTERM 之后被强制停止时以 `143` 退出。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [连接 MCP 客户端](/zh-CN/docs/connect-an-mcp-client)说明如何配置 stdio 客户端。
+- [用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio)：本服务器工具在浏览器中的对应物。
+- [`verbatra check`](/zh-CN/docs/cli/check) 和 [`verbatra diff`](/zh-CN/docs/cli/diff) 支撑 `status.check` 和 `status.diff`。

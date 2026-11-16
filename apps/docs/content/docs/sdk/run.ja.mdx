@@ -1,0 +1,191 @@
+---
+title: "翻訳の実行"
+seoTitle: "SDK：自分の Node.js コードから翻訳を実行する"
+description: "translate、watch、実行まわりのエントリポイントに加え、疑似ロケールと型付きカタログも、自分の Node.js スクリプトから呼び出せます。"
+type: reference
+---
+## 翻訳と監視 [#run-translations]
+
+### translate
+
+1 回で完結するフローです。ソースを読み込み、各ターゲットロケールをロックファイルのベースラインと比較し、欠落しているキーと変更されたキーをプロバイダーに送り、整合性チェックを実行し、ロケールファイルを書き込み、ロックファイルを更新します。スクリプト、ビルドの手順、CI ジョブで使います。
+
+```ts title="シグネチャ"
+function translate(
+  input: TranslateInput,
+  deps?: TranslateDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="TranslateInput" />
+
+**戻り値**：[`RunSummary`](/ja/docs/sdk/run-summary)
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/ja/docs/error-codes#locale_unsupported_by_provider)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`CONCURRENCY_INVALID`](/ja/docs/error-codes#concurrency_invalid)、[`CONCURRENCY_BUDGET_CONFLICT`](/ja/docs/error-codes#concurrency_budget_conflict)、[`MAX_TOKENS_INVALID`](/ja/docs/error-codes#max_tokens_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`PROVIDER_CONSTRUCTION_FAILED`](/ja/docs/error-codes#provider_construction_failed)、[`NETWORK_POLICY_VIOLATION`](/ja/docs/error-codes#network_policy_violation)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)
+
+**例**：[翻訳してサマリーを読む](/ja/docs/sdk-quickstart#翻訳してサマリーを読む)
+
+表に載っていない内容は次のとおりです。
+
+- `cache` は、ローカルの[翻訳キャッシュ](/ja/docs/the-cache)（`verbatra.cache.json`。`CACHE_FILE_NAME` としてもエクスポートされます）です。
+- `humanEdits`（バージョン 0.12.0 以上）：デフォルトでは、人が書いた、インポートした、または verbatra の外で変更した古くなったキーは、そのまま保たれ、`LocaleSummary.protected` に一覧されます。詳しくは[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。
+- `onProgress` は、後述の[進捗イベント](#進捗イベント)を受け取ります。
+- `maxBatchSize` と `budgetBehavior` は設定ファイル専用で、実行ごとの上書きはありません。
+
+実行全体の問題は `SdkError` をスローします。1 つのロケールの失敗はスローされず、そのロケールのエントリに `status: "failed"` として記録され、実行は続きます。詳しくは [RunSummary の構造](/ja/docs/sdk/run-summary#runsummary-の構造)を参照してください。
+
+### 進捗イベント
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` は `ProgressEvent` を受け取ります。`type` で判別されるユニオンです。マイナーバージョンで型が追加されることがあるため、認識できない型は無視してください。
+
+| `type` | 条件 | フィールド |
+| --- | --- | --- |
+| `locale-started` | ロケールの処理が始まる | `locale`、`localeIndex`、`totalLocales` |
+| `locale-planned` | 翻訳メモリを参照したあと、最初のバッチを送る前。プロバイダーを呼び出す場合だけ | `locale`、`keys`、`batches`、`cacheHits` |
+| `sub-batch` | 各翻訳バッチを試みる直前 | `locale`、`batchIndex`、`totalBatches` |
+| `provider-retry` | 組み込みプロバイダーが、再試行できるステータスで失敗したリクエストを再試行する | `attempt`、`delayMs?`、`status?` |
+| `repair` | LLM プロバイダーが、最初のレスポンスで抜けたキーを再リクエストする | `locale`、`keys` |
+| `split-retry` | 出力が途中で切れたバッチを、2 つに分けて再試行する | `locale`、`keys` |
+| `batch-finished` | バッチが、成功したかどうかにかかわらず終了した | `locale`、`batchIndex`、`totalBatches`、`durationMs`、`usage?` |
+| `writing` | ロケールのファイルを書き込む直前 | `locale` |
+| `locale-finished` | ロケールの処理が終わる | `locale`、`status`、`translated`、`localeIndex`、`totalLocales` |
+| `run-finished` | すべてのロケールが終了した | `localesCompleted`、`localesFailed` |
+| `change-detected` | `watch` のみ：ソースファイルの変更が落ち着いた | `paths` |
+| `idle` | `watch` のみ：実行が終わり、待機中の実行がない | なし |
+
+`provider-retry` はロケールを示しません。1 つのプロバイダーが実行全体を担当するためです。Gemini は待ち時間とステータスを報告します。Anthropic、OpenAI、OpenCode、openai-compatible は、クライアントが再試行を始めるときに試行回数を報告します。DeepL、Google Cloud Translation、LibreTranslate は何も報告しません。ドライランと見積もりが出力するのは、`locale-started`、`locale-finished`、`run-finished` だけです。CLI の `--json` の進捗レコードは、元の 4 つの型である `locale-started`、`sub-batch`、`locale-finished`、`run-finished` に限られます。
+
+`extract`、`unused` 付きの `diff`、`literals` 付きの `doctor` は、それぞれ独自の `onProgress` を受け取ります。この `onProgress` は `ScanProgressEvent`（`{ type: "files-scanned", scanned, total }`）を受け取り、スキャンがアプリケーションのソースファイルを 1 つ読むたびに 1 回呼ばれます。
+
+<SdkTypeTable name="ScanProgressEvent" />
+
+カスタムの `CreateProvider` は、実行が進捗を報告するときに、第 3 引数の `CreateProviderHooks` を受け取ります。その `onRetry` を `{ attempt, delayMs?, status? }` で呼ぶと、プロバイダーの再試行が `provider-retry` イベントとして現れます。
+
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+一連の実行オプションがドライランになるかどうかを答えます。`translate` に渡そうとしている `dryRun` と `estimate` を受け取り、その実行がプロバイダーを生成するか、ファイルを書き込むか、費用が発生するかを返します。`estimate` が `dryRun` を意味するというルールを決めているのは、ここだけです。実行のまわりで事前に知る必要がある処理は、この含意を自分で書き直してずれが生じないよう、この関数を使ってください。
+
+```ts title="シグネチャ"
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
+```
+
+**戻り値**：`boolean`
+
+```ts title="例"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
+### watch
+
+ソースのロケールファイルを監視し、デバウンスされた変更のたびに `translate` を再実行します。起動時にすぐ最初の実行を 1 回行い、その後は変更が落ち着くたびに 1 回実行します。実行は直列化され、実行中の変更は 1 回の後続の実行にまとめられます。
+
+```ts title="シグネチャ"
+function watch(
+  input: WatchInput,
+  deps?: WatchDeps,
+): Promise<WatchController>;
+```
+
+<SdkTypeTable name="WatchInput" />
+
+**戻り値**：`WatchController`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/ja/docs/error-codes#locale_unsupported_by_provider)、[`CONCURRENCY_INVALID`](/ja/docs/error-codes#concurrency_invalid)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`CONCURRENCY_BUDGET_CONFLICT`](/ja/docs/error-codes#concurrency_budget_conflict)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`NETWORK_POLICY_VIOLATION`](/ja/docs/error-codes#network_policy_violation)、[`PROVIDER_CONSTRUCTION_FAILED`](/ja/docs/error-codes#provider_construction_failed)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)
+
+**例**：[長時間動くプロセスで監視する](/ja/docs/programmatic-api#長時間動くプロセスで監視する)
+
+`debounceMs` のデフォルトは 300 です。`onRun` は、実行ごとに 1 回、`WatchRunResult` とともに呼ばれます。値は `{ status: "succeeded", summary }` または `{ status: "failed", error: { code, message, causeCode?, hint? } }` で、`causeCode` は失敗が包んでいるコード付きエラーを示し、`hint` は `errorHint` が返す次の手順です。`onReady` は、起動時のチェックを通過したあと、最初の実行の直前に 1 回呼ばれます。これにより、その実行の出力より先にセッションを通知できます。`onReady` がスローした場合、監視プロセスは閉じられ、どの実行も始まる前に、`watch` が返す Promise がそのエラーで reject されます。SDK はログを出力せず、出力は `onRun` だけです。`concurrency`、`cache`、`onProgress`、`onLockWait`、`lockAcquireTimeoutMs` はすべての実行にそのまま渡され、`translate` と同じように動作します。`locales` はセッションのすべての実行をそのサブセットに絞り、サイクルごとではなく、起動時に 1 回検証されます。
+
+`stop()` という 1 つのメソッドを持つ `WatchController` を返します。`stop()` は監視プロセスを閉じ、進行中の実行が終わるまで待ちます。**例外**の行にあるすべてのコードは、監視プロセスが作られる前の起動時に拒否されます。そのため `watch` が返す Promise 自体が reject され、コントローラーは返りません。そのうち 2 つは、1 回の実行よりもセッションにとって重くなります。1 つは、`maxTokens` を設定した設定ファイルに対して 1 より大きい `concurrency` を指定した場合で、ドライランの監視はないため、常に `CONCURRENCY_BUDGET_CONFLICT` をスローします。もう 1 つは、0.12.0 以上では、API キーの変数が未設定などのためにプロバイダーを生成できない場合で、すべての実行が失敗するのではなく、`PROVIDER_CONSTRUCTION_FAILED` を 1 回だけスローします。起動後の失敗はすべて `onRun` を通じて通知され、監視は続きます。
+
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+現在のプロセスが保持しているすべての書き込みロックを削除します。実行中の処理が終わるのを待たずに終了しようとするプロセス向けです。CLI は、割り込みで `translate` や `import` が止まるとき、および 2 回目の割り込みで `watch` を強制停止するときに、これを呼びます。その書き込みロックを取っていた実行は保護を失うため、プロセスが終了する直前にだけ呼んでください。引数はなく、保持されている書き込みロックを削除できなかった場合に限り、すべての書き込みロックを試したあとで、そのパスだけを示す `AggregateError` で reject されます。まだ実行中の処理が、実行中に書き込みロックを取っている、または取ろうとしている場合、その書き込みロックは `RUN_CANCELLED` で拒否され、ファイルは残りません。そのような取得を待つ時間は、最大 3 秒です。
+
+```ts title="シグネチャ"
+function releaseHeldLocks(): Promise<void>;
+```
+
+**戻り値**：`void`
+
+プロセスが強制終了されるなどして残ってしまった書き込みロックには、この関数は不要です。同じマシンで待機している実行が、記録されたプロセスがすでにないことを検知し、自分でその書き込みロックを回収します。詳しくは[書き込みロック](/ja/docs/the-lock-file#書き込みロック)を参照してください。
+
+## 疑似ローカライズ
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+ソース文字列だけから偽のロケールを作ります。これにより、API キーが存在する前でも、レイアウトで文字が切れる箇所や、翻訳用に抽出されていなかった文字列が見つかります。すべての値にアクセント記号を付け、翻訳可能な長さのおよそ 3 分の 1 だけ長くし、`[` と `]` の境界マーカーで囲みます。プレースホルダーは、ICU の複数形や select の分岐、マークアップのタグ、エスケープシーケンスを含め、アダプターが認識するすべての構文でそのまま残ります。プロバイダーを生成せず、API キーを読み込まず、ネットワークリクエストも行いません。
+
+```ts title="シグネチャ"
+function pseudolocalize(
+  input: PseudolocalizeInput,
+  deps?: PseudolocalizeDeps,
+): Promise<PseudolocalizeResult>;
+```
+
+<SdkTypeTable name="PseudolocalizeInput" />
+
+**戻り値**：`PseudolocalizeResult`
+
+**例外**：[`PSEUDO_OUTPUT_CONFLICT`](/ja/docs/error-codes#pseudo_output_conflict)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`TARGET_UNWRITABLE`](/ja/docs/error-codes#target_unwritable)
+
+**例**：[疑似ロケールを作る](/ja/docs/programmatic-api#疑似ロケールを作る)
+
+生成されたすべての値は、プロバイダーの訳文が通る必要があるのと同じ整合性ゲートを通ります。通らない値は、壊れた形で書き込まれる代わりに、ソースからそのままコピーされ、`copied` に名前が載ります。そのため、エントリは存在し続け、表示もされます。
+
+<AvailableFrom version="0.12.0" />
+
+`mode` は、`PSEUDO_MODES` から変換方法を選びます。デフォルトは `accented` で、もう一方は `bidi` です。`bidi` は、翻訳可能なテキストのすべての単語を右から左へのマークとオーバーライドで囲みます。プレースホルダー、ICU 構文、マークアップ、数字、句読点はその外に残し、アクセント記号は何も付けません。`bidi` モードでは、`locale` のデフォルトは `ar-XB` で、右から左の方向に解決されるコードです。アラビア語の複数形ルールがソースの複数形とどう合うかは、[`verbatra pseudo`](/ja/docs/cli/pseudo) を参照してください。
+
+`locale` のデフォルトは `en-XA`、`out` のデフォルトは `.verbatra-local/pseudo` で、`verbatra init` がすでに `.gitignore` に追加しています。設定した `files.pattern` がこの中に展開されるため、ファイルはアプリケーションが期待するレイアウトを保ちます。設定済みのロケールと同じ名前の疑似ロケール、または設定済みのロケールファイルに書き込まれる疑似ロケールは、何かを読み書きする前に `PSEUDO_OUTPUT_CONFLICT` で拒否されます。そのため、本物の訳文を上書きすることも、その代わりになることもありません。次の `out` も同様に拒否されます。絶対パスの `out`、`cwd` の外に出る `out`、`.` のように `cwd` 自体を指す `out` です。また、`deps.fs` がデフォルトと同じく `realpath` を実装している場合は、シンボリックリンクを解決したあとで、これらのいずれかに当てはまる `out`、設定済みのロケールファイルのディレクトリに着地する `out`、プロジェクトが依存するほかのファイルに着地する `out` も拒否されます。ファイルは `files.pattern` の外に置かれるため、`translate` がそのファイルに費用をかけることはなく、`check` と `diff` がそれをドリフトとして報告することもありません。
+
+`PseudolocalizeResult` を返します。内容は、`locale`、`mode`、絶対パスの `path`、処理された `entries` の数、変換された `transformed` の数、コピーされたキーである `copied`、何かが `written` されたかどうかです。変換は決定的なので、ソースが変わらない 2 回目の実行は何も書き直さず、`written` を false として報告します。`xliff` と `apple-xcstrings` は、ライターが既存のドキュメントにパッチを当てるだけなので、出力は書き込みのたびにソースからコピーし直されます。そのため、最初の実行のあとでソースに追加されたキーも疑似ロケールに届き、コピーされた XLIFF は `target-language` が疑似ロケールに書き換えられます。
+
+## 型付きカタログ
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+プロジェクトのソースカタログを TypeScript として宣言します。含まれるすべてのキーのユニオンと、キーごとに、そのメッセージが補間する引数を宣言します。翻訳関数にこの結果で型を付けると、キーのつづりの誤りや、補間の引数の不足が、実行時の検索失敗ではなく、コンパイルエラーになります。費用はかかりません。プロバイダーを生成せず、API キーの環境変数を読み込まず、ネットワークリクエストも行いません。
+
+```ts title="シグネチャ"
+function generateTypes(
+  input: GenerateTypesInput,
+  deps?: GenerateTypesDeps,
+): Promise<GenerateTypesResult>;
+```
+
+<SdkTypeTable name="GenerateTypesInput" />
+
+**戻り値**：`GenerateTypesResult`
+
+**例外**：[`TYPES_OUTPUT_CONFLICT`](/ja/docs/error-codes#types_output_conflict)、[`TYPES_UNWRITABLE`](/ja/docs/error-codes#types_unwritable)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)
+
+**例**：[型付きカタログを生成する](/ja/docs/programmatic-api#型付きカタログを生成する)
+
+読み込むファイルは 1 つ（ソースロケールのカタログ）、書き込むファイルも 1 つ（宣言ファイル）で、ターゲットロケールのファイルには触れません。キーは、フォーマットアダプターがすでに生成したものそのままで、ドキュメント内の順序です。そのため、変更のないカタログに対する 2 回の実行は、バイト単位で同一の内容を書き込みます。引数は、アダプターが抽出したプレースホルダーから取得します。ただし ICU メッセージのフォーマット（`next-intl-json` と `arb`）では、アダプターが使うのと同じ ICU パーサーで各メッセージを読み取ります。すべてのキーは引用符付きの文字列リテラルとして出力されます。そのため、ドットを含むキー、予約語、先頭が数字のキー、引用符を含むキー、空のキーも、削除や再分割をされずにそのまま宣言されます。アダプターが `excludedLeafPaths` に報告したキーは、まったく宣言されません。
+
+何を宣言しないかは、何を宣言するかと同じくらい重要です。プレースホルダーがないメッセージには、どんな引数を渡しても型エラーになる形が付きます。プレースホルダーが引数に名前を付けているメッセージには、オブジェクトの形が付きます。プレースホルダーが番号付き、または無名のメッセージには、読み取り専用のタプルが付きます。一部の `select` や `plural` の分岐だけが使う ICU の引数は、省略可能なメンバーとして宣言されます。引数の型は、カタログが記録しているものだけから決まります。ICU の `number`、`plural`、`selectordinal` の引数と、数値のフォーマッターや変換は `number` です。ICU の `date` や `time` の引数と、i18next の `datetime` フォーマッターは `Date | number` です。ICU の `select` の引数と、printf の文字列変換は `string` です。それ以外はすべて `string | number` のエイリアスで、許容的な `any` にはなりません。i18next のエスケープなしの補間（`{{- name}}`）は、接頭辞の後ろの名前で宣言されます。アダプターが無効と報告したメッセージ、名前付きと番号付きの両方で引数を示しているように見えるメッセージ、プレースホルダーのインデックスが範囲外のメッセージは、引数なしとして黙って宣言されるのではなく、引数が `unresolved` に報告されたうえで宣言されます。複数形の兄弟キーがまとめられることはありません。それぞれが個別に宣言され、アダプターが複数形と印を付けたものは一覧されます。
+
+`out` のデフォルトは `DEFAULT_TYPES_PATH`（`verbatra-types.d.ts`）です。何かを読み書きする前に、`TYPES_OUTPUT_CONFLICT` が次の `out` を拒否します。ファイルを指さない `out`（パスの区切り文字で終わるものを含みます）、絶対パス、`..` で `cwd` の外に出るもの、`cwd` 自体（`.`）を指すもの、`.ts`、`.mts`、`.cts` で終わらないものです。さらに、設定済みのロケールファイル、ロックファイル、来歴ファイル、翻訳メモリのキャッシュ、verbatra が設定を探すファイル、`config` の読み込み元の設定ファイルである `configPath`、指定された用語集ファイルである `glossaryPath` を指す `out` も拒否します。名前は大文字と小文字を区別せずに比較され、`deps.fs` がデフォルトと同じく `realpath` を実装している場合は、シンボリックリンクを解決したあとのパスの着地点に対して同じチェックがもう一度行われます。生成する実行は、verbatra が書くヘッダー行で始まらない既存のファイルを置き換えることも、同じコードで拒否し、そのファイルには触れません。完全な一覧は [`verbatra types`](/ja/docs/cli/types) のページにあります。`check` を設定すると、何も書き込まれず、内容を理由に拒否されることもなく、コミット済みのファイルがまだ一致しているかどうかだけを報告します。これは CI のゲートが求める形です。
+
+`GenerateTypesResult` を返します。内容は、絶対パスの `path`、元になった `sourcePath`、宣言された `keys` の数、そのうち verbatra が判定できた引数を 1 つ以上取るものの数（`withArguments`。`unresolved` のキーは数えません）、`unresolved` のキー、`excluded` のキーと `plural` のキー、何かが `written` されたかどうか、実行の開始時にディスク上のファイルが `stale` だったかどうか、ファイルが完全に `missing` だったかどうか（ファイルがない場合は `stale` でもあります）、そしてこれが `check` の実行だったかどうかです。

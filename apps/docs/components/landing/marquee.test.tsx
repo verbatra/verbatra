@@ -10,6 +10,7 @@ import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { LOCALES } from "@/lib/locales";
 import { MARQUEE_COPIES } from "@/lib/marquee-copies";
 import { providerIsNew, RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
@@ -36,6 +37,9 @@ vi.mock("next-intl/server", async () => {
     de: (await import("@/messages/de.json")).default,
     es: (await import("@/messages/es.json")).default,
     fr: (await import("@/messages/fr.json")).default,
+    "zh-CN": (await import("@/messages/zh-CN.json")).default,
+    "pt-BR": (await import("@/messages/pt-BR.json")).default,
+    ja: (await import("@/messages/ja.json")).default,
   };
   return {
     getTranslations: async (scope: string | { namespace: string }) =>
@@ -154,7 +158,15 @@ function mountToggle(): HTMLElement {
   return host;
 }
 
-const SPELLED_COUNTS: Readonly<Record<Locale, { numbers: string; nouns: string }>> = {
+interface SpelledCount {
+  readonly numbers: string;
+  readonly nouns: string;
+  readonly counters?: string;
+  readonly wago?: string;
+  readonly filler?: string;
+}
+
+const SPELLED_COUNTS: Readonly<Record<Locale, SpelledCount>> = {
   en: {
     numbers:
       "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty",
@@ -175,10 +187,40 @@ const SPELLED_COUNTS: Readonly<Record<Locale, { numbers: string; nouns: string }
       "un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
     nouns: "fournisseurs?|formats?",
   },
+  "zh-CN": {
+    numbers: "二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|十|九|八|七|六|五|四|三|两|二|一",
+    counters: "种|个|款|项|类|条|家",
+    nouns: "提供商|文件格式|格式",
+  },
+  "pt-BR": {
+    numbers:
+      "um|uma|dois|duas|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte",
+    nouns: "provedor(?:es)?|formatos?",
+  },
+  ja: {
+    numbers: "二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|十|九|八|七|六|五|四|三|二|一",
+    wago: "いつつ|むっつ|ななつ|やっつ|ここのつ|とお|ひとつ|ふたつ|みっつ|よっつ",
+    counters: "種類|種|つ|個|件|社|本|項目",
+    filler:
+      "(?:の\\s*)?(?:[A-Za-z]+\\s*|組み込みの?\\s*|[\\p{Script=Han}\\p{Script=Katakana}ー]{1,6}?\\s*)?",
+    nouns: "ファイルフォーマット|ファイル形式|フォーマット|形式|プロバイダー|プロバイダ",
+  },
 };
 
 function spelledCount(locale: Locale): RegExp {
-  const { numbers, nouns } = SPELLED_COUNTS[locale];
+  const { numbers, nouns, counters, wago, filler } = SPELLED_COUNTS[locale];
+  if (counters !== undefined && wago !== undefined && filler !== undefined) {
+    return new RegExp(
+      `(?<![\\p{N}\\p{Script=Han}.])(?:(?:\\d+|${numbers})\\s*(?:(?:${counters})|(?=の))|${wago})\\s*${filler}(?:${nouns})`,
+      "u",
+    );
+  }
+  if (counters !== undefined) {
+    return new RegExp(
+      `(?<![\\p{N}一二三四五六七八九十两])(?:\\d+|${numbers})\\s*(?:${counters})\\s*(?:[A-Za-z]+\\s*|\\p{Script=Han}{1,3})?\\s*(?:${nouns})`,
+      "u",
+    );
+  }
   return new RegExp(
     `(?<![\\p{L}-])(?:\\d+|${numbers})\\s+(?:[\\p{L}-]+\\s+)?(?:${nouns})(?![\\p{L}-])`,
     "iu",
@@ -267,16 +309,64 @@ describe("Marquee", () => {
     ).toBeNull();
   });
 
-  it.each([
-    ["en", "verbatra speaks seven providers and reads 14 file formats."],
-    ["de", "Sieben Provider und vierzehn Dateiformate."],
-    ["es", "Siete proveedores y catorce formatos de archivo."],
-    ["fr", "Sept fournisseurs et quatorze formats de fichier."],
-  ] as const)("flags a spelled-out or numeric count in %s", (locale, sentence) => {
-    expect(sentence).toMatch(spelledCount(locale));
+  const SPELLED_SAMPLES: Readonly<Record<Locale, string>> = {
+    en: "verbatra speaks seven providers and reads 14 file formats.",
+    de: "Sieben Provider und vierzehn Dateiformate.",
+    es: "Siete proveedores y catorce formatos de archivo.",
+    fr: "Sept fournisseurs et quatorze formats de fichier.",
+    "zh-CN": "支持七个提供商和十四种文件格式。",
+    "pt-BR": "Sete provedores e catorze formatos de arquivo.",
+    ja: "7 つのプロバイダーに対応し、14 種類のファイルフォーマットを読み込みます。",
+  };
+
+  it.each(LOCALES)("flags a spelled-out or numeric count in %s", (locale) => {
+    expect(SPELLED_SAMPLES[locale]).toMatch(spelledCount(locale));
   });
 
-  it.each(["en", "de", "es", "fr"] as const)(
+  it.each([
+    "共 8 个提供商",
+    "两种格式",
+    "十四种格式",
+    "八家提供商",
+    "十四种内置格式",
+    "七个 LLM 提供商",
+  ])("flags the zh-CN count %s", (sample) => {
+    expect(sample).toMatch(spelledCount("zh-CN"));
+  });
+
+  it.each(["统一格式", "这个格式", "每个提供商", "每家提供商", "七个命令"])(
+    "leaves the zh-CN phrase %s alone",
+    (sample) => {
+      expect(sample).not.toMatch(spelledCount("zh-CN"));
+    },
+  );
+
+  it.each([
+    "8 つのプロバイダー",
+    "二種類のフォーマット",
+    "十四種類のフォーマット",
+    "八社のプロバイダー",
+    "十四種類の組み込みフォーマット",
+    "七つの LLM プロバイダー",
+    "14 のフォーマット",
+  ])("flags the ja count %s", (sample) => {
+    expect(sample).toMatch(spelledCount("ja"));
+  });
+
+  it.each([
+    "共通のフォーマット",
+    "このフォーマット",
+    "各プロバイダー",
+    "七つのコマンド",
+    "すべてのプロバイダー",
+    "唯一のフォーマット",
+    "統一のフォーマット",
+    "XLIFF 2.0 のフォーマット",
+  ])("leaves the ja phrase %s alone", (sample) => {
+    expect(sample).not.toMatch(spelledCount("ja"));
+  });
+
+  it.each(LOCALES)(
     "types no provider or format count, in digits or words, in %s",
     async (locale) => {
       const section = (await render(locale)).querySelector("section#marquee");

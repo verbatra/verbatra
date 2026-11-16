@@ -45,7 +45,7 @@ export interface QaIntegrityFinding {
 /**
  * A committed translation that passes the integrity gate but carries a review reason: a length
  * far from the source's, a value over its `maxLength` budget, an untranslated copy of the source, a
- * glossary term the value does not use, placeholders in a different order, a placeholder of
+ * glossary term the value does not use, a rendering the glossary forbids, placeholders in a different order, a placeholder of
  * another syntax than the project's format that the value dropped or changed, or bidirectional
  * controls that leave a direction open or add an override.
  */

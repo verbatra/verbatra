@@ -1,0 +1,368 @@
+---
+title: 配置文件
+seoTitle: "verbatra 配置文件：所有配置项详解"
+description: 每个配置项的类型、默认值和引入它的版本，以及配置文件可以放在哪里、错误的配置会如何失败。
+type: reference
+---
+verbatra 读取一个不含密钥的配置对象，并在开始任何工作之前校验它。配置中从不读取任何 API 密钥（见[提供商](/zh-CN/docs/providers#密钥来自环境变量)），因此可以放心提交配置。
+
+## 最小配置
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  // Locales and files: required
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: {
+    // {locale} is the only token
+    pattern: "locales/{locale}.json",
+  },
+
+  // Provider: required; the API key comes from the environment, never from here
+  provider: {
+    id: "gemini",
+    options: {
+      // example model id; use your provider's current one
+      model: "gemini-2.5-flash",
+      maxOutputTokens: 4096,
+    },
+  },
+
+  // Optional groups, each off or at its default until you add it:
+  // tone: "informal",
+  // glossary: "glossary.json",
+  // network: { policy: "local-only" },
+  // sensitiveData: { mode: "warn" },
+  // maxTokens: 200000,
+  // budgetBehavior: "stop",
+});
+```
+
+参见[语言环境与文件](#语言环境与文件)、[provider](#provider)、[glossary](#glossary)、[network](#network)、[敏感数据](/zh-CN/docs/data-handling#敏感内容防护)、[预算](#maxtokens-与-budgetbehavior)、[rates](#rates) 和 [extract](#extract)。
+
+`defineConfig` 只为它的参数提供类型：`options.model` 会补全提供商的模型 ID，但运行时任何非空字符串都会被接受。
+
+## 所有配置项
+
+未知的键名在每一层都会被拒绝，只有 `$schema` 和键名由你自己命名的映射除外，例如 `maxLength`、`rates.table`、`localeMap` 和内联的 `glossary`，因此 API 密钥无法放进配置。
+
+| 配置项 | 类型 | 默认值 | 引入版本 | 作用 |
+| --- | --- | --- | --- | --- |
+| `$schema` | 字符串 | 无 | 0.9.0 | 让编辑器指向 [JSON Schema](#编辑器校验)；运行时忽略。 |
+| `sourceLocale` | 语言环境代码 | 必填 | 0.1.0 | 源字符串所用的语言环境。 |
+| `targetLocales` | 语言环境代码数组 | 必填 | 0.1.0 | 至少一个；不能包含 `sourceLocale`，也不能有两个忽略大小写后相同的值。 |
+| `format` | 格式 ID | 必填 | 0.1.0 | 语言文件的[格式](/zh-CN/docs/formats)，或指向外部适配器（[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)）的 `custom:` ID。 |
+| `files.pattern` | 字符串 | 必填 | 0.1.0 | 每个语言文件的路径，含 `{locale}` 占位符。 |
+| `files.localeStyle` | `"literal"`、`"posix"`、`"android"` | `"literal"` | 0.7.0 | `{locale}` 在路径中的写法。 |
+| `provider.id` | 提供商 ID | 必填 | 0.1.0 | 翻译提供商，设为 `none` 表示不用机器翻译。 |
+| `provider.options` | 对象 | 必填，`none` 除外 | 0.1.0 | 提供商的专有选项（见[提供商](/zh-CN/docs/providers)）。 |
+| `glossary` | 对象或文件路径 | 无 | 0.1.0 | 固定译法、禁用译法和不翻译的术语。 |
+| `tone` | `"formal"`、`"informal"`、`"neutral"` | 无 | 0.1.0 | 翻译所用的语气，[按提供商](/zh-CN/docs/providers#各提供商的语气与术语表)应用。 |
+| `prune` | 布尔值 | `false` | 0.3.0 | 从目标文件和锁文件中移除孤立的键；`translate --prune` 会覆盖它。 |
+| `generatePlurals` | 布尔值 | `false` | 0.3.0 | 为目标语言补全它所需的 CLDR 复数形式。 |
+| `fuzzyCache.enabled` | 布尔值 | 该块中必填 | 0.11.0 | 复用略有更改的源文本的译文。 |
+| `fuzzyCache.threshold` | 数字，`0.5` 到 `1` | `0.9` | 0.11.0 | 新旧源文本需要多相似。 |
+| `humanEdits` | `"protect"`、`"suggest"`、`"overwrite"` | `"protect"` | 0.12.0 | 运行如何处理人工写入且已过期的键。 |
+| `pinnedKeys` | 字符串数组 | 无 | 0.12.0 | 任何机器写入都不会触及的键模式（`*` 通配符）。 |
+| `network.policy` | `"any"`、`"local-only"`、`"allowlist"` | `"any"` | 0.12.0 | 提供商可以连接哪些主机（见[限制网络访问](/zh-CN/docs/network-policy)）。 |
+| `network.allowedHosts` | 字符串数组 | 无；`"allowlist"` 时必填 | 0.12.0 | 额外允许的主机：名称、`*.suffix` 通配符、IP 或 CIDR 范围。 |
+| `sensitiveData.mode` | `"off"`、`"warn"`、`"block"`、`"redact"` | 该块中必填；没有该块时为 `"off"` | 0.12.0 | 发送前，运行如何处理[敏感内容](/zh-CN/docs/data-handling#敏感内容防护)。 |
+| `sensitiveData.detectors` | 检测器 ID 数组 | `secret`、`email`、`iban`、`credit-card` | 0.12.0 | 要运行的检测器；`phone`、`ip`、`private-host` 需要主动启用。 |
+| `sensitiveData.patterns` | 字符串数组 | 无 | 0.12.0 | 用于你自己的术语（例如项目代号）的正则表达式。 |
+| `sensitiveData.allow` | 字符串数组 | 无 | 0.12.0 | 永不报告的匹配；`*` 是通配符，忽略大小写。 |
+| `maxBatchSize` | 正整数 | `50` | 0.3.0 | 每次提供商请求最多包含的条目数。 |
+| `maxLength` | 键到正整数的映射 | 无 | 0.11.0 | 按键设置的长度预算，以字素簇计。 |
+| `maxTokens` | 正整数 | 无 | 0.5.0 | 整次运行的 token 预算。 |
+| `budgetBehavior` | `"warn"`、`"stop"` | `"warn"` | 0.5.0 | 达到 `maxTokens` 时是警告还是停止发送。 |
+| `rates.asOf` | `YYYY-MM-DD` 日期 | 该块中必填 | 0.11.0 | 你查看单价的日期。 |
+| `rates.currency` | 三个大写字母 | 该块中必填 | 0.11.0 | 所有单价的币种，例如 `USD`。 |
+| `rates.table` | 单价键到单价的映射 | 该块中必填 | 0.11.0 | 按[单价键](#rates)列出的单价。 |
+| `extract.framework` | `"i18next"` | 该块中必填 | 0.11.0 | 源代码扫描要查找哪种调用点。 |
+| `extract.roots` | 字符串数组 | 该块中必填 | 0.11.0 | 要扫描的目录，至少一个。 |
+| `extract.exclude` | 字符串数组 | 无 | 0.11.0 | 要额外跳过的目录名。 |
+| `extract.literals.ignore` | 字符串数组 | 无 | 0.11.0 | `doctor --literals` 不报告的完整文本。 |
+| `extract.unused.ignore` | 字符串数组 | 无 | 0.11.0 | `diff --unused` 永不报告的键或 `*` 模式。 |
+
+### 语言环境与文件
+
+- **`files.pattern`** 必须包含 `{locale}`（它唯一的占位符），并相对于项目根目录解析：`locales/{locale}.json` 变成 `locales/de.json`。它是字面路径，不是 glob，所以一份配置对应每个语言环境一个文件（见[命名空间布局](/zh-CN/docs/formats#命名空间布局)）；`apple-xcstrings` 把所有语言环境解析到同一个消息目录文件（见 [Xcode String Catalogs](/zh-CN/docs/formats#xcode-string-catalogs-xcstrings)）。
+- **`files.localeStyle`** 决定占位符展开成什么：
+  - `literal` 按配置原样写出标签，大多数布局都需要这样。
+  - `posix` 为 gettext 和 Java 的 `messages_{locale}.properties` 把 `-` 替换为 `_`（`pt-BR` 变成 `pt_BR`）；`de-1996` 这样的变体没有 posix 写法。`gettext-po` 按 gettext 的方式书写文字（见下一节）。
+  - `android` 展开为资源目录，写作 `res/{locale}/strings.xml`：源语言环境用 `values`，其后是 `values-de`、`values-pt-rBR`、`values-b+zh+Hans`。
+
+  样式无法表示某个语言环境时，会拒绝该语言环境。
+
+### gettext 语言环境名称
+
+<AvailableFrom version="0.12.0" />
+
+使用 `format: "gettext-po"` 和 `localeStyle: "posix"` 时，文件采用 gettext 名称（`language_REGION@modifier`），而配置仍使用 BCP 47 代码：
+
+| 配置中的代码 | 文件名 |
+| --- | --- |
+| `pt-BR` | `pt_BR` |
+| `es-419` | `es_419` |
+| `sr-Latn` | `sr@latin` |
+| `sr-Latn-RS` | `sr_RS@latin` |
+| `uz-Cyrl` | `uz@cyrillic` |
+| `ks-Deva-IN` | `ks_IN@devanagari` |
+| `zh-Hant-TW` | `zh_TW` |
+| `sr-Cyrl-RS` | `sr_RS` |
+
+语言和地区已经隐含的文字会被省略，因此 `zh-TW` 与 `zh-Hant-TW` 同时出现会以 `LOCALE_PATH_COLLISION` 失败；没有 gettext 修饰符的文字，例如单独的 `zh-Hant`，会以 `LOCALE_LAYOUT_INVALID` 失败。[`verbatra init`](/zh-CN/docs/cli/init) 会把这些名称读回来。其他格式沿用 ICU 写法（`sr_Latn`）。
+
+### 语言环境代码
+
+<AvailableFrom version="0.12.0" />
+
+每个语言环境代码都必须是 `Intl.getCanonicalLocales` 接受的标签，语言子标签为两个或三个字母，否则加载会以 `CONFIG_INVALID` 失败：`pt_BR`（使用 `localeStyle: "posix"` 时请写 `pt-BR`）和 `german` 都会被拒绝。有效但不规范的代码，例如 `zh-hant-tw` 或已弃用的 `iw`，可以按原样使用。
+
+### provider
+
+`provider.id` 选择一个[提供商](/zh-CN/docs/providers)，或选择 `none`；`none` 的 `options` 可以省略，否则必须是 `{}`（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）。其他每个提供商都接受 `options.localeMap` 和 `options.requestTimeoutMs`（见[提供商](/zh-CN/docs/providers#发送给提供商的语言环境代码)）；自 0.12.0 起，放错位置的键（例如 `provider` 下的 `localeMap`）会以 `CONFIG_INVALID` 失败。
+
+### glossary
+
+按固定方式翻译的术语，可以内联写出，也可以是指向同样结构的 JSON 文件的路径（二者不会合并）。版本 1 把每个源术语映射到一个适用于所有语言环境的译文：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  glossary: {
+    "Sign in": "Anmelden",
+  },
+  // or: glossary: "glossary.json",
+});
+```
+
+相对路径相对于配置文件所在目录解析；文件必须是 UTF-8 编码，且不超过 1 MiB，并在加载时读取一次。文件缺失、JSON 无效或结构无效时，会以 `CONFIG_INVALID` 失败，并给出路径，版本 2 还会给出字段。需要 `__proto__` 术语时请放进文件，因为 JavaScript 字面量会把它变成原型。
+
+#### 按语言环境的术语表（版本 2）
+
+<AvailableFrom version="0.12.0" />
+
+版本 2 增加了按语言环境设置的译文、禁用译法和保持原样的术语：
+
+```json title="glossary.json"
+{
+  "version": 2,
+  "terms": [
+    {
+      "source": "Dashboard",
+      "targets": { "de": "Übersicht", "fr": "Tableau de bord" },
+      "forbidden": { "de": ["Instrumententafel"] },
+      "note": "The start page after sign-in",
+      "partOfSpeech": "noun"
+    },
+    { "source": "Sign in", "target": "Anmelden", "caseSensitive": true }
+  ],
+  "doNotTranslate": ["verbatra", { "term": "Acme", "caseSensitive": false }]
+}
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `version` | 始终为 `2`；其他数字都会失败。 |
+| `terms[].source` | 源术语；每个术语只出现一次。 |
+| `terms[].target` | 没有自己 `targets` 条目的每个语言环境所用的译文。 |
+| `terms[].targets` | 按语言环境设置的译文。语言环境先用自己的条目，再用其基础语言的条目（`de` 涵盖 `de-AT`），最后用 `target`；代码按规范形式比较，忽略大小写。 |
+| `terms[].forbidden` | 语言环境绝不能使用的译法；地区语言环境同样遵守其基础语言的列表。 |
+| `terms[].caseSensitive` | 匹配术语、译文和禁用译法时区分大小写。默认为 `false`。 |
+| `terms[].note`、`terms[].partOfSpeech` | 自由文本形式的上下文，作为数据发送给 LLM 提供商。 |
+| `doNotTranslate` | 原样复制、不翻译的术语。纯字符串保持大小写；`{ "term", "caseSensitive": false }` 可以改变大小写。 |
+
+每个术语都需要一个 `target`、一个 `targets` 条目或一个 `forbidden` 列表；术语不能禁用自己的译文，不能重复列出同一个语言环境，也不能同时出现在 `doNotTranslate` 中。任何文本都不能为空白；术语最多 200 个字符，译文或禁用译法最多 2000 个字符，`note` 最多 500 个字符，`partOfSpeech` 最多 50 个字符。语言环境的[翻译缓存](/zh-CN/docs/the-cache)指纹只覆盖它自己的术语。版本 1 的文件保留它的指纹；只有遇到版本 1 无法表达的编辑时，[`updateGlossaryTerm`](/zh-CN/docs/sdk/config#updateglossaryterm) 才会把它改写为版本 2。
+
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Studio（见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）只编辑文件形式，一次一个术语。[提供商](/zh-CN/docs/providers#各提供商的语气与术语表)说明了哪些提供商会应用它；每条输出之后都会被检查（见[翻译安全](/zh-CN/docs/translation-safety)）。
+
+### generatePlurals
+
+为 true 时，verbatra 会补全目标语言需要、源文本却没有的 CLDR 复数形式，例如波兰语的 `few` 和 `many`，并按 CLDR 序数规则生成序数键（`<key>_ordinal_<category>`）。只有搭配 LLM 提供商的 `i18next-json` 支持此功能；其他情况，以及没有 CLDR 规则的语言环境，会得到[复数警告](/zh-CN/docs/language-support#复数)（序数按 `other` 处理）。没有对应的 CLI 选项；SDK 的 `translate()` 接受按次运行的覆盖值。
+
+### fuzzyCache
+
+`fuzzyCache: { enabled: true }` 让已更改的源文本在与它先前版本的相似度至少达到 `threshold` 时，复用先前版本的译文，并始终标记为 `FUZZY_CACHE_REUSE`（见[模糊复用](/zh-CN/docs/the-cache#模糊复用)）；`--no-cache` 会绕过它。
+
+### humanEdits 与 pinnedKeys
+
+`humanEdits` 适用于值由人写入且已过期的键（[来源](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)为 `human`、`import` 或 `external`）；匹配 `pinnedKeys` 的键（例如 `["legal.*", "brand.name"]`）无论 `humanEdits` 如何设置，都绝不会被机器写入。`*` 匹配任意一段字符，包括点号，且匹配区分大小写。每种模式的具体行为见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+
+### network
+
+参见[限制网络访问](/zh-CN/docs/network-policy)。
+
+```ts title="verbatra.config.ts"
+network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
+```
+
+### maxBatchSize
+
+缺失和已更改的条目依次分成[子批次](/zh-CN/docs/providers#分批)发出，每个子批次不超过该大小。没有 CLI 选项可以覆盖它。
+
+### maxLength
+
+按键设置的长度限制，用于受布局约束的字符串：
+
+```ts title="verbatra.config.ts"
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+- **写在这里，或写在 `verbatra.limits.json` 中**：<AvailableFrom version="0.13.0" /> 键按字面匹配，不当作 glob；两处都没有设置的键永不测量。`setKeyLengthLimit` 只接受源键，因此 Studio 无法限制生成的复数形式；手写的、针对其自身键的条目会生效。锁文件旁边的文件接受 `{ "version": 1, "maxLength": { ... } }`，同一个键以配置为准，并由 [`setKeyLengthLimit`](/zh-CN/docs/sdk/config#setkeylengthlimit) 写入。
+- **字素簇**：长度按用户感知的字符计算，包括空白：一个表情符号、一个带重音的字母或一个 CJK 字符都算一个。长度正好等于上限时不算超出。
+- **何时检查**：`translate` 为该键产生的每个值，包括复用缓存的值；已是最新的键只有在 `check --qa`、`check --file` 或 [`export --include-unchanged`](/zh-CN/docs/cli/export) 读取它时才检查。
+- **仅供参考**：超出限制的值仍会写入并锁定，并标记 [`MAX_LENGTH_EXCEEDED`](/zh-CN/docs/error-codes#max_length_exceeded) 以待审校。
+
+### maxTokens 与 budgetBehavior
+
+`maxTokens` 是整次运行的预算：所有提供商调用（翻译和复数生成）以及所有目标语言环境的输入与输出 token 之和。[`translate --max-tokens`](/zh-CN/docs/cli/translate#token-上限) 可以为单次运行收紧它，但不能放宽，并且始终是硬性的 `"stop"`。
+
+`budgetBehavior` 决定此时发生什么：
+
+- 默认的 `"warn"` 会统计花费并标记超出，但继续运行。
+- `"stop"` <AvailableFrom version="0.11.0" /> 把它变成对每个提供商都有效的上限。每次请求之前，运行会像[运行前估算费用](/zh-CN/docs/estimating-cost)中所述那样预测它的费用，并拒绝会超过 `maxTokens` 的请求。该请求的键，以及所有尚未尝试的键（该语言环境的其余部分和之后的每个语言环境，它们的差异比对和孤立键报告仍会运行）都会被搁置，保留它们先前的锁文件哈希，并在下次运行时重试。
+
+在 `"stop"` 下：
+
+- 每次请求之后，总量会按提供商报告的用量校正，因此运行结束时可能略高于 `maxTokens`（见[运行摘要的 `budget`](/zh-CN/docs/sdk/run-summary#runsummary-的结构)）。机器翻译提供商不报告 token，按预测值计入预算。
+- 失败或被截断的请求按全额计费。
+- 预测值会加上固定的 LLM 提示词余量，机器翻译提供商也一样，并且覆盖整个批次，因此低于单个批次预测值的 `maxTokens` 会让它每次运行都被拒绝；通知会提示降低 `maxBatchSize` 或提高 `maxTokens`。
+- 有键被搁置的语言环境为 `partial`，一个键都没有写入时为 `failed`，两者都以退出码 `1` 退出。在 `"warn"` 下，退出码从不改变。
+
+预算只约束一次 `translate` 运行，不约束单个条目的重新翻译；`watch` 每次运行都从新的预算开始。有预算时，实际运行不允许 [`--concurrency`](/zh-CN/docs/cli/translate#并行语言环境) 大于 `1`；试运行不受此限。没有 `maxTokens` 时，`budgetBehavior` 不起作用。
+
+<Callout type="warn" title="两个不同的 maxTokens">
+顶层的 `maxTokens` 是这个整次运行的预算；Anthropic 的 `provider.options.maxTokens` 与它无关，只限制单次响应（见[提供商](/zh-CN/docs/providers#anthropic)）。
+</Callout>
+
+### rates
+
+由 [`translate --estimate`](/zh-CN/docs/estimating-cost) 读取，并用于为每次已记录的运行计算历史费用。
+
+```ts title="verbatra.config.ts"
+rates: {
+  asOf: "2026-01-15",
+  currency: "USD",
+  table: {
+    // placeholders: copy the current rates from each provider's pricing page
+    "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
+    deepl: { perMillionCharacters: 1 },
+  },
+}
+```
+
+`table` 的键是 `provider/model`，没有模型的提供商（`deepl`、`google-translate`）则直接用提供商 ID。每个条目要么按 token 计费（`inputPerMillionTokens`、`outputPerMillionTokens`），要么按字符计费（`perMillionCharacters`），不能两者兼有；负数单价、超过每百万 1,000,000,000 的单价，或单位错误，都会被拒绝。`openai-compatible` 和 `libretranslate` 不会产生账单，因此只报告用量，不给出单价。
+
+### extract
+
+只由 [`extract`](/zh-CN/docs/cli/extract)、[`doctor --literals`](/zh-CN/docs/cli/doctor#未翻译的字面量) 和 [`diff --unused`](/zh-CN/docs/cli/diff#未使用的源键) 读取。
+
+```ts title="verbatra.config.ts"
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+  literals: { ignore: ["Acme Inc."] },
+  unused: { ignore: ["emails.*"] },
+}
+```
+
+- **`framework`** 必须指定一个有提取器的框架（见[调用形式](/zh-CN/docs/cli/extract#它能找到什么)）；其他值会被拒绝。
+- **`roots`** 相对于项目根目录解析；**`exclude`** 添加目录名（不是路径），在根目录下的任何位置匹配，并入[始终跳过的集合](/zh-CN/docs/cli/extract#扫描边界)。
+- **`literals.ignore`** 匹配字面量的完整文本，空白会被合并，引用会被解码（见[未翻译的字面量](/zh-CN/docs/cli/doctor#未翻译的字面量)）。
+- **`unused.ignore`** 匹配解码后的键（见 [`diff --unused`](/zh-CN/docs/cli/diff#未使用的源键)）。
+
+## 查找顺序
+
+verbatra 从工作目录向上查找，取第一个匹配项，查找到最近的含 `.git` 的目录为止，否则到你的主目录为止（主目录不在工作目录之上时则到工作目录为止），因此它绝不会取用仓库之上的配置：
+
+1. `package.json`（`"verbatra"` 属性）
+2. `.verbatrarc`
+3. `.verbatrarc.json`
+4. `.verbatrarc.yaml`
+5. `.verbatrarc.yml`
+6. `.verbatrarc.js`
+7. `.verbatrarc.cjs`
+8. `.verbatrarc.ts`
+9. `verbatra.config.js`
+10. `verbatra.config.cjs`
+11. `verbatra.config.ts`
+
+`--config <path>` 改为加载指定的一个文件，路径相对于工作目录；SDK 的优先级见 [`loadConfig`](/zh-CN/docs/sdk/config#loadconfig)。
+
+## 编辑器校验
+
+<AvailableFrom version="0.9.0" />
+
+`@verbatra/sdk` 附带一份由其 zod schema 生成的 JSON Schema，也发布在一个稳定的 URL 上，适用于任何安装方式，包括 `npx`、依赖提升的 monorepo 和远程智能体：
+
+```text
+https://verbatra.kreitz-webdev.de/schema/v1/config.json
+```
+
+离线时，或要固定已安装的版本时，使用包内的副本 `./node_modules/@verbatra/sdk/dist/config-schema.json`（见[所有 schema](/zh-CN/docs/cli/output#schema)）。
+
+`.verbatrarc.json` 和 `.verbatrarc` 可以为 VS Code 添加 `$schema` 键：
+
+```json title=".verbatrarc.json"
+{
+  "$schema": "https://verbatra.kreitz-webdev.de/schema/v1/config.json",
+  "sourceLocale": "en",
+  "targetLocales": ["de", "fr"],
+  "format": "i18next-json",
+  "files": { "pattern": "locales/{locale}.json" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
+}
+```
+
+没有扩展名的 `.verbatrarc` 还需要工作区文件匹配：
+
+```json title=".vscode/settings.json"
+{
+  "json.schemas": [
+    {
+      "fileMatch": [".verbatrarc", ".verbatrarc.json"],
+      "url": "https://verbatra.kreitz-webdev.de/schema/v1/config.json"
+    }
+  ]
+}
+```
+
+YAML 配置可以使用 YAML Language Server 注释：
+
+```yaml title=".verbatrarc.yaml"
+# yaml-language-server: $schema=https://verbatra.kreitz-webdev.de/schema/v1/config.json
+sourceLocale: en
+targetLocales: [de, fr]
+format: i18next-json
+files:
+  pattern: "locales/{locale}.json"
+provider:
+  id: gemini
+  options:
+    model: gemini-2.5-flash
+    maxOutputTokens: 4096
+```
+
+`package.json` 不支持 schema；可执行形式的配置由 `defineConfig` 提供类型。
+
+### 文档无法检查的内容
+
+只有加载配置时才会检查这些规则：`targetLocales` 的规则和[语言环境代码](#语言环境代码)，[`localeMap`](/zh-CN/docs/providers#发送给提供商的语言环境代码) 的键，`openai-compatible` 的 `baseUrl` 和 [`apiKeyEnvVar`](/zh-CN/docs/providers#openai-compatible) 规则，有效的 [`network.allowedHosts`](/zh-CN/docs/network-policy) 地址和范围，符合[安全规则](/zh-CN/docs/data-handling#敏感内容防护)的 `sensitiveData.patterns`，以及内联的[版本 2 术语表](#按语言环境的术语表版本-2)的术语规则。
+
+## 工作目录与 .env
+
+工作目录（你运行 verbatra 的位置，或 `--cwd`）是配置查找的起点，也存放[环境文件](/zh-CN/docs/cli#环境文件)。语言环境路径、`verbatra.lock.json`、缓存、来源记录文件和 `.verbatra-local/` 都相对于项目根目录（即找到的配置所在的目录）解析，所以在子目录中运行会使用同样的文件。使用 `--config` 时，工作目录就是根目录，配置位于其他位置时，stderr 中会输出一条提示，因为它的术语表路径相对于它自己的目录解析。你传入的路径，例如 `--out` 或 `check --file`，相对于工作目录解析。
+
+## 加载失败时
+
+- [`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)：查找的任何位置都没有配置，或 `--config` 指定的路径不存在。
+- [`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)：找到了配置但无法使用。错误信息会列出每个问题及其键路径；遇到未知键时还会附上“API 密钥来自环境变量”的提示。解析失败会给出文件名（YAML 还会给出行号和列号），但从不引用其内容，并且每条错误信息都会经过密钥脱敏。
+
+两种情况下 CLI 都以退出码 `2` 退出。

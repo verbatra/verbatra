@@ -1,0 +1,94 @@
+---
+title: Desfazer uma execução
+seoTitle: "Desfazer uma execução do translate e o rollback"
+description: Como desfazer uma execução do translate, por que os arquivos de locale, de lock e de procedência precisam voltar juntos e o que uma execução interrompida deixa.
+type: how-to
+---
+Use isto quando uma execução produziu traduções que você não quer: o tom errado, o modelo errado, um glossário esquecido. O verbatra não tem um comando de desfazer e não guarda backups. O controle de versão é o mecanismo de recuperação, e por isso os arquivos de locale, o arquivo de lock e o arquivo de procedência são versionados: juntos, eles são o snapshot ao qual você volta.
+
+Você precisa do projeto no git, com o estado anterior à execução já versionado.
+
+## O que uma execução grava
+
+Uma execução do `translate`, do `watch` ou do `import` grava os arquivos que importam para um rollback:
+
+- os arquivos de locale de destino, no caminho do seu `files.pattern`;
+- `verbatra.lock.json`, com um hash do conteúdo de origem por chave traduzida.
+
+`verbatra.cache.json` e `.verbatra-local/` são estado regenerável, ignorado pelo git; nunca os restaure. Todo arquivo rastreado é gravado de forma atômica, então nunca há um arquivo pela metade para consertar.
+
+### O arquivo de procedência
+
+<AvailableFrom version="0.12.0" />
+
+Uma execução também grava `verbatra.provenance.json`, que registra quem escreveu cada valor. Restaure-o junto com os outros dois ou apague-o se esta execução o criou. Esquecê-lo não é inofensivo: um valor revertido deixa de corresponder ao seu registro, então aparece como `external`, conta como edição humana sob o `humanEdits: protect` padrão e nunca mais é traduzido.
+
+## Fazer rollback de uma execução concluída
+
+Se a execução ainda não foi para um commit, descarte os arquivos de locale e o arquivo de lock juntos e, depois, o arquivo de procedência:
+
+```bash
+git checkout HEAD -- locales verbatra.lock.json
+```
+
+Restaure o `verbatra.provenance.json` do mesmo modo se ele já está versionado. Se esta execução o criou, o git não tem nada a restaurar, então apague-o:
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
+```
+
+Se a execução já está em um commit, reverta esse commit:
+
+```bash
+git revert <commit>
+```
+
+Em qualquer caso, restaure os arquivos de locale, o `verbatra.lock.json` e o `verbatra.provenance.json` na mesma operação. A próxima seção explica por quê.
+
+## Por que os três arquivos, ou nenhum
+
+O arquivo de lock registra um hash do valor de **origem** por trás de cada tradução, e nada sobre o próprio valor traduzido; o arquivo de procedência registra quem escreveu cada valor, ligado a um hash desse valor. Reverter um arquivo sem os outros faz com que eles descrevam momentos diferentes.
+
+**Só os arquivos de locale.** O arquivo de lock ainda diz que toda chave está em dia. Na próxima execução, uma chave que o rollback restaurou está presente e o seu hash corresponde à origem, então ela nunca é enviada de novo: o valor antigo fica no lugar para sempre. Só as chaves que a execução criou voltam como ausentes. O `check` e o `diff` comparam com a mesma linha de base, então relatam o locale como limpo, e nada avisa que essas traduções estão desatualizadas.
+
+**Só o arquivo de lock.** Os hashes restaurados são mais antigos que a origem atual, então as chaves afetadas aparecem como alteradas. A próxima execução as traduz de novo e sobrescreve os arquivos de locale, inclusive as correções manuais feitas desde então. Você paga duas vezes e perde as edições.
+
+**Sem o arquivo de procedência.** Os valores revertidos deixam de corresponder aos seus registros, então aparecem como `external`, e sob o `humanEdits: protect` padrão nunca mais são traduzidos.
+
+**Os três.** Os hashes, os registros e as traduções voltam ao mesmo ponto, e a próxima execução se comporta como se a execução ruim nunca tivesse acontecido.
+
+## Executar de novo depois de um rollback
+
+Fazer rollback e executar o `verbatra translate` de novo é uma repetição, não uma segunda opinião. Com o mesmo provedor, modelo, tom, os termos de glossário que o verbatra enviaria e o `localeMap` do provedor, a impressão digital do cache (veja [A impressão digital](/pt-BR/docs/the-cache#a-impressão-digital)) não muda, então a execução reutiliza as mesmas traduções do `verbatra.cache.json` sem chamar o provedor.
+
+Para obter um resultado diferente, mude o que tornou o primeiro errado: um novo tom, glossário ou modelo muda a impressão digital e retraduz por conta própria. Para reenviar a mesma configuração ao provedor, adicione `--no-cache`:
+
+```bash
+verbatra translate --no-cache
+```
+
+Para reconstruir um locale do zero em vez de desfazer uma execução, veja [Como retraduzo tudo?](/pt-BR/docs/faq#como-retraduzo-tudo). Apagar o arquivo de lock não é uma reinicialização: sem uma linha de base, nada é detectado como obsoleto, então a próxima execução não traduz nada.
+
+## Uma execução interrompida ou com falha
+
+Uma execução interrompida não precisa de rollback. Execute-a de novo.
+
+Cada locale é gravado em disco separadamente: primeiro o arquivo dele, depois as suas entradas no arquivo de lock. Uma interrupção deixa os locales concluídos completos e os outros intactos, e uma nova execução retoma os intactos. A única lacuna, entre a gravação do arquivo de um locale e a atualização das entradas dele no arquivo de lock, se resolve sozinha: as chaves adicionadas são adotadas como estão, e as chaves alteradas ainda têm o hash antigo, então são traduzidas de novo. Nenhum trabalho se perde.
+
+As chaves retidas durante uma execução, por uma verificação com falha, uma chamada de provedor com falha ou um orçamento de tokens, mantêm o hash anterior, então a próxima execução as tenta de novo. Veja [Solução de problemas](/pt-BR/docs/troubleshooting) para cada causa.
+
+Uma execução interrompida libera as suas travas de escrita. Um processo encerrado à força (`kill -9`, uma falha) pode deixar uma sob `.verbatra-local/`; a próxima execução na mesma máquina percebe que o processo não existe mais e a recupera. Uma trava que ela não consegue verificar faz a execução esperar e depois falhar com [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), que informa o caminho a apagar.
+
+## Antes de uma execução difícil de desfazer
+
+- Faça commit dos seus arquivos de locale, do `verbatra.lock.json` e do `verbatra.provenance.json` primeiro, para que o `git checkout HEAD --` tenha algo a que voltar.
+- Pré-visualize com `verbatra translate --dry-run`, `verbatra diff` ou `verbatra check`. Nenhum deles chama um provedor nem grava um arquivo.
+- Experimente um locale primeiro com `--locales <locale>`.
+
+## Veja também
+
+- [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file): o que ele registra e como as divergências são detectadas.
+- [O cache de tradução](/pt-BR/docs/the-cache): a impressão digital e o `--no-cache`.
+- [`verbatra translate`](/pt-BR/docs/cli/translate): `--dry-run`, `--locales` e `--no-cache`.
+- [Códigos de erro](/pt-BR/docs/error-codes#lock_contended): `LOCK_CONTENDED` e os outros erros de trava.

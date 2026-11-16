@@ -7,12 +7,17 @@ Markdown/MDX.
 
 ## Two kinds of translated content, two mechanisms
 
-- **UI strings**: `apps/docs/messages/en.json` (source) plus `de.json`, `es.json`, `fr.json`.
-  Translated by running `pnpm i18n` from `apps/docs`, which runs `verbatra translate`
-  (`apps/docs/package.json` `scripts.i18n`) against `apps/docs/verbatra.config.ts`:
-  `format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`,
-  `targetLocales: ["de", "es", "fr"]`, provider `gemini`, `tone: "informal"`. This is real, running
-  verbatra. `.github/workflows/docs-i18n-check.yml` runs `verbatra/action` in `check` mode inside
+- **UI strings**: `apps/docs/messages/en.json` (source) plus one `<locale>.json` per translated
+  locale. The locale set has one source of truth, `apps/docs/lib/locales.ts` (`LOCALES`,
+  `DEFAULT_LOCALE`, `TRANSLATED_LOCALES`); `apps/docs/verbatra.config.ts` takes
+  `targetLocales` from `TRANSLATED_LOCALES`, so a locale added there is a verbatra target with no
+  second edit. A value reaches `messages/<locale>.json` by one of two paths. (1) `pnpm i18n` from
+  `apps/docs`, which runs `verbatra translate` (`apps/docs/package.json` `scripts.i18n`) against
+  `apps/docs/verbatra.config.ts`: `format: "next-intl-json"`,
+  `files.pattern: "messages/{locale}.json"`, provider `gemini`, `tone: "informal"`. (2) Values an
+  AI agent wrote in the repository, brought in with `verbatra export` then `verbatra import`; a
+  locale's whole catalog and individual corrected values can come this way. Both are real,
+  running verbatra. `.github/workflows/docs-i18n-check.yml` runs `verbatra/action` in `check` mode inside
   `apps/docs` on every pull request that touches `apps/docs/messages/**`,
   `apps/docs/content/docs/**`, `verbatra.config.ts`, or `verbatra.lock.json`. Its `check` only
   validates what `verbatra.config.ts` covers, `files.pattern: "messages/{locale}.json"`, so it
@@ -23,27 +28,38 @@ Markdown/MDX.
   handoff) is recorded with origin `import` in `apps/docs/verbatra.provenance.json`, like one a
   person wrote (`human`). `verbatra.config.ts` sets no `humanEdits`, so the default `protect`
   applies: when the English source of such a key changes, `pnpm i18n` keeps the old value, leaves
-  the key stale and lists it as protected instead of translating it. Refresh those keys with
-  `pnpm i18n --include-human` (`humanEdits: overwrite` for that run, so it retranslates every stale
-  key a person wrote or imported; read the dry run first), or export and import them again. A key
+  the key stale and lists it as protected instead of translating it. The refresh path for an
+  import-protected locale is `verbatra export` then `verbatra import` of the filled handoff.
+  `pnpm i18n --include-human` is the alternative (`humanEdits: overwrite` for that run, so it
+  retranslates every stale key a person wrote or imported; read the dry run first), but it
+  retranslates with only the `glossary` block of `apps/docs/verbatra.config.ts`, the one in-repo
+  term source; an imported locale's term decisions can be larger than that block, so prefer the
+  export and import path for it. A key
   whose English has not changed is not stale, so `--include-human` never touches it: to correct
   such a value, edit it through a `verbatra export --include-unchanged` handoff and `verbatra
   import`, which keeps the lock and provenance in step, never by hand in `messages/*.json`.
+  `verbatra import` does not remove keys: a key deleted from `en.json` stays in every
+  `messages/<locale>.json` as an orphan until `verbatra translate --prune` runs (the `--prune`
+  flag in `packages/cli/src/run.ts`, `locale-run.ts` in `packages/sdk/src/flow/`). Without
+  `--prune` orphans are reported and kept; with it they are removed from the written file, and
+  `--dry-run --prune` previews them. Delete the key from `en.json`, then run `pnpm i18n --prune`.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
-  translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
-  by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
-  route groups and the `cli` and `sdk` folders). These are translated by an AI agent
+  translation is a locale-suffixed sibling, `page.<locale>.mdx` for each `TRANSLATED_LOCALES` entry
+  (for example `page.de.mdx`, `page.zh-CN.mdx`), in the `(agents)`, `(concepts)`,
+  `(configure)`, `(get-started)`, `(guides)`, `(help)` and `(sdk)` route groups and the `cli` and
+  `sdk` folders. These are translated by an AI agent
   in the same change as the English page, following the tone rules below; verbatra's
   `next-intl-json` adapter only covers `messages/*.json`, not MDX. Every non-English page renders
   the "Machine-translated page" notice (`docs.machineTranslated` in `messages/*.json`), which is the
   honest state and stays. The FAQ answer "Is this site's content translated by AI?" says the same
-  in all four locales, pinned by `apps/docs/lib/extract-faq.translation-claims.test.ts`.
+  in every locale: the UI strings come from `pnpm i18n` or from an agent's output imported with
+  `verbatra import`, and the MDX pages are agent-translated outside verbatra. It is pinned by `apps/docs/lib/extract-faq.translation-claims.test.ts`.
 
 ## Sidebar: two tabs, built from meta files only
 
 The sidebar has two tabs, **Docs** and **Reference**. They are Fumadocs root folders
 (`"root": true`) whose folders `content/docs/(docs)/` and `content/docs/(reference)/` hold only a
-`meta.json` and its `meta.de.json`/`meta.es.json`/`meta.fr.json` siblings. They list the existing
+`meta.json` and its `meta.<locale>.json` siblings, one per translated locale. They list the existing
 route groups with relative paths (`"../(guides)"`), and a group's `meta.json` may pull a page from
 another route group the same way (`"../(configure)/network-policy"`). A page's URL never contains
 a parenthesized folder, so regrouping the sidebar or moving a page between tabs changes no URL;
@@ -54,7 +70,7 @@ page is missing from both tabs, listed twice, or a link leaves its locale.
 
 A renamed page gets a permanent redirect for every locale and for its `.md` form: add the
 `old: "new"` pair to `MOVED_DOCS_PAGES` in `apps/docs/next.config.mjs`, and
-`apps/docs/next.config.test.ts` checks the four redirects and that the old file is gone.
+`apps/docs/next.config.test.ts` checks the redirect for every locale and that the old file is gone.
 
 ## Source of truth: what's actually shipped
 
@@ -76,19 +92,28 @@ extension touches: `providers.mdx`, `config-file.mdx`, `formats.mdx`, plus
 `apps/docs/lib/landing-facts.ts`'s `FORMAT_DISPLAY` and
 `apps/docs/components/landing/marquee.tsx`'s `FORMAT_ICONS` for a new format).
 
-## Every user-facing change updates all four locale files
+## Every user-facing change updates every locale's files
 
 A change to `messages/en.json` or to an English `page.mdx` is not complete until the corresponding
-`de`, `es`, and `fr` files are updated in the *same* change, whether by an AI agent (MDX content)
-or by re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
-leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
+file of every entry in `TRANSLATED_LOCALES` is updated in the *same* change, whether by an AI agent
+(MDX content, or UI strings imported with `verbatra import`) or by re-running `pnpm i18n` (UI
+strings, `messages/*.json`). Do not land an English-only update and leave the other locales to
+catch up later. `docs-i18n-check.yml` only backstops the
 `messages/*.json` half of this (see above). For MDX, `apps/docs/lib/docs-locale-parity.test.ts`
 fails when a locale misses a page or a `meta` file, when a translated `meta` file lists other
 pages, or when a translated page's `##` and `###` heading counts, code block count, or
 `<AvailableFrom>` versions differ from the English page. It cannot tell whether the prose itself
 is current, so keeping the wording in step stays an authoring discipline.
 
-The reference tables are asserted in all four locales against the code by the `scripts/*.test.mjs`
+A spaceless locale (Chinese, Japanese; `isSpaceless` in `apps/docs/lib/word-count.ts`) is held to
+the same structural checks, and the length checks that count English words are replaced by
+script-aware ones: landing copy caps use `countWords(text, locale)` (`Intl.Segmenter` for a
+spaceless locale; `components/landing/hero.test.tsx`, `components/landing/faq.test.tsx`), and
+`<title>` and description limits use `displayWidth` and `SPACELESS_SNIPPET_WIDTH` from
+`apps/docs/lib/display-width.ts` (`lib/docs-seo-metadata.test.ts`), where a wide character counts
+as two. The page word ceilings under "Docs budget" count the English page only.
+
+The reference tables are asserted in every locale against the code by the `scripts/*.test.mjs`
 parity tests (`pnpm test:scripts`):
 
 - `verify-docs-reference-parity.test.mjs`: exactly one section per SDK entry point across the
@@ -127,10 +152,10 @@ parity tests (`pnpm test:scripts`):
 ## Stack quickstarts: one template per locale, one stub per stack
 
 `/docs/quickstart/<stack>` pages are not written page by page. Each is a stub,
-`content/docs/(get-started)/quickstart/<stack>{,.de,.es,.fr}.mdx`, holding only frontmatter
+`content/docs/(get-started)/quickstart/<stack>{,.<locale>}.mdx`, holding only frontmatter
 (`title`, `description`, `type: tutorial`, `stack: <id>`) and one
 `<include>../../../templates/stack-quickstart<suffix>.mdx</include>` line. The steps live in the
-four templates `content/templates/stack-quickstart{,.de,.es,.fr}.mdx`, outside the page
+templates `content/templates/stack-quickstart{,.<locale>}.mdx`, one per locale, outside the page
 collection, and everything stack-specific comes from `STACKS` in `apps/docs/lib/stacks.ts`
 through `<StackBlock name>` (commands, file samples, loader code) and `<StackText field>` (name,
 library, format, pattern, file names). Translated prose never goes into the table, and a stack
@@ -138,12 +163,11 @@ element never sits in a heading. The generic quickstart is `quickstart/index*.md
 stays `/docs/quickstart`.
 
 - **Adding a stack**: add it to `STACK_IDS` and `STACKS` (its `pattern` must equal the
-  format's `DEFAULT_LAYOUTS` entry in `packages/cli/src/init-config.ts`), write the four stubs
+  format's `DEFAULT_LAYOUTS` entry in `packages/cli/src/init-config.ts`), write one stub per locale
   (with `sidebarTitle` set to the stack name), list it in `quickstart/meta*.json`, give its card
-  on `index*.mdx` the `/docs/quickstart/<id>` href and the localized `badge` ("Quickstart",
-  "Schnellstart", "Inicio rápido", "Démarrage rapide"), and end its `pick-your-stack*.mdx`
+  on `index*.mdx` the `/docs/quickstart/<id>` href and the localized `badge` (the word "Quickstart" in that locale, copied from the existing cards), and end its `pick-your-stack*.mdx`
   section with a link to the page. Cards on `pick-your-stack` itself always jump to a section.
-- **Changing the steps**: edit all four templates in the same change; the stubs never change.
+- **Changing the steps**: edit every locale's template in the same change; the stubs never change.
 - **One skeleton**: the generic quickstart and the templates run the same commands in the same
   order (install, source file, `init`, dry run, key and `translate`, `check`); only a stack page
   adds "Load the locales in your app", and `init --agent` sits in an optional section after "What
@@ -168,7 +192,7 @@ stays `/docs/quickstart`.
   whole-file `<include>path.mdx</include>` on its own line is supported; a `#section`, a `cwd`
   attribute or an inline include is refused.
 - **What pins the stack pages**: `lib/stack-quickstarts.test.ts` checks that the templates exist
-  in all four locales with the same stack elements and no page-level badge, that every stack has
+  in every locale with the same stack elements and no page-level badge, that every stack has
   a stub per locale and between four and eight steps, stays under the tutorial ceiling with its
   stack text filled in, and is linked from the docs home, `pick-your-stack` and the generic
   quickstart. `scripts/verify-docs-registry-parity.test.mjs` pins `STACKS` to
@@ -179,28 +203,27 @@ stays `/docs/quickstart`.
 
 Every entry point in `apps/docs/content/docs/sdk/*.mdx` follows one template: the heading (with an
 inline `<AvailableFrom />` when newer than the first release), one lead paragraph, a
-`ts title="Signature"` block (`Signatur`, `Firma`, `Signature` in de, es, fr), an
+`ts title="Signature"` block (translated per locale, for example `Signatur` in de), an
 `<SdkTypeTable name="<Input type>" />` for an object input, a **Returns** line, and a **Throws**
 line linking each `SdkError` code to `/docs/error-codes#<code>`. The type table renders the
 published English JSDoc on every locale; everything around it is translated. The Throws line is
 test-pinned to each function's `@throws` tags (`scripts/verify-docs-reference-parity.test.mjs`), so
-a new `@throws` code fails `pnpm test:scripts` until all four locales list it.
+a new `@throws` code fails `pnpm test:scripts` until every locale lists it.
 
 A function that declares no `@throws` gets no **Throws** line at all, never "Throws: nothing": the
 absent line is the statement that the function throws no `SdkError` code. A function that never
 throws anything says so in its lead paragraph, as `runStatus` does.
 
-An `**Example:**` line (`**Beispiel:**`, `**Ejemplo:**`, `**Exemple :**` in de, es, fr) may
+An `**Example:**` line (translated per locale, for example `**Beispiel:**` in de) may
 close the entry, linking to the quickstart step or recipe in
 `(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx`, or the how-to such as
 `(guides)/custom-format-adapters.mdx`, that owns a full script using the entry point, with the
-locale's own anchor and heading text. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
-`Exemple`) in a reference section is either an example no recipe or quickstart step owns, or a short
+locale's own anchor and heading text. A fenced `ts title="Example"` block (translated per locale, for example `Beispiel`) in a reference section is either an example no recipe or quickstart step owns, or a short
 one that shows this entry point alone; a full script stays with its recipe. It is self-contained:
 every import is written out, and every given the snippet does not build itself is a `declare const`
 (or a `declare function`). `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
 on the pages `sdk/meta.json` lists against the built `packages/sdk/dist/index.d.ts` in strict mode,
-fails when a de, es or fr block's body differs from the English one, so its comments stay in
+fails when a translated block's body differs from the English one, so its comments stay in
 English, and fails on an untitled TypeScript fragment there. The one exemption is the
 `RunSummary` and `LocaleSummary` listing on `sdk/run-summary*.mdx`, a block that opens with
 `interface RunSummary {`.
@@ -327,7 +350,7 @@ and a link to the owner.
 
 ### Badge placement
 
-`apps/docs/lib/docs-badge-placement.test.ts` enforces these rules in all four locales:
+`apps/docs/lib/docs-badge-placement.test.ts` enforces these rules in every locale:
 
 - A badge sits under a heading, in a table cell (a row's effect cell, or a header cell when the
   whole column is new), or at page level (on its own line before the first heading).
@@ -348,13 +371,80 @@ and a link to the owner.
   outside the current release line (see "The `<AvailableFrom />` badge" above), so the page needs
   no edit when a release ships.
 
+## The locale set
+
+`apps/docs/lib/locales.ts` is the single source of truth: `LOCALES`, `DEFAULT_LOCALE`,
+`TRANSLATED_LOCALES` and the helpers `localeAlternation`, `localeSuffixes`, `translationFilePattern`
+and `localePrefix`. `apps/docs/next.config.mjs` and `apps/docs/verbatra.config.ts` import it, and
+`scripts/docs-locales.mjs` re-exports it for the `scripts/*.test.mjs` parity tests. Do not write a
+locale list anywhere else. `locales.ts` has no import, static or dynamic, because the published CLI
+loads `verbatra.config.ts` without the app's resolver; `lib/locales.test.ts` fails if one is added.
+A per-locale table in a test is typed `Record<Locale, ...>`, or in a script test wrapped in
+`assertLocaleTable` (`scripts/docs-locales.mjs`), so a locale without an entry fails loudly instead
+of being skipped.
+
+A locale code is region-qualified where the language has regional written forms: Simplified
+Chinese is `zh-CN` in the URL segment, `html lang`, hreflang, `messages/zh-CN.json`,
+`page.zh-CN.mdx` and `meta.zh-CN.json`. Do not shorten it. Japanese has no regional written form
+here and is plain `ja`, never `ja-JP`.
+
+## Spaceless scripts (Chinese, Japanese)
+
+A locale whose script has no word spaces needs handling that Latin locales never hit. Each piece
+has one owner:
+
+- Word counting: `countWords`, `isSpaceless` and `lastWordStart` in `apps/docs/lib/word-count.ts`
+  (`Intl.Segmenter`). Do not count with a whitespace split for a locale-dependent limit.
+- Title and description length: `displayWidth`, `snippetLength` and `SPACELESS_SNIPPET_WIDTH` in
+  `apps/docs/lib/display-width.ts`; a wide character counts as two.
+- Line breaking: `keepCompoundsWhole` in `apps/docs/lib/word-breaks.tsx`; `breakBetweenWords` in
+  `apps/docs/lib/word-segments.tsx`, the only module besides `lib/word-count.ts` that may use
+  `Intl.Segmenter` (built lazily, and never reachable from a `"use client"` file:
+  `lib/no-segmenter-in-client.test.ts`). `rehypeCjkCodeBreaks` (`lib/cjk-code-breaks.ts`) adds a
+  `<wbr>` after a CJK clause mark, full stop or closing bracket before inline code, which Unicode line breaking forbids when the
+  code starts with `.` or `%`.
+  The compare table keeps a cell's trailing arrow with its last word through `tailCut` in
+  `apps/docs/components/landing/compare-table.tsx`.
+- Typography: one `:lang(zh-CN)` / `:lang(ja)` block in `apps/docs/app/global.css`: system font
+  stacks after Geist, no CJK webfont, no letter-spacing, uppercase or italics on Han text, and the
+  heading line-height. Change them there, not per component.
+- OG images: Geist cannot draw Han, so `OG_LOCALE_FONTS` in `apps/docs/lib/og-locale-fonts.ts`
+  gives the locale its own face, subset to that locale's OG text (`lib/og-texts.ts`) into
+  `apps/docs/assets/og-fonts/` with its OFL text beside it. Rebuild the subset whenever that
+  locale's title, description or a message the OG image prints changes:
+  `pnpm --filter @verbatra/docs og:fonts --source-dir <dir holding the source font>`
+  (`apps/docs/scripts/build-og-font-subsets.mjs`). The script checks each source file against the
+  SHA-256 in `OG_FONT_SOURCES` (`apps/docs/lib/og-locale-fonts.ts`) and refuses a mismatch.
+  `lib/og-font-subsets.test.ts` fails when a committed subset lacks a character.
+
+Tests with a Han or kana branch: `scripts/verify-docs-registry-counts.test.mjs` (spelled-out
+counts), `apps/docs/components/landing/marquee.test.tsx` (the same on the marquee),
+`apps/docs/lib/docs-badge-placement.test.ts` (prose restating a badge version) and
+`scripts/verify-docs-reference-parity.test.mjs` (label lines). A bold label line is `**<label>**`
+followed by the full-width colon `：` outside the bold, for example `**抛出**：` or `**例外**：`.
+The long-vowel mark `ー` (U+30FC) and the middle dot `・` (U+30FB) have script `Common`, so
+`SPACELESS_SCRIPT` (`lib/word-count.ts`) and `COMPOUND_CHAR` (`lib/word-breaks.tsx`) name them
+explicitly; a new kana helper must do the same.
+
 ## Register and tone
 
-Informal address throughout: German `du` (not `Sie`), Spanish `tú` (not `usted`), French `tu` (not
-`vous`). This is the same tone the automated translation already applies
+Informal address throughout, per locale: German `du` (not `Sie`), Spanish `tú` (not `usted`),
+French `tu` (not `vous`), Brazilian Portuguese `você` (not `tu` or `o senhor`), Simplified Chinese `你` (not `您`), Japanese polite `です`/`ます` (never
+`だ`/`である`, no `あなた`). Pick the informal form for a new
+locale and state it here. This is the same tone the automated translation already applies
 (`apps/docs/verbatra.config.ts`: `tone: "informal"`), so agent-translated MDX content should match
 it for consistency between the UI strings and the pages.
 
-Never use the em dash (U+2014) in any locale, including German, Spanish, or French content an agent
-wrote. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
-requires for English.
+Never use the em dash (U+2014) or the horizontal bar (U+2015) in any locale, including content
+an agent wrote in any translated locale. `check:no-em-dash` rejects both. Use a spaced
+hyphen, a colon, or parentheses instead, exactly as the repo-wide rule requires for English; the
+Chinese dash is written as two U+2014 in ordinary typography, so rephrase instead.
+
+Conventions a new locale follows, set by the first non-Latin locale:
+
+- Explicit heading ids (`### Tools [#tools]` on `cli/mcp`) are copied from the existing translated
+  siblings; a heading with no explicit id gets an anchor derived from its translated text.
+- Link text to a docs page is that page's title in the locale.
+- UI labels of English-only tools (Studio) stay English, with a gloss in the locale on first
+  mention.
+- Error hint texts and `sdk/` example block bodies stay English, as in every other locale.

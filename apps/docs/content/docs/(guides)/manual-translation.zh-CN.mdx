@@ -1,0 +1,147 @@
+---
+title: 用 Excel 或 CSV 交接
+seoTitle: "用 Excel 或 CSV 文件交接译文"
+description: "把未翻译的字符串导出为 Excel 工作簿或 CSV 文件交给译者，再用与自动运行相同的安全检查导入结果。"
+type: how-to
+---
+需要由人来翻译部分字符串时使用本页，例如营销文案、法律文本，或最重要的那几种语言。你**导出**需要翻译的字符串，译者填写，然后把文件**导入**回你的语言文件。
+
+导出选出的恰好是自动运行会翻译的键（新增和已更改的键），导入则运行与 `translate` 相同的完整性检查，所以破坏了占位符的手工输入值会被搁置并报告，而不会写入。这两个命令都不调用提供商，也不需要 API 密钥。
+
+你需要一个至少有一个目标语言环境的 verbatra 项目。
+
+## 往返流程
+
+```bash
+# 1. Export the strings that need translating
+verbatra export
+
+# 2. A translator fills the Translation column and sends the file back
+
+# 3. Import the filled workbook
+verbatra import verbatra-translations.xlsx
+```
+
+导出会在工作目录中写入 `verbatra-translations.xlsx`。导入会校验每个已填写的行，写入通过校验的值，并只为它接受的键推进锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)），与 `translate` 运行时一样。
+
+## 工作簿中有什么
+
+工作簿以 **Instructions**（说明）工作表开头，之后每个目标语言环境一张工作表，以语言环境命名（`de`、`fr` 等）。每张语言环境工作表的列都相同：
+
+| 列 | 可编辑 | 用途 |
+| --- | --- | --- |
+| `Key` | 否 | 键路径；唯一能把一行对应回某个字符串的依据 |
+| `Source` | 否 | 源语言环境的值 |
+| `Current translation` | 否 | 已有的目标值（如果有） |
+| `Status` | 否 | `new`、`changed`（译文写成之后源值有更改）或 `unchanged`（仅在使用 `--include-unchanged` 时） |
+| `Translation` | **是** | 译者唯一要填写的单元格 |
+| `Source hash` | 否 | 隐藏；检测导出之后发生更改的源值 |
+| `Context` | 否 | 键的描述，前提是源格式带有描述；从不导入 |
+| `Review status` | 否 | `ok`，或在[审校标记](/zh-CN/docs/translation-safety#审校标记)建议再看一眼时为 `review` |
+| `Review reasons` | 否 | `review` 状态背后的[审校原因](/zh-CN/docs/error-codes#review-reason-codes) |
+
+除 `Translation` 外，每一列都被工作表保护锁定，`Translation` 使用 Excel 的文本格式，所以像 `007` 或以 `=` 开头的值会保持为字面文本。审校列只是参考：导入从不读取它们。
+
+## 交接
+
+把下面的规则告诉译者（Instructions 工作表会重复这些规则）：
+
+- 只填写 `Translation` 列，不要改其他内容。
+- 不要重命名、删除或重排语言标签页。每个标签页按确切名称匹配一个语言环境，所以重命名或缺失的标签页会使该语言环境失败。
+- 可以对行排序和筛选，因为行是按 `Key` 匹配的。列必须保持原位。
+- “尚未翻译”就让单元格留空。填了一半的工作簿可以先交回一部分，其余的以后再交。
+- 要有意清除已有的值，输入 `[[CLEAR]]`，必须完全一致。
+
+## 导入接受什么
+
+写入任何内容之前，verbatra 会对照当前项目检查每个已填写的行：
+
+- **源值漂移**：导出之后源字符串有更改时，该行会被搁置，所以旧源值的译文绝不会写入。
+- **完整性**：占位符、内联标记和 ICU 结构必须与源值一致，与每次运行相同。见[完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)。
+- **退化的值**：重复循环、失控的长度，或非空源值对应的空值，会被搁置。
+- **未知的键**：已填写行的键既不在源文件中也不在目标文件中时，该语言环境的工作表会失败。只存在于目标文件中的键保持不写入。
+- **未更改的行**：在 CSV、TSV 或 xlsx 交接中，已填写的值与某个已是最新的键的现有值相同时，只要通过同样的门禁，该行就保持不变，并报告为未更改。
+
+被搁置的行或空白行保留其锁文件基线，所以该键会一再导出，直到问题解决；源值已漂移的空白行还会触发 [`BLANK_ROW_BASELINE_RETAINED`](/zh-CN/docs/error-codes#blank_row_baseline_retained) 通知。无法读取的行或重复的键会被报告，但不会使整张工作表失败。每张工作表在运行摘要中对应一个语言环境，导入使用与 `translate` 相同的退出码，所以交接与自动运行适用同样的 CI 检查（见[在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes)）。详情见 [`verbatra import`](/zh-CN/docs/cli/import)。
+
+### 先试运行
+
+预览交回的工作簿会写入什么，不改动任何文件：
+
+```bash
+verbatra import verbatra-translations.xlsx --dry-run
+```
+
+## 用 CSV 和 TSV 代替工作簿
+
+如果服务商或流程需要纯文本，`--format csv` 或 `--format tsv` 会把相同的列写成每个语言环境一个文件：
+
+```bash
+# write handoff/de.csv and handoff/fr.csv
+verbatra export --format csv --out handoff
+
+# import every locale file in the directory back
+verbatra import handoff --format csv
+```
+
+语言环境取自文件名，所以请保持文件名与导出时一致。与工作簿相比：
+
+- **没有任何保护**：每一列都可编辑，`Source hash` 可见。编辑过的哈希一律不予信任：verbatra 会把该行与当前源值比对，并按漂移搁置。
+- **没有 Instructions 工作表**：请自己把上面的规则交给译者。
+- **公式已做转义处理**：以 `=`、`+`、`-`、`@`、制表符或回车符开头的值，写入时会加上前导撇号，让电子表格把它保留为文本；导入时会再次去掉撇号。仍然要把交回的文件当作不可信输入。
+- **范围更窄的重新导出会淘汰旧文件**：先前范围更宽的导出遗留下来的文件，在导入时会被拒绝，而不是被应用。不会删除任何文件。
+
+## 面向 CAT 工具的 XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+如果翻译公司使用 Trados、memoQ 或 OmegaT 等 CAT 工具，请改为导出 XLIFF：见[交给翻译公司（XLIFF）](/zh-CN/docs/translation-agency)。
+
+## TMX 是另一条路径
+
+<AvailableFrom version="0.11.0" />
+
+交接把每个语言环境的待处理字符串交给人。[`verbatra tmx`](/zh-CN/docs/cli/tmx) 则把整个翻译记忆库作为一个多语言文件在工具之间迁移，所以它不是 `export --format` 的值。
+
+## 选择要导出的内容
+
+默认情况下，导出只包含缺失和已更改的字符串：
+
+```bash
+# Only the German and French sheets
+verbatra export --locales de,fr
+
+# Also include strings that are already up to date
+verbatra export --include-unchanged
+
+# Write to a specific path
+verbatra export --out handoff/round-2.xlsx
+```
+
+译者需要整个语言环境作为上下文时，使用 `--include-unchanged`。`--out` 必须位于项目之内，也不能指向项目所依赖的文件。每个选项和规则见 [`verbatra export`](/zh-CN/docs/cli/export)。
+
+## 审校列
+
+这两列都在导出时根据源值和当前值计算，所以没有译文的行始终是 `ok`。`Review reasons` 把每个原因写成小写加连字符的形式（`length-ratio-outlier`），只有运行才能看到的两个原因（`provider-degraded`、`fuzzy-cache-reuse`）除外，它们从不出现。值的 ICU 分支不适合目标语言时，它还会加上 `icu-arms`，并列出缺失或多余的分支；完整性门禁会拒绝这样的值，所以请在该行交回之前修正。要清除审校标记，修正译文即可。
+
+## 在 SDK 中使用
+
+这两个命令封装了 [`exportWorkbook`](/zh-CN/docs/sdk/exchange#exportworkbook) 和 [`importWorkbook`](/zh-CN/docs/sdk/exchange#importworkbook)：
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "csv", out: "handoff" });
+
+const summary = await importWorkbook({ config, workbook: "handoff", format: "csv" });
+```
+
+`importWorkbook` 返回与 `translate` 相同的 [`RunSummary`](/zh-CN/docs/sdk/run-summary)。
+
+## 相关内容
+
+- [`verbatra export`](/zh-CN/docs/cli/export) 和 [`verbatra import`](/zh-CN/docs/cli/import)：每个选项、输出路径和退出码。
+- [翻译安全](/zh-CN/docs/translation-safety)：每次写入背后的完整性门禁。
+- [不用机器翻译运行](/zh-CN/docs/human-only-workflow)：所有译文都由人完成的项目。

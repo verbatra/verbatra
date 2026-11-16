@@ -5,7 +5,7 @@ description: "Démarre le serveur MCP en stdio qui expose les outils de verbatra
 status: new
 type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent les clients MCP pour lancer un serveur d'outils. Il sert les révisions de protocole 2024-10-07 à 2026-07-28. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent les clients MCP pour lancer un serveur d'outils. Il sert les révisions de protocole 2024-10-07 à 2026-07-28. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -17,7 +17,7 @@ verbatra-mcp [flags]
 ```
 
 - `verbatra-mcp` est le binaire fourni par `@verbatra/mcp`, pour qu'un client lance le serveur sans la CLI. Il prend les mêmes options sauf `-q`/`--quiet` et démarre le même serveur, mais ne charge aucun fichier `.env` et affiche la version de `@verbatra/mcp` avec `--version`.
-- Les deux refusent une option inconnue (comme `--json`), une option sans valeur ou un argument en trop comme erreur d'utilisation, avec le code `2`. `verbatra-mcp` le fait, et accepte `-h` et `-V`, depuis `@verbatra/mcp` 0.3.0.
+- Les deux refusent une option inconnue, une option sans valeur ou un argument en trop comme erreur d'utilisation, avec le code `2`. `verbatra-mcp` le fait, et accepte `-h` et `-V`, depuis `@verbatra/mcp` 0.3.0.
 
 ## Exemples
 
@@ -60,7 +60,7 @@ La recherche de configuration commence là, et le répertoire de la config trouv
 
 `translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
 
-Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/fr/docs/providers)).
+Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur que quand tu actives la dépense.
 
 ### Instructions pour l'agent
 
@@ -78,7 +78,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | `project.doctor` | chaque vérification de configuration avec son `status`, son `detail` et, en cas d'échec, un `fix` | oui | non |
 | `status.check` | par locale, le nombre de clés manquantes, obsolètes et à jour | oui | non |
 | `status.diff` | par locale, la liste des clés qui seraient ajoutées, retraduites ou orphelines | oui | non |
-| `glossary.get` | chaque terme du glossaire avec ses traductions, ses formes interdites et son contexte, secrets masqués | oui | non |
+| `glossary.get` | chaque terme du glossaire avec ses traductions, ses formes interdites et son contexte, secrets expurgés | oui | non |
 | `glossary.write` | modifie un terme du glossaire : une traduction, des données par locale, le contexte, ou s'il reste non traduit | non | non |
 | `lock.state` | la version du fichier de verrouillage et, par locale cible, son nombre de clés plus les manquantes, obsolètes et à jour | oui | non |
 | `history.list` | les derniers commits git sur un fichier de locale, avec nom de l'auteur, date, sujet et chemins | oui | non |
@@ -95,7 +95,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | `review.queue` | chaque valeur écrite par une machine que personne n'a encore approuvée, avec les signalements de la dernière exécution | oui | non |
 | `report.provenance` | par locale, les comptes de provenance comme les donne `verbatra report provenance`, et les clés paginées sur demande | oui | non |
 | `review.approve` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée approuve la traduction actuelle d'une clé | non | non |
-| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, et la retirer | non | non |
+| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, et la retire | non | non |
 | `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
 | `usage.history` | les dernières exécutions, leur coût et la couverture <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | oui | non |
 
@@ -121,8 +121,8 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 - Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et ses détails.
 - `glossary.get` prend une `locale` optionnelle et ajoute alors `effective`, les termes auxquels cette locale est tenue.
 - `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
-- `locale.values` et `report.provenance` renvoient leurs entrées par pages dans l'ordre des clés source : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Une page ne nomme que les locales dont elle contient des entrées, et un curseur périmé échoue comme entrée invalide.
-- `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la map par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, éventuellement limitées à certains `buckets`.
+- `locale.values` et `report.provenance` renvoient leurs entrées par pages dans l'ordre des clés source : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Une page ne nomme que les locales dont elle contient des entrées, et un curseur obsolète échoue comme entrée invalide.
+- `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la table par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, éventuellement limitées à certains `buckets`.
 - `history.list` prend `limit` (50 par défaut, 200 au plus). Avec `available: false`, sa `reason` vaut `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` ou `git-too-old`.
 - `usage.history` prend `limit`, le nombre d'exécutions les plus récentes (50 par défaut, 200 au plus) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
 - `history.keyRevisions` prend `locale`, `key` (1 024 caractères au plus) et `limit`, le nombre de commits examinés (50 par défaut, 200 au plus) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
@@ -165,7 +165,7 @@ Avant chaque appel, le serveur recharge la config si le fichier de config, un fi
 
 ### Expurgation des secrets
 
-Les secrets sont expurgés de chaque résultat et de chaque ligne de log, comme le fait aussi Studio : une valeur qui ressemble à une clé d'API, ou la valeur d'une variable de clé configurée, devient `[REDACTED]` ; les outils de glossaire nomment les termes masqués. Masquer les valeurs de traduction, c'est [`--redact-values`](#redacted-values).
+Les secrets sont expurgés de chaque résultat et de chaque ligne de log, comme le fait aussi Studio : une valeur qui ressemble à une clé d'API, ou la valeur d'une variable de clé configurée, devient `[REDACTED]` ; les outils de glossaire nomment les termes expurgés. Masquer les valeurs de traduction, c'est [`--redact-values`](#redacted-values).
 
 ### Valeurs masquées [#redacted-values]
 
@@ -212,5 +212,5 @@ Chaque version est aussi dans le [registre MCP officiel](https://registry.modelc
 ## Voir aussi
 
 - [Connecter un client MCP](/fr/docs/connect-an-mcp-client) configure les clients stdio courants.
-- [Les outils d'agent dans Studio](/fr/docs/agent-tools-in-studio) sont l'équivalent navigateur des outils de ce serveur pour les agents de terminal et sans interface.
+- [Les outils d'agent dans Studio](/fr/docs/agent-tools-in-studio) sont l'équivalent navigateur des outils de ce serveur.
 - [`verbatra check`](/fr/docs/cli/check) et [`verbatra diff`](/fr/docs/cli/diff) sont les calculs derrière `status.check` et `status.diff`.

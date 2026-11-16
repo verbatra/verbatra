@@ -80,13 +80,13 @@ A pinned key is never translated, suggested or retranslated, even when it is mis
 
 ## Agents
 
-An AI agent cannot replace a person's work. The MCP tool `translation.retranslateEntry` refuses a protected value with [`KEY_PROTECTED`](/docs/error-codes#key_protected) and a pinned key with [`KEY_PINNED`](/docs/error-codes#key_pinned), and offers no override. `translation.translatePending` leaves protected keys alone and lists them. An agent can still write a value with `translation.editEntry` unless the key is pinned; that value is recorded as `agent`, so it never passes for a person's work.
+An AI agent cannot replace a person's work. The MCP tool `translation.retranslateEntry` refuses a protected value with [`KEY_PROTECTED`](/docs/error-codes#key_protected) and a pinned key with [`KEY_PINNED`](/docs/error-codes#key_pinned), and offers no override per call; for a protected value only the project's `humanEdits` setting changes this (`overwrite` retranslates the key, and under `suggest` `translation.translatePending` only reports a suggestion); a pinned key is always refused. `translation.translatePending` leaves protected keys alone and lists them. An agent can still write a value with `translation.editEntry` unless the key is pinned; that value is recorded as `agent`, so it never passes for a person's work.
 
 ## In Studio
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The Translations page marks a protected key as **Protected** and lists it in its own group, with the origin of its current value. Open the key to edit it, or save it unchanged to keep the text. Retranslating a protected key in the key editor asks first and offers **Replace anyway**. See [Review in Studio](/docs/review-in-studio).
+The Translations page marks a protected key as **Protected**, can filter to protected keys, and shows the origin of its current value. Open the key to edit it, or save it unchanged to keep the text. Retranslating a protected key in the key editor is refused and then offers **Replace anyway**, which retranslates it on purpose. See [Review in Studio](/docs/review-in-studio).
 
 ## Edge cases
 

@@ -34,7 +34,7 @@ pnpm, yarn und bun funktionieren auch. Bestätige keine Install-Skripte, weder i
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/de/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist oder schon den verbatra-Abschnitt enthält) und den verbatra-MCP-Server, Ausgaben aus, in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
+Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen API-Key-Wert. [Provider](/de/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist oder schon den verbatra-Abschnitt enthält) und den verbatra-MCP-Server mit ausgeschalteten Ausgaben in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
 
 | Exit-Code und Fehlercode | Tu das |
 | --- | --- |
@@ -45,9 +45,9 @@ Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt mach
 
 [init](/de/docs/cli/init#provider) beschreibt jedes Flag.
 
-### 4. Den API-Schlüssel dem Menschen überlassen
+### 4. Den API-Key dem Menschen überlassen
 
-Überspring diesen Schritt beim Provider `none`. Die Schlüsselvariable steht in `result.apiKeyEnvVar`; nach `CONFIG_EXISTS` ist sie `null`, dann nimmst du den Namen aus der fehlschlagenden Prüfung `api-key` von `npx @verbatra/cli doctor --json`. Kopier `.env.example` nach `.env` oder leg `.env` an, wenn `init` kein Beispiel geschrieben hat, nenn dort die Variable mit leerem Wert und sag dem Menschen, dass er sie ausfüllen soll. Schreib, erfinde oder erfrage nie einen Schlüsselwert. Mach weiter, ohne zu warten.
+Überspring diesen Schritt beim Provider `none`. Die Key-Variable steht in `result.apiKeyEnvVar`; nach `CONFIG_EXISTS` ist sie `null`, dann nimmst du den Namen aus der fehlschlagenden Prüfung `api-key` von `npx @verbatra/cli doctor --json`. Kopier `.env.example` nach `.env` oder leg `.env` an, wenn `init` kein Beispiel geschrieben hat, nenn dort die Variable mit leerem Wert und sag dem Menschen, dass er sie ausfüllen soll. Schreib, erfinde oder erfrage nie einen API-Key-Wert. Mach weiter, ohne zu warten.
 
 ### 5. Das Setup ohne Kosten prüfen
 
@@ -58,11 +58,11 @@ npx @verbatra/cli diff --json
 npx @verbatra/cli translate --dry-run --json
 ```
 
-Keiner dieser Befehle ruft einen Provider auf, braucht einen Schlüssel oder schreibt eine Datei. Behebe jede fehlschlagende `doctor`-Prüfung, die du in `verbatra.config.ts` beheben kannst; die Prüfung `api-key` besteht erst, wenn der Mensch den Schlüssel gesetzt hat, also dreh dich nicht in einer Schleife darum. Bei `check` oder `diff` ist Exit `1` (nicht synchron) vor einem ersten Lauf zu erwarten; nur Exit `2` ist ein Setup-Problem. Beim Provider `none` endet `translate --dry-run` mit `3`, wenn Schlüssel für einen menschlichen Übersetzer übrig bleiben. Übersetzt werden nur Schlüssel, die im Ziel fehlen, und ein leerer String zählt als vorhanden, also frag, bevor du Platzhalter-Schlüssel mit `""` löschst.
+Keiner dieser Befehle ruft einen Provider auf, braucht einen API-Key oder schreibt eine Datei. Behebe jede fehlschlagende `doctor`-Prüfung, die du in `verbatra.config.ts` beheben kannst; die Prüfung `api-key` besteht erst, wenn der Mensch den API-Key gesetzt hat, also dreh dich nicht in einer Schleife darum. Bei `check` oder `diff` ist Exit `1` (nicht synchron) vor einem ersten Lauf zu erwarten; nur Exit `2` ist ein Setup-Problem. Beim Provider `none` endet `translate --dry-run` mit `3`, wenn Keys für einen menschlichen Übersetzer übrig bleiben. Übersetzt werden nur Keys, die im Ziel fehlen, und ein leerer String zählt als vorhanden, also frag, bevor du Platzhalter-Keys mit `""` löschst.
 
 ### 6. Anhalten und fragen
 
-Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dry-run` gemeldet hat, und halt dann an. Ein echter Lauf kostet sofort und hat keine eigene Bestätigungsabfrage, also warte auf die ausdrückliche Zustimmung des Menschen. Nutze `--prune` nie, außer der Mensch hat es verlangt.
+Fass zusammen, wie viele Keys pro Locale ausstehen und was `translate --dry-run` gemeldet hat, und halt dann an. Ein echter Lauf kostet sofort und hat keine eigene Bestätigungsabfrage, also warte auf die ausdrückliche Zustimmung des Menschen. Nutze `--prune` nie, außer der Mensch hat es verlangt.
 
 ### 7. Nach der Zustimmung übersetzen
 
@@ -76,7 +76,7 @@ Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Ei
 
 Committe `verbatra.config.ts`, `.env.example`, falls vorhanden, die Anweisungsdatei und die Client-Konfigurationen aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
 
-Sag dem Menschen dann, dass er seinen Client neu starten und den Server `verbatra` des Projekts bestätigen soll. In Claude Code installiert er nicht zusätzlich das verbatra-Plugin, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein Client, den `init` nicht erkannt hat, bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/de/docs/connect-an-mcp-client).
+Sag dem Menschen dann, dass er seinen Client neu starten und den Server `verbatra` des Projekts bestätigen soll. Installiere in Claude Code nicht zusätzlich das verbatra-Plugin, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein Client, den `init` nicht erkannt hat, bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/de/docs/connect-an-mcp-client).
 
 ## Weiter
 

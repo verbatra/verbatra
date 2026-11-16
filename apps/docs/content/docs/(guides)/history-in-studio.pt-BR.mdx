@@ -1,0 +1,59 @@
+---
+title: Ver e restaurar o histórico de uma chave no Studio
+seoTitle: "Ver e restaurar o histórico de uma chave"
+description: Veja como uma tradução mudou de commit em commit e carregue um valor anterior de volta no editor, pela aba History do Verbatra Studio.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Use isto quando uma tradução foi reescrita e você quer a redação anterior de volta, ou para ver quem alterou uma chave e quando. A aba só lê o git. O Studio nunca coloca nada na área de stage, nunca faz commit e nunca reverte nada: restaurar só preenche o editor com o texto antigo, e você o salva como qualquer edição.
+
+## Abrir a aba History
+
+Inicie o Studio ([Revisar no Studio](/pt-BR/docs/review-in-studio#iniciar-o-studio)), abra uma chave na página **Translations** (traduções) e escolha **History** (histórico) ao lado de **Locales**. Escolha o locale se o projeto tiver vários. O Studio lê o histórico dessa chave no git só quando você abre a aba.
+
+A lista começa com **Working tree (uncommitted)** (árvore de trabalho, não versionada) quando o arquivo no disco difere do último commit. Abaixo dela, do mais recente para o mais antigo, vem cada commit que alterou o valor da chave nesse locale, vinte linhas por vez, com **Show N more** (mostrar mais N) para o restante. Cada linha mostra:
+
+| Parte | O que ela informa |
+| --- | --- |
+| Autor, data, hash curto, assunto | o commit, com o nome do autor e nunca o e-mail |
+| `origin` | quem escreveu o valor, conforme registrado com aquele commit, omitido quando esse registro não pôde ser lido |
+| Valor | o texto naquele commit, no idioma e na direção do próprio locale, nunca cortado |
+| Alterações em relação ao valor anterior | palavras adicionadas ou removidas, marcadas por sublinhado e tachado além da cor, e lidas em voz alta como “added” e “removed” |
+
+Tudo é texto simples, nunca marcação. Uma chave de API que apareça em um valor, em um assunto ou em um nome de autor é substituída por `[REDACTED]`.
+
+## Restaurar um valor anterior
+
+1. Clique em **Restore** (restaurar) em uma linha. O editor abre em **Locales** com esse valor como rascunho. Nada é gravado ainda.
+2. Leia o rascunho e clique em **Save** (salvar). As verificações habituais são executadas, incluindo placeholders e ICU, e uma recusa é mostrada como está, com o arquivo intacto. Um valor salvo é registrado com o valor de `origin` `human`.
+
+Se houver alterações não salvas, o Studio pergunta antes. **Save draft, then restore** (salvar o rascunho e restaurar) mantém seu rascunho e depois carrega o valor antigo, **Discard draft and restore** (descartar o rascunho e restaurar) o descarta e **Keep editing** (continuar editando) deixa tudo como estava. No editor da página **Review** (revisão), a pergunta fica no topo da caixa de diálogo e **Discard draft and restore** é a única forma de substituir o rascunho.
+
+Uma linha fica sem **Restore**, e diz o motivo, quando seu valor é o que a chave tem agora, quando o Studio ainda não leu o valor atual ou não conseguiu lê-lo, e quando o valor parece uma chave de API: a aba **History** não mostra esse valor e ele não pode ser restaurado por aqui.
+
+Uma chave em `pinnedKeys` é reservada a uma pessoa, então uma restauração salva pelo Studio é aceita, enquanto a edição de um agente nessa chave é recusada.
+
+### Quando a origem mudou
+
+Se o texto de origem mudou desde aquele commit, **Restore** primeiro pede uma confirmação, e se o Studio não consegue saber (o arquivo de lock naquele commit não pôde ser lido ou não tem entrada para a chave), ele informa isso. Ao salvar, a chave passa a constar como em dia em relação à origem atual e o valor é adicionado à memória de tradução, de modo que uma redação antiga pode ser reutilizada em chaves parecidas. **Cancel** (cancelar) ou Escape deixa tudo como estava.
+
+## Saber o que a lista deixa de fora
+
+O Studio nunca apresenta uma lista parcial como completa. Um aviso aparece quando:
+
+- commits mais antigos não foram lidos, por causa do limite de commits, de um clone raso ou do orçamento de leitura;
+- o arquivo de um commit não pôde ser lido nem analisado, ou o valor era longo demais, e o Studio conta quantos foram;
+- o arquivo no disco não pôde ser comparado com o último commit, por exemplo durante um conflito de merge.
+
+O Studio examina primeiro 50 commits. Quando esse limite encurtou a lista, o aviso informa isso e **Read further back** (ler mais para trás) lê até 200 de uma vez; depois disso, o aviso só diz que é até onde o Studio lê. Cada uma das outras causas tem seu próprio aviso, e **Read further back** nunca aparece para nenhuma delas. Uma lista vazia diz se está vazia ou se só a parte lida pelo Studio está. Renomeações não são acompanhadas, edições que nunca foram versionadas passam despercebidas, uma chave renomeada na origem parece nova e uma alteração que chegou por merge aparece no commit de merge.
+
+Quando o git está ausente, a pasta não é um repositório ou o git a recusa, o Studio diz isso em uma frase. Uma leitura que falha ou excede o tempo limite mostra **Retry** (tentar de novo) e mantém a última lista.
+
+## Saber o quão recente é
+
+A aba lê de novo quando um arquivo de locale, de lock ou de procedência muda, quando o índice do git ou o `HEAD` muda e quando você volta à aba do Studio. As leituras são espaçadas, para que uma sequência de commits não sobrecarregue o Studio. Uma leitura em segundo plano nunca move o seu foco.
+
+No editor da página **Review**, **Show history** (mostrar histórico) abre a mesma lista para essa entrada, lê de novo da mesma forma e **Restore** preenche o campo dela.
+
+As mesmas leituras estão disponíveis como [`keyHistory`](/pt-BR/docs/sdk/history#keyhistory), para um [cliente MCP](/pt-BR/docs/cli/mcp) e para um [agente de navegador](/pt-BR/docs/agent-tools-in-studio).

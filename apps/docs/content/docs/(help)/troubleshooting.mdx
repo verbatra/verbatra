@@ -170,7 +170,7 @@ anywhere. `--lock-timeout <seconds>` on [`translate`](/docs/cli/translate),
 
 ## Dotted keys or YAML keys collide (INVALID_STRUCTURE)
 
-**Symptom**: `A dotted key and a nested key path resolve to the same path.`, or for YAML
+**Symptom**: `A literal dotted leaf key and a nested key path resolve to the same path.`, or for YAML
 `A mapping key is a map or sequence (expected scalar keys).`
 
 **Cause**: two entries in one file resolve to the same key, such as `"a.b"` next to

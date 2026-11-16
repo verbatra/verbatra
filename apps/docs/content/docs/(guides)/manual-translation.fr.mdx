@@ -38,7 +38,7 @@ Le classeur s'ouvre sur une feuille **Instructions**, puis une feuille par local
 | `Source hash` | non | masquée ; détecte une source modifiée après l'export |
 | `Context` | non | la description de la clé, quand le format source en porte une ; jamais importée |
 | `Review status` | non | `ok`, ou `review` quand un [signalement de relecture](/fr/docs/translation-safety#signalements-de-relecture) suggère un second regard |
-| `Review reasons` | non | les [raisons de relecture](/fr/docs/error-codes#review-reason-codes) derrière un statut `review` |
+| `Review reasons` | non | les [motifs de relecture](/fr/docs/error-codes#review-reason-codes) derrière un statut `review` |
 
 Chaque colonne sauf `Translation` est verrouillée par la protection de feuille, et `Translation` utilise le format texte d'Excel, donc une valeur comme `007` ou commençant par `=` reste du texte littéral. Les colonnes de relecture sont consultatives : l'import ne les lit jamais.
 
@@ -49,7 +49,7 @@ Donne ces règles au traducteur (la feuille Instructions les répète) :
 - Remplis la colonne `Translation`, rien d'autre.
 - Ne renomme, ne supprime et ne réordonne pas les onglets de langue. Chaque onglet est associé à une locale par son nom exact, donc un onglet renommé ou manquant fait échouer cette locale.
 - Trier et filtrer les lignes ne pose aucun problème, car les lignes sont reliées par `Key`. Les colonnes doivent rester à leur place.
-- Laisse une cellule vide pour "pas encore traduit". Un classeur à moitié rempli peut revenir maintenant et le reste plus tard.
+- Laisse une cellule vide pour « pas encore traduit ». Un classeur à moitié rempli peut revenir maintenant et le reste plus tard.
 - Pour vider volontairement une valeur existante, tape exactement `[[CLEAR]]`.
 
 ## Ce que l'import accepte
@@ -60,11 +60,11 @@ Chaque ligne remplie est jugée par rapport au projet tel qu'il est, avant toute
 - **Intégrité** : les placeholders, le balisage inline et la structure ICU doivent correspondre à la source, comme à chaque exécution. Voir [la barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité).
 - **Valeurs dégénérées** : une boucle de répétition, une longueur qui s'emballe ou une valeur vide pour une source non vide est retenue.
 - **Clés inconnues** : une ligne remplie dont la clé n'existe ni dans la source ni dans la cible fait échouer la feuille de cette locale. Une clé qui n'existe que dans la cible n'est pas écrite.
-- **Lignes inchangées** (à partir de 0.13.0) : dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, une fois qu'elle passe la même barrière.
+- **Lignes inchangées** : dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, une fois qu'elle passe la même barrière.
 
 Une ligne retenue ou vide garde sa référence de verrouillage, donc la clé est exportée à nouveau jusqu'à ce qu'elle soit résolue ; une ligne vide dont la source a dérivé déclenche en plus [`BLANK_ROW_BASELINE_RETAINED`](/fr/docs/error-codes#blank_row_baseline_retained). Une ligne illisible ou une clé en double est signalée sans faire échouer la feuille. Chaque feuille correspond à une locale dans le résumé de l'exécution, et l'import utilise les mêmes codes de sortie que `translate`, donc une remise s'intègre aux mêmes [contrôles CI](/fr/docs/ci-and-exit-codes) qu'une exécution automatisée. [`verbatra import`](/fr/docs/cli/import) donne les détails.
 
-### D'abord en dry run
+### D'abord en exécution à blanc
 
 Prévisualise ce qu'un classeur renvoyé écrirait, sans toucher à un fichier :
 
@@ -89,7 +89,7 @@ La locale vient du nom du fichier, donc garde les fichiers nommés comme à l'ex
 - **Rien n'est protégé.** Chaque colonne est modifiable et `Source hash` est visible. Un hash modifié n'est jamais pris pour argent comptant : la ligne est comparée à la source actuelle et retenue comme dérive.
 - **Il n'y a pas de feuille Instructions.** Transmets toi-même les règles ci-dessus au traducteur.
 - **Les formules sont désamorcées.** Une valeur qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot est écrite avec une apostrophe en tête, pour qu'un tableur la garde comme texte ; l'import retire à nouveau l'apostrophe. Traite quand même un fichier renvoyé comme une entrée non fiable.
-- **Un nouvel export plus étroit met à la retraite les anciens fichiers.** Un fichier resté d'un export antérieur plus large est refusé à l'import au lieu d'être appliqué. Rien n'est supprimé.
+- **Un nouvel export plus étroit rend caducs les anciens fichiers.** Un fichier resté d'un export antérieur plus large est refusé à l'import au lieu d'être appliqué. Rien n'est supprimé.
 
 ## XLIFF pour un outil de TAO
 

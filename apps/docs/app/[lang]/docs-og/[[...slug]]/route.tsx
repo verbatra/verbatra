@@ -25,6 +25,6 @@ export async function GET(
       description={page.data.description}
       footer={`${SITE_HOST}${page.url}`}
     />,
-    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts() },
+    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts(locale) },
   );
 }

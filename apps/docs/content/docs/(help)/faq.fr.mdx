@@ -67,8 +67,8 @@ Commite tes fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.jso
 
 ## Comment je retraduis tout ?
 
-Supprime le fichier de locale et lance `verbatra translate` : chaque clé manque alors et est
-retraduite. Supprimer le fichier de verrouillage ne suffit pas, car sans référence les traductions
+Supprime le fichier de locale et lance `verbatra translate --no-cache` : chaque clé manque alors et est
+envoyée de nouveau au fournisseur. Sans `--no-cache`, les correspondances de la mémoire de traduction remplissent à nouveau ce qu'elles contiennent. Supprimer le fichier de verrouillage ne suffit pas, car sans référence les traductions
 existantes comptent comme à jour. Pour une seule clé, utilise l'action de retraduction de Studio ou
 `retranslateEntry`.
 
@@ -96,14 +96,13 @@ aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine
 L'installation en une seule passe, sans appel de traduction et sans lire la valeur d'une clé, sauf
 si tu passes `--live`, qui l'envoie pour récupérer la liste des langues du fournisseur : la config,
 le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier source et la
-prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale et
-l'état de locale restant. [`verbatra doctor`](/fr/docs/cli/doctor) a le tableau complet des
+prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale, l'état de locale restant et `verbatra.limits.json`. [`verbatra doctor`](/fr/docs/cli/doctor) a le tableau complet des
 vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
-Oui, par quatre surfaces : un prompt d'installation pour les agents de code
-([Installer avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
+Oui, par quatre points d'entrée : un prompt d'installation pour les agents de code
+([Configure verbatra avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
 ([Recettes pour agents et scripts](/fr/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
 ouvert ([Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio)) et un serveur MCP
 en stdio ([`verbatra mcp`](/fr/docs/cli/mcp)). Studio et le serveur MCP ne dépensent chez un
@@ -124,23 +123,21 @@ la locale que tu consultes :
   d'indexation IA que ce projet est sous licence MIT et que crawler, indexer et citer ce contenu
   est bienvenu.
 
-Les trois sont accessibles depuis la colonne du pied de page dédiée aux agents IA.
+Les trois sont accessibles depuis la colonne « Pour les agents » du pied de page.
 
 ## Le contenu de ce site est-il traduit par IA ?
 
 En grande partie, par deux mécanismes différents. Le texte de l'interface (libellés de navigation,
 boutons, le pied de page, le texte de la landing page, la FAQ de la landing page) vit dans
-`messages/en.json` et ses fichiers frères `de`, `es` et `fr` ; ceux-ci sont traduits automatiquement
-avec verbatra lui-même, avec le format `next-intl-json`, via le fournisseur Gemini, en exécutant
-`pnpm i18n` après chaque changement de la source anglaise. C'est le projet qui utilise ici son
+`messages/en.json` et un fichier frère pour chaque autre langue ; ceux-ci sont traduits automatiquement, soit avec verbatra lui-même, avec le format `next-intl-json`, via le fournisseur Gemini, en exécutant `pnpm i18n` après chaque changement de la source anglaise, soit par un agent IA de codage qui travaille dans le dépôt et dont la sortie est importée avec `verbatra import`. C'est le projet qui utilise ici son
 propre outil (dogfooding), et le workflow `docs-i18n-check` fait échouer une pull request dont les
 fichiers de locale ne correspondent plus à la source anglaise. La prose de la documentation que tu
 lis en ce moment, chaque guide et chaque page de référence y compris celle-ci, est du MDX à suffixe
-de locale (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) et elle aussi traduite par IA,
+de locale (`page.mdx` et un `page.<locale>.mdx` pour chaque autre langue) et elle aussi traduite par IA,
 mais en dehors de cette chaîne automatisée : `pnpm i18n` ne traduit que les
 [formats de fichiers de locale](/fr/docs/formats) structurés, jamais le Markdown, donc il ne touche jamais ces pages. À la place, un agent IA
 traduit chaque page de documentation dans le même changement que celui qui modifie sa source
-anglaise, pour que les quatre langues arrivent ensemble ; c'est pour ça que chaque page non anglaise
+anglaise, pour que toutes les langues arrivent ensemble ; c'est pour ça que chaque page non anglaise
 affiche l'avis de traduction automatique.
 
 Tout ne sort pas tel quel de ces deux étapes : certains textes, dont des parties des pages
@@ -149,7 +146,6 @@ sont vérifiées dans la mesure du possible, et tous les textes traduits ne sont
 personne avant leur publication, une traduction peut donc contenir des erreurs. La [politique de
 confidentialité](/privacy) décrit le même processus.
 
-Si quelque chose sonne bizarre en allemand, en espagnol ou en français, ouvre une issue dans les
-deux cas : pour le texte de l'interface, la correction va dans la source anglaise puis est
-retraduite, ou directement dans le fichier de locale concerné ; pour la prose de la documentation,
+Si un texte traduit sonne bizarre, ouvre une issue dans les
+deux cas : pour le texte de l'interface, la correction va dans la source anglaise puis est retraduite ou réimportée, ou directement dans le fichier de locale concerné ; pour la prose de la documentation,
 modifie le fichier MDX directement et envoie une pull request.

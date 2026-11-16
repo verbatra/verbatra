@@ -1,0 +1,386 @@
+---
+title: プロバイダー
+seoTitle: "verbatra の AI プロバイダーと機械翻訳プロバイダー"
+description: "verbatra が対応するすべての AI プロバイダーと機械翻訳プロバイダーについて、オプションと API キーの変数、すべてに共通する動作をまとめます。"
+type: reference
+---
+プロバイダーは、[設定ファイル](/ja/docs/config-file)の `provider` ブロックの `id` で選びます。Anthropic、OpenAI、Gemini、OpenCode、openai-compatible は言語モデルです。DeepL、Google Cloud Translation、LibreTranslate は機械翻訳サービスで、`none` は機械翻訳をオフにします。対応する言語は[言語とロケール](/ja/docs/language-support)に、各プロバイダーが受け取る内容は[データの取り扱いとプライバシー](/ja/docs/data-handling)にあります。
+
+## どのプロバイダーを選べばよいですか？
+
+どのプロバイダーも、すべてのフォーマットとコマンドで使えます。あとから切り替えるときに編集するのは `id` だけです。
+
+| 目的 | 使うもの |
+| --- | --- |
+| 機密性のない文字列を扱う小さなプロジェクトで、無料で使いたい | **Gemini**：無料の API 枠です。EEA、スイス、英国以外では、Google の担当者がリクエストを確認する場合があります（[条件](/ja/docs/data-handling#ベンダーのデータ保持とデータ処理条件)）。 |
+| 本番アプリで最高の品質がほしい | **Anthropic** または **OpenAI**（どちらも有料）。 |
+| 大量の処理、ネイティブの用語集、LLM なし | **DeepL**（無料または有料のプラン）。 |
+| Google Cloud の API キーで、もっとも広い言語対応がほしい | **Google Cloud Translation**（Basic、v2）。 |
+| オフラインで、費用がかからず、ネットワークの外に何も出さない | LM Studio、Ollama、vLLM を使う **openai-compatible**。 |
+| 言語モデルは使わず、セルフホストしたい | 自分のサーバーの **LibreTranslate**。 |
+| 機械翻訳をまったく使わない | **none**：翻訳メモリと人手のみ。 |
+
+## API キーは環境変数から読み込む
+
+verbatra は、設定から API キーを読み込むことはありません。ホスト型のプロバイダーは、それぞれ 1 つの変数を読み取ります。
+
+| プロバイダー ID | 環境変数 |
+| --- | --- |
+| `anthropic` | `ANTHROPIC_API_KEY` |
+| `openai` | `OPENAI_API_KEY` |
+| `gemini` | `GEMINI_API_KEY` |
+| `deepl` | `DEEPL_API_KEY` |
+| `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
+| `opencode` | `OPENCODE_API_KEY` |
+
+変数は、`.env`（`verbatra init` が gitignore に追加します）、シェル、CI のシークレットストアのいずれかに設定し、コミットしないでください。変数が未設定または空の場合は、[`MISSING_API_KEY`](/ja/docs/error-codes#missing_api_key) で失敗します。エラーには変数名が示されますが、値は示されません。`openai-compatible` と `libretranslate` は、通常 API キーが不要です。
+
+## Anthropic
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "anthropic",
+  options: {
+    model: "claude-sonnet-4-6", // example model id
+    maxTokens: 4096,
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `model` | 文字列 | 必須 | モデル ID |
+| `maxTokens` | 正の整数 | 必須 | 1 回のレスポンスの出力トークンの上限です（[出力トークンの上限](#出力トークンの上限)）。最上位の予算とは無関係です。 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 各リクエストの試行を制限する時間です（[リクエストのタイムアウト](#リクエストのタイムアウト)）。 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードを上書きします（[プロバイダーに送られるロケールコード](#プロバイダーに送られるロケールコード)）。 |
+
+`ANTHROPIC_API_KEY` を読み取ります。
+
+## OpenAI
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai",
+  options: {
+    model: "gpt-5.4-mini", // example model id
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `model` | 文字列 | 必須 | モデル ID |
+| `maxOutputTokens` | 正の整数 | 必須 | 1 回のレスポンスの出力トークンの上限 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 各リクエストの試行を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+`OPENAI_API_KEY` を読み取ります。
+
+## Gemini
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "gemini",
+  options: {
+    model: "gemini-2.5-flash", // example model id
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `model` | 文字列 | 必須 | モデル ID |
+| `maxOutputTokens` | 正の整数 | 必須 | 1 回のレスポンスの出力トークンの上限 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 各リクエストの試行を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+`GEMINI_API_KEY` を読み取ります。
+
+<Callout title="無料枠とその制限">
+[Google AI Studio](https://aistudio.google.com/apikey) の API キーに課金の設定は不要ですが、1 分あたりと 1 日あたりの上限により、多数のロケールを対象にした最初の実行が止まることがあります。その場合は、ロケールを 1 つずつ翻訳するか `maxBatchSize` を下げ、再実行して残りを処理します。
+</Callout>
+
+## DeepL
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "deepl",
+  options: {
+    glossaryId: "<your-glossary-id>",
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `glossaryId` | 文字列 | なし | DeepL で作成した用語集で、ネイティブに適用されます。 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 1 回の試行あたりの最小の待ち時間で、最大 6 回試行します。 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+`DEEPL_API_KEY` を読み取ります。`options` は `{}` でもかまいません。DeepL にはモデルも出力トークンの上限もありません。失敗する代わりに、通知を出して機能を下げて動作します。
+
+- **プレースホルダー**：無視されるタグの中で番号付きマーカーとして送られ（`Hello {{name}}` は `Hello <x>{0}</x>`）、復元されます。`PLACEHOLDER_UNSUPPORTED` は、値にタグがある場合、プレースホルダーがリテラルでない場合、プレースホルダー以外のテキストに `<`、`>`、`{`、`}` を含む場合に、値全体を保留します。マーカーが失われた、重複した、変更された、またはタグの外に素のまま現れた結果や、未知のエンティティや余分なタグを含む結果は、全体が破棄されます。マークアップだけの場合は、プレーンテキストとして送られます。 <AvailableFrom version="0.12.0" />
+- **トーン**：丁寧さに対応します（`formal` は高め、`informal` は低め、`neutral` は指定なし）。無料プランの API キーでは丁寧さを送らず、`FORMALITY_DOWNGRADED` を報告します。有料の API キーでは `prefer_more` または `prefer_less` を要求するため、スウェーデン語のように丁寧さの区別がない言語は、同じ通知を出してフォールバックします。[用語集](#プロバイダーごとのトーンと用語集)は適用されません。
+
+<AvailableFrom version="0.12.0" />
+
+verbatra には、日付付きの DeepL の[言語テーブル](https://developers.deepl.com/docs/getting-started/supported-languages)が同梱されています。一覧にない言語は、費用が発生する前に `LOCALE_UNSUPPORTED_BY_PROVIDER` で拒否されます。`glossaryId` が使えるのは、両方の言語が DeepL の用語集の言語一覧にある場合だけです（`DE`、`EN`、`FR`、`JA`、`ZH` など）。
+
+## Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "google-translate",
+  options: {},
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `requestTimeoutMs` | 正の整数 | `120000` | 呼び出し全体を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+`GOOGLE_TRANSLATE_API_KEY` を読み取ります。これは、Cloud Translation API を有効にした Google Cloud プロジェクトの API キーです。使えるのは Basic（v2）だけで、Advanced（v3）にはサービスアカウントが必要です。
+
+- **プレースホルダー**：DeepL と同じくマスクされ、`<span translate="no">` の中に入ります。改行、タブ、連続した 2 つのスペースを含むマスク済みの値も保留されます。 <AvailableFrom version="0.12.0" />
+- **コード**：送るコードは、呼び出しの前に、BCP 47 として正しい形式かどうかチェックされます（`en_US` は `INVALID_REQUEST` で失敗します）。地域付きのコードは使えます。Google が拒否する組み合わせは、API からの `INVALID_REQUEST` で失敗します。
+
+<AvailableFrom version="0.12.0" />
+
+verbatra には、日付付きの Google の[言語テーブル](https://docs.cloud.google.com/translate/docs/languages)が同梱されています。一覧にない言語は、費用が発生する前に拒否されます。`de-AT` のように、言語全体としてのみ一覧にある地域付きのコードは、警告付きで書かれたとおりに送られます。
+
+## OpenCode
+
+<AvailableFrom version="0.12.0" />
+
+ここで使えるのは、`/chat/completions` で提供される [OpenCode Zen](https://opencode.ai/docs/zen/) のモデルだけです（モデルの表に各モデルのエンドポイントが載っています）。OpenCode は、Go と無料の Zen モデルを自社のクライアント専用にしています。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "opencode",
+  options: {
+    model: "glm-5.3", // example: a Zen model served over Chat Completions
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `model` | 文字列 | 必須 | モデル ID |
+| `maxOutputTokens` | 正の整数 | 必須 | 1 回のレスポンスの出力トークンの上限 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 各リクエストの試行を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+エンドポイントは固定で、`baseUrl` はありません。`OPENCODE_API_KEY` を読み取ります。
+
+## openai-compatible
+
+OpenAI の Chat Completions API に対応したサーバーなら、何でも使えます。LM Studio、Ollama、vLLM、ホスト型の API が該当します。
+
+サーバーは、`<baseUrl>/chat/completions` で、厳密な JSON スキーマの出力を伴う Chat Completions を提供している必要があります。自社のクライアントアプリにしか提供しないゲートウェイは使えません。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "http://192.168.178.74:1234/v1",
+    model: "qwen2.5-14b-instruct", // example: whatever your server exposes
+    maxOutputTokens: 1024,
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `baseUrl` | `http` または `https` の URL | 必須 | API のルートで、通常は `/v1` で終わります。`/chat/completions` や `/completions` で終わる URL は拒否されます。`/v1` がない URL は検証を通りますが、リクエスト時に失敗します。 |
+| `model` | 文字列 | 必須 | サーバーが公開しているモデル |
+| `maxOutputTokens` | 正の整数 | 必須 | 1 回のレスポンスの出力トークンの上限 |
+| `apiKeyEnvVar` | 変数名 | なし | このサーバーの API キーを保持する変数 |
+| `requestTimeoutMs` | 正の整数 | `120000` | 各リクエストの試行を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+Mistral のようなホスト型の API では、次のようにします。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "https://api.mistral.ai/v1",
+    model: "mistral-large-latest", // example: check Mistral's current model list
+    maxOutputTokens: 4096,
+    apiKeyEnvVar: "MISTRAL_API_KEY",
+  },
+}
+```
+
+レスポンスは `openai` と同じ厳密なスキーマを使います。前後の文章やコードフェンスがあっても、そこから括弧の対応が取れた最初の JSON オブジェクトを取り出して検証します。`verbatra init --provider openai-compatible --base-url <url> --model <name>` でこのブロックが書き込まれ（[プロバイダー](/ja/docs/cli/init#プロバイダー)）、`--api-key-env-var <NAME>` で変数名が追加されます。
+
+### API キーは省略可能
+
+API キーは、次の順で解決されます。
+
+1. **`apiKeyEnvVar`**：設定されている場合、その変数が API キーを保持している必要があります。保持していなければ、実行は `MISSING_API_KEY` で失敗します。
+2. **`OPENAI_COMPATIBLE_API_KEY`**：設定されていて空でなければ使われます。
+3. **`"local"`**：固定の、シークレットではないダミー値です。これによって、API キーのないサーバーが動作します。
+
+`apiKeyEnvVar` にホスト型プロバイダーの変数名は指定できません。クライアントが `OPENAI_API_KEY` を読むこともないため、ホスト型の API キーがカスタムの `baseUrl` に届くことはありません。
+
+<Callout type="warn" title="平文の http で実際の API キーを送ると、暗号化されずに流れる">
+API キーを使い、ループバックではない `http://` の URL を指定すると、API キーは警告なしに暗号化されずネットワークを流れます。API キーが必要なサーバーには `https://` を使ってください。
+</Callout>
+
+### ローカルモデルの選び方
+
+ハードウェアで快適に動く範囲で最大の、指示チューニング済みで、推論型ではない多言語モデルを選びます。たとえば `qwen2.5-14b-instruct` です。推論型のモデルや、強く量子化されたビルドは、回答を余計なテキストで包んだり途中で切ったりしがちで、`INVALID_RESPONSE` や `OUTPUT_TRUNCATED` で失敗します。
+
+## LibreTranslate
+
+<AvailableFrom version="0.12.0" />
+
+セルフホストの [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) サーバーです（Argos Translate を使い、言語モデルは使いません）。verbatra が呼び出すのは HTTP API だけなので、サーバーの AGPL-3.0 ライセンスがプロジェクトに及ぶことはありません。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: {
+    baseUrl: "http://localhost:5000",
+  },
+}
+```
+
+| 設定キー | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `baseUrl` | `http` または `https` の URL | 必須 | `/translate` を含まない API のルート |
+| `requestTimeoutMs` | 正の整数 | `120000` | 呼び出し全体を制限する時間 |
+| `localeMap` | ロケールからコードへのマップ | なし | ロケールごとに送るコードの上書き |
+
+対応する言語は、サーバーにインストールされているモデルです。
+
+```bash
+docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+- **API キー**：`LIBRETRANSLATE_API_KEY` は、設定されている場合だけ `api_key` として送られます。`--api-keys` 付きで起動したサーバーでは、未設定のとき実行が `MISSING_API_KEY` で失敗し、サーバーが拒否したときは `AUTH_FAILED` で失敗します。
+- **プレースホルダー**：DeepL と同じくマスクされ、素の `{0}` マーカーになります。マークアップは保持されるため、タグを含む値では、数えられるのはプレースホルダー以外の部分にある波かっこだけです。
+- **マークアップ**：HTML 風のタグを含む値は `html` フォーマットで送られます。タグの中のテキストは翻訳され、タグは残ります（タグをまたぐ言い回しは品質が落ちる場合があります）。タグが変わった結果は拒否されます。
+- **言語のチェック**：すべてのターゲットで、実行のたびに `LOCALE_UNVERIFIED_BY_PROVIDER` の警告が出ます。`verbatra doctor --locales --live` が、サーバーに対してそれらを確認します。
+
+`verbatra init --provider libretranslate --base-url <url>` で、このブロックが書き込まれます。
+
+## none
+
+<AvailableFrom version="0.12.0" />
+
+文字列をどのサービスにも送ることを禁じるルールのために、方針として機械翻訳を無効にします。
+
+```ts title="verbatra.config.ts"
+provider: { id: "none" }
+```
+
+`options` は省略するか `{}` にします。プロバイダーは生成されず、API キーは読み取られず、リクエストも行われません。各コマンドが代わりに何をするかは、[機械翻訳なしで実行する](/ja/docs/human-only-workflow)にあります。
+
+## プロバイダーごとのトーンと用語集
+
+リクエストに含まれるのは、ターゲットロケールの用語集の用語だけです。すべての出力は、その用語に照らしてチェックされます。
+
+| プロバイダー | `tone` | `glossary` |
+| --- | --- | --- |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 送信され、反映される | 訳語、禁止された訳、翻訳しない用語、注記が、拘束力のあるデータとして送信される |
+| DeepL | 丁寧さに対応 | `GLOSSARY_IGNORED`。適用されるのは `glossaryId` だけ |
+| Google Cloud Translation、LibreTranslate | `formal` または `informal` では `FORMALITY_DOWNGRADED` | `GLOSSARY_IGNORED` |
+
+## すべてのプロバイダーに共通の動作
+
+### バッチ処理
+
+ロケールの作業は、最大 [`maxBatchSize`](/ja/docs/config-file#maxbatchsize) 件のエントリずつ、順番にサブバッチに分けて送られます。失敗したサブバッチは保留され、次回の実行で再試行されます。残りのサブバッチの処理はそのまま続きます。DeepL と Google Cloud Translation は、それぞれのリクエストの上限に収まるように、サブバッチをさらに分割します。
+
+### 再試行
+
+レート制限とサーバーエラーは、バックオフ付きで再試行されます。再試行するのは、OpenAI、OpenCode、openai-compatible、Anthropic、DeepL ではクライアント、Gemini では verbatra です。Google Cloud Translation と LibreTranslate は再試行しません。Gemini は、示された待ち時間が 5 秒までなら従い、それより長い場合（1 日のクォータの使い切り）は、待ち時間を示した `RATE_LIMITED` で即座に失敗します。
+
+### リクエストのタイムアウト
+
+`requestTimeoutMs`（デフォルトは `120000` ミリ秒）は、応答しないサーバーが実行を止めたり、ロケールの書き込みロックを握り続けたりするのを防ぎます。遅いローカルモデルや大きな `maxBatchSize` では、値を大きくします。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "http://192.168.178.74:1234/v1",
+    model: "qwen2.5-14b-instruct",
+    maxOutputTokens: 1024,
+    requestTimeoutMs: 300000, // 5 minutes
+  },
+}
+```
+
+- **試行ごと**：各[再試行](#再試行)に、タイムアウトの全時間が与えられます。LLM プロバイダーは、タイムアウトした試行も再試行し、Gemini 以外は接続エラーも再試行します。そのため、固まったサーバーでは、タイムアウトが最大 3 回とバックオフの時間がかかります。
+- **原因を示すエラー**：`TIMEOUT` は、1 回の試行が時間内に応答を得られなかったことを意味します。接続の拒否が繰り返された場合は `PROVIDER_ERROR` で失敗します。
+- **DeepL** は、送信中のリクエストをキャンセルできないため、実行を中断しても、送信済みのリクエストは DeepL 側で最後まで処理されます。
+
+### プロバイダーに送られるロケールコード
+
+<AvailableFrom version="0.12.0" />
+
+ファイル、ロックファイル、翻訳メモリには、設定のコードが使われます。リクエストだけが、プロバイダーの期待する形に変換されます。
+
+| プロバイダー | ソースロケール | ターゲットロケール |
+| --- | --- | --- |
+| DeepL | 言語部分のみ。`en-US` は `EN`、`zh-Hant-TW` は `ZH` になります。 | `zh-Hant`、`zh-TW`、`zh-HK`、`zh-MO` は `ZH-HANT` に、`zh-Hans`、`zh-CN`、`zh-SG` は `ZH-HANS` になります。DeepL のバリアントはそのまま残ります（`EN-GB`、`EN-US`、`PT-BR`、`PT-PT`、`ES-419`、`FR-CA`、`FR-FR`、`DE-CH`、`DE-DE`）。ラテンアメリカまたはカリブ海の地域（`MX`、`AR`、`CO`、`CL`、`PE`、`VE`、`EC`、`GT`、`CU`、`BO`、`DO`、`HN`、`PY`、`SV`、`NI`、`CR`、`PA`、`UY`、`PR`、`US`、`419`）付きのスペイン語は `ES-419` になります。そのほかの地域と文字体系は取り除かれ、`de-AT` は `DE` になります。 |
+| Google Cloud Translation | `zh-Hant`（`zh-HK`、`zh-MO`）は `zh-TW` に、`zh-Hans`（`zh-SG`）は `zh-CN` に、`nb` は `no` になります。それ以外は書かれたとおりです。 | ソースと同じ |
+| LibreTranslate | 言語部分のみ（`de-AT` は `de`）。ただし `pt-BR` は残り、中国語は `zh-Hans` または `zh-Hant` として送られます（`zh-TW` は `zh-Hant`）。 | ソースと同じ |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 書かれたとおり | ソースと同じ |
+
+LLM には、[言語名、文字体系名、地域名](/ja/docs/translation-safety#言語名文字体系名地域名)も渡されます。DeepL には汎用の英語やポルトガル語のターゲットがないため、`en-AU` のようにターゲットが素の `en` や `pt` になる場合は、実行の前に拒否されます。その場合は、`EN-GB`、`EN-US`、`PT-BR`、`PT-PT` のいずれかにマップします。
+
+`localeMap` で、ロケールごとにコードを上書きできます。
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "deepl",
+  options: {
+    localeMap: {
+      "en-AU": "EN-GB",
+      "fr-BE": "FR-FR",
+    },
+  },
+}
+```
+
+- **キー名**：設定どおりの `sourceLocale` かターゲットロケールでなければなりません。そうでない場合、設定は `CONFIG_INVALID` で失敗します。マップは、`none` を除くすべてのプロバイダーで `options` の下に置きます。
+- **値**：64 文字以下の空でない文字列で、そのまま送られます。機械翻訳プロバイダーにはコードとして、LLM にはコードの代わりに送られます（`"pt-BR (Brazilian Portuguese)"` も使えます）。LLM に渡す言語名は、引き続きキー名から決まります。DeepL に素の `EN` や `PT` を指定すると `INVALID_REQUEST` で失敗し、プロバイダーが拒否する値があると、そのサブバッチが失敗します。
+- **翻訳メモリへの影響**：新しいコードで送られるのは、新しい文字列と変更された文字列だけです。空でないマップは[翻訳メモリ](/ja/docs/the-cache)のフィンガープリントに含まれるため、変更すると別の区画になります。
+
+### プロバイダーの言語対応を確認する
+
+<AvailableFrom version="0.12.0" />
+
+設定されたすべてのロケールは、費用が発生する前に判定されます。
+
+| プロバイダー | 判定の基準 | 実行前に拒否 | 警告の対象 |
+| --- | --- | --- | --- |
+| DeepL | 同梱の言語テーブル（言語ごとの用語集と丁寧さの対応を含む） | 一覧にないソース言語またはターゲット言語 | 用語集の言語に含まれない組み合わせの用語集、丁寧さのない言語へのトーン、一部だけ一覧にあるコード |
+| Google Cloud Translation | 同梱の言語テーブル | 一覧にない言語 | すべての用語集、`formal` または `informal` のトーン、言語としてのみ一覧にある地域付きのコード |
+| LibreTranslate | 実行前は何も判定しません。`doctor --live` では、サーバーの `/languages` | なし | 実行のたびのすべてのターゲットロケール、すべての用語集、`formal` または `informal` のトーン |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | なし（LLM はどの言語も受け付けます） | なし | [十分にテストされた言語の一覧](/ja/docs/language-support#実行前の対応確認)にない言語 |
+| `none` | 該当なし | なし | なし |
+
+対応していないロケールは、プロバイダーが生成される前に [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/ja/docs/error-codes#locale_unsupported_by_provider)（終了コード `2`）で拒否されます。警告が実行を拒否することはなく、[通知](/ja/docs/error-codes#sdk-notice-codes)として表示されます。[`verbatra doctor`](/ja/docs/cli/doctor#ロケールの対応状況) は各判定を報告し、`--live` オプションはプロバイダーの現在の一覧を確認しますが、`translate` は常に同梱のテーブルを使います。同梱のテーブルより後に追加された言語は、`localeMap` でロケールをマップします。明示したコードは、拒否されずに、警告付きで送られます。
+
+### 構造化されたエラー
+
+プロバイダーの失敗は、[構造化された、シークレットを含まないエラー](/ja/docs/translation-safety#エラーから情報は漏れない)として表に出て、影響を受けるのはそのサブバッチだけです。`PROVIDER_ERROR` に示されるのは、openai-compatible または LibreTranslate の `baseUrl` のホストとポートだけです。Google の場合は `translation.googleapis.com` だけで、API キーを含むクエリは示されません。
+
+### 出力トークンの上限
+
+LLM プロバイダーは、各レスポンスのトークンに上限を設けます。モデルが上限で止まると、[`OUTPUT_TRUNCATED`](/ja/docs/error-codes#output_truncated) が発生します。verbatra は、切り詰められたサブバッチを半分に分け直し、それでもあふれるエントリだけを保留します。直すには、`maxBatchSize` を下げるか、`maxTokens`（Anthropic）または `maxOutputTokens` を上げます。推論型モデルの非表示トークンもこの予算を共有するため、余裕を持たせてください。
+
+### レビューフラグ
+
+どのプロバイダーの訳文でも、疑わしいものは拒否されず、レビューのフラグが付きます。[レビューの理由](/ja/docs/error-codes#review-reason-codes)と [Studio でレビューする](/ja/docs/review-in-studio)を参照してください。

@@ -44,13 +44,13 @@ ninguna. Consulta [Soporte de idiomas](/es/docs/language-support).
 
 ## ¿Cómo conservan las claves su orden?
 
-Las claves existentes conservan su posición y las nuevas se añaden en el orden de la fuente, así que
+Las claves existentes conservan su posición y las nuevas se añaden en el orden del origen, así que
 un archivo traducido da un diff limpio. Consulta [Formatos](/es/docs/formats).
 
 ## ¿Por qué una traducción quedó marcada para revisión?
 
 Una heurística de revisión encontró algo que merece una segunda mirada, como una traducción igual
-a su fuente, y la marcó sin retenerla. Cada código de motivo aparece en
+a su origen, y la marcó sin retenerla. Cada código de motivo aparece en
 [Motivos de revisión](/es/docs/error-codes#review-reason-codes).
 
 ## ¿Funciona verbatra en un monorepo?
@@ -67,8 +67,9 @@ Confirma tus archivos de locale, `verbatra.lock.json` y `verbatra.provenance.jso
 
 ## ¿Cómo lo retraduzco todo?
 
-Borra el archivo de locale y ejecuta `verbatra translate`: entonces falta cada clave y se traduce
-de nuevo. Borrar el archivo de bloqueo no sirve, porque sin línea base las traducciones existentes
+Borra el archivo de locale y ejecuta `verbatra translate --no-cache`: entonces falta cada clave y se
+envía de nuevo al proveedor. Sin `--no-cache`, los aciertos de la memoria de traducción rellenan lo que
+contienen. Borrar el archivo de bloqueo no sirve, porque sin línea base las traducciones existentes
 cuentan como actuales. Para una sola clave, usa la acción de retraducir de Studio o
 `retranslateEntry`.
 
@@ -93,15 +94,15 @@ Solo al proveedor que configuras, y solo cuando un comando traduce; no hay telem
 
 <AvailableFrom version="0.9.0" />
 
-La configuración de una sola pasada, sin una llamada de traducción y sin leer el valor de una clave
+La configuración, en una sola pasada, sin una llamada de traducción y sin leer el valor de una clave
 salvo que pases `--live`, que la envía para obtener la lista de idiomas del proveedor: la config, el
-formato, el proveedor, la variable de la clave de API, la política de red, el archivo fuente y el
-soporte de locales, más informes informativos sobre plurales, códigos de locale y estado de locale
-sobrante. [`verbatra doctor`](/es/docs/cli/doctor) tiene la tabla completa de comprobaciones.
+formato, el proveedor, la variable de la clave de API, la política de red, el archivo de origen y el
+soporte de locales, más informes informativos sobre plurales, códigos de locale, estado de locale
+sobrante y `verbatra.limits.json`. [`verbatra doctor`](/es/docs/cli/doctor) tiene la tabla completa de comprobaciones.
 
 ## ¿Puede un agente de IA configurar o manejar verbatra por mí?
 
-Sí, a través de cuatro superficies: un prompt de configuración para agentes de código
+Sí, a través de cuatro puntos de entrada: un prompt de configuración para agentes de código
 ([Configurar con un agente de IA](/es/docs/start-with-ai)), la salida `--json` para tus propios bucles
 ([Recetas para agentes y scripts](/es/docs/agent-recipes)), herramientas WebMCP en una pestaña abierta
 de Studio ([Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio)) y un servidor
@@ -123,23 +124,19 @@ locale estés viendo:
   de IA que este proyecto tiene licencia MIT y que rastrear, indexar y citar este contenido es
   bienvenido.
 
-Los tres están enlazados desde la columna "Para agentes de IA" del pie de página.
+Los tres están enlazados desde la columna "Para agentes" del pie de página.
 
 ## ¿El contenido de este sitio está traducido por IA?
 
 En su mayor parte, por dos mecanismos distintos. El texto de la interfaz (etiquetas de navegación,
 botones, el pie de página, el texto de la página de inicio, sus preguntas frecuentes) vive en
-`messages/en.json` y sus hermanos `de`, `es` y `fr`; esos se traducen automáticamente con verbatra
-mismo, contra el formato `next-intl-json`, a través del proveedor Gemini, ejecutando `pnpm i18n`
-después de que cambie la fuente en inglés. Es el propio proyecto usando su propia herramienta
+`messages/en.json` y un archivo hermano por cada otro idioma; esos se traducen automáticamente, o bien con verbatra mismo, contra el formato `next-intl-json`, a través del proveedor Gemini, ejecutando `pnpm i18n` después de que cambie el origen en inglés, o bien por un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con `verbatra import`. Es el propio proyecto usando su propia herramienta
 (dogfooding), y el workflow `docs-i18n-check` hace fallar un pull request cuyos archivos de locale
-se han desviado de la fuente en inglés. La prosa de la documentación que estás leyendo ahora mismo,
-cada guía y cada página de referencia incluida esta, es MDX con sufijo de locale (`page.mdx`,
-`page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) y también está traducida con IA, solo que fuera de esa
+se han desviado del origen en inglés. La prosa de la documentación que estás leyendo ahora mismo,
+cada guía y cada página de referencia incluida esta, es MDX con sufijo de locale (`page.mdx` y un `page.<locale>.mdx` por cada otro idioma) y también está traducida con IA, solo que fuera de esa
 canalización automatizada: `pnpm i18n` solo traduce los [formatos de archivo de locale](/es/docs/formats) estructurados,
 nunca Markdown, así que nunca toca estas páginas. En su lugar, un agente de IA traduce cada página
-de documentación en el mismo cambio que edita su fuente en inglés, así que los cuatro idiomas llegan
-juntos; por eso cada página que no está en inglés muestra el aviso de traducción automática.
+de documentación en el mismo cambio que edita su fuente en inglés, así que todos los idiomas llegan juntos; por eso cada página que no está en inglés muestra el aviso de traducción automática.
 
 No todo sale tal cual de esos dos pasos: algunos textos, entre ellos partes de las páginas legales,
 se redactaron o corrigieron directamente en los archivos de locale. Las traducciones se revisan en
@@ -147,7 +144,7 @@ la medida de lo posible, y no todos los textos traducidos los revisa una persona
 publicarse, por lo que una traducción puede contener errores. La [política de privacidad](/privacy)
 describe el mismo proceso.
 
-Si algo en alemán, español o francés suena raro, abre un issue en cualquiera de los dos casos: en el
-texto de la interfaz, la corrección va a la fuente en inglés y se vuelve a traducir, o directamente
+Si un texto traducido suena raro, abre un issue en cualquiera de los dos casos: en el
+texto de la interfaz, la corrección va al origen en inglés y se vuelve a traducir o a importar, o directamente
 al archivo de locale afectado; para la prosa de la documentación, edita el archivo MDX directamente
 y envía un pull request.

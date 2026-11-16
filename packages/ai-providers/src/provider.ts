@@ -91,7 +91,8 @@ export interface TranslateRequest {
   readonly maxLength?: ReadonlyMap<string, number>;
   /**
    * Optional CLDR plural categories of the target language, set by the SDK for a batch in an ICU
-   * format that holds a `plural` or `selectordinal` value. An LLM provider sends them to the model
+   * format that holds a `plural` or `selectordinal` value, when the target locale's CLDR plural
+   * rules are known. An LLM provider sends them to the model
    * as data, asking for exactly these arms instead of the source's; a machine-translation provider
    * ignores them, since it never translates a value that carries ICU syntax. Validated as CLDR
    * keywords only.
@@ -199,9 +200,8 @@ export interface ProviderNotice {
  *   translation is the term itself, is not flagged either, since copying it is the correct result.
  * - `GLOSSARY_TERM_MISSED`: a glossary term of the target locale appeared in the source but its
  *   translation for that locale did not appear in the translated value, or a do-not-translate term
- *   appeared in the source but not in the translated value, compared with case unless the term is
- *   not case-sensitive. Each locale is
- *   checked against its own translations, so a German translation is never held to a French term.
+ *   appeared in the source but not in the translated value. Each locale is checked against its own
+ *   translations, so a German translation is never held to a French term.
  *   Matching ignores case unless the term is marked case-sensitive, and folds case by the rules of
  *   each side's locale. The two sides are held to deliberately different standards. The source
  *   side requires a whole-word occurrence, so the term "AI" is not found inside "Airport" and cannot
@@ -209,9 +209,8 @@ export interface ProviderNotice {
  *   to a script written without word separators (Han, kana, Thai and similar) has no boundary to
  *   anchor to and falls back to containment. The target side requires containment only, because a
  *   translated term legitimately fuses with the text around it: German compounds ("Benutzerkonto"),
- *   Korean particles ("계정을") and Japanese loanwords all carry the term with no boundary around
- *   it, and demanding one there would flag correct translations in most languages a glossary is
- *   used for.
+ *   Korean particles and Japanese loanwords all carry the term with no boundary around it, and
+ *   demanding one there would flag correct translations in most languages a glossary is used for.
  * - `GLOSSARY_FORBIDDEN_TERM`: the translated value uses a rendering the glossary forbids for the
  *   target locale. It is matched as a whole word on the translated side, with the same fallback to
  *   containment for scripts without word separators, so an inflected or compounded form is only

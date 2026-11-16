@@ -35,6 +35,27 @@ const SECTION_HEADINGS = [
   "closing.heading",
 ] as const;
 
+function headingPositions(body: string, headings: readonly string[]): number[] {
+  const lines = body.split("\n");
+  return headings.map((heading) =>
+    lines.findIndex((line) => /^#{1,2} /.test(line) && line.includes(heading)),
+  );
+}
+
+describe("headingPositions", () => {
+  it("matches heading lines only, so a body mention of a short heading does not count", () => {
+    expect(headingPositions("## B\n\nthe A lock\n\n## A", ["A", "B"])).toEqual([4, 0]);
+  });
+
+  it("reports a heading that exists only as running text", () => {
+    expect(headingPositions("## B\n\nsee A here", ["A", "B"])).toEqual([-1, 0]);
+  });
+
+  it("finds the heading of a labelled section by its label", () => {
+    expect(headingPositions("# T\n\n## Label: Title", ["Label"])).toEqual([2]);
+  });
+});
+
 function message(messages: Record<string, unknown>, path: string): string {
   const text = path
     .split(".")
@@ -58,7 +79,10 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
 
   it("follows the section order of the page", async () => {
     const body = await landingMarkdown(locale);
-    const positions = SECTION_HEADINGS.map((path) => body.indexOf(message(messages, path)));
+    const positions = headingPositions(
+      body,
+      SECTION_HEADINGS.map((path) => message(messages, path)),
+    );
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });

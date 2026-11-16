@@ -165,11 +165,12 @@ export interface DoctorResult {
   /** True only when no check failed. This is the value a script should branch on. */
   readonly ok: boolean;
   /**
-   * Every check that ran, always in the same order. A setup run has eleven entries, one per setup
+   * Every check that ran, always in the same order. A setup run has twelve entries, one per setup
    * check: `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
-   * `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`, and `locales`. A literal
-   * run ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`. A
-   * data-flow run ({@link DoctorInput.dataFlow}) has exactly two: `config` and `data-flow`.
+   * `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`, `limits`, and
+   * `locales`. A literal run ({@link DoctorInput.literals}) has exactly two: `config` and
+   * `untranslated-literals`. A data-flow run ({@link DoctorInput.dataFlow}) has exactly two: `config`
+   * and `data-flow`.
    */
   readonly checks: readonly DoctorCheck[];
   /**
@@ -208,7 +209,7 @@ export interface DoctorInput {
    * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
    * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
    * `source-file`, `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`,
-   * `locales`), so no API key environment variable is looked at and a run with no key set can pass.
+   * `limits`, `locales`), so no API key environment variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
   /**
@@ -673,17 +674,17 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
  * Run it before {@link translate} on a fresh project, or when a run failed and you want the whole
  * list of problems rather than the first one.
  *
- * A setup run reports the eleven checks {@link DoctorResult.checks} lists. Seven of them can fail:
+ * A setup run reports the twelve checks {@link DoctorResult.checks} lists. Seven of them can fail:
  * the config loads and validates, the configured format resolves to an adapter, the configured
  * provider ID resolves to a factory, the environment variable that provider reads its API key from
  * is set, the network policy permits the provider's host, the source locale file can be read, and
- * the provider supports every configured locale. The other four are informational and never fail:
+ * the provider supports every configured locale. The other five are informational and never fail:
  * each reports `warn` when it names something worth attention and `pass` otherwise. A `warn`
  * never makes {@link DoctorResult.ok} false.
  * Every check runs even when an earlier one failed, so one call reports every independent problem.
- * The API key is checked by variable name only: its value is never returned and never validated
- * against a provider, and it is read only when {@link DoctorInput.live} sends it to the provider's
- * language list endpoint.
+ * The API key is checked only for being set and non-empty: its value is never returned and never
+ * validated against a provider. It is sent only when {@link DoctorInput.live} fetches the language
+ * list of DeepL or Google Cloud Translation.
  *
  * The source-file check reads and parses the file rather than only probing for its existence, so a
  * directory standing in for it, an empty file, and malformed content are all reported here rather
@@ -722,6 +723,11 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
  * memory, and the provenance file, and names every locale they hold state for that the config does
  * not list, with what the next {@link translate} run will do about it.
  *
+ * The informational `limits` check reads `verbatra.limits.json` and warns when the file cannot be
+ * used (runs then ignore it), when a limit is overridden by the config's `maxLength`, or when a
+ * limit names a key the source no longer has; it passes when the file is absent, empty, or every
+ * limit names a source key.
+ *
  * The `locales` check judges the source locale and every target locale against the configured
  * provider's language support, with the per-locale verdicts in {@link DoctorResult.locales}: the
  * code each locale is sent as (after `provider.options.localeMap`), whether the provider supports
@@ -739,7 +745,7 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
  * `plural-completeness` check reads target files at all. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the ten config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the eleven config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -747,7 +753,7 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
  * source roots of the config's `extract` block are read, never written, and every string literal
  * or piece of JSX text that reads as user-facing text without going through a recognised
  * translation call is returned in {@link DoctorResult.literals} with its file, line, column, and
- * an excerpt of at most 80 characters. Literals held back by a `verbatra-ignore-next-line` or
+ * an excerpt of at most 80 characters, followed by `...` when it was cut. Literals held back by a `verbatra-ignore-next-line` or
  * `verbatra-ignore-line` comment, or by `extract.literals.ignore`, are returned under `suppressed`
  * rather than dropped. The check fails when anything was found or when a file could not be
  * scanned, so a partial scan is never reported as clean. No provider is constructed and no API key
@@ -759,8 +765,9 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
  * and no network request is made.
  *
  * @param input - The working directory, an optional explicit config path, whether to run the
- *   untranslated-literal scan instead of the setup checks, and whether to fetch the provider's live
- *   language list.
+ *   untranslated-literal scan or the data-flow description instead of the setup checks, whether to
+ *   fetch the provider's live language list, and an optional progress listener for the literal
+ *   scan.
  * @param deps - Optional adapter registry, file-system, and config-loader overrides.
  * @returns Every check with its verdict, the project-wide `ok` verdict, and the per-locale
  *   provider support report.

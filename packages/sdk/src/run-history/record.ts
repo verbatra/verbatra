@@ -168,7 +168,10 @@ export const runHistoryResultSchema = z.object({
 export interface RunHistoryCoverage {
   /** Source keys with a non-blank value and no translation in the locale yet. */
   readonly missing: number;
-  /** Keys whose source text changed since the locale was last translated. */
+  /**
+   * Keys with a translation in the locale whose recorded baseline no longer matches the source (its
+   * text, description, meaning or plural flag changed).
+   */
   readonly stale: number;
   /** Keys whose translation still matches the source recorded in the lock-file. */
   readonly upToDate: number;

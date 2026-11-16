@@ -1,0 +1,162 @@
+---
+title: 运行前估算费用
+seoTitle: "运行 verbatra 之前估算翻译费用"
+description: "花费之前先衡量一次翻译运行的规模：用试运行统计键数，让 verbatra 换算成请求、token 和金额，再为你认可的运行设置上限。"
+type: how-to
+---
+首次在真实项目上运行之前，或在需要有人批准的任何运行之前，使用本页。verbatra 不公布价格，因为单价归提供商所有，并且会不经通知地变化。它统计你将被计费的内容，并在你提供提供商当前单价后换算成金额。
+
+对典型项目来说，首次运行才有花费，之后的运行几乎不产生花费，因为只发送已更改的键。
+
+## 统计工作量
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`would translate` 是实际运行会发送的键数：目标文件中缺失的键，加上源文本已更改的键。试运行不构造提供商，不读取密钥，也不写入任何内容。把这个数字当作上限：它跳过了[翻译缓存](/zh-CN/docs/the-cache)（实际运行中，缓存免费提供重复的字符串），也没有合并相同的源字符串（实际运行只发送一次）。
+
+## 估算花费
+
+<AvailableFrom version="0.11.0" />
+
+```bash
+verbatra translate --estimate
+```
+
+```text output
+verbatra translate (estimate)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`--estimate` 隐含 `--dry-run`，所以不产生任何花费。它报告你的提供商计费的单位：LLM 按 token，DeepL 和 Google Cloud Translation 按源字符，自托管的 `openai-compatible` 或 `libretranslate` 服务器没有 API 费用。使用 `--json` 时，同样的数字位于每个语言环境和总计的 `result.estimate` 下，脚本可以据此设门禁。
+
+要看到金额，请到提供商自己的定价页面查你所用模型的当前单价：
+
+| 提供商 | 计费依据 | 定价 |
+| --- | --- | --- |
+| Gemini | 输入和输出 token（有免费套餐） | [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| Anthropic | 输入和输出 token | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | 输入和输出 token | [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) |
+| OpenCode | 输入和输出 token | [OpenCode Zen pricing](https://opencode.ai/docs/zen/) |
+| DeepL | 源字符 | [DeepL API pricing](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | 源字符 | [Cloud Translation pricing](https://cloud.google.com/products/translate/pricing) |
+| openai-compatible、LibreTranslate | 不计费：你自己的服务器 | 没有 API 费用 |
+
+然后把它连同你查阅的日期一起加入配置：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
+    },
+  },
+});
+```
+
+上面的单价是占位值，不是报价。由它们输出的每个数字都带有 `asOf` 日期，所以过时的价目表一眼就能看出。verbatra 从不编造缺失的单价，也不会为无法定价的模型输出 `0.00`，而是指明缺失的条目。键的格式和单位见 [`rates`](/zh-CN/docs/config-file#rates)。
+
+## 了解估算涵盖什么
+
+估算完成的是你原本要手算的那部分：
+
+- **请求**：每个语言环境的键被拆分为每批最多 [`maxBatchSize`](/zh-CN/docs/config-file#maxbatchsize)（默认 `50`）个，每批一次请求，再加上 [`generatePlurals`](/zh-CN/docs/config-file#generateplurals) 会发送的批次。
+- **输入**：每个 LLM 请求都带有固定的系统规则（约 550 个 token）和响应 schema（约 100 个 token），然后是键、它们的描述、语气，以及目标语言环境的完整术语表。提示词的长度通过序列化将要发送的载荷来测量，所以大型术语表在它所附带的每个请求中都会计入。
+- **输出**：译文尚不存在，所以按源文本加 50% 估算，因为德语、法语和俄语常比英语长三分之一到一半。
+- **token**：字符按约 4 个字符折合 1 个 token 换算，这适合英文文本；其他文字更密集。
+
+实际运行的花费通常更低，原因正是试运行计数为上限的那两点。它也可能更高，`estimate excludes` 一行列出了每种情况。其中两种最重要：
+
+- **重试**：失败的请求会被[重试](/zh-CN/docs/providers#重试)：Anthropic、OpenAI、OpenCode、`openai-compatible` 和 Gemini 最多额外 2 次，DeepL 5 次，Google Cloud Translation 和 LibreTranslate 不重试。到达模型的尝试会计费。
+- **补救**：键返回缺失时，verbatra 会发送一次补救请求，其中再次完整携带系统规则、术语表和语气。
+
+按这个数字做计划，但不要承诺它是上限。估算也只涵盖 `translate`：从 Studio（见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）或智能体工具重新翻译单个条目走的是各自的路径，会单独花费。
+
+## 限制运行规模
+
+<AvailableFrom version="0.12.0" />
+
+给你认可的运行设一个硬性上限，略高于估算的输入加输出 token：
+
+```bash
+verbatra translate --max-tokens 80000
+```
+
+会超过上限的请求会被搁置而不发送，它的键保持待处理，留到下次运行。配置中同时设置了 `maxTokens` 时，取较低的数字。DeepL、Google Cloud Translation 和 LibreTranslate 不报告 token，所以对它们按 verbatra 自己的预测来执行上限。见 [token 上限](/zh-CN/docs/cli/translate#token-上限)；适用于每次运行的预算见 [`maxTokens` 和 `budgetBehavior`](/zh-CN/docs/config-file#maxtokens-与-budgetbehavior)。
+
+## 用一个语言环境校准
+
+精确的数字来自实际运行。翻译一个语言环境，然后读取用量：
+
+```bash
+verbatra translate --locales de
+```
+
+```text output
+verbatra translate
+  de: 400 translated, 0 unchanged, 18400 tokens (10800 in, 7600 out)
+  total: 18400 tokens (10800 in, 7600 out)
+1 succeeded, 0 partial, 0 failed
+```
+
+乘以剩余语言环境的数量即可。使用 `--json` 时，相应的数字是 `usage.inputTokens` 和 `usage.outputTokens`。这次运行会花真钱，但成果保留下来：该语言环境已经完成。
+
+## 查看以往运行的费用
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Studio 的 **Overview**（概览）页面列出已记录的运行及其费用，费用在运行结束时冻结，所以之后对 `rates` 的更改不会改写它。金额等于提供商报告的 token 数乘以当时记录的单价。**Estimated**（估算值）是对不报告用量的提供商按源字符得出的数字。**At least**（至少）是下限，因为某个语言环境没有报告 token。**No rate**（无单价）表示没有单价匹配该模型，**unknown**（未知）表示键已发送但没有返回 token；两者都不代表免费。自托管提供商显示 **not billed**（不计费）。该记录的说明见 [`runHistory`](/zh-CN/docs/sdk/history#runhistory)；该页面的样子见[在 Studio 中审校](/zh-CN/docs/review-in-studio)。
+
+## 机器翻译提供商
+
+DeepL 和 Google Cloud Translation 按源字符计费，而不是按 token；LibreTranslate 统计源字符，但不计费。verbatra 发给它们的是源文本，占位符是简短的编号标记，周围没有系统规则、键名或 JSON。估算只统计源字符。DeepL 不对标记周围的标签计费；Google 是否对其周围的 span 标签计费，没有文档说明。这些提供商搁置的值（[`PLACEHOLDER_UNSUPPORTED`](/zh-CN/docs/error-codes#placeholder_unsupported)）不会发送，所以实际发送的字符数可能少于原始总数。
+
+### Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+Google Cloud Translation 的统计方式与 DeepL 相同：估算中按源字符，对 `maxTokens` 预算则给出预测的 token 数，并在运行摘要中标记为估算值。
+
+## 通过智能体估算
+
+两个智能体工具返回 `translate --estimate --json` 输出的内容，可针对所有语言环境或其中一部分，并且从不调用提供商：
+
+| 工具 | 位置 |
+| --- | --- |
+| `translation.estimate` | MCP 服务器（[verbatra mcp](/zh-CN/docs/cli/mcp)） <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
+| `verbatra_translation_estimate` | Studio 的智能体工具（[用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio)） <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### 在估算范围内花费
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+随后 `translation.translatePending` 接收同样的 `locales` 和 `maxTokens` 上限。见[先估算，再花费](/zh-CN/docs/cli/mcp#先估算再花费)。
+
+## 为什么下次运行费用更低
+
+上面的数字是首次运行的费用。之后，verbatra 只发送缺失的键，或源文本自锁文件基线（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）以来已更改的键，而且[翻译缓存](/zh-CN/docs/the-cache)会复用相同字符串的早期译文。日常你只为编辑过的字符串付费。想免费试用，可以用 Gemini 的免费套餐，或把 `openai-compatible` 指向本地模型；见[提供商](/zh-CN/docs/providers)。
+
+## 相关内容
+
+- [`verbatra translate`](/zh-CN/docs/cli/translate)：`--dry-run`、`--estimate`、`--max-tokens` 和 `--locales`。
+- [配置文件](/zh-CN/docs/config-file#rates)：`rates`、`maxTokens`、`budgetBehavior` 和 `maxBatchSize`。
+- [提供商](/zh-CN/docs/providers)：每个提供商的选项，以及在哪里获取密钥。

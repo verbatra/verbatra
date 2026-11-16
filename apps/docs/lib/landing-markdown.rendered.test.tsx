@@ -3,6 +3,7 @@
 import type { ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { isSpaceless } from "@/lib/word-count";
 import { catalogTranslator } from "@/test-support/catalog-intl";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { i18n, type Locale } from "./i18n";
@@ -105,7 +106,11 @@ describe.each(i18n.languages)("the %s landing markdown against the rendered page
     expect(blocks.length).toBeGreaterThan(50);
     const tags = new Set(blocks.map(({ tag }) => tag));
     for (const tag of ["h2", "h3", "p", "li", "pre"]) expect(tags, tag).toContain(tag);
-    const missing = blocks.filter(({ text }) => !markdown.includes(text)).map(({ text }) => text);
+    const squash = (text: string) => (isSpaceless(locale) ? text.replace(/\s+/g, "") : text);
+    const haystack = squash(markdown);
+    const missing = blocks
+      .filter(({ text }) => !haystack.includes(squash(text)))
+      .map(({ text }) => text);
     expect(missing).toEqual([]);
   });
 });

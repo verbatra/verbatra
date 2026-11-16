@@ -59,8 +59,8 @@ export interface LocalePlannedEvent {
  *
  * It announces an attempt rather than confirming a send: a batch withheld because the token budget
  * has already stopped the run still emits, and no provider call follows it. That is deliberate, so
- * that `batchIndex` always advances to `totalBatches` and a progress bar reaches its end instead of
- * stalling at the point the budget tripped.
+ * that `batchIndex` advances to `totalBatches` and a progress bar reaches its end instead of
+ * stalling at the point the budget tripped. A cancelled run stops emitting at the abort.
  *
  * Only the translation batches emit it. A dry run sends nothing and emits none, and neither do the
  * plural-generation requests, so `totalBatches` counts translation batches alone. Keys served from

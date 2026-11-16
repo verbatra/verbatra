@@ -127,9 +127,12 @@ export function breakUrlAfterSlashes(url: string): ReactNode {
   ));
 }
 
+const COMPOUND_CHAR = String.raw`[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u30FB\u30FC\u3000-\u303F\uFF00-\uFFEF]`;
+const COMPOUND = new RegExp(`(${COMPOUND_CHAR}+-${COMPOUND_CHAR}+)`, "u");
+
 export function keepCompoundsWhole(text: string): ReactNode {
-  if (!/\S-\S/.test(text)) return text;
-  return text.split(/(\S+-\S+)/).map((part, index) =>
+  if (!COMPOUND.test(text)) return text;
+  return text.split(COMPOUND).map((part, index) =>
     index % 2 === 1 ? (
       <span key={`${index}-${part}`} className="whitespace-nowrap">
         {part}

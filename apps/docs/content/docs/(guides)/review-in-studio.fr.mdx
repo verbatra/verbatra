@@ -4,7 +4,7 @@ seoTitle: "Relire les traductions dans Verbatra Studio"
 description: Démarre Verbatra Studio, traite la file de relecture, corrige les entrées sur place et retraduis les clés signalées depuis le tableau de bord local.
 type: how-to
 ---
-Utilise ceci pour vérifier les traductions automatiques avant leur mise en ligne : trouve ce qui est en attente, corrige des valeurs à la main, et approuve ou rejette ce qu'un fournisseur a écrit, dans Verbatra Studio, un tableau de bord local au-dessus de ton projet.
+Trouve les traductions automatiques en attente, corrige des valeurs, et approuve ou rejette ce qu'un fournisseur a écrit, dans Verbatra Studio.
 
 Deux règles valent tout du long. **La modification locale est toujours active**. **La dépense auprès du fournisseur est toujours désactivée**, sauf si tu démarres Studio avec `--allow-spend`.
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Ouvre l'URL qu'il affiche, token compris. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token, toutes les options et le rafraîchissement en direct.
+Ouvre l'URL qu'il affiche, jeton compris. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le jeton, toutes les options et le rafraîchissement en direct.
 
 ## Lire la page Translations
 
@@ -27,7 +27,7 @@ Translations est un tableau de toutes les clés qui demandent de l'attention : m
 
 ### Détails de la clé
 
-Clique sur une clé pour ouvrir son éditeur. Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
+Clique sur une clé pour ouvrir son éditeur. Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les jetons nommés, ou syntaxe de message invalide. Également affiché :
 
 | Détail | Affiche |
 | --- | --- |
@@ -50,6 +50,7 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
+
 #### Définir une limite de longueur
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
@@ -80,8 +81,8 @@ La page Review liste chaque valeur écrite par une machine que personne n'a appr
 
 <StudioScreenshot
   shot="review"
-  alt="La page Review de Verbatra Studio avec la puce Needs review activée et des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
-  caption="La file de relecture après une exécution, avec les lignes signalées et leurs raisons. Studio existe en clair et en sombre ; change la capture pour comparer."
+  alt="La page Review de Verbatra Studio avec la puce Needs review activée et des entrées en allemand ; deux lignes portent des motifs de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
+  caption="La file de relecture après une exécution, avec les lignes signalées et leurs motifs. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
 ### Libellés des signalements
@@ -112,7 +113,7 @@ Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les
 
 La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
-Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
+Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une fois une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
 
 ### Traiter la file au clavier
 
@@ -141,7 +142,7 @@ Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), pui
 
 ## Retraduire une clé signalée
 
-Démarre Studio avec la dépense autorisée ([comment la dépense est accordée](/fr/docs/cli/studio#dépenses-et-outils-dagent))  :
+Démarre Studio avec la dépense autorisée ([comment la dépense est accordée](/fr/docs/cli/studio#dépenses-et-outils-dagent)) :
 
 ```bash
 verbatra studio --allow-spend
@@ -157,13 +158,13 @@ Quand le fichier source ou un fichier de locale cible change pendant que Studio 
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
+Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution, avec la jauge de budget quand un budget de tokens est configuré.
 
 **Run history and cost**, en dessous, trace le coût et les tokens des exécutions les plus récentes au-dessus d'un tableau, avec la dernière couverture connue de chaque locale.
 
 <StudioScreenshot
   shot="overview"
-  alt="La page Overview de Verbatra Studio avec quatre chiffres, Needs attention, Waiting for review, Avg coverage et Locales in sync, au-dessus d'un tableau de la couverture des locales de, es et fr et des liens vers les traductions et la revue de chaque locale."
+  alt="La page Overview de Verbatra Studio avec quatre chiffres, Needs attention, Waiting for review, Avg coverage et Locales in sync, au-dessus d'un tableau de la couverture des locales de, es et fr et des liens vers les traductions et la file de relecture de chaque locale."
   caption="La page Overview est celle sur laquelle Studio s'ouvre. Change la capture pour comparer clair et sombre."
 />
 
@@ -179,10 +180,10 @@ Une modification du glossaire change ce que la prochaine exécution reçoit comm
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note.
+**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses traductions interdites et sa note.
 
 ## Voir aussi
 
-- [Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio) : le même flux depuis un agent d'IA dans le navigateur.
+- [Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio) : le même flux depuis un agent IA dans le navigateur.
 - [Consigner les preuves de traduction automatique](/fr/docs/provenance-evidence)
 - [Relire et retraduire depuis le SDK](/fr/docs/sdk/review)

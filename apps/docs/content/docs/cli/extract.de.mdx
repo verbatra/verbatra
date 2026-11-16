@@ -40,7 +40,7 @@ Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--c
 
 ### Konfiguration
 
-`extract` wird vom [`extract`-Block](/de/docs/config-file#extract) in deiner Konfiguration gesteuert. Ein Lauf ohne diesen Block scheitert mit `EXTRACT_NOT_CONFIGURED` und Exit `2`. Für `i18next-json` schreibt `verbatra init` den Block als Kommentar in die erzeugte Konfiguration; entkommentiere ihn und passe `roots` an.
+`extract` wird vom [`extract`-Block](/de/docs/config-file#extract) in deiner Konfiguration gesteuert. Ein Lauf ohne diesen Block scheitert mit `EXTRACT_NOT_CONFIGURED` und Exit `2`. Für `i18next-json` schreibt `verbatra init` den Block als Kommentar in die erzeugte Konfiguration; entkommentiere ihn und passe `roots` an. <AvailableFrom version="0.13.5" />
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
@@ -97,7 +97,7 @@ Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, eine sperrige
 | `dynamic` | der Key ist kein einzelner vollständiger statischer String oder beschreibt einen Pfad, den verbatra nicht adressieren kann: eine Variable, ein Member-Ausdruck, ein Template-Literal mit Ausdruck, eine Verkettung, ein Key mit Namespace oder ein leeres Pfadsegment. Er wird nie geschrieben. |
 | `conflicts` | ein Key steht an zwei Aufrufen mit unterschiedlichen Standardwerten. Keiner der Werte wird geschrieben, damit der Katalog nie von der Durchlaufreihenfolge abhängt. |
 | `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil sein Aufruf keinen Standardwert hatte. Füll ihn aus und übersetze dann. |
-| `diagnostics` | eine Datei oder ein Verzeichnis konnte nicht bis zum Ende gelesen werden: verschwunden, über der Grenze von 2.000.000 Byte, der Scan ist daran gescheitert, oder ein nicht geschlossener Kommentar, Template-Literal, JSX-Element oder String hat den Rest abgebrochen. Was vorher gelesen wurde, wird trotzdem gemeldet. |
+| `diagnostics` | eine Datei oder ein Verzeichnis konnte nicht bis zum Ende gelesen werden: verschwunden, über der Grenze von 2.000.000 Byte, der Scan ist daran gescheitert, oder ein nicht geschlossener Kommentar, ein nicht geschlossenes Template-Literal, ein nicht geschlossenes JSX-Element oder ein nicht geschlossener String hat den Rest abgebrochen. Was vorher gelesen wurde, wird trotzdem gemeldet. |
 
 ### Grenzen des Scans
 
@@ -143,6 +143,8 @@ verbatra extract
     src/routes/product.tsx:88
 next: verbatra translate (translate the new keys)
 ```
+
+Jede Liste zeigt zehn Zeilen, dann `and N more`. Die Zusammenfassung kann außerdem `written with an empty value`, `conflicting defaults` und `skipped`-Dateien auflisten; ein Dry Run sagt `would add` und endet mit `dry run, nothing written`.
 
 Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 

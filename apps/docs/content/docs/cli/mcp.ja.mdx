@@ -1,0 +1,216 @@
+---
+title: verbatra mcp
+seoTitle: "verbatra mcp：stdio MCP サーバーを起動する"
+description: "verbatra のツールをあらゆる MCP クライアントに公開する stdio MCP サーバーを起動します。有料のプロバイダーを呼び出すツールは、デフォルトで一覧に出ません。"
+status: new
+type: reference
+---
+stdio 経由で [Model Context Protocol](https://modelcontextprotocol.io) サーバーを起動します。stdio は、MCP クライアントがツールサーバーを起動するときに使うトランスポートです。プロトコルのリビジョン 2024-10-07 から 2026-07-28 に対応します。HTTP トランスポートはありません。HTTP にすると、書き込みツールと課金ツールが公開されてしまうためです。
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## 書式
+
+```bash
+verbatra mcp [flags]
+verbatra-mcp [flags]
+```
+
+- `verbatra-mcp` は `@verbatra/mcp` が提供するバイナリで、クライアントが CLI なしでサーバーを起動できます。`-q`/`--quiet` を除いて同じオプションを受け付け、同じサーバーを起動しますが、`.env` ファイルは読み込まず、`--version` では `@verbatra/mcp` のバージョンを出力します。
+- どちらも、未知のオプション、オプションの値の欠落、余分な引数があると終了コード `2` で終了します。`verbatra-mcp` でこの動作と `-h`、`-V` を使うには、`@verbatra/mcp` 0.3.0 以上が必要です。
+
+## 例
+
+```bash
+# start the MCP server with only local, non-spending tools
+verbatra mcp
+
+# also advertise the provider-calling tools
+verbatra mcp --allow-spend
+
+# resolve a project outside the current directory
+verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+
+# run the standalone server without the CLI
+npx -y @verbatra/mcp --cwd /path/to/project
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--allow-spend` | なし | `VERBATRA_MCP_ALLOW_SPEND`、なければオフ | 翻訳プロバイダーを呼び出す 2 つのツールを公開する。[課金ツール](#課金ツール)を参照 |
+| `--redact-values` | なし | `VERBATRA_MCP_REDACT_VALUES`、なければオフ | ツールの結果に含まれる訳文の値をすべてマーカーに置き換える。[秘匿化された値](#redacted-values)を参照 |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd` と `--config` も使えます。stdout がプロトコルのチャネルなので、`--json` は使えません。`--cwd` がない場合、プロジェクトディレクトリは `CLAUDE_PROJECT_DIR` から決まることがあります。[プロジェクトディレクトリ](#プロジェクトディレクトリ)を参照してください。
+
+## 動作
+
+### プロジェクトディレクトリ
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`--cwd` がなく、`CLAUDE_PROJECT_DIR` が既存のディレクトリを指している場合、サーバーはそれをプロジェクトディレクトリとして使います。このとき `verbatra mcp` は、そのディレクトリから[環境ファイル](/ja/docs/cli#環境ファイル)を読み込みます。環境ファイルの中だけで設定した `CLAUDE_PROJECT_DIR` は無視されます。
+
+設定ファイルの探索はそこから始まり、見つかった設定ファイルのあるディレクトリが、ツールのパスの基準になる[プロジェクトルート](/ja/docs/config-file#作業ディレクトリと-env)です。
+
+### 課金ツール
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.retranslateEntry` と `translation.translatePending` が公開されるのは、`--allow-spend` がある場合、またはオプションがなく `VERBATRA_MCP_ALLOW_SPEND` が `1`、`true`、`yes`、`on` のいずれかに設定されている場合だけです（大文字と小文字は区別せず、前後の空白は無視します）。オプションが変数より優先されます。`verbatra mcp` は先に `.env.local` と `.env` を読み込むため、変数はそこに置けます。`verbatra-mcp` は、自身の環境からしか読み取りません。
+
+それ以外の場合、この 2 つは一覧に出ず、呼び出すと未知のツールとして失敗します。`provider: { id: "none" }` の設定では、`--allow-spend` があっても一覧に出ません。ほかのツールはすべてプロバイダーを呼び出さず、API キーも不要です。サーバーに API キーを渡すのは、課金を有効にするときだけにしてください。
+
+### エージェントへの指示
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+サーバーは、ハンドシェイクに固定の `instructions` を返します。多くのクライアントは、これを最初にモデルへ渡します。この指示は、呼び出しの順序（先に読み取りと差分、費用をかける前に見積もりと明示的な了承）を定め、レビューの判断と人の作業を人に任せ、すべての文字列をデータとして扱い、`[REDACTED]` の値を書き戻さないようにします。
+
+### ツール [#tools]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+| ツール | 機能 | 読み取り専用 | プロバイダーを呼び出す |
+| --- | --- | --- | --- |
+| `project.snapshot` | 解決された設定：`configured`、`configSource`、ロケール、フォーマット、`files.pattern`、プロバイダー、用語集、`humanEdits`、`prune`、`valuesRedacted` | はい | いいえ |
+| `project.doctor` | すべての構成チェックと、その `status`、`detail`、失敗した場合は `fix` | はい | いいえ |
+| `status.check` | ロケールごとの、欠落しているキー、古くなったキー、最新のキーの数 | はい | いいえ |
+| `status.diff` | ロケールごとの、追加される、再翻訳される、孤立しているキーの一覧 | はい | いいえ |
+| `glossary.get` | すべての用語集の用語と、その訳語、禁止された訳、コンテキスト（シークレットは秘匿化） | はい | いいえ |
+| `glossary.write` | 用語集の用語を 1 つ変更する：訳語、ロケールごとのデータ、コンテキスト、翻訳しないかどうか | いいえ | いいえ |
+| `lock.state` | ロックファイルのバージョンと、ターゲットロケールごとのキー数と、欠落しているキー、古くなったキー、最新のキーの数 | はい | いいえ |
+| `history.list` | ロケールファイルに触れた最近の git コミットと、作成者、日付、件名、パス | はい | いいえ |
+| `history.keyRevisions` | ロケールにおける 1 つのキーのリビジョンと単語単位の差分 <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | はい | いいえ |
+| `key.integrity` | ロケールごとの、ロックファイルのベースラインに対する 1 つのキーのプレースホルダー、マークアップ、ICU 構文、ICU の分岐のドリフト | はい | いいえ |
+| `locale.integrity` | プレースホルダー、マークアップ、ICU のチェックに現在失敗しているすべての訳文（ロケールごと） | はい | いいえ |
+| `key.value` | 1 つのキーの現在のソーステキストとターゲットテキスト、来歴、翻訳者向けのコンテキスト | はい | いいえ |
+| `key.context` | `key.value` が返す内容に加えて、適用される用語集の用語、`maxLength`、任意の `draft` のチェック | はい | いいえ |
+| `locale.values` | 多数のキーのソーステキストとターゲットテキスト（`keys` または `query` で絞り込み、ページ単位） | はい | いいえ |
+| `translation.editEntry` | 1 つのロケールの 1 つのキーに、手動の訳文を書き込む（整合性チェックを通す） | いいえ | いいえ |
+| `translation.estimate` | `translation.translatePending` が送る内容と費用（`translate --estimate` と同じ） | はい | いいえ |
+| `translation.retranslateEntry` | 1 つのロケールの 1 つのキーを、設定されたプロバイダーに再翻訳させる | いいえ | はい |
+| `translation.translatePending` | 欠落または古くなったキーをすべて翻訳する（`locales` で一部のロケールに絞り込み、`maxTokens` の上限内で実行することも可能） | いいえ | はい |
+| `review.queue` | まだ誰も承認していない機械翻訳の値すべてと、直近の実行のフラグ | はい | いいえ |
+| `report.provenance` | `verbatra report provenance` と同じ、ロケールごとの来歴の件数と、要求に応じたページ分割されたキー | はい | いいえ |
+| `review.approve` | ユーザーの指示に基づき、名前を指定した人が 1 つのキーの現在の訳文を承認したことを記録する | いいえ | いいえ |
+| `review.reject` | ユーザーの指示に基づき、名前を指定した人が 1 つのキーの訳文を却下したことを記録し、訳文を削除する | いいえ | いいえ |
+| `usage.summary` | 直近の実行のトークン使用量と予算の状況 | はい | いいえ |
+| `usage.history` | 最近の実行、費用、対応率 <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | はい | いいえ |
+
+- **同時に 1 つの呼び出しだけ**：同じエントリに対する同じツールの 2 回目の呼び出し（`translation.editEntry`、`translation.retranslateEntry`）や、2 回目の `translation.translatePending` の実行は、最初の呼び出しが実行されている間、`isError` で拒否されます。
+- **人の作業**：`translation.retranslateEntry` は、固定されたキーを `KEY_PINNED` で拒否し、`humanEdits: "overwrite"` でなければ、人が書いた値を `KEY_PROTECTED` で拒否します。`translation.editEntry` は固定されたキーを拒否します。`translation.translatePending` は、そのようなキーを `protected` の下に一覧表示します。[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。
+- **来歴**：`translation.editEntry` が書いた値は、出どころ `agent` になります。`review.queue` は Studio に表示されるのと同じキューで、承認されていない `machine`、`memory`、`fuzzy`、`agent` の値がすべて入ります。[レビューの判断](/ja/docs/the-lock-file#レビューの判断)を参照してください。
+- **レビューの判断**：`review.approve` と `review.reject` は、`locale`、`key`、`expectedValue` または `expectedHash`（値が変わっている場合は `REVIEW_VALUE_CHANGED` で拒否されます）、`reviewer` の名前を受け取ります。承認は [`verbatra check --require-reviewed`](/ja/docs/cli/check#レビュー済みの訳文を必須にする) の対象になります。
+
+### 入力と結果
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+- `status.check`、`status.diff`、`key.integrity` は、任意の `locales` 配列を受け取ります。`key.integrity` は `key` も受け取ります。
+- `key.integrity` は `{ locales: [{ locale, entries }] }` を返します。各エントリには `matches`、`missing`、`extra`、`icuValid`、`markupMatches` とその詳細が入ります。
+- `translation.editEntry` は `locale`、`key`、最大 20,000 文字の `value` を受け取り、`{ accepted, value, reason?, details? }` を返します。`translation.retranslateEntry` も同じものを返し、さらに `reviewReasons?` と `usage?` が加わります。`reason` は `placeholder`、`markup`、`icu`、`degenerate`、`empty` のいずれかです。
+- `glossary.write` にはファイルに保存された用語集が必要で、そうでなければ `GLOSSARY_NOT_FILE_BACKED` で失敗します。[大文字と小文字だけが違う用語](/ja/docs/sdk/config#updateglossaryterm)は、保存済みの用語を更新します。
+
+### その他の入力と結果
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- `translation.estimate`、`locale.integrity`、`locale.values`、`report.provenance` も同じ任意の `locales` 配列を受け取ります。`key.integrity` は、不明なキーに対して `UNKNOWN_KEY` で失敗します。
+- `key.integrity` の各エントリには、`icuArmsMatch` とその詳細も入ります。
+- `glossary.get` は任意の `locale` を受け取り、そのロケールが従う用語を示す `effective` を加えます。
+- `key.value`、`lock.state`、`status.check`、`status.diff` には来歴が含まれます。`verbatra.provenance.json` を読み取れない場合は省かれます。
+- `locale.values` と `report.provenance` は、エントリをソースのキーの順にページ分割します。`limit`（デフォルトは 200、最大 1,000）と、前のページの `nextCursor` を `cursor` として渡します。ページに一覧表示されるのは、そのページがエントリを持つロケールだけで、古いカーソルは不正な入力として失敗します。
+- `locale.values` は `keys` または大文字と小文字を区別しない `query` を受け取り、Studio のキーのマップではなく、エントリの配列を返します。`report.provenance` は常に完全な件数を返し、`includeEntries` を付けるとキーが加わります（`buckets` で一部の分類に絞り込めます）。
+- `history.list` は `limit`（デフォルトは 50、最大 200）を受け取ります。`available: false` の場合、`reason` は `git-missing`、`not-a-repository`、`bare-repository`、`dubious-ownership`、`timeout`、`output-too-large`、`unsafe-config`、`git-too-old` のいずれかです。
+- `usage.history` は、新しい順に何件の実行を返すかを示す `limit`（デフォルトは 50、最大 200）を受け取ります <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />。
+- `history.keyRevisions` は、`locale`、`key`（最大 1,024 文字）、調べるコミット数を示す `limit`（デフォルトは 50、最大 200）を受け取ります <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />。
+- `usage.summary` が読むのは直近の実行だけです（以前の実行は `usage.history` が一覧表示します）。その実行が使用量を報告しなかった場合は `usage` を省き、予算のフィールドは `maxTokens` の予算がある場合にだけ含めます。`budget.supported: false` は、リクエストが使用量を報告しなかったか、失敗したことを意味します。その場合の `tokensUsed` には、使用量が 0 または未報告だった各リクエストについて、verbatra 自身の予測値が加わるため、プロバイダーが課金した値ではありません。実行に、失敗した、または途中で止まったロケールがあった場合は `incomplete: { failed, partial }` も含まれるため、使用量が少ないことを、成功した実行と読み違えることはありません <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />。
+- 書き込みツールは、任意の `lockTimeoutMs`（`0` から `600000`、デフォルトは `30000`）を受け取ります。これは、保持されている書き込みロックを待つ時間で、過ぎると何も書き込まずに `LOCK_CONTENDED` で失敗します。
+- 入力と出力は JSON Schema です。不正な入力には、フィールドを示す結果が返ります。結果が `outputSchema` に一致しない場合は、`OUTPUT_SCHEMA_MISMATCH` で失敗します。書き込みツールでは、変更はすでに適用されているため、再試行しないでください。
+- 失敗した呼び出しのテキストは、`UNKNOWN_KEY: ...` のようにエラーコードで始まり、エラーに次の手順がある場合は `Next step: ...` の行で終わります。これは CLI の `hint` と同じテキストです。
+
+### 見積もってから費用をかける
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.estimate` は常に一覧に出ます。`translation.translatePending` は、任意の `locales`（設定にないロケールは、費用が発生する前に `UNKNOWN_LOCALE` で失敗します）と、設定の上限を厳しくすることしかできない `maxTokens` を受け取ります。[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照してください。
+
+### 進捗
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.translatePending` の呼び出しに `progressToken` が付いていると、verbatra はバッチが完了するたびに `notifications/progress` を送ります。`progress` は完了したバッチ数、`total` は計画されたロケールごとに増え、`message` にロケールとバッチ（`de: batch 3/7`）が示されます。送信は 250 ミリ秒に 1 回までで、最後に 1 回送られます。課金を伴う呼び出しをキャンセルする（`notifications/cancelled`）と、結果も以降の進捗もなく停止します。`translation.translatePending` は、届いた分を保持し、残りは未処理のままです。
+
+### 設定がない場合
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+サーバーは、それでも起動します。このとき `project.snapshot` は、`configProblem` と `nextStep` を付けて `configured: false` を返し、`project.doctor` は対処を報告し、ほかのツールはすべて設定のエラーで拒否します。stderr に理由が出力されます。
+
+```text output
+Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
+verbatra MCP server running on stdio (project ., spend tools off)
+No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
+  set it up:  npx @verbatra/cli init in the project, or fix the config project.doctor names
+  no restart needed: the server loads the config on the next call once it is valid
+```
+
+### 設定の変更後
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+サーバーは、呼び出しのたびに、設定ファイル、探索で試すファイル、または用語集ファイルが変わっていれば、設定を再読み込みします。設定がインポートしているモジュールは監視されません。`--allow-spend` は 1 回だけ読み取られるため、変更で課金ツールを隠すことはできますが、オプションなしで一覧に出すことはできません。ツールの一覧が変わると、サーバーは `notifications/tools/list_changed` を送ります。再読み込みでプロジェクトルートが移ると、`verbatra mcp` はそのルートの環境ファイルを読み込み、`verbatra: project root is now <root>` と出力します。この行は `--quiet` で非表示になります。
+
+### シークレットの秘匿化
+
+シークレットは、Studio と同じく、すべての結果とログの行から秘匿化されます。API キーの形をした値や、設定された API キーの変数の値は `[REDACTED]` になり、用語集のツールは秘匿化された用語を示します。訳文の値を隠すには、[`--redact-values`](#redacted-values) を使います。
+
+### 秘匿化された値 [#redacted-values]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`--redact-values` を付けた場合、または `VERBATRA_MCP_REDACT_VALUES` に `VERBATRA_MCP_ALLOW_SPEND` が受け付ける値を設定した場合、結果のソーステキスト、訳文、説明、用語集の用語は、マーカー `[redacted length=12 hash=3f9a0c1d2e4b5a6c]` に置き換えられます。レビュー担当者と作成者の名前、単語単位の差分、`history.keyRevisions` の件名は含まれません。同じ値は、サーバーが止まるまで同じハッシュを共有します。値を含みうるエラーは、コードと次の手順を残し、メッセージはマーカーになります。キー名、件数、出どころ、整合性の判定、コミットの件名、パスは残ります。`review.approve` と `review.reject` は、マーカーのハッシュだけを `expectedHash` として受け取ります。`glossary.write` は件数で応答します。`locale.values` は `query` を拒否し、`key.context` は `draft` を拒否します。プロバイダーには、引き続きテキストが送られます。エージェントが、用語集の書き込みや `key.context` の用語集のヒットを使って、意図的に探りを入れることまでは防げません。
+
+### stdout と stderr
+
+<AvailableFrom version="0.12.0" />
+
+stdout に出力されるのは MCP のプロトコルメッセージだけで、ログはすべて stderr に出力されます。接続すると、`verbatra mcp` は準備完了の行を出力し、停止するときにも 1 行出力します。
+
+```text output
+verbatra MCP server running on stdio (project ., spend tools off)
+verbatra MCP server stopped (client closed stdin)
+```
+
+ターミナルでは、クライアントが起動する前提のものだという案内も出力されます。`--quiet` はこれらの行を非表示にしますが、設定がない理由は非表示にしません。
+
+### インストール
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`@verbatra/mcp` は別のパッケージで、CLI が必要に応じて読み込みます。ない場合、`verbatra mcp` は次のメッセージを出力して終了コード `2` で終了します。
+
+```text output
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
+```
+
+各リリースは、[公式の MCP Registry](https://registry.modelcontextprotocol.io) にも `io.github.verbatra/verbatra` として登録されています。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 1 回の割り込み、またはクライアントによる stdin のクローズで、正常に停止した |
+| `1` | シャットダウン中にサーバーを閉じられなかった |
+| `2` | 起動できなかった。`--config` のファイルがない、`@verbatra/mcp` がない（`--redact-values` では古すぎる場合も含む）、または使い方の誤り |
+| `130` | シャットダウン中の 2 回目の割り込みで強制停止された |
+
+停止すると、ロケールの書き込みロックはすべて解放されます。`verbatra-mcp` は、起動エラーで終了コード `1` を返し、SIGTERM のあとに強制停止された場合は `143` を返します（`143` を返すには `@verbatra/mcp` 0.3.0 以上が必要です）。[終了コードの仕様](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [MCP クライアントを接続する](/ja/docs/connect-an-mcp-client)は、stdio クライアントのセットアップを説明します。
+- [ブラウザーエージェントで Studio を操作する](/ja/docs/agent-tools-in-studio)：このサーバーのツールに対応する、ブラウザー側の機能です。
+- [`verbatra check`](/ja/docs/cli/check) と [`verbatra diff`](/ja/docs/cli/diff) は、`status.check` と `status.diff` を支えています。

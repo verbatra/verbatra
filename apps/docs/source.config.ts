@@ -5,6 +5,7 @@ import { remarkAutoTypeTable } from "fumadocs-typescript";
 import { z } from "zod";
 import { remarkAgentEntryMarkdown } from "./lib/agent-entry";
 import { rehypeAvailableFromInHeading } from "./lib/available-from-heading";
+import { rehypeCjkCodeBreaks } from "./lib/cjk-code-breaks";
 import { rehypeCodeOptions } from "./lib/code-block-meta";
 import { remarkIntroducedIn } from "./lib/introduced-in";
 import { remarkPackageManagerTabs } from "./lib/package-manager-tabs";
@@ -49,6 +50,11 @@ export default defineConfig({
       remarkTypeTableMarkdown,
       remarkAgentEntryMarkdown,
     ],
-    rehypePlugins: (plugins) => [...plugins, rehypeAvailableFromInHeading, rehypeStackedTables],
+    rehypePlugins: (plugins) => [
+      ...plugins,
+      rehypeAvailableFromInHeading,
+      rehypeStackedTables,
+      rehypeCjkCodeBreaks,
+    ],
   },
 });

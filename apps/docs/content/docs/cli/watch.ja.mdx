@@ -1,0 +1,100 @@
+---
+title: verbatra watch
+seoTitle: "verbatra watch：変更のたびに翻訳し直す"
+description: "中断するまでソースが変わるたびに翻訳し直し、ソースの編集中もロケールファイルを同期した状態に保ちます。各回の実行は新しいキーと変更されたキーだけを送ります。"
+type: reference
+---
+ソースロケールファイルを監視し、デバウンスされた変更のたびに翻訳を再実行します。中断するまで続けます。`watch` は、起動時に最初の翻訳を実行し、その後は保存するたびにターゲットロケールを最新に保ちます。各回の実行は [`verbatra translate`](/ja/docs/cli/translate) と同じように動作します。ただし `watch` には `--dry-run`、`--prune`、`--include-human`、`--estimate`、`--max-tokens` がなく、終了コード `3` で終了することもありません。起動時には、既存の `.gitignore` に欠落しているエントリも追加します。[.gitignore のエントリ](/ja/docs/cli#gitignore-のエントリ)を参照してください。
+
+## 書式
+
+```bash
+verbatra watch [flags]
+```
+
+## 例
+
+```bash
+# 変更のたびに監視して翻訳し直す
+verbatra watch
+
+# 保存が頻繁なエディター向け：最後の変更から 1 秒待ち、NDJSON をストリーム出力する
+verbatra watch --debounce 1000 --json
+
+# 作業中はドイツ語だけを最新に保つ
+verbatra watch --locales de
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 設定済みのすべてのターゲットロケール | 監視する対象を、カンマ区切りで指定したロケールに限定する。起動時に 1 回チェックされ、設定にないロケールは `UNKNOWN_LOCALE` で失敗する |
+| `--debounce` | `<ms>` | `300` | 最後の変更から、翻訳を始めるまでに待つミリ秒数。`1` から `60000` の整数 |
+| `--lock-timeout` | `<seconds>` | `600` | 各回の実行で、ロケールごとの書き込みロックが使用中のときに待つ秒数。`1` から `3600` の整数 |
+| `--concurrency` | `<n>` | `1` | 各回の実行で、最大 `n` 個のターゲットロケールを同時に翻訳する。`1` から `100` の整数。`maxTokens` の予算がある場合は拒否される |
+| `--no-cache` | なし | オフ（キャッシュはオン） | 毎回の実行で[翻訳メモリのキャッシュ](/ja/docs/the-cache)（`verbatra.cache.json`）を使わない |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション) `--cwd`、`--config`、`--json` も使えます。ここでは `--json` は、実行ごとに 1 件のレコードを出力します。`watch` は、起動する前に[環境ファイル](/ja/docs/cli#環境ファイル)を読み込みます。
+
+## 動作
+
+### 各回の実行
+
+各回の実行は、`--locales` で指定した一部のロケール、または全ターゲットを、新しいトークン予算で翻訳します。[書き込みロック](/ja/docs/the-lock-file)が `--lock-timeout` を過ぎても使用中のままのロケールは、その回の実行のサマリーで `LOCK_CONTENDED` により失敗します。ほかのロケールは引き続き実行されます。すでに終了した verbatra のプロセスが残したままの書き込みロックは、すぐに回収されます。失敗した実行が、監視プロセスを止めることはありません。書き込みロックを待つ間は、[`translate`](/ja/docs/cli/translate#書き込みロックと中断) で説明している、書き込みロックの待機を示す行が出力されます。
+
+`--concurrency` を `1` より大きくし、同時に `maxTokens` の予算を設定した場合は、最初の実行の前に、起動時に終了コード `2` で拒否されます。どのロケールが残りの作業を失うかが、ロケールの処理がどう交互に進むかに左右されるためです。
+
+プロバイダーを生成できない場合も、起動時に拒否されます。多くの場合、API キーの変数が設定されていないことが原因です。`watch` は終了コード `2` で終了し、`PROVIDER_CONSTRUCTION_FAILED` と、変数名を示す `next:` の行を出力します。`translate` とまったく同じです。どの実行でも翻訳できない変更を待ち続けることはありません。0.12.0 より前は、待機を続けていました。`watch` は、起動時に終了コード `2` で拒否するものがほかにもあります。プロバイダーが対応していないロケール（`LOCALE_UNSUPPORTED_BY_PROVIDER`）、ネットワークポリシーが拒否するホスト（`NETWORK_POLICY_VIOLATION`）、ソースファイルがない場合（`SOURCE_UNREADABLE`）です。
+
+### 停止
+
+<AvailableFrom version="0.12.0" />
+
+最初の中断（Ctrl-C または SIGTERM）は、実行中の処理を終えさせ、監視プロセスを止めて、終了コード `0` で終了します。その停止処理の途中で 2 回目の中断が来ると、セッションの書き込みロックを解放した後、終了コード `130` で強制停止します。`--json` を付けない場合、stderr には、毎回の実行の後に `verbatra: waiting for changes...` が表示されます。対話式のターミナルでは、起動の行の後に `verbatra: press Ctrl-C to stop` が表示され、停止処理が終わると `verbatra: stopped` が表示されます。`--quiet` を付けると、これらの行は出力されません。ただし、起動の行と、最初の中断で出る `verbatra: stopping, finishing current run...` は出力されます。この 2 つは、`--json` を含むすべてのモードで書き込まれます。
+
+### JSON 出力
+
+スキーマ：[`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、stdout は NDJSON になります。実行ごとに 1 つの[エンベロープ](/ja/docs/cli/output#json-出力)が出力され、`command: "watch"` が付きます。成功した実行は、その回の [`RunSummary`](/ja/docs/cli/translate#json-出力) を含む `ok: true` のレコードです。失敗した実行は `ok: false` のレコードで、失敗自身のコードが付きます（コードがない場合は `WATCH_RUN_FAILED`）。`hint` がある場合は、それも含まれます。失敗した実行はレコードにすぎません。監視プロセスを止めることも、終了コードを変えることもありません。起動の行、停止の通知、進捗は stderr に出力されます。`--json` を付けない場合、実行のサマリーは stdout に、失敗した実行の `verbatra: error [CODE] message` の行は stderr に出力されます。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`--json` を付けない場合、`watch` は、変更が落ち着いたところでソースファイルの名前を示し、その後 `translate` と同じ形で実行を報告します。対話式のターミナルでは、同じスピナー（spinner）も表示されます。
+
+```text output
+verbatra: watching en (locales/{locale}.json); running initial translation
+verbatra: press Ctrl-C to stop
+...
+verbatra: waiting for changes...
+verbatra: change detected: locales/en.json
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 1 translated
+verbatra: run finished, 1 locale processed
+verbatra: waiting for changes...
+```
+
+これらの行は stderr に出力され、`--quiet` を付けると出力されません。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 1 回の中断で正常に停止した |
+| `2` | 起動または停止できなかった：設定のエラー、起動または停止の失敗、あるいは無効な `--debounce` などの使い方の誤り |
+| `130` | 2 回目の中断で強制停止した |
+
+セッション中に実行が失敗しても、終了コードは変わりません。[終了コードの規則](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [`verbatra translate`](/ja/docs/cli/translate) は、`watch` が繰り返す 1 回限りの実行です。
+- [翻訳キャッシュ](/ja/docs/the-cache)は、`--no-cache` が毎回の実行で何を使わないかを説明します。
+- [実行の仕組み](/ja/docs/how-it-works)は、各回の実行が何をするかを説明します。
+- [人手翻訳を保護する](/ja/docs/protecting-human-translations)は、人が書いた古い値を実行がそのまま残す理由を説明します。
+- [SDK リファレンス](/ja/docs/sdk)に、`WatchRunResult` と `RunSummary` の形が載っています。

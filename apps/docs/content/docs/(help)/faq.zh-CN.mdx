@@ -1,0 +1,87 @@
+---
+title: 常见问题
+seoTitle: "verbatra 常见问题"
+description: "运行 verbatra 时最常遇到的问题的简短回答，从一次运行要花多少钱，到应该提交哪些文件。"
+type: reference
+---
+简短的回答，并附上详细页面的链接。错误信息见[故障排查](/zh-CN/docs/troubleshooting)和[错误码](/zh-CN/docs/error-codes)。
+
+## 如何控制费用？
+
+运行是增量的，因此只有缺失或已更改的键会到达提供商，未更改的项目再次运行不花任何钱。`verbatra translate --estimate` 在不调用提供商的情况下估算一次运行的规模，`--max-tokens` 或配置中的 `maxTokens` 可为它设定上限。详见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+
+## 一次运行实际要花多少钱？
+
+很少：用 `gemini-2.5-flash` 把 400 个键翻译成 3 个语言环境，大约是 72,000 个 token，你按提供商当前的单价计价即可，之后的运行只为更改过的字符串付费。如何估算一次运行的规模、各提供商在哪里公布单价，以及如何用你自己的项目校准，都在[运行前估算费用](/zh-CN/docs/estimating-cost)中。
+
+## 应该先用哪个提供商？
+
+Gemini，因为它的免费 API 套餐可以让你免费翻译整个项目，之后切换只需改一个 `id`。机密字符串不要放在免费套餐上：见[数据处理与隐私](/zh-CN/docs/data-handling#服务商数据保留与数据处理条款)。每个提供商的对比见[提供商](/zh-CN/docs/providers)。
+
+## 可以运行本地模型吗？
+
+可以：`openai-compatible` 提供商会让 verbatra 指向任何兼容 OpenAI 聊天 API 的服务器，例如 LM Studio、Ollama 或 vLLM，通常不需要密钥。完全不用语言模型时，`libretranslate` 使用自托管的 LibreTranslate 服务器。见[提供商](/zh-CN/docs/providers#libretranslate)。
+
+## verbatra 支持哪些语言？
+
+你的提供商支持的任何语言，以有效的 BCP 47 代码书写，例如 `pt-BR` 或 `zh-Hant`。DeepL 和 Google Cloud Translation 有固定的列表；LLM 提供商没有。见[语言与语言环境](/zh-CN/docs/language-support)。
+
+## 键如何保持顺序？
+
+已有的键保持原位置，新键按源顺序追加，因此翻译后的文件差异清晰。见[格式](/zh-CN/docs/formats)。
+
+## 为什么某条译文被标记为待审校？
+
+某个审校启发式规则发现了值得再看一眼的地方，例如译文与源相同，于是标记了它，但没有搁置它。每个原因码都列在[审校原因](/zh-CN/docs/error-codes#review-reason-codes)下。
+
+## verbatra 能用在 monorepo 中吗？
+
+可以。配置查找从工作目录开始逐级向上，到最近的 `.git` 为止，因此每个包都能找到自己的配置，根目录则找到根配置；`--cwd` 和 `--config` 可以指向其他任何位置。见[配置文件](/zh-CN/docs/config-file)。
+
+## 我应该提交哪些文件？
+
+提交你的语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json`；绝不要提交 `.env`、`.env.local`、`.verbatra-local/` 或 `verbatra.cache.json`，`verbatra init` 会把它们加入 `.gitignore`。见[锁文件与来源记录](/zh-CN/docs/the-lock-file)。
+
+## 如何重新翻译全部内容？
+
+删除语言文件，运行 `verbatra translate --no-cache`：这样每个键都算缺失，会再次发给提供商。不带 `--no-cache` 时，翻译记忆库的命中会重新填充它们所保存的内容。删除锁文件做不到这一点，因为没有基线时，现有译文被视为最新。要重新翻译单个键，用 Studio 的 **Retranslate**（重新翻译）操作或 `retranslateEntry`。
+
+## 使用 CLI 是否意味着要安装 SDK？
+
+不需要额外步骤：`@verbatra/cli` 依赖 `@verbatra/sdk`，所以它会一起装上。只有 `@verbatra/studio` 和 `@verbatra/mcp` 是单独的可选安装。
+
+## API 密钥放在哪里？
+
+只放在环境变量中，CLI 也会从 [`.env.local` 和 `.env`](/zh-CN/docs/cli#环境文件) 读取。配置会拒绝未知的配置项，因此密钥不会落进已提交的文件。见[提供商](/zh-CN/docs/providers)。
+
+## verbatra 会把我的字符串发到别处吗？
+
+只发给你配置的提供商，并且只在命令翻译时才发；没有遥测。设置 `provider: { id: "none" }` 时，没有任何内容离开本机。见[数据处理与隐私](/zh-CN/docs/data-handling)。
+
+## verbatra doctor 实际检查什么？
+
+<AvailableFrom version="0.9.0" />
+
+一次性检查整个设置，不调用翻译，也不读取密钥的值，除非你传入 `--live`，此时会把密钥发出去以获取提供商的语言列表：检查配置、格式、提供商、API 密钥变量、网络策略、源文件和语言环境支持，外加关于复数、语言环境代码、遗留的语言环境状态和 `verbatra.limits.json` 的说明性报告。完整的检查表见 [`verbatra doctor`](/zh-CN/docs/cli/doctor)。
+
+## AI 智能体能替我配置或操作 verbatra 吗？
+
+能，通过四种方式：面向编码智能体的配置提示词（[用 AI 智能体配置 verbatra](/zh-CN/docs/start-with-ai)）、供你自己的循环使用的 `--json` 输出（[用 JSON 编写 verbatra 脚本](/zh-CN/docs/agent-recipes)）、打开的 Studio 标签页中的 WebMCP 工具（[用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio)），以及 stdio MCP 服务器（[`verbatra mcp`](/zh-CN/docs/cli/mcp)）。Studio 和 MCP 服务器只有在加上 `--allow-spend` 选项时才会调用提供商、产生花费；在 `--json` 循环中，真实的 `translate` 会立即产生花费，因此你的脚本或智能体必须先得到人工的许可。
+
+## 本站会为 AI 智能体和爬虫发布内容吗？
+
+会，有三个静态文件，在构建时生成，且无论你浏览哪种语言版本，始终是英文：
+
+- [`/llms.txt`](/llms.txt)：每个文档页面标题和描述的精选索引，按侧边栏的分组方式排列，以 Markdown 链接的形式给出。
+- [`/llms-full.txt`](/llms-full.txt)：整个文档放在一个文件里，按顺序拼接每个页面渲染后的内容，供直接读入内容、而不是跟随链接的智能体使用。
+- [`/.well-known/ai.txt`](/.well-known/ai.txt)：一份使用政策，告诉 AI 爬虫本项目采用 MIT 许可证，并欢迎抓取、索引和引用这些内容。
+
+三者都链接在页脚的“面向智能体”一栏。
+
+## 本站内容是由 AI 翻译的吗？
+
+大部分是，通过两种不同的机制。界面部分（导航标签、按钮、页脚、落地页文案、落地页常见问题）放在 `messages/en.json` 以及每种其他语言各一个的同级文件中；这些要么由 verbatra 自己机器翻译，使用 `next-intl-json` 格式，通过 Gemini 提供商，在英文源更改之后运行 `pnpm i18n` 完成，要么由在仓库中工作的 AI 编码智能体翻译，其输出用 `verbatra import` 导入。这是本项目在使用自己的工具，`docs-i18n-check` 工作流会让语言文件与英文源发生漂移的 pull request 失败。你此刻正在读的文档正文，包括本页在内的每个指南和参考页面，是带语言后缀的 MDX（`page.mdx`，以及每种其他语言各一个 `page.<locale>.mdx`），同样由 AI 翻译，但不在那条自动化流程之内：`pnpm i18n` 只翻译结构化的语言文件格式（见[格式](/zh-CN/docs/formats)），从不处理 Markdown，因此它从不碰这些页面。相反，AI 智能体会在编辑英文源文件的同一次变更中翻译对应的文档页面，这样所有语言一起落地；这就是每个非英文页面都带有机器翻译提示的原因。
+
+并非所有内容都原样出自这两个步骤：有些文本，包括法律页面的部分内容，是直接在语言文件中编写或更正的。译文会尽力检查，但并非每段译文都经过人工审校就发布，因此译文可能含有错误。[隐私政策](/privacy)描述了同样的过程。
+
+如果某段译文读起来有些奇怪，无论哪种情况都请提交 issue：界面文案的修复会进入英文源并重新翻译或重新导入，或直接改动受影响的语言文件；文档正文则直接编辑 MDX 文件并发送 pull request。

@@ -5,7 +5,7 @@ description: "Arranca el servidor MCP por stdio que expone las herramientas de v
 status: new
 type: reference
 ---
-Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte que usan los clientes MCP para lanzar un servidor de herramientas. Atiende las revisiones de protocolo 2024-10-07 a 2026-07-28. No hay transporte HTTP, que expondría las herramientas de escritura y de gasto en un puerto.
+Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte que usan los clientes MCP para lanzar un servidor de herramientas. Atiende las revisiones de protocolo 2024-10-07 a 2026-07-28. No hay transporte HTTP, que expondría las herramientas de escritura y de gasto.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -17,7 +17,7 @@ verbatra-mcp [flags]
 ```
 
 - `verbatra-mcp` es el binario que incluye `@verbatra/mcp`, para que un cliente lance el servidor sin la CLI. Acepta los mismos flags salvo `-q`/`--quiet` y arranca el mismo servidor, pero no carga ningún archivo `.env` e imprime la versión de `@verbatra/mcp` con `--version`.
-- Ambos rechazan un flag desconocido (como `--json`), un flag sin valor o un argumento de sobra como error de uso, con salida `2`. `verbatra-mcp` lo hace, y acepta `-h` y `-V`, desde `@verbatra/mcp` 0.3.0.
+- Ambos salen con `2` ante un flag desconocido, un flag sin valor o un argumento de sobra. `verbatra-mcp` lo hace, con `-h` y `-V`, desde `@verbatra/mcp` 0.3.0.
 
 ## Ejemplos
 
@@ -40,7 +40,7 @@ npx -y @verbatra/mcp --cwd /path/to/project
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `--allow-spend` | ninguno | `VERBATRA_MCP_ALLOW_SPEND`, si no, desactivado | anuncia las dos herramientas que llaman a un proveedor de traducción; consulta [Herramientas de gasto](#herramientas-de-gasto) |
-| `--redact-values` | ninguno | `VERBATRA_MCP_REDACT_VALUES`, si no, desactivado | sustituye cada valor de traducción de los resultados por una marca; consulta [Valores ocultos](#redacted-values) |
+| `--redact-values` | ninguno | `VERBATRA_MCP_REDACT_VALUES`, si no, desactivado | sustituye cada valor de traducción de los resultados por un marcador; consulta [Valores ocultos](#redacted-values) |
 
 También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd` y `--config`. No acepta `--json`, porque stdout es el canal del protocolo. Sin `--cwd`, el directorio del proyecto puede venir de `CLAUDE_PROJECT_DIR`; consulta [Directorio del proyecto](#directorio-del-proyecto).
 
@@ -60,7 +60,7 @@ La búsqueda de configuración empieza ahí, y el directorio de la configuració
 
 `translation.retranslateEntry` y `translation.translatePending` solo se anuncian con `--allow-spend` o, si falta el flag, con `VERBATRA_MCP_ALLOW_SPEND` a `1`, `true`, `yes` u `on` (sin distinguir mayúsculas e ignorando espacios alrededor). El flag gana a la variable. `verbatra mcp` lee antes `.env.local` y `.env`, así que la variable puede estar ahí; `verbatra-mcp` solo la toma de su propio entorno.
 
-Si no, las dos nunca aparecen en la lista, y llamarlas falla como herramienta desconocida. Una configuración con `provider: { id: "none" }` nunca las lista, ni siquiera con `--allow-spend`. Las demás herramientas no llaman a ningún proveedor ni necesitan clave; pasa la clave al servidor por el entorno del cliente solo cuando actives el gasto (consulta [Proveedores](/es/docs/providers)).
+Si no, las dos nunca aparecen en la lista, y llamarlas falla como herramienta desconocida. Una configuración con `provider: { id: "none" }` nunca las lista, ni siquiera con `--allow-spend`. Las demás herramientas no llaman a ningún proveedor ni necesitan clave; pasa la clave al servidor solo cuando actives el gasto.
 
 ### Instrucciones para el agente
 
@@ -76,26 +76,26 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 | --- | --- | --- | --- |
 | `project.snapshot` | la configuración resuelta: `configured`, `configSource`, locales, formato, `files.pattern`, proveedor, glosario, `humanEdits`, `prune`, `valuesRedacted` | sí | no |
 | `project.doctor` | cada comprobación de configuración con su `status`, su `detail` y, si falló, un `fix` | sí | no |
-| `status.check` | por locale, el número de claves que faltan, desactualizadas y al día | sí | no |
+| `status.check` | por locale, el número de claves que faltan, obsoletas y al día | sí | no |
 | `status.diff` | por locale, la lista de claves que se añadirían, se volverían a traducir o están huérfanas | sí | no |
 | `glossary.get` | cada término del glosario con sus traducciones, formas prohibidas y contexto, con los secretos ocultos | sí | no |
 | `glossary.write` | cambia un término del glosario: una traducción, datos por locale, contexto, o si se queda sin traducir | no | no |
-| `lock.state` | la versión del archivo de bloqueo y, por locale de destino, su número de claves más las que faltan, desactualizadas y al día | sí | no |
+| `lock.state` | la versión del archivo de bloqueo y, por locale de destino, su número de claves más las que faltan, obsoletas y al día | sí | no |
 | `history.list` | los últimos commits de git en un archivo de locale, con nombre del autor, fecha, asunto y rutas | sí | no |
-| `history.keyRevisions` | las revisiones de una clave en una locale, con diff por palabras <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sí | no |
-| `key.integrity` | la desviación de una clave en marcadores, markup, sintaxis ICU y ramas ICU respecto a la base del bloqueo, por locale | sí | no |
-| `locale.integrity` | cada traducción que ahora mismo no pasa las comprobaciones de marcadores, markup o ICU, por locale | sí | no |
+| `history.keyRevisions` | las revisiones de una clave en un locale, con diff por palabras <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sí | no |
+| `key.integrity` | la desviación de una clave en placeholders, marcado, sintaxis ICU y ramas ICU respecto a la base del bloqueo, por locale | sí | no |
+| `locale.integrity` | cada traducción que ahora mismo no pasa las comprobaciones de placeholders, marcado o ICU, por locale | sí | no |
 | `key.value` | el texto de origen y de destino de una clave, con su procedencia y el contexto para traductores | sí | no |
 | `key.context` | lo que devuelve `key.value`, más los términos del glosario que aplican, `maxLength` y una comprobación de un `draft` opcional | sí | no |
 | `locale.values` | el texto de origen y de destino de muchas claves, filtradas por `keys` o `query`, página a página | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, validada por las comprobaciones de integridad | no | no |
 | `translation.estimate` | lo que `translation.translatePending` enviaría y costaría, como `translate --estimate` | sí | no |
 | `translation.retranslateEntry` | pide al proveedor configurado que vuelva a traducir una clave en un locale | no | sí |
-| `translation.translatePending` | traduce cada clave que falta o está desactualizada, opcionalmente solo para algunos `locales` y bajo un techo `maxTokens` | no | sí |
-| `review.queue` | cada valor escrito por máquina que nadie ha aprobado todavía, con las marcas de la última ejecución | sí | no |
+| `translation.translatePending` | traduce cada clave que falta o está obsoleta, opcionalmente solo para algunos `locales` y bajo un techo `maxTokens` | no | sí |
+| `review.queue` | cada valor escrito por máquina que nadie ha aprobado todavía, con las señales de la última ejecución | sí | no |
 | `report.provenance` | por locale, los recuentos de procedencia como los da `verbatra report provenance`, y las claves paginadas si las pides | sí | no |
 | `review.approve` | registra, por instrucción del usuario, que una persona con nombre aprueba la traducción actual de una clave | no | no |
-| `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave, y eliminarla | no | no |
+| `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave y la elimina | no | no |
 | `usage.summary` | el uso de tokens y el estado del presupuesto de la última ejecución | sí | no |
 | `usage.history` | las últimas ejecuciones, su coste y la cobertura <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sí | no |
 
@@ -122,11 +122,11 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 - `glossary.get` acepta un `locale` opcional y entonces añade `effective`, los términos a los que se atiene ese locale.
 - `key.value`, `lock.state`, `status.check` y `status.diff` incluyen la procedencia, que falta cuando `verbatra.provenance.json` no se puede leer.
 - `locale.values` y `report.provenance` devuelven sus entradas por páginas en el orden de las claves de origen: `limit` (por defecto 200, como máximo 1.000) y después el `nextCursor` de la página anterior como `cursor`. Una página solo nombra los locales de los que contiene entradas, y un cursor obsoleto falla como entrada inválida.
-- `locale.values` acepta `keys` o una `query` sin distinguir mayúsculas y devuelve arrays de entradas, no el mapa por clave de Studio. `report.provenance` siempre devuelve recuentos completos; `includeEntries` añade las claves, si quieres solo para algunos `buckets`.
+- `locale.values` acepta `keys` o una `query` sin distinguir mayúsculas y devuelve arrays de entradas, no el mapa por clave de Studio. `report.provenance` siempre devuelve recuentos completos; `includeEntries` añade las claves, opcionalmente solo para algunos `buckets`.
 - `history.list` acepta `limit` (por defecto 50, como mucho 200). Con `available: false` su `reason` es `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` o `git-too-old`.
 - `usage.history` acepta `limit`, el número de ejecuciones más recientes (por defecto 50, como mucho 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
 - `history.keyRevisions` acepta `locale`, `key` (como mucho 1.024 caracteres) y `limit`, el número de commits examinados (por defecto 50, como mucho 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
-- `usage.summary` lee solo la última ejecución (`usage.history` enumera las anteriores), omite `usage` cuando esa ejecución no informó ninguno, e incluye los campos de presupuesto solo con un presupuesto `maxTokens`. `budget.supported: false` significa que una solicitud no informó uso o falló; entonces `tokensUsed` suma la proyección propia de verbatra para cada solicitud informada como cero o no informada, y no es una cifra facturada por el proveedor. También incluye `incomplete: { failed, partial }` cuando hubo locales que fallaron o se detuvieron a medias, para que un uso bajo no se lea como una ejecución correcta <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />.
+- `usage.summary` lee solo la última ejecución (`usage.history` enumera las anteriores), omite `usage` cuando esa ejecución no informó ninguno, e incluye los campos de presupuesto solo con un presupuesto `maxTokens`. `budget.supported: false` significa que una petición no informó uso o falló; entonces `tokensUsed` suma la proyección propia de verbatra para cada petición informada como cero o no informada, y no es una cifra facturada por el proveedor. También incluye `incomplete: { failed, partial }` cuando hubo locales que fallaron o se detuvieron a medias, para que un uso bajo no se lea como una ejecución correcta <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />.
 - Las herramientas que escriben aceptan un `lockTimeoutMs` opcional, de `0` a `600000`, por defecto `30000`: cuánto esperan un bloqueo de escritura ocupado antes de fallar con `LOCK_CONTENDED`, sin haber escrito nada.
 - Las entradas y salidas son JSON Schemas; una entrada inválida devuelve un resultado que nombra el campo. Un resultado que no encaja con su `outputSchema` falla con `OUTPUT_SCHEMA_MISMATCH`; en una herramienta que escribe, el cambio ya se aplicó, así que no la repitas.
 - El texto de una llamada fallida empieza por su código de error, como `UNKNOWN_KEY: ...`, y termina con una línea `Next step: ...` cuando el error tiene un siguiente paso, el mismo texto que el `hint` de la CLI.
@@ -163,7 +163,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
 
 Antes de cada llamada, el servidor vuelve a cargar la configuración si cambió el archivo de configuración, un archivo que la búsqueda probaría o el archivo del glosario; un módulo que importa la configuración no se vigila. `--allow-spend` se lee una sola vez, así que un cambio puede ocultar las herramientas de gasto pero nunca listarlas sin él. Cuando cambia la lista de herramientas, el servidor envía `notifications/tools/list_changed`. Si una recarga mueve la raíz del proyecto, `verbatra mcp` carga los archivos de entorno de esa raíz e imprime `verbatra: project root is now <root>`, que `--quiet` quita.
 
-### Redacción de secretos
+### Ocultación de secretos
 
 Los secretos se ocultan en cada resultado y cada línea de log, igual que hace Studio: un valor con forma de clave de API, o el valor de una variable de clave configurada, se convierte en `[REDACTED]`; las herramientas de glosario nombran los términos ocultados. Ocultar los valores de traducción es [`--redact-values`](#redacted-values).
 
@@ -171,7 +171,7 @@ Los secretos se ocultan en cada resultado y cada línea de log, igual que hace S
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Con `--redact-values`, o con `VERBATRA_MCP_REDACT_VALUES` en un valor que acepte `VERBATRA_MCP_ALLOW_SPEND`, los resultados sustituyen textos fuente, traducciones, descripciones y términos del glosario por una marca, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, y omiten los nombres de revisores y autores, los diffs por palabras y los asuntos de `history.keyRevisions`; los valores iguales comparten hash hasta que se detiene el servidor. Los errores que pueden llevar valores conservan el código y el siguiente paso; su mensaje pasa a ser una marca. Los nombres de clave, recuentos, orígenes, veredictos de integridad, asuntos de commit y rutas se mantienen. `review.approve` y `review.reject` solo reciben el hash de la marca, como `expectedHash`; `glossary.write` responde con recuentos; `locale.values` rechaza `query` y `key.context` rechaza `draft`. Un proveedor sigue recibiendo el texto. No frena a un agente que sondea a propósito, con escrituras en el glosario o los aciertos de glosario de `key.context`.
+Con `--redact-values`, o con `VERBATRA_MCP_REDACT_VALUES` en un valor que acepte `VERBATRA_MCP_ALLOW_SPEND`, los resultados sustituyen textos de origen, traducciones, descripciones y términos del glosario por un marcador, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, y omiten los nombres de revisores y autores, los diffs por palabras y los asuntos de `history.keyRevisions`; los valores iguales comparten hash hasta que se detiene el servidor. Los errores que pueden llevar valores conservan el código y el siguiente paso; su mensaje pasa a ser un marcador. Los nombres de clave, recuentos, orígenes, veredictos de integridad, asuntos de commit y rutas se mantienen. `review.approve` y `review.reject` solo reciben el hash del marcador, como `expectedHash`; `glossary.write` responde con recuentos; `locale.values` rechaza `query` y `key.context` rechaza `draft`. Un proveedor sigue recibiendo el texto. No frena a un agente que sondea a propósito, con escrituras en el glosario o los aciertos de glosario de `key.context`.
 
 ### stdout y stderr
 
@@ -184,7 +184,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Iniciado a mano en un terminal, además indica que debería lanzarlo un cliente. `verbatra mcp --quiet` quita estas líneas, pero no el motivo de una configuración ausente.
+En un terminal, además indica que debería lanzarlo un cliente. `--quiet` quita estas líneas, pero no el motivo de una configuración ausente.
 
 ### Instalación
 
@@ -212,5 +212,5 @@ Al detenerse, el servidor libera cualquier bloqueo de locale. `verbatra-mcp` sal
 ## Relacionado
 
 - [Conectar un cliente MCP](/es/docs/connect-an-mcp-client) configura los clientes stdio habituales.
-- [Herramientas de agente en Studio](/es/docs/agent-tools-in-studio) es la contrapartida en el navegador de las herramientas de este servidor para agentes de terminal y sin interfaz.
+- [Herramientas de agente en Studio](/es/docs/agent-tools-in-studio) es la contrapartida en el navegador de las herramientas de este servidor.
 - [`verbatra check`](/es/docs/cli/check) y [`verbatra diff`](/es/docs/cli/diff) son los cálculos detrás de `status.check` y `status.diff`.

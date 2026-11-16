@@ -1,0 +1,61 @@
+---
+title: "键的历史记录"
+seoTitle: "SDK：单个翻译键的 git 历史记录"
+description: "读取一个键的译文在各次提交中的变化，包括作者、值的来源和词级差异。"
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## 单个键的 git 历史记录
+
+### keyHistory
+
+列出在某个目标语言环境中更改过某个键的值的提交，从新到旧排列，每条都带有与上一个值的词级差异。只读；它接受语言环境和键，从不接受路径，并通过可注入的 `execFile` 运行 `git log` 和 `git cat-file`。
+
+```ts title="签名"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**返回**：`KeyHistoryResult`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+每个修订版本包含 `commit`、`authorDate`、`author`（应用 `.mailmap` 之后的姓名，绝不是邮箱）、`subject`、`value`、`origin`、`sourceChanged` 和 `diff`。`author` 和 `subject` 中的控制字符和双向格式字符会被去掉，其中已识别的密钥会替换为 `[REDACTED]`（以前自定义、形状无法识别的密钥可能仍会保留），然后才分别截断到 200 个和 500 个字符。如果某个修订版本表明一段文本是密钥（例如裸 UUID 前面带有 `api_key=`），这段文本在结果中其他位置出现时也会被替换，每个因此发生变化的值都会设置 `valueRedacted`。`diff` 列出 `{ kind, text }` 片段，`kind` 为 `equal`、`added` 或 `removed`：占位符和标签保持完整，空白的变化显示为一处变化，大到无法对齐的差异会变成一段删除和一段添加。`origin` 取自随该修订版本提交的来源记录文件：存储的来源、`unrecorded`，或在该文件的记录描述的是另一个值时为 `external`；该文件无法读取或解析、超过 4 MiB，或在此之前已超时，则没有 `origin` 字段。`sourceChanged` 把该键当前源条目（它的文本、说明、含义、复数标志和占位符）的内容哈希，与已提交的锁文件为该语言环境中该键记录的哈希比较：不同时为 `true`，相同时为 `false`；锁文件、它对该键的条目或当前源条目缺失、无法读取或解析、超过上限，或在此之前已超时，则为 `"unknown"`。`origin` 与此无关：它把该修订版本的值与来源记录比较，该文件无法使用时，`origin` 不出现，而不是为 `"unknown"`。恢复一个源条目已更改的值后，该键会被视为已是最新。
+
+每个值以及每个 `diff` 的两侧都会经过 `redact`。含有 API 密钥的值返回时会以 `[REDACTED]` 代替，并带有 `valueRedacted: true`：它不是存储的文本，所以不要提供它用于恢复。已不在配置中的密钥无法识别，会按原样返回。
+
+提交来自对语言文件（`apple-strings` 还包括 `.stringsdict` 文件）执行的 `git log --first-parent`，因此合并带来的更改列在合并提交上。每个文件用 `git cat-file blob` 读取，并由内置适配器解析；只有当该键的值与文件历史中紧接其前的那次提交不同时（那次提交必须已读取），这次提交才会列出。移除该键的提交不会列出。最多检查 `LOCALE_HISTORY_LIMIT_CAP` 次提交（默认 `LOCALE_HISTORY_LIMIT_DEFAULT`），一次读取 4 个文件；经过 `KEY_HISTORY_DEADLINE_MS`（`30000` 毫秒）之后，不再检查更多提交，也不再开始读取提交文件（磁盘上的文件仍会读取）；`git log` 调用、大小列表和已在进行的读取各自保持 10 秒的限制。检查过程中的任何内容被跳过、无法读取、超过大小上限、超出预算或因截止时间而停止时，`truncated` 为 `true`，`truncatedBy` 说明原因，并按 `KEY_HISTORY_TRUNCATION_REASONS` 列出所有适用的原因：`commit-limit`（存在的提交多于 `limit` 允许检查的数量）、`shallow-clone`、`unreadable-revision`、`file-too-large`、`byte-budget`、`deadline`、`source-unreadable`、`records-unreadable`（锁文件或来源记录文件）和 `scrub-cap`（出现了 256 个以上不同的键、某个键长于 4096 个字符，或键合计超过 65,536 个 UTF-16 代码单元；这次扫描无法覆盖所有文本，因此每个非空的值、diff 片段、subject 和作者姓名都会变成 `[REDACTED]`，空文本保持为空，并且每个修订版本都会设置 `valueRedacted`）。`truncatedBy` 为空，当且仅当 `truncated` 为 `false`；磁盘上的文件只通过 `workingTreeUnreadable` 报告。只有前一次提交已读取，这次提交才会列出，因此较早的相邻提交无法读取的那次提交，不会被认定为该键的更改。
+
+大小在解析任何内容之前取自 git，所以同一个仓库在每台机器上得到相同的字节上限和预算判定；超时的 git 调用、30 秒的截止时间，以及环境中的提供商密钥（它们决定清除什么）仍可能改变结果。对 `yaml` 和 XML 格式（`xliff`、`android-xml`、`resx`、`apple-strings`），超过 512 KiB 的语言文件，或对其他格式超过 4 MiB 的语言文件，会被跳过而不解析，`apple-strings` 一次提交的两个文件按两者之和计算。一次调用对 `yaml` 和 XML 格式最多读取 16 MiB 的语言文件，对其他格式最多读取 128 MiB：超出这个量的较早提交不会被检查。超过 4 MiB 的锁文件或来源记录文件不会读取，一次调用读取它们合计最多 128 MiB：超出后，较早的修订版本没有 `origin`，`sourceChanged` 为 `"unknown"`。源文件的读取上限与语言文件相同。解析会在文件之间让出事件循环。因大小被跳过、无法读取或解析、日志行无法解析，或值长于 `KEY_HISTORY_MAX_VALUE_CHARS`（`4096`）个字符的提交，会计入 `unreadableRevisions`，并且绝不会只返回一部分；超出预算的提交不会被检查，也不计数。`key` 最多 `KEY_HISTORY_MAX_KEY_CHARS`（`1024`）个字符，并且从不传给 git。`workingTree` 在磁盘上的值与 `HEAD` 不同时，带有该值及其 `diff`。磁盘上的值无法与 `HEAD` 比较时（文件无法解析，例如处于合并冲突期间，是符号链接，或超过上限；它的值过长；`HEAD` 处的副本无法读取；或已超时），仍会列出各修订版本，并且 `workingTreeUnreadable` 为 `true`。
+
+重命名不会被跟踪，所以重命名之前的历史不会列出；从未提交的编辑看不到，源文件中重命名的键看起来像新键。git 保护措施与 `localeGitStatus` 相同，结果为 `{ available: false, reason }`，其中 `reason` 来自 `LOCALE_GIT_UNAVAILABLE_REASONS`，`custom:` 格式的原因是 `custom-adapter`。
+
+## 运行历史记录
+
+### runHistory
+
+读取 `.verbatra-local/run-history.jsonl`，每次留下痕迹的 `translate`、`watch`、`retranslateEntry` 和 `retranslateEntries` 运行都会在其中添加一条记录。它不写入任何内容，不调用任何提供商，也不抛出任何错误。
+
+```ts title="签名"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**返回**：`RunHistoryResult`
+
+`records` 从新到旧排列，最多 `limit` 条（`RUN_HISTORY_DEFAULT_LIMIT` 为 50，`RUN_HISTORY_MAX_LIMIT` 为 200；其他任何值都会被限制到该范围内）。每条记录包含时间、`trigger`（`translate` 或 `retranslate`）、提供商和模型、token `usage`、`cost`，以及按语言环境统计的已翻译键数、缓存命中数、模糊命中数、生成的复数形式数、清理的键数、完整性拒绝数和提供商失败数。记录从不包含键名或文本。试运行不会记录，没有留下痕迹的运行也不会记录，例如无事可做的 `watch` 周期；失败或被拒绝的运行会记录。`entries` 统计一条重新翻译记录尝试过的条目数，失败的提供商调用也算在内，一批重新翻译是一条记录。该文件保留最新的 1,000 条。
+
+`cost` 在运行结束时冻结，依据当时配置中的 `rates`。`pricing` 为 `priced` 时增加 `currency`、`asOf` 和 `amount`；`no-rate-on-file`、`rate-unit-mismatch` 和 `no-usage`（发送了键，但提供商没有报告 token）不带金额，表示未知，而不是免费；`not-billed`（verbatra 不为这个提供商定价：自托管的 `openai-compatible` 或 LibreTranslate 服务器，或 `none`；托管端点仍可能向你收费）既不带金额也不带 `basis`，并在其部分用量未被报告时带有 `USAGE_PARTIAL`。`basis`（`RUN_COST_BASES` 之一）为 `usage` 时，是提供商给出的 token 数。`source-characters` 是对 DeepL 和 Google Cloud Translation 的估算，这两者不报告用量：它统计所发送键的源字符数，不含缓存命中，计入被拒绝的键，不计入失败的键，`caveats` 会说明它遗漏了什么。带有 `USAGE_PARTIAL` 说明的 `usage` 数字是下限，无论是否定价：某个语言环境发送了键却没有报告 token，因此金额和 token 数只覆盖已报告的部分。某个语言环境的部分子批次有报告、部分没有时，无法区分，不显示任何标记。
+
+运行之后，对它涉及的语言环境执行一次 `check`，为每个语言环境设置 `coverage`（`missing`、`stale`、`upToDate`）。没有 `coverage` 的语言环境没有被测量，`coverageUnavailable` 说明这次检查失败了。
+
+`unreadableRecords` 统计因无法读取而被丢弃的行，下一次记录的运行会重写文件并去掉它们。`unavailable`（`RUN_HISTORY_UNAVAILABLE_REASONS` 之一：`unreadable`，或超过 8 MiB 的 `too-large`）表示整个文件无法读取，因此此时列表为空并不能证明没有运行过。无法读取的文件保持原样，不会向其中添加记录，不是有效 UTF-8 的行算作一条无法读取的记录。

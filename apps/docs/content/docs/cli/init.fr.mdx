@@ -4,7 +4,7 @@ seoTitle: "verbatra init : créer la config du projet"
 description: Crée une config verbatra et un exemple de .env pour ce projet, détectés depuis tes fichiers de locale, en interactif ou entièrement sans surveillance.
 type: reference
 ---
-Échafaude un projet : `init` écrit un `verbatra.config.ts`, un `.env.example` qui nomme la variable de clé d'API de ton fournisseur (jamais une valeur de clé), et les entrées de `.gitignore` pour `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`. Il lit d'abord les fichiers de locale du projet, donc en général tu n'as qu'à lui indiquer le fournisseur.
+Échafaude un projet : `init` écrit un `verbatra.config.ts`, un `.env.example` qui nomme la variable de clé d'API de ton fournisseur (jamais une valeur de clé), et les entrées de `.gitignore` pour `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`. Pour `i18next-json`, la config reçoit aussi un bloc `extract` commenté à décommenter. Il lit d'abord les fichiers de locale du projet, donc en général tu n'as qu'à lui indiquer le fournisseur.
 
 ## Synopsis
 
@@ -162,14 +162,14 @@ Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 <AvailableFrom version="0.12.0" />
 
 - `--provider none` génère une config [100 % humaine](/fr/docs/human-only-workflow) sans `options` et n'écrit aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue.
-- `--provider openai-compatible` génère la config d'un serveur local ou auto-hébergé à partir de `--base-url` et `--model`, avec `maxOutputTokens: 4096`. Sa clé est facultative : un serveur qui n'en a pas besoin laisse `OPENAI_COMPATIBLE_API_KEY` vide, et `--api-key-env-var` nomme une autre variable, en majuscules comme `LLM_API_KEY`. Une valeur refusée n'est jamais répétée, au cas où ce serait la clé elle-même.
+- `--provider openai-compatible` génère la config d'un serveur local ou auto-hébergé à partir de `--base-url` et `--model`, avec `maxOutputTokens: 4096`. Sa clé est facultative : un serveur qui n'en a pas besoin laisse `OPENAI_COMPATIBLE_API_KEY` non définie, et `--api-key-env-var` nomme une autre variable, en majuscules comme `LLM_API_KEY`. Une valeur refusée n'est jamais répétée, au cas où ce serait la clé elle-même.
 - `--provider libretranslate` génère la config d'un serveur [LibreTranslate](/fr/docs/providers#libretranslate) auto-hébergé à partir de `--base-url` seul, par exemple `http://localhost:5000`, et refuse `--model` et `--api-key-env-var`. `.env.example` nomme `LIBRETRANSLATE_API_KEY` pour un serveur démarré avec `--api-keys`.
 
 `init` écrit le nom d'une variable dans la config et dans `.env.example`, jamais une valeur, et refuse une URL de base avec identifiants, query string ou fragment (`https://user:key@host`, `https://host/v1?api-key=...`), par laquelle une clé pourrait finir dans la config versionnée.
 
 ### Fichiers existants
 
-Relancer `init` avec les mêmes réponses ne change rien et réussit. Un `verbatra.config.ts` au contenu différent est refusé avec `CONFIG_EXISTS` sauf si tu passes `--force`, et ce refus passe avant toute question ou autre erreur. Une autre config verbatra dans le répertoire (un `.verbatrarc.json` ou une propriété `verbatra` dans `package.json`) est refusée même avec `--force`, car elle serait lue en premier. Quand `init` refuse, rien n'est écrit. Si une config d'un répertoire parent couvre aussi celui-ci, `init` avertit sur stderr (dry run compris) : le nouveau `verbatra.config.ts` la remplace ici.
+Relancer `init` avec les mêmes réponses ne change rien et réussit. Un `verbatra.config.ts` au contenu différent est refusé avec `CONFIG_EXISTS` sauf si tu passes `--force`, et ce refus passe avant toute question ou autre erreur. Une autre config verbatra dans le répertoire (un `.verbatrarc.json` ou une propriété `verbatra` dans `package.json`) est refusée même avec `--force`, car elle serait lue en premier. Quand `init` refuse, rien n'est écrit. Si une config d'un répertoire parent couvre aussi celui-ci, `init` avertit sur stderr (exécution à blanc comprise) : le nouveau `verbatra.config.ts` la remplace ici.
 
 Un répertoire où `init` ne peut pas écrire est refusé avec `INIT_UNWRITABLE`, qui nomme le fichier et ceux déjà écrits. Un `verbatra.config.ts`, `.env.example` ou `.gitignore` qui est un lien symbolique sortant du projet, ou ne menant nulle part, est refusé avec `INIT_UNWRITABLE` avant toute écriture. Un `.env.example` existant est conservé ; s'il ne nomme pas encore la variable de clé, cette ligne est ajoutée, et avec `--force` un en-tête écrit par `init` lui-même est réécrit pour le nouveau fournisseur. `.gitignore` ne reçoit que les entrées qui lui manquent.
 
@@ -177,7 +177,7 @@ Un répertoire où `init` ne peut pas écrire est refusé avec `INIT_UNWRITABLE`
 
 <AvailableFrom version="0.12.0" />
 
-`--dry-run` passe par chaque vérification et chaque refus d'une vraie exécution sauf une écriture qui échoue, comme dans un répertoire en lecture seule, affiche `would create`, `would update`, `would overwrite` ou `unchanged` pour chaque fichier et n'écrit rien. Le résultat JSON liste les actions prévues et met `dryRun` à `true`.
+`--dry-run` passe par chaque vérification et chaque refus d'une vraie exécution sauf une écriture qui échoue, comme dans un répertoire en lecture seule, affiche `would create`, `would update`, `would overwrite` ou `unchanged` pour chaque fichier et n'écrit rien.
 
 ### Préparer les agents de code
 

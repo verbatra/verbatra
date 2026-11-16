@@ -76,9 +76,11 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
-Cuando no hay nada pendiente y no pasaste `--include-unchanged`, el archivo no tiene filas, y la línea `next:` sugiere en su lugar la misma exportación con `--include-unchanged`, conservando `--format`, `--out`, `--locales`, `--cwd` y `--config`.
+Cuando no hay nada pendiente y no pasaste `--include-unchanged`, el archivo no tiene filas, y la línea `next:` sugiere en su lugar la misma exportación con `--include-unchanged`, conservando `--format`, `--out`, `--locales`, `--cwd` y `--config`. <AvailableFrom version="0.13.5" />
 
 Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
+
+Un `verbatra.limits.json` que no se puede usar se ignora con una advertencia en stderr (`LIMITS_FILE_IGNORED` con `--json`).
 
 ### Salida JSON
 
@@ -91,6 +93,7 @@ Con `--json`, el [envoltorio](/es/docs/cli/output#salida-json) lleva dónde qued
   path: string;                // absolute path: the workbook for xlsx, the output directory otherwise
   locales: { locale: string; rows: number }[];
   provenanceMarkers?: "written" | "unavailable"; // XLIFF formats only
+  limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string };
 }
 ```
 

@@ -132,8 +132,12 @@ function toEntries(
  *
  * @param options - The format's parsing, serialization, detection and per-entry behaviour.
  * @returns A complete adapter, ready to register on an `AdapterRegistry`.
- * @throws Nothing itself. The returned adapter's `read` and `write` raise `AdapterError` for content
- *   this format cannot represent, and reject with the underlying filesystem error otherwise.
+ * @throws Nothing itself. The returned adapter's `read` raises `AdapterError` for a file that is too
+ *   large (`INPUT_TOO_LARGE`), a path that is not a regular file, or content the parse, validation
+ *   and per-leaf hooks reject (any other error those hooks throw is wrapped as `INVALID_STRUCTURE`
+ *   with the original as `cause`). Its `write` rethrows unchanged whatever the `buildWriteTree` or
+ *   `serialize` hook throws, and both methods reject with the underlying filesystem error
+ *   otherwise.
  *
  * @example
  * ```ts

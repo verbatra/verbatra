@@ -89,7 +89,8 @@ function canonicalFilters(input: LocaleValuesPageInput): unknown {
 
 /**
  * Reads one page of current source and target text across the requested target locales,
- * optionally narrowed to exact keys or to a text query, and returns a cursor for the next page. It
+ * optionally narrowed to exact keys or to a text query (which keeps the entries whose key name,
+ * source text or target text contains it, ignoring case), and returns a cursor for the next page. It
  * is {@link localeValues} cut into pages, so a caller can scan a large project without holding
  * every value at once. It writes nothing and calls no provider.
  *

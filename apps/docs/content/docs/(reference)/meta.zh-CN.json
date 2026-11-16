@@ -1,0 +1,12 @@
+{
+  "title": "参考",
+  "root": true,
+  "pages": [
+    "../cli",
+    "../(configure)",
+    "../sdk",
+    "[MCP 服务器工具](/zh-CN/docs/cli/mcp#tools)",
+    "error-codes",
+    "external:[发布说明](https://github.com/verbatra/verbatra/releases)"
+  ]
+}

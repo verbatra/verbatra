@@ -15,11 +15,9 @@ import {
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "@/lib/landing-playground";
+import { TRANSLATED_LOCALES } from "@/lib/locales";
 import { LOCK_DEMO_COUNTS, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
@@ -34,7 +32,7 @@ vi.mock("next-intl/server", async () => {
 
 const { LockDemo } = await import("./lock-demo");
 
-const CATALOGS = { en, de, es, fr } as const;
+const CATALOGS = MESSAGE_CATALOGS;
 
 type Tree = { [key: string]: string | Tree };
 
@@ -63,6 +61,8 @@ beforeAll(async () => {
   doc = new DOMParser().parseFromString(renderToString(await LockDemo()), "text/html");
 });
 
+const STALE_WORD = /\(stale\)|（stale）/g;
+
 describe("the lock demo heading and counts", () => {
   it.each(i18n.languages)("%s spells the changed count out and shows no digit", async (locale) => {
     const t = await translator(locale);
@@ -78,7 +78,7 @@ describe("the lock demo heading and counts", () => {
     },
   );
 
-  it.each(["es", "fr"] as const)(
+  it.each(["es", "fr", "pt-BR"] as const)(
     "%s puts the linking word after a million, and nothing at one",
     async (locale) => {
       const t = await translator(locale);
@@ -86,10 +86,10 @@ describe("the lock demo heading and counts", () => {
       const one = { count: 1, rest: 5 };
       for (const path of ["heading", "edit.text", "compare.text", "send.text", "foot.lock"]) {
         expect(t(path as never, { ...million, file: "f" } as never), `${locale} ${path}`).toMatch(
-          /1\D000\D000 de (claves|clés|valores|valeurs|hashes)/,
+          /1\D000\D000 de (claves|clés|valores|valeurs|hashes|chaves)/,
         );
         expect(t(path as never, { ...one, file: "f" } as never), `${locale} ${path}`).not.toMatch(
-          /\bde (claves|clés|valores|valeurs|hashes)/,
+          /\bde (claves|clés|valores|valeurs|hashes|chaves)/,
         );
       }
     },
@@ -107,12 +107,26 @@ describe("the lock demo heading and counts", () => {
     },
   );
 
-  it.each(["de", "es", "fr"] as const)(
+  it.each(TRANSLATED_LOCALES)(
     "%s names the CLI's own word once in the stale footnote",
     (locale) => {
       const lockDemo = (CATALOGS[locale].landing as unknown as { lockDemo: Tree }).lockDemo;
       const note = (lockDemo.foot as Tree).compare as string;
-      expect(note.match(/\(stale\)/g)).toHaveLength(1);
+      expect(note.match(STALE_WORD)).toHaveLength(1);
+    },
+  );
+
+  it.each(["过期 (stale) 表示", "过期（stale）表示", "stale (stale)"])(
+    "reads the CLI word %s in ASCII or full-width parentheses",
+    (note) => {
+      expect(note.match(STALE_WORD)).toHaveLength(1);
+    },
+  );
+
+  it.each(["过期 stale 表示", "过期（stale) 表示", "(staled)"])(
+    "does not read %s as the CLI word in parentheses",
+    (note) => {
+      expect(note.match(STALE_WORD)).toBeNull();
     },
   );
 

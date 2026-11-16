@@ -1,0 +1,147 @@
+---
+title: Entregar com Excel ou CSV
+seoTitle: "Entregar traduções em arquivos Excel ou CSV"
+description: "Exporte strings não traduzidas para o Excel ou CSV, passe a um tradutor e importe o resultado com as mesmas verificações de uma execução automática."
+type: how-to
+---
+Use isto quando uma pessoa deve traduzir algumas strings: texto de marketing, texto jurídico ou os idiomas mais importantes. Você **exporta** as strings que precisam de tradução, um tradutor as preenche e você **importa** o arquivo de volta para os seus arquivos de locale.
+
+A exportação escolhe exatamente as chaves que uma execução automática traduziria (as novas e as alteradas), e a importação executa as mesmas verificações de integridade do `translate`, então um valor digitado manualmente que quebra um placeholder fica retido e é relatado em vez de gravado. Nenhum dos dois comandos chama um provedor nem precisa de chave de API.
+
+Você precisa de um projeto verbatra com pelo menos um locale de destino.
+
+## O ciclo de ida e volta
+
+```bash
+# 1. Export the strings that need translating
+verbatra export
+
+# 2. A translator fills the Translation column and sends the file back
+
+# 3. Import the filled workbook
+verbatra import verbatra-translations.xlsx
+```
+
+A exportação grava `verbatra-translations.xlsx` no diretório de trabalho. A importação valida cada linha preenchida, grava os valores que passam e avança o arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)) exatamente para as chaves que aceitou, como faria uma execução do `translate`.
+
+## O que vai para a pasta de trabalho
+
+A pasta de trabalho abre com uma planilha **Instructions** (instruções), depois uma planilha por locale de destino, com o nome do locale (`de`, `fr`, ...). Toda planilha de locale tem as mesmas colunas:
+
+| Coluna | Editável | Finalidade |
+| --- | --- | --- |
+| `Key` | não | o caminho da chave; a única coisa que liga uma linha de volta a uma string |
+| `Source` | não | o valor do locale de origem |
+| `Current translation` | não | o valor de destino atual, se houver |
+| `Status` | não | `new`, `changed` (a origem mudou desde que foi traduzida) ou `unchanged` (só com `--include-unchanged`) |
+| `Translation` | **sim** | a única célula que o tradutor preenche |
+| `Source hash` | não | oculta; detecta uma origem que mudou depois da exportação |
+| `Context` | não | a descrição da chave, quando o formato de origem tem uma; nunca é importada |
+| `Review status` | não | `ok`, ou `review` quando uma sinalização de revisão sugere uma segunda olhada (veja [Sinalizações de revisão](/pt-BR/docs/translation-safety#sinalizações-de-revisão)) |
+| `Review reasons` | não | os motivos de revisão por trás de um status `review` (veja [Motivos de revisão](/pt-BR/docs/error-codes#review-reason-codes)) |
+
+Toda coluna, exceto `Translation`, é bloqueada pela proteção da planilha, e `Translation` usa o formato de texto do Excel, então um valor como `007` ou um que começa com `=` continua sendo texto literal. As colunas de revisão são só informativas: a importação nunca as lê.
+
+## A entrega
+
+Passe ao tradutor estas regras (a planilha Instructions as repete):
+
+- Preencha a coluna `Translation` e mais nada.
+- Não renomeie, exclua nem reordene as abas de idioma. Cada aba é associada a um locale pelo nome exato, então uma aba renomeada ou ausente faz esse locale falhar.
+- Ordenar e filtrar linhas é permitido, porque as linhas são associadas pela `Key`. As colunas precisam ficar onde estão.
+- Deixe uma célula vazia para “ainda não traduzido”. Uma pasta de trabalho preenchida pela metade pode voltar agora e o resto depois.
+- Para limpar um valor existente de propósito, digite exatamente `[[CLEAR]]`.
+
+## O que o import aceita
+
+Cada linha preenchida é comparada com o projeto atual antes de qualquer gravação:
+
+- **Divergência da origem**: se a string de origem mudou depois da exportação, a linha fica retida, então a tradução de uma origem antiga nunca é gravada.
+- **Integridade**: placeholders, marcação inline e estrutura ICU precisam corresponder à origem, como em toda execução. Veja [A barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade).
+- **Valores degenerados**: um laço de repetição, um comprimento descontrolado ou um valor vazio para uma origem não vazia fica retido.
+- **Chaves desconhecidas**: uma linha preenchida cuja chave não existe nem na origem nem no destino faz a planilha desse locale falhar. Uma chave que existe só no destino não é gravada.
+- **Linhas inalteradas**: em uma entrega por CSV, TSV ou xlsx, uma linha preenchida igual ao valor que uma chave em dia já tem é mantida como está e relatada como inalterada, desde que passe pela mesma barreira.
+
+Uma linha retida ou em branco mantém a sua linha de base no arquivo de lock, então a chave é exportada de novo até ser resolvida; uma linha em branco cuja origem divergiu também gera [`BLANK_ROW_BASELINE_RETAINED`](/pt-BR/docs/error-codes#blank_row_baseline_retained). Uma linha ilegível ou uma chave repetida é relatada sem fazer a planilha falhar. Cada planilha é um locale no resumo da execução, e a importação usa os mesmos códigos de saída do `translate`, então uma entrega passa pelas mesmas verificações de CI que uma execução automática (veja [Executar o verbatra na CI](/pt-BR/docs/ci-and-exit-codes)). O [`verbatra import`](/pt-BR/docs/cli/import) traz os detalhes.
+
+### Primeiro uma simulação
+
+Pré-visualize o que uma pasta de trabalho devolvida gravaria, sem tocar em nenhum arquivo:
+
+```bash
+verbatra import verbatra-translations.xlsx --dry-run
+```
+
+## CSV e TSV em vez de uma pasta de trabalho
+
+Se um fornecedor ou um pipeline quer texto simples, `--format csv` ou `--format tsv` grava as mesmas colunas como um arquivo por locale:
+
+```bash
+# write handoff/de.csv and handoff/fr.csv
+verbatra export --format csv --out handoff
+
+# import every locale file in the directory back
+verbatra import handoff --format csv
+```
+
+O locale vem do nome do arquivo, então mantenha os arquivos com os nomes com que foram exportados. Em comparação com a pasta de trabalho:
+
+- **Nada é protegido.** Toda coluna é editável e `Source hash` fica visível. Um hash editado nunca é considerado de confiança: a linha é comparada com a origem atual e retida como divergência.
+- **Não há planilha Instructions.** Passe as regras acima ao tradutor você mesmo.
+- **Fórmulas são neutralizadas.** Um valor que começa com `=`, `+`, `-`, `@`, uma tabulação ou um retorno de carro é gravado com um apóstrofo à frente, para que uma planilha o mantenha como texto; a importação remove o apóstrofo de novo. Ainda assim, trate um arquivo devolvido como entrada não confiável.
+- **Uma reexportação mais restrita aposenta os arquivos antigos.** Um arquivo que sobrou de uma exportação anterior, mais ampla, é recusado na importação em vez de aplicado. Nada é excluído.
+
+## XLIFF para uma ferramenta CAT
+
+<AvailableFrom version="0.12.0" />
+
+Se uma agência trabalha em uma ferramenta CAT (tradução assistida por computador) como Trados, memoQ ou OmegaT, exporte XLIFF em vez disso: veja [Entregar a uma agência (XLIFF)](/pt-BR/docs/translation-agency).
+
+## TMX é outro caminho
+
+<AvailableFrom version="0.11.0" />
+
+Uma entrega leva as strings pendentes de cada locale a uma pessoa. O [`verbatra tmx`](/pt-BR/docs/cli/tmx) move a memória de tradução inteira entre ferramentas como um único arquivo multilíngue, então não é um valor de `export --format`.
+
+## Selecionar o que exportar
+
+Por padrão, a exportação inclui só as strings ausentes e alteradas:
+
+```bash
+# Only the German and French sheets
+verbatra export --locales de,fr
+
+# Also include strings that are already up to date
+verbatra export --include-unchanged
+
+# Write to a specific path
+verbatra export --out handoff/round-2.xlsx
+```
+
+Use `--include-unchanged` quando um tradutor quer um locale inteiro como contexto. O `--out` precisa ficar dentro do projeto e não pode nomear um arquivo de que o projeto depende. Veja [`verbatra export`](/pt-BR/docs/cli/export) para todas as flags e regras.
+
+## As colunas de revisão
+
+As duas colunas são calculadas na exportação a partir da origem e dos valores atuais, então uma linha sem tradução é sempre `ok`. `Review reasons` escreve cada motivo em minúsculas, com hifens (`length-ratio-outlier`), exceto os dois que só uma execução enxerga (`provider-degraded`, `fuzzy-cache-reuse`), que nunca aparecem. Ela acrescenta `icu-arms` com os ramos ausentes ou excedentes quando os ramos ICU de um valor não servem ao idioma de destino; a barreira de integridade recusa esse valor, então corrija-o antes de a linha voltar. Para remover uma sinalização, corrija a tradução.
+
+## Pelo SDK
+
+Os dois comandos envolvem [`exportWorkbook`](/pt-BR/docs/sdk/exchange#exportworkbook) e [`importWorkbook`](/pt-BR/docs/sdk/exchange#importworkbook):
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "csv", out: "handoff" });
+
+const summary = await importWorkbook({ config, workbook: "handoff", format: "csv" });
+```
+
+O `importWorkbook` retorna o mesmo [`RunSummary`](/pt-BR/docs/sdk/run-summary) que o `translate`.
+
+## Veja também
+
+- [`verbatra export`](/pt-BR/docs/cli/export) e [`verbatra import`](/pt-BR/docs/cli/import): todas as flags, os caminhos de saída e os códigos de saída.
+- [Segurança da tradução](/pt-BR/docs/translation-safety): a barreira de integridade por trás de toda gravação.
+- [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow): um projeto em que toda tradução vem de uma pessoa.

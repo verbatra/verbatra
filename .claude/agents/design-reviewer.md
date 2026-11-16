@@ -181,7 +181,7 @@ surface from a demo:
 
 **Repo rules that show up visually.** No em dash (U+2014) in any rendered string,
 including translated ones. No emojis. For `apps/docs`, a user-facing string change must
-land in all four locales (`en`, `de`, `es`, `fr`) in the same change; a new English-only
+land in every locale in `LOCALES` (`apps/docs/lib/locales.ts`) in the same change; a new English-only
 string is a finding, and `.claude/rules/docs.md` has the full rule.
 
 ## Step 4: report

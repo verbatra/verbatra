@@ -1,0 +1,136 @@
+---
+title: 记录机器翻译证据
+seoTitle: "按键记录机器翻译证据"
+description: 生成按键记录的报告，说明哪些译文由机器写成、哪些经人审校，并把这一标记带入 XLIFF 和 TMX 导出文件。
+status: new
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+有人问你已发布的文本中哪些由提供商或 AI 智能体翻译、是否有人审校过时，按本页操作。verbatra 在 `verbatra.provenance.json` 中按键记录这些信息；你可以把它导出为报告存档，也可以导出为 XLIFF 和 TMX 文件中的标记，交给其他工具。
+
+<Callout type="warn" title="辅助证据，不构成法律意见">
+根据[欧盟《AI 法案》第 50 条](/zh-CN/docs/data-handling#ai-生成的译文与来源记录)，经人在编辑责任下审校的文本，与未经审校的文本，处理方式不同。报告和标记是辅助证据，供决定该条款如何适用于你的产品的人参考。它们不构成法律意见，使用它们也不会让产品符合任何规定。
+</Callout>
+
+## 记录能告诉你什么，不能告诉你什么
+
+verbatra 写入的每个值都会连同来源（产生它的写入路径）、审校决定和审校人员姓名一起记录，详见[锁文件与来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)。作为证据，来源分为两类：
+
+- **机器类**：`machine`、`memory`、`fuzzy` 和 `agent`。翻译记忆库算作机器类，因为它不记录条目由谁写入。
+- **人**：`human`（通过 Studio 或 SDK 所做的编辑）和 `import`（译者的交接）。
+
+`external`、`unrecorded` 和 `unknown` 两类都不属于。源文本有更改之前给出的批准，读取为未审校。
+
+把记录交给别人时，请记住它的局限：
+
+- **它无法证明未被篡改**：能编辑你的语言文件的人也能编辑它；它的价值来自你的 git 历史和代码审查。
+- **它没有时间戳**：值何时写入或批准，要看 git 历史（`git log -p verbatra.provenance.json`）。
+- **它倾向于判为机器**：翻译记忆库命中、模糊匹配和智能体的编辑都算机器类，没有人批准的机器值算未审校，即使它的文本没有问题。
+
+## 来源记录报告
+
+[`verbatra report provenance`](/zh-CN/docs/cli/report) 按目标语言环境打印每个类别包含多少个值。
+
+```bash
+verbatra report provenance
+```
+
+| 类别 | 值的写入方 | 是否已审校 |
+| --- | --- | --- |
+| `machine-unreviewed` | `machine`、`memory`、`fuzzy` 或 `agent` | 未批准，包括已被拒绝但又回到文件中的值 |
+| `machine-reviewed` | `machine`、`memory`、`fuzzy` 或 `agent` | 人已批准 |
+| `human` | 人，通过 verbatra | 均有可能 |
+| `import` | 译者的交接 | 均有可能 |
+| `external` | verbatra 之外的某个来源，在其记录写入之后 | 未知 |
+| `unrecorded` | verbatra 不知道的写入方：没有记录 | 未知 |
+| `unknown` | 已记录，但没有已知的写入方 | 均有可能 |
+
+只统计源语言环境和目标语言环境中都有值的键：缺失的键没有文本可供核对。智能体通过 MCP 工具 [`report.provenance`](/zh-CN/docs/cli/mcp#tools) 读取同一份报告。
+
+### 来自 CI 的审计文件
+
+加上 `--json`，报告会列出每个键，可作为审计文件随每次发布存档：
+
+```bash
+verbatra report provenance --json > provenance-report.json
+```
+
+如果 `verbatra.provenance.json` 已损坏，或由较新的 verbatra 写入，命令以 `1` 退出，而不是打印一份把每个值都列为 `unrecorded` 的报告。因此 CI 作业会失败，而不是把空的审计文件存档。
+
+如果每条机器翻译都必须在发布前经过审校，还应该用 [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check#要求译文已审校) 设门禁。
+
+### JSON schema
+
+报告是常规 [JSON 信封（envelope）](/zh-CN/docs/cli/output#json-输出)的 `result`，`command` 设为 `"report"`。SDK 调用方从 [`provenanceReport`](/zh-CN/docs/sdk/inspect#provenancereport) 得到同一个对象。
+
+| 字段 | 类型 | 含义 |
+| --- | --- | --- |
+| `available` | `true` | 报告由已提交的文件生成 |
+| `generatedAt` | string | 报告的生成时间，UTC 的 ISO 8601 格式 |
+| `toolVersion` | string | 生成报告的 verbatra 版本；SDK 调用方未传入时为 `unknown` |
+| `sourceLocale` | string | 配置的源语言环境 |
+| `locales[]` | array | 每个目标语言环境一个条目，按配置顺序，受 `--locales` 限制 |
+| `locales[].locale` | string | 目标语言环境 |
+| `locales[].total` | number | 该语言环境列出的键数 |
+| `locales[].counts` | object | 每个类别包含多少个键；七个类别始终都在 |
+| `locales[].entries[]` | array | 源语言环境和该语言环境中都有值的每个键一个条目，按源顺序 |
+| `entries[].key` | string | 翻译键 |
+| `entries[].bucket` | string | 上述类别之一 |
+| `entries[].origin` | string | 来源，包括 `unrecorded` 和 `external` |
+| `entries[].reviewState` | string | `unreviewed`、`approved` 或 `rejected` |
+| `entries[].provider` | string，可选 | 给出应答的提供商 `id`，用于 `machine` 值 |
+| `entries[].model` | string，可选 | 配置的模型，记录中指明了模型时才有 |
+| `entries[].reviewer` | string，可选 | 随决定给出的审校人员姓名，仅在给出了姓名且决定仍然适用时才有 |
+
+来源记录文件无法读取时，结果为 `{ "available": false, "reason": "provenance-unreadable" }`。以后可能新增可选字段；现有字段的含义保持不变。
+
+## 导出文件中的标记
+
+来源也会进入你交给其他工具的文件，让对方能分辨机器输出和人工成果。
+
+### XLIFF
+
+带 `--format xliff12` 或 `--format xliff2` 的 [`verbatra export`](/zh-CN/docs/cli/export) 会标记每个带目标的单元：
+
+| 目标属于 | XLIFF 1.2 | XLIFF 2.0 |
+| --- | --- | --- |
+| 机器类，未批准 | `<target>` 上带 `state-qualifier="mt-suggestion"` | `<mda:meta type="origin">` 和 `<mda:meta type="review-state">` |
+| 机器类，已批准 | 无限定符 | 同样两个 meta 条目 |
+| human、import、external、unrecorded 或 unknown | 无限定符 | 同样两个 meta 条目 |
+
+`mt-suggestion` 是 XLIFF 1.2 中表示“由机器翻译建议”的值，CAT 工具（计算机辅助翻译工具）会在常规的 `state` 旁按此显示。人已批准的值，或 verbatra 无法担保其来源的值，不带限定符。
+
+XLIFF 2.0 没有状态限定符，所以单元的 `verbatra` 元数据组（其中已有源哈希）会写入完整的来源和审校状态：
+
+```xml
+<mda:metaGroup category="verbatra">
+  <mda:meta type="source-hash">8f3a0c1e2b4d6f70</mda:meta>
+  <mda:meta type="origin">machine</mda:meta>
+  <mda:meta type="review-state">unreviewed</mda:meta>
+</mda:metaGroup>
+```
+
+### TMX
+
+[`verbatra tmx export`](/zh-CN/docs/cli/tmx) 在每个目标句段上写入 `x-origin` 属性，在 `machine` 句段上还会在其后写入 `x-review`：
+
+```xml
+<tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
+```
+
+`x-origin` 为 `machine`、`human`、`import` 或 `unknown`；`x-review` 为 `approved`、`unreviewed` 或 `rejected`。翻译记忆库条目是一对文本，不是键，所以只要有任一个具有该确切文本的键属于机器类，该句段就是 `machine`；只要有任一个这样的键被拒绝，就是 `rejected`，否则只有当每个这样的键都已批准时才是 `approved`。没有任何记录描述的文本是 `unknown`。
+
+### 导入带标记的文件
+
+导入会忽略所有标记。XLIFF 单元按其目标和状态判断，TMX 句段按其文本判断。从交接文件导入的值记录为 `import`，TMX 导入只填充翻译记忆库，所以工具改写、丢弃或虚构的标记都不会改变你的记录。
+
+### 记录无法读取时
+
+如果 `verbatra.provenance.json` 已损坏或来自较新的 verbatra（对 TMX 而言，也包括锁文件无法读取），导出仍会成功，但不写入标记，而不是写入无法担保的标记。摘要会说明这一点，`--json` 结果中的 `provenanceMarkers` 为 `"unavailable"`，而不是 `"written"`。
+
+## 相关内容
+
+- [`verbatra report`](/zh-CN/docs/cli/report)：来源记录报告的选项、输出和退出码。
+- [在 Studio 中审校](/zh-CN/docs/review-in-studio)：逐条或按语言环境批准或拒绝机器翻译。
+- [数据处理与隐私](/zh-CN/docs/data-handling)：verbatra 向谁发送什么，以及在本地保留什么。

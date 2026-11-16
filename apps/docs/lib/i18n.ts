@@ -1,14 +1,15 @@
 import { defineI18n } from "fumadocs-core/i18n";
 import { notFound } from "next/navigation";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/locales";
+
+export type { Locale };
 
 export const i18n = defineI18n({
-  defaultLanguage: "en",
-  languages: ["en", "de", "es", "fr"],
+  defaultLanguage: DEFAULT_LOCALE,
+  languages: [...LOCALES],
   hideLocale: "default-locale",
-  fallbackLanguage: "en",
+  fallbackLanguage: DEFAULT_LOCALE,
 });
-
-export type Locale = (typeof i18n.languages)[number];
 
 export function isLocale(value: string): value is Locale {
   return (i18n.languages as readonly string[]).includes(value);

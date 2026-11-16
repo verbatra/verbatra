@@ -12,7 +12,11 @@ export function isIcuMessageFormat(format: FormatId): boolean {
   return ICU_MESSAGE_FORMATS.has(format);
 }
 
-/** The kind of value a message argument takes, as far as verbatra can tell from the message. */
+/**
+ * The kind of value a message argument takes, as far as verbatra can tell from the message:
+ * `string` a string, `number` a number, `date` a `Date` or a number, `unknown` a number or a
+ * string, `date-or-string` a `Date`, a number or a string.
+ */
 export type MessageArgumentType = "string" | "number" | "date" | "unknown" | "date-or-string";
 
 /** One named argument of a message. */
@@ -60,7 +64,10 @@ export type MessageArguments =
       readonly style: "positional";
       /** The value type of each argument, by zero-based position. */
       readonly positional: readonly MessageArgumentType[];
-      /** The position from which every later argument is optional. Absent when none are. */
+      /**
+       * The zero-based position from which every argument, itself included, is optional. Absent
+       * when the last argument is required.
+       */
       readonly optionalFrom?: number;
     }
   | {

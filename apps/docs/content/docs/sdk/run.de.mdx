@@ -52,7 +52,7 @@ Siehe [die Anatomie der `RunSummary`](/de/docs/sdk/run-summary#die-anatomie-der-
 | `type` | Wann | Felder |
 | --- | --- | --- |
 | `locale-started` | die Arbeit an einer Locale beginnt | `locale`, `localeIndex`, `totalLocales` |
-| `locale-planned` | nachdem das Translation Memory befragt wurde und bevor der erste Batch gesendet wird; nur wenn ein Provider aufgerufen wird | `locale`, `keys`, `batches`, `cacheHits` |
+| `locale-planned` | nachdem der Übersetzungsspeicher befragt wurde und bevor der erste Batch gesendet wird; nur wenn ein Provider aufgerufen wird | `locale`, `keys`, `batches`, `cacheHits` |
 | `sub-batch` | direkt bevor ein Übersetzungs-Batch versucht wird | `locale`, `batchIndex`, `totalBatches` |
 | `provider-retry` | ein eingebauter Provider wiederholt eine Anfrage, die mit einem wiederholbaren Status fehlschlug | `attempt`, `delayMs?`, `status?` |
 | `repair` | ein LLM-Provider fordert die Keys erneut an, die seine erste Antwort ausgelassen hat | `locale`, `keys` |
@@ -70,7 +70,7 @@ Siehe [die Anatomie der `RunSummary`](/de/docs/sdk/run-summary#die-anatomie-der-
 
 <SdkTypeTable name="ScanProgressEvent" />
 
-Eine eigene `CreateProvider`-Fabrik erhält ein drittes Argument, `CreateProviderHooks`, sobald ein Lauf Fortschritt meldet. Rufe dessen `onRetry` mit `{ attempt, delayMs?, status? }` auf, dann erscheinen die Wiederholungen deines Providers als `provider-retry`-Ereignisse.
+Eine eigene `CreateProvider`-Factory erhält ein drittes Argument, `CreateProviderHooks`, sobald ein Lauf Fortschritt meldet. Rufe dessen `onRetry` mit `{ attempt, delayMs?, status? }` auf, dann erscheinen die Wiederholungen deines Providers als `provider-retry`-Ereignisse.
 
 ### resolveDryRun
 
@@ -150,9 +150,9 @@ Start kommt über `onRun` an, und das Beobachten geht weiter.
 <AvailableFrom version="0.12.0" />
 
 Löscht jede Schreibsperre, die der aktuelle Prozess hält, für einen Prozess, der gleich beendet
-wird, ohne seine laufenden Durchläufe abzuschließen: Die CLI ruft es auf, wenn ein Interrupt
+wird, ohne seine laufenden Läufe abzuschließen: Die CLI ruft es auf, wenn ein Interrupt
 `translate` oder `import` stoppt, und wenn ein zweiter Interrupt `watch` hart beendet. Die
-Durchläufe, die diese Sperren genommen haben, verlieren ihren Schutz, ruf es also nur direkt vor dem
+Läufe, die diese Sperren genommen haben, verlieren ihren Schutz, ruf es also nur direkt vor dem
 Beenden des Prozesses auf. Es nimmt keine Argumente und lehnt nur dann mit einem `AggregateError`
 ab, der die Pfade der Sperren nennt, wenn sich eine gehaltene Sperre nicht löschen ließ, nachdem
 jede Sperre versucht wurde. Eine Sperre, die ein noch laufender Vorgang währenddessen nimmt oder
@@ -166,7 +166,7 @@ function releaseHeldLocks(): Promise<void>;
 **Rückgabe:** `void`
 
 Eine Sperre, die trotzdem liegen bleibt, weil ein Prozess hart beendet wurde, braucht es nicht: Ein
-wartender Durchlauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr läuft,
+wartender Lauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr läuft,
 und übernimmt die Sperre selbst. Siehe [die Schreibsperre](/de/docs/the-lock-file#die-schreibsperre).
 
 ## Pseudolokalisierung
@@ -220,8 +220,8 @@ Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, b
 gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
 eine einstehen. Ebenso ein `out`, das absolut ist, aus `cwd` herausklettert oder `cwd` selbst
 benennt, etwa `.`, und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung, eines,
-das nach dem Auflösen symbolischer Links so landet, im Verzeichnis einer konfigurierten
-Locale-Datei oder auf einer anderen Datei, von der das Projekt abhängt. Weil die Datei
+das nach dem Auflösen symbolischer Links eine dieser Bedingungen erfüllt, im Verzeichnis einer konfigurierten
+Locale-Datei landet oder auf einer anderen Datei landet, von der das Projekt abhängt. Weil die Datei
 außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für sie aus, und `check` und `diff`
 melden sie nie als abgedriftet.
 
@@ -293,7 +293,7 @@ Adapter als Plural markierten werden aufgelistet.
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben
 wird, weist `TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf
 ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert, `cwd` selbst benennt (`.`) oder nicht auf
-`.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte Locale-Datei, die Lock-Datei, den
+`.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den
 Übersetzungsspeicher-Cache, eine Datei, in der verbatra nach seiner Konfiguration sucht,
 `configPath`, die Konfigurationsdatei, aus der `config` geladen wurde, oder `glossaryPath` benennt,
 die Glossardatei, auf die sie zeigt; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung

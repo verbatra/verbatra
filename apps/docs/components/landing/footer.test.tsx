@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
+import { LOCALES, localeAlternation, localePrefix } from "@/lib/locales";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -91,12 +92,8 @@ describe("FullFooter", () => {
     }
   });
 
-  it.each([
-    ["en", ""],
-    ["de", "/de"],
-    ["es", "/es"],
-    ["fr", "/fr"],
-  ])("keeps the %s reader's locale in the legal links", async (locale, prefix) => {
+  it.each(LOCALES)("keeps the %s reader's locale in the legal links", async (locale) => {
+    const prefix = localePrefix(locale);
     localeState.current = locale;
     try {
       const doc = await renderFooter();
@@ -110,19 +107,17 @@ describe("FullFooter", () => {
     }
   });
 
-  it.each([
-    ["en", ""],
-    ["de", "/de"],
-    ["es", "/es"],
-    ["fr", "/fr"],
-  ])("keeps the %s reader's locale in the docs links", async (locale, prefix) => {
+  it.each(LOCALES)("keeps the %s reader's locale in the docs links", async (locale) => {
+    const prefix = localePrefix(locale);
     localeState.current = locale;
     try {
       const doc = await renderFooter();
       const hrefs = Array.from(doc.querySelectorAll("a"))
         .map((link) => link.getAttribute("href") ?? "")
         .filter((href) => href.startsWith("/"));
-      const docsLinks = hrefs.filter((href) => /^\/([a-z]{2}\/)?docs(\/|$)/.test(href));
+      const docsLinks = hrefs.filter((href) =>
+        new RegExp(`^(\\/(${localeAlternation()}))?\\/docs(\\/|$)`).test(href),
+      );
 
       expect(docsLinks.length).toBe(11);
       for (const href of docsLinks) {
@@ -320,10 +315,16 @@ describe("FullFooter", () => {
         "/de/compare",
         "/es/compare",
         "/fr/compare",
+        "/zh-CN/compare",
+        "/pt-BR/compare",
+        "/ja/compare",
       ]);
       expect(links.map((link) => link.getAttribute("aria-current"))).toEqual([
         null,
         "page",
+        null,
+        null,
+        null,
         null,
         null,
       ]);

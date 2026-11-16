@@ -108,13 +108,13 @@ placeholder check. Comments, raw text and malformed sources: see
 ## Review flags
 
 A second, advisory layer flags suspicious results for a person. A flag never withholds a key: the
-value is written, locked, and put on the needs-review queue.
+value is written, locked, listed in the run's `needsReview`, and held on the review queue.
 
 | Reason | Flags a translation that |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | is far shorter or longer than its source, weighted by script |
 | [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget <AvailableFrom version="0.11.0" /> |
-| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | is identical to its source text |
+| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | is identical to its source text, ignoring surrounding whitespace |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | misses a glossary term's translation, or alters a do-not-translate term |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | uses a rendering the glossary forbids <AvailableFrom version="0.12.0" /> |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | keeps every placeholder but in another order |

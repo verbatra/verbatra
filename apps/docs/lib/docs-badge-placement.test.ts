@@ -2,6 +2,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "./docs-pages";
+import { LOCALES, type Locale } from "./locales";
 import { FRONTMATTER, type PageType, pageType } from "./page-type";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -37,12 +38,64 @@ const DATING_PHRASES = [
   "nouveau dans",
   "depuis",
   "dès",
+  "aparece pela primeira vez na versão",
+  "aparece pela primeira vez na",
+  "aparece pela primeira vez em",
+  "disponível a partir da versão",
+  "disponível a partir da",
+  "disponível desde a versão",
+  "disponível desde a",
+  "disponível desde",
+  "a partir da versão",
+  "a partir da",
+  "desde a versão",
+  "desde a",
+  "novo na versão",
+  "novo na",
+  "novo em",
+  "adicionado na versão",
+  "adicionado na",
+  "adicionado em",
+  "introduzido na versão",
+  "introduzido na",
+  "introduzido em",
+  "incluído na versão",
+  "incluído na",
+  "lançado na versão",
+  "lançado na",
 ];
-const RANGE_END = "(?!`?\\s+(?:to|bis|auf|nach|a|hasta|à|vers|jusqu'à)\\s+`?v?\\d)";
+const RANGE_END =
+  "(?!`?\\s+(?:to|bis|auf|nach|a|hasta|à|vers|jusqu'à|até(?:\\s+a)?|para(?:\\s+a)?)\\s+`?v?\\d)";
 const DATING = new RegExp(
   `(?<![\\p{L}\\p{N}])(?<!version\`?\\s)(?:${DATING_PHRASES.join("|")})\\s+(?:@verbatra\\/[a-z]+\\s+)?\`?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)\`?${RANGE_END}`,
   "giu",
 );
+
+const DATED_VERSION = "(?<![\\d.])`?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)`?";
+const HAN_RANGE_END = "(?!`?\\s*(?:升级)?\\s*(?:到|至)\\s*`?v?\\d)";
+const HAN_DATING = new RegExp(
+  `(?:自|从|首次出现于|首次出现在|新增于|引入于|始于)\\s*${DATED_VERSION}${HAN_RANGE_END}|${DATED_VERSION}\\s*(?:版本?)?\\s*(?:起|开始|以来|(?:中)?(?:新增|引入|添加|加入|推出|发布|首次出现))`,
+  "gu",
+);
+
+const JA_DATING = new RegExp(
+  `(?:バージョン\\s*)?${DATED_VERSION}\\s*(?:` +
+    `(?:から|より|以降)(?!\\s*\`?v?\\d)(?!\\s*(?:の\\s*バージョン\\s*)?(?:が|を)?\\s*(?:必要|要る|前|以前|古い|新しい|へ))` +
+    `|(?:で|にて|において)\\s*(?:追加|導入|新た|新規|初めて|初登場|登場|対応|サポート|利用可能|使用可能|使える|利用でき)` +
+    `|の\\s*新機能)`,
+  "gu",
+);
+
+function datedVersions(text: string): string[] {
+  return [
+    ...text.matchAll(DATING),
+    ...text.matchAll(HAN_DATING),
+    ...text.matchAll(JA_DATING),
+  ].flatMap(([, first, second]) => {
+    const version = first ?? second;
+    return version === undefined ? [] : [version];
+  });
+}
 
 type Placement = "page" | "heading" | "table" | "inline" | "stand-alone";
 
@@ -203,7 +256,7 @@ function restatedBadge(page: PageBadges, line: number, version: string): Badge |
 
 function restatementViolations(page: PageBadges): string[] {
   return page.prose.flatMap(({ line, text }) =>
-    [...text.matchAll(DATING)].flatMap(([, version = ""]) => {
+    datedVersions(text).flatMap((version) => {
       const badge = restatedBadge(page, line, version);
       return badge === undefined
         ? []
@@ -231,6 +284,39 @@ function allPages(): string[] {
 function page(type: PageType, body: string): string {
   return `---\ntitle: Fixture\ntype: ${type}\n---\nIntro.\n\n${body}\n`;
 }
+
+const RESTATING_SENTENCES: ReadonlyArray<readonly [Locale, string]> = [
+  ["en", "`X` first appears in 0.12.0."],
+  ["en", "From 0.12 it also writes the file."],
+  ["de", "`X` gibt es ab 0.12.0."],
+  ["es", "`X` aparece por primera vez en 0.12.0."],
+  ["fr", "`X` apparaît pour la première fois en 0.12.0."],
+  ["fr", "À partir de 0.12.0, il écrit le fichier."],
+  ["en", "From `0.12.0` it also writes the file."],
+  ["zh-CN", "`X` 自 0.12.0 起提供。"],
+  ["zh-CN", "从 0.12 开始，它也会写入文件。"],
+  ["zh-CN", "`X` 在 0.12.0 版本新增。"],
+  ["zh-CN", "`X` 在 0.12.0 中引入。"],
+  ["zh-CN", "`X` 首次出现在 0.12.0。"],
+  ["zh-CN", "`X` 在 0.12.0 中添加。"],
+  ["zh-CN", "`X` 于 0.12.0 推出。"],
+  ["zh-CN", "`X` 随 0.12.0 发布。"],
+  ["zh-CN", "`X` 在 0.12.0 版本加入了。"],
+  ["pt-BR", "`X` aparece pela primeira vez na 0.12.0."],
+  ["pt-BR", "A partir da 0.12, ele também grava o arquivo."],
+  ["pt-BR", "`X` foi adicionado na versão 0.12.0."],
+  ["pt-BR", "`X` está disponível desde a versão 0.12.0."],
+  ["pt-BR", "Novo na 0.12.0."],
+  ["pt-BR", "`X` foi introduzido em `0.12.0`."],
+  ["ja", "`X` は 0.12.0 から利用できます。"],
+  ["ja", "0.12 以降、X もファイルに書き込みます。"],
+  ["ja", "`X` は 0.12.0 で追加されました。"],
+  ["ja", "`X` は 0.12.0 で導入されました。"],
+  ["ja", "`X` は 0.12.0 の新機能です。"],
+  ["ja", "`X` は 0.12.0 で初めて登場しました。"],
+  ["ja", "バージョン 0.12.0 より利用できます。"],
+  ["ja", "0.12.0 以降で使えます。"],
+];
 
 describe("AvailableFrom badge placement", () => {
   it.each(allPages())("places every badge by the rules in %s", (file) => {
@@ -275,20 +361,19 @@ describe("AvailableFrom badge placement", () => {
     ]);
   });
 
-  it.each([
-    ["en", "`X` first appears in 0.12.0."],
-    ["en", "From 0.12 it also writes the file."],
-    ["de", "`X` gibt es ab 0.12.0."],
-    ["es", "`X` aparece por primera vez en 0.12.0."],
-    ["fr", "`X` apparaît pour la première fois en 0.12.0."],
-    ["fr", "À partir de 0.12.0, il écrit le fichier."],
-    ["en", "From `0.12.0` it also writes the file."],
-  ])("rejects %s prose that restates the badge version: %s", (_locale, sentence) => {
-    const body = `## A\n\n<AvailableFrom version="0.12.0" />\n\n${sentence}`;
-    expect(badgeViolations(page("reference", body))).toEqual([
-      "11: prose restates the 0.12.0 badge of line 9",
-    ]);
+  it("has a restating sentence to reject for every locale", () => {
+    expect(new Set(RESTATING_SENTENCES.map(([locale]) => locale))).toEqual(new Set(LOCALES));
   });
+
+  it.each(RESTATING_SENTENCES)(
+    "rejects %s prose that restates the badge version: %s",
+    (_locale, sentence) => {
+      const body = `## A\n\n<AvailableFrom version="0.12.0" />\n\n${sentence}`;
+      expect(badgeViolations(page("reference", body))).toEqual([
+        "11: prose restates the 0.12.0 badge of line 9",
+      ]);
+    },
+  );
 
   it("keeps a requirement, another version, and a version outside the badge's section", () => {
     const body = [
@@ -297,6 +382,9 @@ describe("AvailableFrom badge placement", () => {
       "It needs a `version` of `0.12.0` or newer, and braucht eine `version` ab `0.12.0`.",
       "Up to 0.11 it returned the map; from 0.11.0 it was flat.",
       "Upgrading from 0.12.0 to 0.13.0 keeps the file, and so does von `0.12.0` auf `0.13.0`.",
+      "需要 0.12.0 或更高版本。从 0.12.0 升级到 0.13.0 会保留该文件，从 `0.12.0` 到 `0.13.0` 也一样。0.11 之前返回映射。",
+      "Requer a 0.12.0 ou mais recente, e precisa da versão 0.12.0 ou posterior. Atualize da 0.12.0 para a 0.13.0, de `0.12.0` até `0.13.0`, ou desde a 0.12 até a 0.13.",
+      "verbatra 0.12.0 以上が必要です。0.12.0 以降が必要です。0.12.0 以降のバージョンが必要です。0.12.0 以上では動作します。0.12.0 から 0.13.0 へのアップグレードではファイルが保持されます。`0.12.0` から `0.13.0` に上げても同じです。0.11 より前はマップを返していました。0.11 より古いバージョンは対象外です。",
       "## B",
       "From 0.12.0 any other key fails.",
     ].join("\n\n");

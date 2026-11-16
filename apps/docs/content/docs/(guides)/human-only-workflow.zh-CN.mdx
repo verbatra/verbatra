@@ -1,0 +1,84 @@
+---
+title: 不用机器翻译运行
+seoTitle: "不用机器翻译运行 verbatra"
+description: 按策略禁用机器翻译运行 verbatra，让任何字符串都不会到达翻译服务，每条译文都出自人工。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+当 NDA（保密协议）、客户合同或公司规定禁止把字符串发送给任何 AI 或翻译服务时，使用本页。把提供商设为 `none` 后，每个可能产生花费或发送数据的命令，要么只用本地数据完成，要么拒绝运行。所有不需要提供商的功能（比对、锁文件、翻译记忆库、导出和导入、检查、类型、伪本地化、提取）照常工作。
+
+你需要一个 verbatra 项目，或一个即将运行 `verbatra init` 的文件夹。
+
+## 完成配置
+
+```bash
+verbatra init --provider none
+```
+
+这会生成一份配置，其中的提供商块只有下面这一行，并且不生成 `.env.example`，因为从不读取任何 API 密钥：
+
+```ts title="verbatra.config.ts"
+provider: { id: "none" }
+```
+
+在已有项目中，把 `provider` 块替换为 `{ id: "none" }`。之后 [`verbatra doctor`](/zh-CN/docs/cli/doctor) 会报告 `machine translation disabled by policy`，并在不查找密钥的情况下通过提供商和 API 密钥检查。
+
+## 每个命令的行为
+
+| 命令 | 设置 `provider: { id: "none" }` 时 |
+| --- | --- |
+| `translate`、`watch` | 只用翻译记忆库（[翻译缓存](/zh-CN/docs/the-cache)）的精确命中填充键，绝不用模糊命中；其他所有缺失或已更改的键都列为 `unfilled`，保持不动，并在下次运行时再次提供。只要还有键未填充，`translate` 就以退出码 `3` 退出 |
+| `export`、`import`、`tmx` | 不变：人工译文通过交接和翻译记忆库导入 |
+| `check`、`diff`、`doctor`、`pseudo`、`types`、`extract` | 不变；它们都不调用提供商 |
+| `studio`、`mcp` | 本地的读取和编辑可用；会调用提供商并产生花费的操作绝不提供，即使加了 `--allow-spend` |
+| SDK [`retranslateEntry`](/zh-CN/docs/sdk/review#retranslateentry) | 在读取或锁定任何内容之前，以 [`MACHINE_TRANSLATION_DISABLED`](/zh-CN/docs/error-codes#machine_translation_disabled) 失败 |
+
+在这些路径上都不会构建任何提供商，无论环境中有什么，也不会发出任何网络请求。
+
+## 从机器提供商切换过来
+
+翻译记忆库把纯人工的成果放在自己单独的分组，与任何机器提供商产出的内容分开，因此切换到 `none` 后，翻译记忆库从空开始。更改 `tone` 或术语表绝不会动这个分组。
+
+如果想沿用之前的译文，就显式迁移，并清楚你是在把机器输出导入原本纯人工的翻译记忆库。在切换之前导出：切换之后，`tmx export` 写出的是纯人工分组，而它仍然是空的。
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+文件名和选项见 [`verbatra tmx`](/zh-CN/docs/cli/tmx)。
+
+## 日常流程
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+第 1 步是可选的，因为 `verbatra diff` 和 `verbatra check` 显示的待处理键相同。但仍值得运行：它会填充翻译记忆库已经覆盖的每个键，这样译者只会看到真正新增的内容。交接本身见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)或[交给翻译公司（XLIFF）](/zh-CN/docs/translation-agency)。
+
+## 在 CI 中
+
+有键在等待人工时，`translate` 以退出码 `3` 退出（[退出码](/zh-CN/docs/cli/output#退出码)），因此 CI 流程可以让构建失败、创建翻译请求，或只是报告。[GitHub Action](/zh-CN/docs/github-action#纯人工模式) 遇到退出码 `3` 时让该步骤通过，并把它的 `needs-human` 输出设为 `"true"`，供后续步骤处理。
+
+## 相关内容
+
+- [退出码](/zh-CN/docs/cli/output#退出码)：完整的退出码约定。
+- [翻译缓存](/zh-CN/docs/the-cache)：`translate` 从中填充的翻译记忆库。
+- [提供商](/zh-CN/docs/providers)：`none` 与各翻译提供商并列。
+- [数据处理与隐私](/zh-CN/docs/data-handling)：每个提供商会让哪些内容离开本机。

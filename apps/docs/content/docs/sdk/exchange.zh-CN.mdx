@@ -1,0 +1,248 @@
+---
+title: "交接与交换"
+seoTitle: "用于交接和 TMX 交换的 SDK 入口函数"
+description: "用于工作簿和 TMX 导入导出的 SDK 入口函数，以及语言文件快照和 verbatra 为每个语言环境解析出的路径。"
+type: reference
+---
+<SdkAnchorForward />
+
+## 语言文件快照
+
+实时刷新监听进程（例如 Studio 的）的构件：先捕获语言文件的状态，再统计此后有什么更改。
+
+### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
+
+读取一个语言文件（源语言环境或任一目标语言环境），并把它精简为每个键的内容哈希。尚不存在的文件读取为空快照，而不是抛出错误。
+
+```ts title="签名"
+function readLocaleFileSnapshot(
+  input: ReadLocaleFileSnapshotInput,
+  deps?: ReadLocaleFileSnapshotDeps,
+): Promise<LocaleFileSnapshot>;
+```
+
+<SdkTypeTable name="ReadLocaleFileSnapshotInput" />
+
+**返回**：`LocaleFileSnapshot`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+返回 `{ locale, hashes }`。
+
+### diffLocaleSnapshots
+
+<AvailableFrom version="0.5.0" />
+
+比较同一个文件在不同时间拍下的两份快照，统计两者之间新增、已更改和已移除的键数。它是普通的同步函数：`diffLocaleSnapshots(previous, current)` 返回 `{ added, changed, removed }`。只给出数量，从不给出键名。
+
+```ts title="签名"
+function diffLocaleSnapshots(
+  previous: LocaleFileSnapshot,
+  current: LocaleFileSnapshot,
+): LocaleSnapshotDelta;
+```
+
+<SdkTypeTable name="LocaleFileSnapshot" />
+
+**返回**：`LocaleSnapshotDelta`
+
+## 语言文件路径
+
+### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
+
+根据 `files.pattern`、已配置的语言环境和 `files.localeStyle`，双向解析项目中语言环境与路径的映射。`createLocalePathResolver(cwd, config)` 返回 `{ pathFor, localeFor }`：`pathFor(locale)` 是某个语言文件的绝对路径，`localeFor(path)` 是拥有某个路径的语言环境；对本项目不拥有的路径返回 `undefined`，对共用一个消息目录的格式（例如 `apple-xcstrings`）则始终返回 `undefined`。每个 SDK 入口函数都通过它解析路径，所以基于 SDK 构建的监听进程或仪表盘看到的路径，与一次运行写入的路径完全一致。
+
+```ts title="签名"
+function createLocalePathResolver(
+  cwd: string,
+  config: LocalePathResolverConfig,
+): LocalePathResolver;
+```
+
+<SdkTypeTable name="LocalePathResolverConfig" />
+
+**返回**：`LocalePathResolver`
+
+**抛出**：[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+所有检查都在创建解析器时、读取任何文件之前执行：无法组合的模式和样式，或样式中没有正确写法的语言环境，会抛出 `LOCALE_LAYOUT_INVALID`；两个语言环境解析到同一个路径，会抛出 `LOCALE_PATH_COLLISION`。
+
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+给出监听进程需要的文件：每个已配置语言环境的文件，以及紧挨着它、保存其部分数据的文件（`apple-strings` 的 `.stringsdict` 文件），还有 git 在提交、切换分支、重置或暂存操作时改写的文件。只读；git 部分通过可注入的 `execFile` 查询，并带有 [`localeGitStatus`](/zh-CN/docs/sdk/review#localegitstatus) 的安全措施。
+
+```ts title="签名"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**返回**：`LocaleWatchPathsResult`
+
+**抛出**：[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+`locales` 先列出源语言环境，每个都带有它的 `paths`。`git` 是 `{ available: true, paths }`，其中包含这个工作树的索引、`HEAD` 和 `HEAD` reflog 的绝对路径；不在可读取的工作树中时则是 `{ available: false, reason }`；两种情况下都会列出语言文件。
+
+## 工作簿这一对函数
+
+译者交接，形式为 Excel 工作簿或分隔符文本，详见[手动翻译](/zh-CN/docs/manual-translation)。
+
+### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+把仍需翻译的字符串（每个语言环境缺失和已更改的键；用 `includeUnchanged` 可加入未更改的键）写入带样式的 `.xlsx` 工作簿。各行带有审校标记信号，与 translate 运行计算出的相同。不调用提供商，不写锁。
+
+```ts title="签名"
+function exportWorkbook(
+  input: ExportWorkbookInput,
+  deps?: ExportWorkbookDeps,
+): Promise<ExportWorkbookResult>;
+```
+
+<SdkTypeTable name="ExportWorkbookInput" />
+
+**返回**：`ExportWorkbookResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`EXPORT_OUTPUT_CONFLICT`](/zh-CN/docs/error-codes#export_output_conflict)、[`EXPORT_UNWRITABLE`](/zh-CN/docs/error-codes#export_unwritable)
+
+**示例**：[工作簿往返流程](/zh-CN/docs/programmatic-api#工作簿往返流程)
+
+`format` 默认为 `xlsx`；`csv` 和 `tsv` 改为每个语言环境写出一个 `<locale>.csv` 或 `<locale>.tsv`，所以对它们 `out` 指定的是目录（不存在时会创建），对 `xlsx` 则是文件路径。`out` 默认为 `DEFAULT_WORKBOOK_PATH`（`verbatra-translations.xlsx`），对分隔符格式和 XLIFF 格式则为 `DEFAULT_DELIMITED_PATH`（`verbatra-translations`），两者都作为常量导出。可接受的取值以 `EXCHANGE_FORMATS` 导出，默认值以 `DEFAULT_EXCHANGE_FORMAT` 导出，所以封装 SDK 的工具可以校验格式参数，而不必硬编码列表。返回 `{ path, locales }`：写入的绝对路径，以及每个语言环境的行数。
+
+读取任何内容之前，`EXPORT_OUTPUT_CONFLICT` 会拒绝以下 `out`：解析到 `cwd` 之外的路径，以及本身（或导出将写入其中的某个文件）指向已配置的语言文件、锁文件、来源记录文件、翻译记忆库缓存、verbatra 查找配置的文件、`configPath` 文件或 `glossaryPath` 文件的路径；比较不区分大小写，并且当 `deps.fs` 像默认实现一样实现了 `realpath` 时，符号链接解析之后会再比较一次。`xlsx` 路径在没有指向文件（包括以路径分隔符结尾的路径）或指向 `cwd` 本身时同样被拒绝；`csv`、`tsv` 或 XLIFF 的目录可以是 `cwd`。写入失败（目录不可写、路径上已有目录或文件，或磁盘已满）时抛出 `EXPORT_UNWRITABLE`，并给出文件和文件系统错误码，文件系统错误作为它的 `cause`。
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` 和 `format: "xliff12"` 为 CAT 工具在 `out` 目录中为每个语言环境写出一个 XLIFF 2.0 或 1.2 的 `<locale>.xlf`：每个键一个单元，占位符和内联标记作为受保护的 `<ph>` 内联代码，键的描述和含义作为备注，源哈希放在单元的元数据中，句段状态来自锁文件和审校状态（缺失或过期的键为 `initial`，已是最新为 `translated`，已批准为 `reviewed`）。两个类型都会导出，`XliffFormat` 指 `ExchangeFormat` 中的两个 XLIFF 成员。详见[交给翻译公司（XLIFF）](/zh-CN/docs/translation-agency)。
+
+每个带目标的单元还带有它的来源：XLIFF 1.2 用 `state-qualifier="mt-suggestion"` 限定未批准的机器类目标，XLIFF 2.0 则在单元的 `verbatra` 元数据组中添加 `origin` 和 `review-state` 条目。此时结果还带有 `provenanceMarkers`：`"written"`，或者在无法读取来源记录文件、因而没有写入任何标记时为 `"unavailable"`。详见[记录机器翻译证据](/zh-CN/docs/provenance-evidence#导出文件中的标记)。
+
+### importWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+把填好的工作簿读回语言文件，运行与 `translate` 相同的源漂移检查和完整性检查。只有被接受的行才会推进它们的锁基线；空白或被拒绝的行会一直重新导出，直到真正解决。在 CSV、TSV 或 xlsx 交接中，填写的行若等于已是最新的键现有的值，并且通过完整性门禁，则不处理，报告为 `unchanged`，不翻译 <AvailableFrom version="0.13.0" />；详见[手动翻译](/zh-CN/docs/manual-translation#导入接受什么)。
+
+```ts title="签名"
+function importWorkbook(
+  input: ImportWorkbookInput,
+  deps?: ImportWorkbookDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="ImportWorkbookInput" />
+
+**返回**：[`RunSummary`](/zh-CN/docs/sdk/run-summary)
+
+**抛出**：[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`REVIEWER_INVALID`](/zh-CN/docs/error-codes#reviewer_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)
+
+**示例**：[工作簿往返流程](/zh-CN/docs/programmatic-api#工作簿往返流程)
+
+使用 `csv` 或 `tsv` 时，`workbook` 是一个交换文件，或保存每个语言环境一个文件的目录，语言环境取自文件名。省略 `format` 时，以 `.csv` 或 `.tsv` 结尾的文件按该格式读取，目录则按其导出清单或语言文件的格式读取。返回与 `translate` 相同的 `RunSummary` 结构（`needsReview` 始终为空，因为不涉及提供商）。对应的语言环境不是已配置目标的工作表，会让该语言环境以 `CONFIG_INVALID` 失败，作为摘要上的数据，而不是抛出错误。
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` 和 `lockAcquireTimeoutMs` 的行为与在 `translate` 上完全相同。`lockAcquireTimeoutMs` 限制等待某个语言环境写锁的时间，该锁在写入该语言环境的文件之前获取；超时后仍被占用的语言环境，在它自己的摘要上以 `LOCK_CONTENDED` 失败，其他语言环境继续导入。在锁文件中记录已写入的文件始终允许默认的 10 分钟。试运行不获取锁，所以这两个选项对它都不适用。
+
+<AvailableFrom version="0.12.0" />
+
+每个语言环境的 `integrityRefusals` 列出完整性门禁拒绝的行，附带原因及其 `details`，例如不适合目标语言的每个 ICU 分支。因为源在导出之后有更改而被搁置的行，只列在 `integrityMismatches` 中。`exportWorkbook` 会在它的审校列中，把分支有误的现有译文标为 `icu-arms`。
+
+<AvailableFrom version="0.12.0" />
+
+使用 `xliff2` 或 `xliff12`（两者都能读取两个版本），以及对以 `.xlf` 或 `.xliff` 结尾的 `workbook` 路径默认使用该格式时，每个内联代码在同样的检查之前都会还原为它的确切文本。等于当前值的目标不产生任何更改；id 对应不到任何源键的单元会报告在 `malformedRows` 中；状态为 `reviewed` 或 `final` 的单元（1.2 中为 `signed-off`、`final` 或 `approved="yes"`）在来源记录文件中记录为已批准，给出 `reviewer` 时附带该名称（检查方式与 `approveEntry` 相同，`REVIEWER_INVALID`），并以通知 `HANDOFF_REVIEWS_RECORDED` 报告。
+
+## TMX 这一对函数
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` 和 `exportTmx` 在翻译记忆库（见[翻译缓存](/zh-CN/docs/the-cache)）与 TMX 之间导入和导出，TMX 是主流翻译平台生成和使用的交换格式。两者都不构造提供商、不读取 API 密钥，也不发出网络请求：每个值都来自文件，或来自磁盘上已有的翻译记忆库。这不是换了一种格式的工作簿函数对。工作簿函数对把待处理差异中按语言环境切出的部分交给人工译者；这一对函数则把整个翻译记忆库作为一个多语言文件，在工具之间转移。
+
+### importTmx
+
+把 TMX 文件读入项目的翻译记忆库。
+
+```ts title="签名"
+function importTmx(
+  input: ImportTmxInput,
+  deps?: ImportTmxDeps,
+): Promise<ImportTmxResult>;
+```
+
+<SdkTypeTable name="ImportTmxInput" />
+
+**返回**：`ImportTmxResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`MEMORY_UNWRITABLE`](/zh-CN/docs/error-codes#memory_unwritable)
+
+**示例**：[TMX 往返流程](/zh-CN/docs/programmatic-api#tmx-往返流程)
+
+文件中的任何内容都不被信任。XML 按交换包的加固规则解析，所以实体声明、内部 DTD 子集、过大的文件或格式错误的文件，都会以结构化的 `SOURCE_INVALID` 错误被拒绝，而不是被解析。问题在文件中有具体位置时，信息会给出它的行、列，在翻译单元内还会给出该单元从 1 开始的序号；`tmxErrorLocation(error)` 以 `TmxErrorLocation` 返回同样的位置，对任何其他错误则返回 `undefined`，所以你永远不需要对错误或它的 `cause` 做类型转换。语言标签按明确的规则解析为已配置的语言环境：先把标签转为小写并把下划线折叠为连字符，做精确的写法匹配；匹配不上时，取最长的、作为该标签子标签前缀的已配置语言环境（RFC 4647 查找），否则取只靠地区或变体子标签、从不靠文字来扩展该标签的已配置语言环境，所以文字或地区子标签不同的两个标签（`sr-Latn` 和 `sr-Cyrl`，`de-AT` 和 `de-CH`）永远不会匹配；只有当标签可能对应的语言环境不在同一条前缀链上时，才报告该标签有歧义。同一个单元中解析到同一个语言环境（包括源语言环境）的多个句段，从不让最后一个胜出：精确的标签优先于前缀匹配，两个等级相同但值不同的句段，不会为该语言环境存储任何内容，并计为 `conflicting`（对源语言环境，则拒绝该单元并计入 `conflictingSourceUnits`）。随后，每条候选译文都要通过与提供商输出和填好的工作簿行相同的占位符、内联标记、ICU、退化和空值门禁，在记录进入翻译记忆库时检查，而不是留给之后读取它的运行去检查。
+
+当导入的单元与翻译记忆库中已有的译文不一致时，除非设置了 `overwrite`，否则以翻译记忆库为准。单元存储在当前配置指纹之下，与真实运行写入的键相同，所以当提供商、模型、语气、verbatra 会发送的术语表条目或提供商的 `localeMap` 变化时，它们就不再匹配。同一个文件导入两次，第二次不会产生任何更改。
+
+对损坏的数据，它返回报告而不是抛出错误：读取了多少个单元；按语言环境统计的 `added`、`unchanged`、`overwritten`、`kept`、`duplicates`、`conflicting`，以及按原因统计的 `rejected`；还有被跳过、没有源句段、丢失内联标记或 `sub` 文本被省略（`subflowDroppedUnits`）的单元，以及没有匹配任何内容或匹配有歧义的语言标签。翻译记忆库文件由较新的 verbatra 写入时，`memoryWritable` 为 false，此时它保持不动。此时仍会像试运行那样报告各语言环境的计数，所以 `added` 和 `overwritten` 描述的是本来会写入的内容；`memoryWritable` 为 false 时，实际没有写入任何内容。
+
+<AvailableFrom version="0.12.0" />
+
+每个语言环境还会列出它的 `refusals`，对每个计入门禁原因的单元给出一个 `TmxUnitRefusal`：`{ unit, reason, details? }`，其中 `unit` 是该单元在文件中从 1 开始的序号，`details` 说明问题所在，例如不适合目标语言的每个 ICU 分支。
+
+### tmxErrorLocation
+
+从 `importTmx` 抛出的任何内容中，读取被拒绝的 TMX 文件出错的位置。对在文件中有具体位置的 `SOURCE_INVALID` 拒绝，它返回 `TmxErrorLocation`（`{ line, column, unit? }`，都从 1 开始）；对任何其他错误（包括缺失或过大的文件），它返回 `undefined`，所以你永远不需要对错误或它的 `cause` 做类型转换。
+
+```ts title="签名"
+function tmxErrorLocation(
+  error: unknown,
+): TmxErrorLocation | undefined;
+```
+
+**返回**：`TmxErrorLocation | undefined`
+
+```ts title="示例"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+把翻译记忆库写出为 TMX 1.4b。`out` 默认为 `DEFAULT_TMX_PATH`（`verbatra-memory.tmx`），作为常量导出。读取翻译记忆库之前，`TMX_OUTPUT_CONFLICT` 会拒绝以下 `out`：没有指向文件（包括以路径分隔符结尾的路径）、解析到 `cwd` 之外或 `cwd` 本身，或指向已配置的语言文件、锁文件、来源记录文件、翻译记忆库缓存、verbatra 查找配置的文件、`configPath` 文件或 `glossaryPath` 文件；比较不区分大小写，并且当 `deps.fs` 像默认实现一样实现了 `realpath` 时，符号链接解析之后会再比较一次。写入失败（目录不可写、该路径上有目录，或磁盘已满）时抛出 `TMX_UNWRITABLE`，并给出文件和文件系统错误码。只写入当前配置指纹之下的条目，这与一次运行会复用的集合相同。语言标签以 BCP 47 写法写出（`en_US` 变为 `en-US`），这不会改变翻译记忆库的键。空的翻译记忆库产生有效的空文件，而不是错误。
+
+```ts title="签名"
+function exportTmx(
+  input: ExportTmxInput,
+  deps?: ExportTmxDeps,
+): Promise<ExportTmxResult>;
+```
+
+<SdkTypeTable name="ExportTmxInput" />
+
+**返回**：`ExportTmxResult`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`TMX_OUTPUT_CONFLICT`](/zh-CN/docs/error-codes#tmx_output_conflict)、[`TMX_UNWRITABLE`](/zh-CN/docs/error-codes#tmx_unwritable)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+**示例**：[TMX 往返流程](/zh-CN/docs/programmatic-api#tmx-往返流程)
+
+返回 `{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }`；`withoutSource` 统计因翻译记忆库没有它们的源文本而省略的条目，这只会发生在从翻译记忆库存储源文本之前写入的缓存中沿用下来的条目；`otherConfiguration` 统计因存储在另一个配置指纹（较早的提供商、模型、语气或术语表）之下而省略的条目，每个语言环境和哈希计一次 <AvailableFrom version="0.13.5" />；`illegalCharactersRemoved` 统计从句段文本中移除的、XML 1.0 无法表示的字符数。
+
+<AvailableFrom version="0.12.0" />
+
+每个目标句段都带有 `<prop type="x-origin">`（`machine`、`human`、`import` 或 `unknown`，即 `TmxOrigin` 类型），`machine` 句段还带有 `<prop type="x-review">`（`approved`、`unreviewed` 或 `rejected`，即 `TmxReview` 类型）；它们由每个其锁条目指向该句段的源、且其记录恰好描述该句段文本的键推导而来。当来源记录文件或锁文件无法读取时，`provenanceMarkers` 为 `"unavailable"`，此时没有任何句段带属性。

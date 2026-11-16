@@ -1,0 +1,99 @@
+---
+title: 语言与语言环境
+seoTitle: "verbatra 支持的语言和语言环境代码"
+description: verbatra 能翻译哪些语言，语言环境代码如何传给各个提供商，以及如何处理复数、文字、地区变体和从右到左的文本。
+type: concept
+---
+<AvailableFrom version="0.12.0" />
+
+verbatra 没有自己的语言列表：它接受任何有效的 BCP 47 语言环境代码，所以你可以使用提供商支持的语言；纯人工项目则可以使用所有语言。verbatra 按提供商期望的写法发送每个代码，要求每条译文符合所在语言的复数规则，并在提供商无法处理某个语言环境时，于运行前发出警告。
+
+## 语言环境代码
+
+配置中的每个语言环境都必须是有效的 BCP 47 标签，例如 `fr`、`pt-BR`、`sr-Latn` 或 `es-419`；对于名为 `pt_BR.json` 的文件，写成 `pt-BR`，并把 `files.localeStyle` 设为 `posix`。完整规则见[语言环境代码](/zh-CN/docs/config-file#语言环境代码)。
+
+verbatra 在所有地方存储的都是配置中的代码：文件路径、[锁文件与来源记录](/zh-CN/docs/the-lock-file)和[翻译缓存](/zh-CN/docs/the-cache)。提供商专用的写法只出现在请求内部。把你已在翻译的代码换一种写法（例如从 `pt_BR` 改为 `pt-BR`），会保留其历史记录，见[写法不同的语言环境代码](/zh-CN/docs/the-lock-file#写法不同的语言环境代码)。
+
+## 各提供商的语言覆盖
+
+语言的翻译效果取决于提供商；每一行都链接到服务商自己的列表。
+
+| 提供商 | 语言 | 发送的代码 | 术语表 | 语气 |
+| --- | --- | --- | --- | --- |
+| `anthropic` | 没有固定列表。[Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | 按原样发送，另附英文的语言、文字和地区名称 | 该语言环境的术语放入提示词 | 放入提示词 |
+| `openai` | 没有固定列表。[Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | 按原样发送，另附名称 | 该语言环境的术语放入提示词 | 放入提示词 |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | 按原样发送，另附名称 | 该语言环境的术语放入提示词 | 放入提示词 |
+| `opencode` | 取决于你所选 Zen 模型支持的语言 | 按原样发送，另附名称 | 该语言环境的术语放入提示词 | 放入提示词 |
+| `openai-compatible` | 取决于你所运行模型支持的语言 | 按原样发送，另附名称 | 该语言环境的术语放入提示词 | 放入提示词 |
+| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | 规范化为 DeepL 的代码 | 仅支持通过 `glossaryId` 使用预先创建的 DeepL 术语表，覆盖 32 种语言 | 部分语言支持 DeepL 正式程度设置，免费套餐密钥不支持 |
+| `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages)（NMT 列表适用于 verbatra 使用的 Basic 版（v2）） | 中文和挪威语会规范化，其余按原样发送 | 无 | 无 |
+| `libretranslate` | 你的服务器上已安装的模型；[上游列表](https://docs.libretranslate.com/)列出了可安装的模型 | 只发送语言部分，`pt-BR`、`zh-Hans` 和 `zh-Hant` 除外 | 无 | 无 |
+| `none` | 不适用：不调用任何提供商 | 不发送任何内容 | 不适用 | 不适用 |
+
+实际含义如下：
+
+- **LLM 提供商**没有封闭列表。它们会尝试你指定的任何语言，训练数据较少的语言质量会下降，所以低资源的目标语言值得人工审校。[审校标记](/zh-CN/docs/translation-safety#审校标记)会指出最可疑的结果。
+- **DeepL 和 Google Cloud Translation** 有封闭列表，运行前会检查。
+- **LibreTranslate** 提供你的服务器上已安装的模型所支持的语言。
+- 提供商无法遵循的 `tone` 或术语表会以通知的形式报告，见[各提供商的语气与术语表](/zh-CN/docs/providers#各提供商的语气与术语表)。
+
+### 各提供商如何接收代码
+
+DeepL 和 Google Cloud Translation 对部分代码使用各自的写法，DeepL 还会在发出任何请求之前拒绝单独的 `en` 或 `pt` 目标。LLM 提供商收到的是代码，加上语言、文字和地区的[英文名称](/zh-CN/docs/translation-safety#语言文字与地区名称)。提供商 `options` 中的 `localeMap` 可按语言环境覆盖代码；完整映射见[发送给提供商的语言环境代码](/zh-CN/docs/providers#发送给提供商的语言环境代码)。
+
+## 运行前检查支持情况
+
+产生任何花费之前，verbatra 会按提供商评估每个已配置的语言环境，[`verbatra doctor --locales`](/zh-CN/docs/cli/doctor#语言环境支持) 会输出评估结果：
+
+- **supported**：verbatra 发送的代码在提供商的表中，或提供商是 LLM。
+- **unverified**：只有其基础语言在表中，代码来自显式的 `localeMap` 条目，或提供商是 LibreTranslate 服务器，其模型只能从实时列表得知。该语言环境照常翻译，同时给出警告 `LOCALE_UNVERIFIED_BY_PROVIDER`。
+- **unsupported**：代码和基础语言都不在表中。`translate`、`watch` 和单个键的重新翻译会拒绝整次运行，并报出 [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/zh-CN/docs/error-codes#locale_unsupported_by_provider)。
+
+用 `--locales` 排除该语言环境；如果提供商后来新增了该语言，就在 `localeMap` 中映射它：显式条目视为可信。内置的表是服务商列表的副本（DeepL 为 125 个代码，Google 为 198 个，均截至 2026-09-28）；`verbatra doctor --live` 会检查当前列表。
+
+LLM 提供商不会拒绝任何语言环境。目标语言不在 LLM 已知翻译效果良好的语言之内时，会给出警告 `LOCALE_NOT_WELL_TESTED`，提示你审校其输出。该列表按基础语言匹配，所以 `pt-BR` 算作葡萄牙语：阿拉伯语（`ar`）、中文（`zh`）、荷兰语（`nl`）、英语（`en`）、法语（`fr`）、德语（`de`）、印地语（`hi`）、印度尼西亚语（`id`）、意大利语（`it`）、日语（`ja`）、韩语（`ko`）、波兰语（`pl`）、葡萄牙语（`pt`）、俄语（`ru`）、西班牙语（`es`）、瑞典语（`sv`）、土耳其语（`tr`）、乌克兰语（`uk`）和越南语（`vi`）。
+
+## 文字与地区变体
+
+文字或地区子标签改变的是向提供商请求的内容，而不是 verbatra 存储内容的方式：
+
+| 你的语言环境 | DeepL | Google Cloud Translation | LibreTranslate | LLM 提供商 |
+| --- | --- | --- | --- | --- |
+| `pt-BR` / `pt-PT` | `PT-BR` / `PT-PT` | `pt-BR` / `pt-PT` | `pt-BR` / `pt` | Portuguese (Brazil) / Portuguese (Portugal) |
+| `es-419`、`es-MX` | `ES-419` | `es-419`、`es-MX` | `es` | Spanish (Latin America)、Spanish (Mexico) |
+| `zh-Hans` / `zh-Hant` | `ZH-HANS` / `ZH-HANT` | `zh-CN` / `zh-TW` | `zh-Hans` / `zh-Hant` | Chinese (Simplified) / Chinese (Traditional) |
+| `sr-Latn` / `sr-Cyrl` | 两者都是 `SR` | `sr-Latn` / `sr-Cyrl` | 两者都是 `sr` | Serbian (Latin) / Serbian (Cyrillic) |
+
+DeepL 和 LibreTranslate 只对中文保留文字，所以 `sr-Latn` 和 `sr-Cyrl` 得到的是引擎为塞尔维亚语输出的任何文字；LLM 提供商会被明确告知文字名称，是可靠的选择。`LENGTH_RATIO_OUTLIER` 标记按文字加权计算字符数，所以紧凑的中文、日文或韩文不会被标记为过短；词间没有空格的文字中的术语按包含关系匹配。
+
+## 复数
+
+verbatra 从 Node.js 的 ICU 数据中的 CLDR 规则读取语言所需的复数类别，包括序数：英语有两个基数类别，俄语和波兰语有四个，阿拉伯语和威尔士语有六个，日语只有 `other`。对于 Node.js 没有规则的语言环境，运行通知假定为 `one` 和 `other`，而完整性门禁、`check` 和 `doctor` 只要求 `other`；[`verbatra doctor`](/zh-CN/docs/cli/doctor) 的 `plural-rules` 检查会指出这样的语言环境。
+
+如何保证复数正确，取决于格式：
+
+- **i18next** 用 CLDR 后缀为每种形式命名键（`items_one`、`items_few`）。源文件缺少目标语言需要的类别时，运行会报告 `PLURAL_CATEGORIES_INCOMPLETE`；设置 `generatePlurals: true` 并使用 LLM 提供商时，verbatra 会写入缺失的形式。见[复数类别更多的语言](/zh-CN/docs/add-a-language#复数类别更多的语言)。
+- **next-intl 和 ARB** 把整个 ICU 复数放在一个值里，分支与目标语言不匹配的值会被拒绝，见[各目标语言的复数分支](/zh-CN/docs/translation-safety#各目标语言的复数分支)。
+- **Apple、Android 和 gettext** 原样往返处理每个语言环境已有的那些形式，缺失的形式需要手动添加。gettext 按原样保留其 `Plural-Forms` 头。
+
+### 复数警告
+
+[`verbatra check`](/zh-CN/docs/cli/check#复数类别) 和 `verbatra doctor` 会对上面列出的各种格式中缺少所在语言所需类别的每个复数发出警告，gettext 除外（其形式遵循自身的 `Plural-Forms` 头）；其他格式的复数不会被检查。DeepL、Google Cloud Translation 和 LibreTranslate 翻译已有的形式，但从不生成新的形式。
+
+## 从右到左的语言
+
+阿拉伯语、希伯来语、波斯语、乌尔都语和其他从右到左的语言不需要特殊处理：值按原样读取、发送、检查和写回，不会添加、移除或重排方向控制字符。对你的影响如下：
+
+- **在应用中设置方向，而不是在字符串里设置**，用 `dir` 属性、CSS 或平台的布局方向。[内联标记检查](/zh-CN/docs/translation-safety#内联标记一致性)会拒绝添加了源文本所没有的 `dir` 属性的译文。
+- **方向控制字符是普通文本**，可能被丢弃；请检查依赖方向控制字符的译文。未闭合的嵌入、覆盖或隔离（源文本自己闭合了它们时）以及新增的覆盖，会引发 [`BIDI_CONTROLS_CHANGED`](/zh-CN/docs/error-codes#bidi_controls_changed)。
+- **占位符顺序改变**只会引发 `INTEGRITY_REORDERED`，因为在另一种语言中，另一种顺序往往才是正确的。
+- **Studio 以从右到左显示值**，适用于文字走向如此的每个语言环境，依据是浏览器的方向或语言环境可能使用的文字（`ku-Arab` 从右到左，`ku` 从左到右）。变化的只有显示方式。
+- **[`verbatra pseudo --mode bidi`](/zh-CN/docs/cli/pseudo) 以从右到左的方向渲染你的源文本**，生成 `ar-XB` 伪语言环境，在任何译文出现之前就暴露从左到右的布局假设。镜像的图片和图标需要你自己检查。
+
+## 低资源语言与本地模型
+
+对于托管提供商支持不佳的语言：
+
+- **通过 `openai-compatible` 运行本地模型**：它必须是返回单个 JSON 对象的指令微调聊天模型，见[选择本地模型](/zh-CN/docs/providers#选择本地模型)。
+- **在 verbatra 之外使用专用翻译模型**，再通过工作簿往返流程（见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)）把结果带回来，同样的完整性检查照常运行。下面这些模型都不是聊天模型，所以都不能接入 `openai-compatible`：[MADLAD-400](https://huggingface.co/google/madlad400-3b-mt)（Apache-2.0，400 多种语言）、[TranslateGemma](https://huggingface.co/google/translategemma-4b-it)（55 种语言，Gemma 使用条款）和 [NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M)（约 200 种语言，但许可证为 CC-BY-NC-4.0，不能用于商业产品）。请自行核对每个模型的许可证。
+- **请人来翻译**：[不用机器翻译运行](/zh-CN/docs/human-only-workflow)的流程适用于任何语言。

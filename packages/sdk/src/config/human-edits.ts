@@ -13,8 +13,9 @@ export const HUMAN_EDITS_POLICIES = ["protect", "suggest", "overwrite"] as const
  * - `suggest`: as `protect`, but the key is also sent to the provider and the answer is returned as
  *   {@link ProtectedKey.suggestion} and kept in the translation memory. It is never written to the
  *   locale file. A pinned key is never sent, and under provider `none` this behaves as `protect`.
- * - `overwrite`: no protection. The key is retranslated like any other stale key, which is how
- *   verbatra behaved before this setting existed.
+ * - `overwrite`: no protection of person-written values. The key is retranslated like any other
+ *   stale key, which is how verbatra behaved before this setting existed. A key matching
+ *   `pinnedKeys` is still never sent.
  */
 export type HumanEditsPolicy = (typeof HUMAN_EDITS_POLICIES)[number];
 

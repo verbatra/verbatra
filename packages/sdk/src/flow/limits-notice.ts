@@ -3,8 +3,10 @@ import type { LocaleSummary } from "./summary.js";
 
 /**
  * Why a result holds values to the config's `maxLength` budgets alone although
- * `verbatra.limits.json` exists. Returned as `limitsNotice` by every call that reads the limits
- * file when the file cannot be used; the file is left as it is.
+ * `verbatra.limits.json` exists. Returned as `limitsNotice` by {@link retranslateEntry},
+ * {@link keyContext} and {@link exportWorkbook}, and as `qa.limitsNotice` by {@link check}, when the
+ * file cannot be used; {@link translate} and {@link watch} report it as a `LIMITS_FILE_IGNORED`
+ * locale notice; the file is left as it is.
  */
 export interface LimitsFileNotice {
   /** Always `LIMITS_FILE_IGNORED`. */

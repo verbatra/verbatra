@@ -5,7 +5,7 @@ sidebarTitle: "Vista general"
 description: "Instala @verbatra/sdk y encuentra la página de referencia de cada punto de entrada. Los archivos que no están en disco llegan al SDK por tu sistema de archivos."
 type: reference
 ---
-`@verbatra/sdk` es el motor sobre el que corre el comando `verbatra`. La CLI es una envoltura fina, así que todo
+`@verbatra/sdk` es el motor sobre el que corre el comando `verbatra`. La CLI es una capa fina, así que todo
 lo que hace la línea de comandos lo puedes hacer en código.
 
 ## Empieza aquí
@@ -122,14 +122,13 @@ Apartar un archivo y devolverlo son dos pasos, así que en intercalados poco fre
 pueden creer durante un momento que tienen el mismo bloqueo. Por eso cada bloqueo registra un token
 de propiedad aleatorio, y antes de cada escritura que protege el bloqueo (el archivo del locale, el
 archivo de bloqueo, el archivo de procedencia, el glosario) quien lo tiene comprueba que el archivo
-de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no
-escribe nada. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
+de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no se realiza la escritura interrumpida; una operación que escribe más de un archivo puede haber hecho ya una escritura anterior. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
 la operación terminó bien, porque el otro proceso puede haber cambiado los mismos archivos desde
 entonces; una operación que falló lanza su propio error. La comprobación y la escritura siguen
 siendo dos pasos, y nada limita el tiempo entre ellos: quien tiene el bloqueo y se pausa justo
 después de la comprobación (una máquina suspendida, un proceso detenido, un depurador, un salto del
 reloj o un bucle de eventos bloqueado mucho tiempo) deja de latir, así que cuando su bloqueo tiene
-tres intervalos (30 segundos por defecto) otro proceso de la misma máquina lo toma, y quien estaba
+tres intervalos de antigüedad (30 segundos por defecto) otro proceso de la misma máquina lo toma, y quien estaba
 pausado todavía puede escribir una vez al continuar. La comprobación del token da por hecho que `createExclusive` crea un archivo que `readFileBounded` lee
 de vuelta, así que una implementación propia tiene que cumplirlo.
 

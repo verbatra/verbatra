@@ -10,8 +10,10 @@ import { HERO_TERMINAL_CHANGED_KEYS } from "@/lib/hero-terminal";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { HERO_FILE_CHANGED_COUNT } from "@/lib/landing-hero-files";
 import { PLAYGROUND_TRANSLATIONS, playgroundFileName } from "@/lib/landing-playground";
+import { LOCALES, type Locale } from "@/lib/locales";
 import { LOCK_DEMO_LOCALE, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import { countWords } from "@/lib/word-count";
 import messages from "@/messages/en.json";
 import { stripAccentTags } from "@/test-support/accent-tags";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -68,9 +70,25 @@ function source(path: string): string {
   return readFileSync(join(process.cwd(), path), "utf8");
 }
 
-function words(text: string): number {
-  return text.trim().split(/\s+/).length;
-}
+const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = {
+  en: 25,
+  de: 30,
+  es: 30,
+  fr: 30,
+  "zh-CN": 30,
+  "pt-BR": 30,
+  ja: 37,
+};
+
+const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
+  en: "2 keys changed",
+  de: "2 Schlüssel geändert",
+  es: "2 claves modificadas",
+  fr: "2 clés modifiées",
+  "zh-CN": "2 个键已更改",
+  "pt-BR": "2 chaves alteradas",
+  ja: "2 件のキーに変更あり",
+};
 
 describe("Hero copy", () => {
   it("names its section by the one h1, the headline, under the subline", async () => {
@@ -84,18 +102,14 @@ describe("Hero copy", () => {
   });
 
   it("keeps the headline to eight words and the subline to twenty-five, with no two-beat slogan", () => {
-    expect(words(headlinePlain)).toBeLessThanOrEqual(8);
-    expect(words(banner.lead)).toBeLessThanOrEqual(25);
+    expect(countWords(headlinePlain, "en")).toBeLessThanOrEqual(8);
+    expect(countWords(banner.lead, "en")).toBeLessThanOrEqual(LEAD_WORD_CAP.en);
     expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
   });
 
-  it.each([
-    ["en", 25],
-    ["de", 30],
-    ["es", 30],
-    ["fr", 30],
-  ])("keeps the %s lead to %i words", (locale, cap) => {
-    expect(words(catalogFor(locale).landing.banner.lead)).toBeLessThanOrEqual(cap);
+  it.each(LOCALES)("keeps the %s lead to its word cap", (locale) => {
+    const cap = LEAD_WORD_CAP[locale];
+    expect(countWords(catalogFor(locale).landing.banner.lead, locale)).toBeLessThanOrEqual(cap);
   });
 
   it("names the lock file, the changed keys and CI drift in the English lead, and no MCP server", () => {
@@ -121,7 +135,7 @@ describe("Hero copy", () => {
     expect(doc.querySelector(".vk-announce, .vk-pill-new")).toBeNull();
   });
 
-  it.each(["en", "de", "es", "fr"])("ships no announcement strings in %s", (locale) => {
+  it.each(LOCALES)("ships no announcement strings in %s", (locale) => {
     const catalog = JSON.parse(source(`messages/${locale}.json`)) as typeof messages;
     expect(catalog.landing.banner).not.toHaveProperty("announcement");
   });
@@ -404,14 +418,13 @@ describe("Hero stylesheet", () => {
 });
 
 describe("the banner's changed-keys badge in every locale", () => {
-  it.each([
-    ["en", "2 keys changed"],
-    ["de", "2 Schlüssel geändert"],
-    ["es", "2 claves modificadas"],
-    ["fr", "2 clés modifiées"],
-  ])("%s renders %s on the front card, with no tilde", async (locale, expected) => {
-    const doc = await render(locale);
-    const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
-    expect(badge?.textContent).toBe(expected);
-  });
+  it.each(LOCALES)(
+    "%s renders its changed-keys badge on the front card, with no tilde",
+    async (locale) => {
+      const expected = CHANGED_KEYS_BADGE[locale];
+      const doc = await render(locale);
+      const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
+      expect(badge?.textContent).toBe(expected);
+    },
+  );
 });

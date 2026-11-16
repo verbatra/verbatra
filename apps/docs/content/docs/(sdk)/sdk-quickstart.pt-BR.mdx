@@ -1,0 +1,201 @@
+---
+title: Início rápido do SDK
+seoTitle: "Início rápido do SDK do verbatra no Node.js"
+description: Instale o @verbatra/sdk, pré-visualize uma execução sem chave de API, traduza com seu próprio script, trate erros e barre a CI.
+type: tutorial
+---
+Ao final desta página, um script TypeScript seu traduz um arquivo de locale em inglês para o alemão, informa o que aconteceu e faz um job de CI falhar quando um locale sai de sincronia. Você precisa do Node.js `^22.22.0 || >=24` e de cerca de dez minutos. Os três primeiros passos não precisam de chave de API.
+
+Cada passo é um script completo que você executa com `node`. O Node.js executa arquivos TypeScript diretamente, então nenhuma flag extra é necessária. Os scripts usam `import` e `await` no nível superior, então o primeiro passo também marca o projeto como módulos ES.
+
+## Passos
+
+<Steps>
+<Step>
+
+### Instalar o SDK
+
+```bash
+npm init -y
+npm pkg set type=module
+npm install --save-dev @verbatra/sdk
+```
+
+Execute isto em um diretório vazio: o `npm init -y` cria o `package.json` que o `npm pkg set type=module` marca como módulos ES. Em um projeto existente, pule o `npm init -y`. Se o pnpm terminar com `ERR_PNPM_IGNORED_BUILDS`, veja [Instalação](/pt-BR/docs/sdk#instalação).
+
+</Step>
+<Step>
+
+### Adicionar um arquivo de origem e uma configuração
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+O `loadConfig` encontra esse arquivo a partir do diretório de trabalho e o valida. [Escolher sua stack](/pt-BR/docs/pick-your-stack) traz o `format` do seu framework, e [Provedores](/pt-BR/docs/providers) lista cada provedor e suas opções. Para dispensar o arquivo por completo, passe o mesmo objeto como `configOverride`; veja a seção [Uma configuração sem arquivo](/pt-BR/docs/programmatic-api#uma-configuração-sem-arquivo) em Receitas do SDK.
+
+</Step>
+<Step>
+
+### Pré-visualizar a execução sem chave de API
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+Uma simulação não instancia nenhum provedor, então não precisa de chave de API, não gasta nada e não grava nada. Em vez disso, passe `estimate: true` para obter um valor de tokens ou de custo; veja [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost).
+
+</Step>
+<Step>
+
+### Traduzir e ler o resumo
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
+  },
+});
+
+const { succeeded, partial, failed, usage } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+O provedor lê sua chave de API do ambiente e, ao contrário da CLI, o SDK não carrega arquivos `.env`, então repasse a chave de API você mesmo. [As chaves de API vêm do ambiente](/pt-BR/docs/providers#as-chaves-de-api-vêm-do-ambiente) nomeia a variável de cada provedor.
+
+```bash
+node --env-file=.env translate.ts
+```
+
+O `locales/de.json` agora contém as duas chaves, com `{{name}}` intacto. Um locale `partial` foi gravado com chaves ainda ausentes, então o script falha nele da mesma forma que em `failed`. Os problemas de cada locale chegam como dados no resumo; só um problema que afeta a execução inteira lança um erro. [`translate`](/pt-BR/docs/sdk/run#translate) lista todas as outras opções.
+
+</Step>
+<Step>
+
+### Tratar erros
+
+<AvailableFrom version="0.12.0" />
+
+Um problema que afeta a execução inteira lança um `SdkError`. Ramifique pelo `code` estável dele e imprima o `errorHint` para saber o próximo passo.
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  switch (error.code) {
+    case "CONFIG_NOT_FOUND":
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
+      break;
+    case "PROVIDER_CONSTRUCTION_FAILED":
+      console.error(`${error.code}: the provider could not be built, most often for a missing key`);
+      break;
+    default:
+      console.error(`${error.code}: ${error.message}`);
+  }
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+Se você o executar sem a chave de API, ele relata `PROVIDER_CONSTRUCTION_FAILED` com o nome da variável ausente, nunca o valor de uma chave de API. [Códigos de erro do SDK](/pt-BR/docs/error-codes#sdk-error-codes) lista todos os códigos.
+
+</Step>
+<Step>
+
+### Barrar a CI com check
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+O `check` não chama nenhum provedor e não grava nada, então não precisa de chave de API na CI. O script termina com `1` quando uma string de origem não tem tradução ou mudou depois de ser traduzida.
+
+</Step>
+</Steps>
+
+## CommonJS
+
+Em um projeto CommonJS, `require("@verbatra/sdk")` retorna as mesmas exportações. O `await` no nível superior não está disponível ali, então envolva as chamadas em uma função `async`.
+
+## Próximos passos
+
+- [Receitas do SDK](/pt-BR/docs/programmatic-api): estimativas, modo de observação, um dublê de teste para o provedor, a fila de revisão e os ciclos de ida e volta com pasta de trabalho e TMX.
+- [Referência do SDK](/pt-BR/docs/sdk): todos os pontos de entrada, a entrada de cada um e o que ele lança.
+- [Provedores personalizados](/pt-BR/docs/sdk/extend#provedores-personalizados) e adaptadores de formato personalizados (veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters)): conecte o que o verbatra não traz.
+- [Segurança da tradução](/pt-BR/docs/translation-safety): o que o verbatra verifica antes de gravar uma tradução.

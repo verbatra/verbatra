@@ -71,7 +71,7 @@ Rien n'est accentué, allongé ni mis entre crochets : la largeur, c'est le mode
 
 La pseudo-locale par défaut est `ar-XB`, que `Intl.Locale` et la plupart des bibliothèques i18n résolvent de droite à gauche, donc une app qui déduit `dir` de la locale bascule toute seule. `ar-XB` suit les règles de pluriel de l'arabe (`zero`, `one`, `two`, `few`, `many`, `other`). Les messages ICU, les `<plurals>` Android, gettext, les catalogues Apple et les barres verticales vue-i18n résolvent un nombre avec les formes que le fichier a déjà. `i18next-json` range chaque forme sous sa propre clé `_one` ou `_other`, donc le fichier reçoit aussi chaque catégorie qui manque à la source (`_zero`, `_two`, `_few`, `_many`, et les formes ordinales de même), remplie à partir de la forme `other` de la source, et aucun nombre ne se rabat sur ta langue de repli. Passe `--locale en-XB` pour garder les règles de pluriel de l'anglais, et pose `dir="rtl"` toi-même.
 
-Un assainisseur qui retire les caractères de formatage Unicode enlève le forçage, et la chaîne s'affiche de nouveau de gauche à droite. Les éditeurs et scanners de code qui signalent les caractères bidirectionnels cachés marquent le fichier, une raison de plus pour qu'il reste sous `.verbatra-local`.
+Un outil de nettoyage qui retire les caractères de formatage Unicode enlève le forçage, et la chaîne s'affiche de nouveau de gauche à droite. Les éditeurs et scanners de code qui signalent les caractères bidirectionnels cachés marquent le fichier, une raison de plus pour qu'il reste sous `.verbatra-local`.
 
 ### Rien de cassé n'atteint jamais le fichier
 

@@ -1,0 +1,361 @@
+---
+title: "审校与重新翻译"
+seoTitle: "SDK：审校与重新翻译译文"
+description: "批量或分页读取值，批准、拒绝或重新翻译单个键，也可以一次审校并重新翻译多个键。"
+type: reference
+---
+<SdkAnchorForward />
+
+## 单键操作
+
+这些是 Verbatra Studio 驱动的接缝，可用它们构建你自己的审校工具。其中接受 `locale` 和 `key` 的函数，每次调用都会重新解析它们，任一项不存在时抛出 `UNKNOWN_LOCALE` 或 `UNKNOWN_KEY`。
+
+### keyValue
+
+<AvailableFrom version="0.5.0" />
+
+读取一个键当前的源值，以及（存在时）它在某个语言环境中当前的目标值。只读。
+
+```ts title="签名"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**返回**：`KeyValueResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)
+
+**示例**：[编辑并重新翻译单个键](/zh-CN/docs/programmatic-api#编辑并重新翻译单个键)
+
+返回 `{ source, target? }`；只有该键在这个语言环境中尚不存在时，`target` 才不存在；存在时，它附带 `provenance`，即该键经解释的 `KeyProvenance`：`{ origin, provider?, model?, reviewState, reviewer? }`。
+
+<AvailableFrom version="0.12.0" />
+
+源文件为该键提供了描述时，结果还会带 `description`：ARB 的 `@key.description`、XLIFF 备注，或 gettext、Apple `.strings` 或 .NET `.resx` 的注释。
+
+### keyContext
+
+<AvailableFrom version="0.12.0" />
+
+读取译者在某个目标语言环境中写一个键所需的内容：`keyValue` 返回的全部内容，加上适用于源文本的术语表条目，以及该键的 `maxLength`。传入 `draft`，可对照这些术语检查它。只读。要从磁盘重新读取文件形式的术语表，它接受 `loadConfigWithMeta` 的 `loaded`，而不是单纯的配置。
+
+```ts title="签名"
+function keyContext(
+  input: KeyContextInput,
+  deps?: KeyContextDeps,
+): Promise<KeyContext>;
+```
+
+<SdkTypeTable name="KeyContextInput" />
+
+**返回**：`KeyContext`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)
+
+无法读取的术语表不会抛出错误：`glossary` 为空，`glossaryNotice` 带有该错误的错误码和已脱敏的信息。`draftCheck` 针对每个适用的术语，说明草稿是否使用了要求的译法，以及用了哪些禁用的译法。
+
+### localeHistory
+
+<AvailableFrom version="0.12.0" />
+
+按从新到旧的顺序，列出最近涉及源语言文件或某个目标语言文件的 git 提交。只读；它通过可注入的 `execFile` 运行 `git log`。
+
+```ts title="签名"
+function localeHistory(
+  input: LocaleHistoryInput,
+  deps?: LocaleHistoryDeps,
+): Promise<LocaleHistoryResult>;
+```
+
+<SdkTypeTable name="LocaleHistoryInput" />
+
+**返回**：`LocaleHistoryResult`
+
+**抛出**：[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+每个提交带有 `hash`、`author`（经 `.mailmap` 处理后的姓名，从不是电子邮件）、`authorDate`、`subject` 和 `touchedPaths`。`limit` 默认为 `LOCALE_HISTORY_LIMIT_DEFAULT`（`50`），最大为 `LOCALE_HISTORY_LIMIT_CAP`（`200`），最小为 1。`author` 和 `subject` 会去掉控制字符和双向字符，已知的密钥被替换为 `[REDACTED]`，并分别截断到 200 和 500 个字符；元数据无法读取的提交会被省略。仓库无法读取，或 `git log` 超过 `LOCALE_HISTORY_TIMEOUT_MS` 或 `LOCALE_HISTORY_MAX_OUTPUT_BYTES` 时，得到 `{ available: false, reason }`，其中 `reason` 来自 `LOCALE_HISTORY_UNAVAILABLE_REASONS`。详见 [Studio 与 MCP](/zh-CN/docs/data-handling#studio-与-mcp)。
+
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+列出哪些语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json` 与最近一次提交不同，以及已签出的分支。只读；它不接受调用方传入的任何路径。
+
+```ts title="签名"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**返回**：`LocaleGitStatusResult`
+
+**抛出**：[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+每个已更改的文件带有 `path`、`locales` 和来自 `LOCALE_GIT_FILE_STATES` 的 `state`。符号链接背后的文件或子模块内的文件永远不会列出；`apple-strings` 还会监视它的 `.stringsdict` 文件。默认的运行器以最小的环境启动 git（全局配置只来自 `HOME`），并关闭可选锁、`core.fsmonitor`、裸仓库、延迟获取、子模块和已配置的内容过滤器，按字面匹配路径，并在 `LOCALE_GIT_TIMEOUT_MS` 或 `LOCALE_GIT_MAX_OUTPUT_BYTES` 之后终止它；你注入的 `execFile` 必须做到同样的事。部分克隆需要 git 2.45 或更高版本，否则为 `git-too-old`。项目的 `verbatra.config.ts` 仍然是 verbatra 会运行的代码。git 无法读取仓库，或 `files.pattern` 把某个语言文件放在项目文件夹之外（`outside-project`）时，结果为 `{ available: false, reason }`，其中 `reason` 来自 `LOCALE_GIT_UNAVAILABLE_REASONS`。
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+逐键比较某个语言环境的文件在 `HEAD` 处的版本与磁盘上的文件。只读；它接受语言环境，从不接受路径，也不运行 `git diff`、文本转换驱动或外部差异工具。
+
+```ts title="签名"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**返回**：`LocaleGitDiffResult`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)
+
+`added` 和 `removed` 列出 `{ key, value }`，`changed` 列出 `{ key, before, after }`，`state` 是该文件的状态或 `unchanged`；`conflicted` 或 `unchanged` 的文件不列出任何差异。已提交的文件用 `git cat-file blob` 读取，且仅当它是不超过 `LOCALE_GIT_BLOB_MAX_BYTES` 的普通文件时才读取。最多列出 `LOCALE_GIT_DIFF_MAX_ENTRIES` 个键，每段文本截断到 `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` 个字符，任一情况都会设置 `truncated`。只有该差异函数会给出 `custom-adapter`，用于 `custom:` 格式或 `adapterRegistry`；缺失的一侧视为空，不是普通文件或无法解析的一侧会给出 `revision-unreadable` 或 `working-file-unreadable`。其他原因与 `localeGitStatus` 相同。
+
+### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
+
+通过 `translate` 使用的提供商路径和完整性门禁，为一个键和语言环境重新运行提供商，通过后只写入该键的语言文件和锁条目。
+
+```ts title="签名"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**返回**：`RetranslateEntryResult`
+
+**抛出**：[`MACHINE_TRANSLATION_DISABLED`](/zh-CN/docs/error-codes#machine_translation_disabled)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/zh-CN/docs/error-codes#locale_unsupported_by_provider)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`KEY_PINNED`](/zh-CN/docs/error-codes#key_pinned)、[`KEY_PROTECTED`](/zh-CN/docs/error-codes#key_protected)、[`PROVIDER_CONSTRUCTION_FAILED`](/zh-CN/docs/error-codes#provider_construction_failed)、[`NETWORK_POLICY_VIOLATION`](/zh-CN/docs/error-codes#network_policy_violation)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`TARGET_UNWRITABLE`](/zh-CN/docs/error-codes#target_unwritable)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)、[`SENSITIVE_CONTENT_WITHHELD`](/zh-CN/docs/error-codes#sensitive_content_withheld)
+
+**示例**：[编辑并重新翻译单个键](/zh-CN/docs/programmatic-api#编辑并重新翻译单个键)
+
+返回 `{ accepted: true, value, reviewReasons }`，或 `editEntry` 返回的拒绝结果。与 `translate` 不同，这里提供商失败会抛出错误：从 `@verbatra/sdk` 导出的 `ProviderError`，带有稳定的 `code`，例如 `RATE_LIMITED` 或 `AUTH_FAILED`。在 `provider: { id: "none" }` 下，它先抛出 `MACHINE_TRANSLATION_DISABLED`，此时尚未读取或锁定任何内容。
+
+<AvailableFrom version="0.13.0" />
+
+任一结果都带有 `usage`，即提供商的 token 数，仅在提供商报告时才有。
+
+新值以 `machine` 记录在 `verbatra.provenance.json` 中，附带应答的提供商的 `id` 和配置的模型。来自你的 `createProvider` 的提供商，以它自己的 `id` 记录；该 `id` 与配置的提供商不同时，不记录模型。来源记录文件已损坏时，在调用提供商之前抛出 `PROVENANCE_FILE_INVALID`。
+
+<AvailableFrom version="0.12.0" />
+
+值由人写入、导入或在 verbatra 之外更改过的键，会在写锁内、调用提供商之前抛出 `KEY_PROTECTED`，除非传入 `includeHuman: true`，或配置设置了 `humanEdits: "overwrite"`；若来源记录文件来自较新的 verbatra，任何现有的值都视为受保护。匹配 `pinnedKeys` 的键会在构造提供商之前抛出 `KEY_PINNED`，即使传入 `includeHuman` 也是如此。
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+记录有人审校了某个键在某个语言环境中的当前值并接受它。它只写入 `verbatra.provenance.json`，从不写语言文件或锁文件，也不调用提供商。批准还会保存锁文件中该键的源哈希，所以源文本有更改后，它会重新显示为未审校；之后任何更改该值的写入都会开始一条新的、未审校的记录。
+
+```ts title="签名"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**返回**：`ReviewDecisionResult`
+
+**抛出**：[`REVIEWER_INVALID`](/zh-CN/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`REVIEW_VALUE_CHANGED`](/zh-CN/docs/error-codes#review_value_changed)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over)、[`REVIEW_SOURCE_CHANGED`](/zh-CN/docs/error-codes#review_source_changed)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/zh-CN/docs/error-codes#provenance_file_unwritable)
+
+**示例**：[处理审校队列](/zh-CN/docs/programmatic-api#处理审校队列)
+
+`expectedValue` 和 `expectedValueHash` 只能传入其中一个，后者需要配合 `valueMarker` 依赖：两者都传、都不传、`expectedValue` 不是字符串，或只有哈希而没有它的标记，都会在读取任何内容之前抛出 `REVIEW_VALUE_CHANGED`。`expectedValue` 是审校人员看到的文本；也可以传入 `expectedValueHash`，以及生成它的 `valueMarker`：该键没有值或值不同时，调用抛出 `REVIEW_VALUE_CHANGED`；值写入之后源有更改时，抛出 `REVIEW_SOURCE_CHANGED`。`reviewer` 是可选的自由文本，长度为 1 到 64 个字符，不含控制字符（否则为 `REVIEWER_INVALID`），存储在已提交的文件中，verbatra 从不自动填写。返回 `{ locale, key, provenance }`。尚无记录的值，或在 verbatra 之外更改过的值，以来源 `unknown` 记录。
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+记录有人审校了某个键在某个语言环境中的当前值并拒绝它，并把它从语言文件和锁文件中删除，所以 `check` 和 `diff` 报告它缺失，下次 `translate` 会再次填充它（在 `provider: { id: "none" }` 下，它保持缺失，直到有人写入新值）。来源记录保留为 `rejected`，并带有已删除文本的哈希，本机上匹配的翻译记忆库条目会被丢弃；之后的 `translate` 会跳过该键与该哈希匹配的所有精确或模糊翻译记忆库命中，所以任何机器上的翻译记忆库都不会把这段文本带回来。不调用提供商。
+
+```ts title="签名"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**返回**：`ReviewDecisionResult`
+
+**抛出**：[`REVIEWER_INVALID`](/zh-CN/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`REVIEW_VALUE_CHANGED`](/zh-CN/docs/error-codes#review_value_changed)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over)、[`TARGET_UNWRITABLE`](/zh-CN/docs/error-codes#target_unwritable)、[`REVIEW_REJECT_UNSUPPORTED`](/zh-CN/docs/error-codes#review_reject_unsupported)、[`REVIEW_RESTORE_FAILED`](/zh-CN/docs/error-codes#review_restore_failed)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/zh-CN/docs/error-codes#provenance_file_unwritable)
+
+**示例**：[处理审校队列](/zh-CN/docs/programmatic-api#处理审校队列)
+
+输入的检查方式与 `approveEntry` 相同，只是过期的源不会阻止拒绝。返回 `{ locale, key, provenance }`。对于会保留未传入的键的格式（即 XLIFF），该调用会先恢复文件，再抛出 `REVIEW_REJECT_UNSUPPORTED`。
+
+两个调用都像 `editEntry` 一样，用 `lockAcquireTimeoutMs` 和 `onLockWait` 获取该语言环境的写锁；`LOCK_TIMEOUT_INVALID` 表示该界限不是不小于 0 的整数毫秒数。超时不限制为记录决定而获取的锁文件防护，它始终允许默认的 10 分钟。
+
+两者都不会报告无法保存的决定：来源记录文件来自较新的 verbatra，或该决定会让文件增长到超过 verbatra 能读回的大小，则在写入任何内容之前抛出 `PROVENANCE_FILE_UNWRITABLE`。
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+创建界面用来在不显示文本的情况下展示值的标记：`mark(value)` 返回 `[redacted length=<n> hash=<h>]`，`hash(value)` 返回 `h`，这是用随机盐（或给定的 `salt`）作密钥的 16 位十六进制 HMAC，所以哈希只在同一个标记下匹配。把该标记作为 `valueMarker` 传给 `approveEntry` 或 `rejectEntry`，即可用 `expectedValueHash` 代替 `expectedValue`。`verbatra mcp --redact-values` 在每次服务器启动时创建一个。
+
+```ts title="签名"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**返回**：`ValueMarker`
+
+## 批量内容读取
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+遍历磁盘上的文件一次，读取所请求的各目标语言环境中每个键当前的源文本和目标文本，例如用来搜索值而不是键名：它是 `keyValue` 的批量版本。只读。
+
+```ts title="签名"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**返回**：`readonly LocaleValues[]`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)
+
+**示例**：[批量读取每个值](/zh-CN/docs/programmatic-api#批量读取每个值)
+
+省略 `locales` 时，涵盖所有已配置的目标语言环境。每个语言环境返回一个 `{ locale, keys, values }`：`keys` 按源顺序列出每个键，然后是只在目标中存在的键；`values` 把每个键映射到 `{ source?, target? }`。没有 `target` 表示那里尚未翻译；没有 `source` 表示该键已孤立（已不在源中）。`values` 没有原型，所以每个键（甚至 `__proto__` 或 `constructor`）都是自有属性，不存在的键读取为 `undefined`。
+
+每个带 `target` 的键值对还带有 `provenance`，与 `keyValue` 报告的 `KeyProvenance` 相同。
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+读取 `localeValues` 的一页，可按确切的 `keys` 缩小范围，或按 `query` 缩小范围（`query` 在键、源文本和目标文本中不区分大小写地匹配），并返回下一页的游标。MCP 服务器和 Studio 的 `verbatra_locale_values` 智能体工具用它分页。只读。
+
+```ts title="签名"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**返回**：`LocaleValuesPage`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`PAGE_CURSOR_INVALID`](/zh-CN/docs/error-codes#page_cursor_invalid)、[`PAGE_LIMIT_INVALID`](/zh-CN/docs/error-codes#page_limit_invalid)
+
+返回 `{ locales, nextCursor? }`：页中有条目的每个语言环境都带有 `entries`，每个条目是 `localeValues` 所报告的 `{ key, source?, target?, provenance? }`，先按语言环境、再按键排序。一页最多包含 `limit` 个条目：默认 `PAGE_LIMIT_DEFAULT`（200），最大 `PAGE_LIMIT_CAP`（1000）。把 `nextCursor` 作为 `cursor` 连同相同的过滤条件传回，直到它不再出现。每次调用都会重新读取文件，所以键已移动或已消失的游标会被拒绝，而不是跳过或重复条目。
+
+`cursor` 最多 `PAGE_CURSOR_MAX_LENGTH`（512）个字符。MCP 服务器和 Studio 接受的 `query` 最多 `LOCALE_VALUES_QUERY_MAX_LENGTH`（500）个字符。
+
+## 批量审校与重新翻译
+
+<AvailableFrom version="0.12.0" />
+
+它们都按顺序对每个条目运行对应的单键调用一次，并返回 `{ results }`，每个条目一个结果。失败的条目不会停止整个批次：它的结果是 `{ locale, key, ok: false, code, message }`，其中 `code` 是 `SdkError`、适配器错误或 `ProviderError` 的错误码，`message` 是已脱敏的信息。任何其他错误都会以 `BatchInterruptedError` 停止整个批次。空的 `entries` 列表返回空的 `results`。
+
+### approveEntries
+
+对每个条目运行 `approveEntry`，检查相同；`reviewer` 适用于每个条目。成功的结果是 `{ ok: true, locale, key, provenance }`。`lockAcquireTimeoutMs` 限制每个条目等待其语言环境写锁的时间，`onLockWait` 报告该等待。锁在超时后仍被占用的条目以 `LOCK_CONTENDED` 失败，之后每个需要同一把锁的条目都得到 `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }`，而不再重复等待；其他语言环境的条目仍会处理。
+
+```ts title="签名"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**返回**：`ReviewEntriesResult`
+
+**抛出**：[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)
+
+### rejectEntries
+
+对每个条目运行 `rejectEntry`，删除每个被拒绝的值。成功的结果是 `{ ok: true, locale, key, provenance }`。与 `approveEntries` 一样，锁超时会跳过之后需要该锁的条目。
+
+```ts title="签名"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**返回**：`ReviewEntriesResult`
+
+**抛出**：[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+批准某个语言环境的整个审校队列，或只批准带有 `origins` 之一的值，在该语言环境的写锁下，对 `verbatra.provenance.json` 一次写入完成，每一条都像 `approveEntry` 那样记录。它不接受预期值，批准的是运行时队列中的内容，所以应先把队列展示给审校人员。返回 `{ locale, approved, sourceChanged }`：已批准的键，以及因写入之后源有更改而保持未审校的队列中的键。不调用提供商，并且以 `PROVENANCE_FILE_UNWRITABLE` 失败，而不是报告无法保存的批准。
+
+```ts title="签名"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**返回**：`ApproveLocaleResult`
+
+**抛出**：[`REVIEWER_INVALID`](/zh-CN/docs/error-codes#reviewer_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)、[`PROVENANCE_FILE_UNWRITABLE`](/zh-CN/docs/error-codes#provenance_file_unwritable)
+
+### retranslateEntries
+
+对每个条目运行 `retranslateEntry`，所以每个条目最多调用一次提供商。它不是 `translate` 运行：`maxTokens` 和 `budgetBehavior` 不适用，条目数量是它花费的唯一上限。完成的结果是 `{ ok: true, locale, key, result }`，其中 `result` 是 `retranslateEntry` 返回的内容，包括被完整性门禁拒绝的值。人写入的值会以 `KEY_PROTECTED` 失败，除非传入 `includeHuman: true`。锁选项的作用与 `approveEntries` 相同，等待在调用提供商之前结束。
+
+```ts title="签名"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**返回**：`RetranslateEntriesResult`
+
+**抛出**：[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)
+
+<AvailableFrom version="0.12.0" />
+
+会让每个条目都同样失败的错误会停止提供商调用：`MISSING_API_KEY`、`AUTH_FAILED`、`RATE_LIMITED`（包括配额耗尽）、`NETWORK_POLICY_VIOLATION`、`PROVIDER_CONSTRUCTION_FAILED`、`CONFIG_INVALID` 或 `MACHINE_TRANSLATION_DISABLED`。遇到它的条目照常失败，之后的每个条目都得到 `{ locale, key, ok: false, skipped: true, code, message }`，其中 `code` 就是该错误码，且不会再调用提供商。
+
+锁超时会以 `LOCK_CONTENDED` 跳过之后需要该锁的条目，与 `approveEntries` 相同；对把所有语言环境放在一个文件中的格式，这意味着之后的每个条目。
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+当不属于某一个条目结果的错误（例如意外的文件系统失败）让批次中途停止时，由 `approveEntries`、`rejectEntries` 和 `retranslateEntries` 抛出。`results` 按顺序保存在它之前完成的条目的结果，这些条目的写入保留在磁盘上；`entry` 给出正在运行的 `{ locale, key }`，`cause` 是原始错误。`entry` 之后的条目没有运行。
+
+```ts title="签名"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />

@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { LOCALES } from "@/lib/locales";
 import {
   cardMark,
   FORMAT_ID_CLASS,
@@ -504,7 +505,7 @@ describe("StackCards", () => {
       (file) =>
         file.endsWith(".mdx") && readFileSync(join(content, file), "utf8").includes("<StackCards"),
     );
-    expect(files).toHaveLength(8);
+    expect(files).toHaveLength(2 * LOCALES.length);
     for (const file of files) {
       const source = readFileSync(join(content, file), "utf8");
       expect(source).not.toMatch(/mark: "(?:spring|flutter|nextdotjs|apple|yaml|vue|nuxt)"/);

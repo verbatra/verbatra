@@ -1,0 +1,84 @@
+---
+title: Trabalhar sem tradução automática
+seoTitle: "Usar o verbatra sem nenhuma tradução automática"
+description: Use o verbatra com a tradução automática desativada por política, para que nenhuma string chegue a um serviço de tradução e toda tradução venha de uma pessoa.
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+Use isto quando um NDA (acordo de confidencialidade), um contrato com cliente ou uma regra da empresa proíba enviar strings a qualquer serviço de IA ou de tradução. Com o provedor definido como `none`, todo comando que poderia gastar ou enviar algo trabalha só com dados locais ou se recusa. Tudo o que não precisa de provedor (diff, arquivo de lock, memória de tradução, exportação e importação, verificações, tipos, pseudolocalização, extração) funciona como antes.
+
+Você precisa de um projeto verbatra, ou de um diretório em que você está prestes a executar `verbatra init`.
+
+## Configurar
+
+```bash
+verbatra init --provider none
+```
+
+Isso grava uma configuração cujo bloco de provedor é só este, e nenhum `.env.example`, porque nenhuma chave de API é lida:
+
+```ts title="verbatra.config.ts"
+provider: { id: "none" }
+```
+
+Em um projeto existente, substitua o bloco `provider` por `{ id: "none" }`. O [`verbatra doctor`](/pt-BR/docs/cli/doctor) passa então a relatar `machine translation disabled by policy` e é aprovado nas verificações de provedor e de chave de API sem procurar uma chave de API.
+
+## O que cada comando faz
+
+| Comando | Com `provider: { id: "none" }` |
+| --- | --- |
+| `translate`, `watch` | preenchem uma chave só a partir de um acerto exato na memória de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)), nunca de um aproximado; toda outra chave ausente ou alterada é listada como `unfilled`, fica intocada e é oferecida de novo na próxima execução. O `translate` termina com código `3` enquanto sobrar alguma chave |
+| `export`, `import`, `tmx` | sem mudança: a entrega e a memória de tradução são o caminho pelo qual as traduções humanas entram |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | sem mudança; nenhum deles chama um provedor |
+| `studio`, `mcp` | leituras e edições locais funcionam; as ações que gastam com provedor nunca são oferecidas, nem com `--allow-spend` |
+| [`retranslateEntry`](/pt-BR/docs/sdk/review#retranslateentry) do SDK | falha com [`MACHINE_TRANSLATION_DISABLED`](/pt-BR/docs/error-codes#machine_translation_disabled) antes de ler ou travar qualquer coisa |
+
+Nenhum provedor é instanciado em nenhum desses caminhos, seja qual for o conteúdo do ambiente, e nenhuma requisição de rede é feita.
+
+## Migrar de um provedor automático
+
+A memória de tradução guarda o trabalho somente humano em um grupo próprio, separado de tudo o que um provedor automático produziu, então migrar para `none` começa de uma memória vazia. Mudar o `tone` ou o glossário nunca toca nesse grupo.
+
+Se quiser levar traduções anteriores, mova-as de forma explícita, sabendo que está importando saída automática para uma memória que, fora isso, é somente humana. Exporte antes de migrar: logo depois da migração, o `tmx export` grava o grupo somente humano, que ainda está vazio.
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+Veja [`verbatra tmx`](/pt-BR/docs/cli/tmx) para o nome do arquivo e as flags.
+
+## O ciclo do dia a dia
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+O passo 1 é opcional, porque o `verbatra diff` e o `verbatra check` mostram as mesmas chaves pendentes. Ainda assim vale executá-lo: ele preenche toda chave que a memória de tradução já cobre, então seus tradutores veem só o que é de fato novo. Para a entrega em si, veja [Entregar com Excel ou CSV](/pt-BR/docs/manual-translation) ou [Entregar a uma agência (XLIFF)](/pt-BR/docs/translation-agency).
+
+## Na CI
+
+O `translate` termina com código `3` quando há chaves esperando por uma pessoa (veja [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída)), então um pipeline pode fazer o build falhar, abrir uma solicitação de tradução ou só relatar. A [GitHub Action](/pt-BR/docs/github-action#modo-somente-humano) deixa o passo passar no código de saída `3` e define sua saída `needs-human` como `"true"` para um passo posterior agir.
+
+## Veja também
+
+- [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída): o contrato completo dos códigos de saída.
+- [O cache de tradução](/pt-BR/docs/the-cache): a memória a partir da qual o `translate` preenche as chaves.
+- [Provedores](/pt-BR/docs/providers): `none` ao lado dos provedores de tradução.
+- [Tratamento de dados e privacidade](/pt-BR/docs/data-handling): o que sai da máquina com cada provedor.

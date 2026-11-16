@@ -1,7 +1,7 @@
 ---
 title: Estimer le coût avant une exécution
 seoTitle: "Estimer le coût de traduction avant une exécution"
-description: "Dimensionne une exécution de traduction avant de dépenser : compte les clés avec un dry run, laisse verbatra calculer le coût, puis plafonne l'exécution."
+description: "Dimensionne une exécution avant de dépenser : compte les clés par une exécution à blanc, laisse verbatra en tirer requêtes, tokens et coût, puis plafonne-la."
 type: how-to
 ---
 Utilise ceci avant une première exécution sur un vrai projet, ou avant toute exécution que quelqu'un doit approuver. verbatra ne publie aucun prix, car les tarifs appartiennent au fournisseur et changent sans prévenir. Il compte ce qui te sera facturé, et le convertit en argent dès que tu lui donnes les tarifs actuels de ton fournisseur.
@@ -22,7 +22,7 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-`would translate` est le nombre de clés qu'une vraie exécution enverrait : celles qui manquent dans le fichier cible plus celles dont le texte source a changé. Un dry run ne construit aucun fournisseur, ne lit aucune clé et n'écrit rien. Considère ce nombre comme une borne haute : il ignore [le cache](/fr/docs/the-cache), qui sert gratuitement les chaînes répétées lors d'une vraie exécution, et il ne regroupe pas les chaînes source identiques, qu'une vraie exécution n'envoie qu'une fois.
+`would translate` est le nombre de clés qu'une vraie exécution enverrait : celles qui manquent dans le fichier cible plus celles dont le texte source a changé. Une exécution à blanc ne construit aucun fournisseur, ne lit aucune clé et n'écrit rien. Considère ce nombre comme une borne haute : il ignore [le cache](/fr/docs/the-cache), qui sert gratuitement les chaînes répétées lors d'une vraie exécution, et il ne regroupe pas les chaînes source identiques, qu'une vraie exécution n'envoie qu'une fois.
 
 ## Estime la dépense
 
@@ -84,10 +84,10 @@ L'estimation fait le calcul que tu ferais sinon à la main :
 - **Sortie.** La traduction n'existe pas encore, elle est donc évaluée comme le texte source plus 50 pour cent, car l'allemand, le français et le russe sont souvent d'un tiers à la moitié plus longs que l'anglais.
 - **Tokens.** Les caractères sont convertis à raison d'environ quatre par token, ce qui convient à de la prose anglaise ; d'autres écritures sont plus denses.
 
-Une vraie exécution coûte en général moins, pour les deux raisons qui font du chiffre du dry run une borne haute. Elle peut aussi coûter plus, et la ligne `estimate excludes` nomme chaque cause. Deux comptent le plus :
+Une vraie exécution coûte en général moins, pour les deux raisons qui font du chiffre de l'exécution à blanc une borne haute. Elle peut aussi coûter plus, et la ligne `estimate excludes` nomme chaque cause. Deux comptent le plus :
 
 - **Nouvelles tentatives.** Une requête échouée est [relancée](/fr/docs/providers#nouvelles-tentatives) : jusqu'à deux tentatives de plus pour Anthropic, OpenAI, OpenCode, `openai-compatible` et Gemini, cinq pour DeepL, aucune pour Google Cloud Translation et LibreTranslate. Une tentative qui a atteint le modèle est facturée.
-- **Réparations.** Quand des clés reviennent manquantes, verbatra envoie une requête de réparation, qui reporte en entier les règles système, le glossaire et le ton.
+- **Réparations.** Quand des clés reviennent manquantes, verbatra envoie une requête de réparation, qui reprend en entier les règles système, le glossaire et le ton.
 
 Planifie avec ce chiffre, mais ne le promets pas comme plafond. L'estimation ne couvre d'ailleurs que `translate` : retraduire une entrée depuis [Studio](/fr/docs/review-in-studio) ou un outil d'agent dépense par son propre chemin.
 
@@ -124,7 +124,7 @@ Multiplie par le nombre de locales restantes. Avec `--json`, les chiffres sont `
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-L'Overview de Studio liste les exécutions enregistrées avec leur coût, figé à la fin de l'exécution, donc un changement ultérieur de `rates` ne le réécrit jamais. Un montant correspond aux tokens signalés par le fournisseur multipliés par le tarif en vigueur alors. **Estimated** est un chiffre en caractères source pour un fournisseur qui ne signale aucune consommation. **At least** est un minimum, car une locale n'a signalé aucun token. **No rate** signifie qu'aucun tarif ne correspondait à ce modèle, et **unknown** que des clés ont été envoyées sans qu'aucun token ne revienne ; aucun des deux n'est gratuit. Les fournisseurs auto-hébergés affichent **not billed**. L'enregistrement est documenté sous [`runHistory`](/fr/docs/sdk/history#runhistory) ; [Review in Studio](/fr/docs/review-in-studio) montre la page.
+L'Overview de Studio liste les exécutions enregistrées avec leur coût, figé à la fin de l'exécution, donc un changement ultérieur de `rates` ne le réécrit jamais. Un montant correspond aux tokens signalés par le fournisseur multipliés par le tarif en vigueur alors. **Estimated** est un chiffre en caractères source pour un fournisseur qui ne signale aucune consommation. **At least** est un minimum, car une locale n'a signalé aucun token. **No rate** signifie qu'aucun tarif ne correspondait à ce modèle, et **unknown** que des clés ont été envoyées sans qu'aucun token ne revienne ; aucun des deux n'est gratuit. Les fournisseurs auto-hébergés affichent **not billed**. L'enregistrement est documenté sous [`runHistory`](/fr/docs/sdk/history#runhistory) ; [Réviser dans Studio](/fr/docs/review-in-studio) montre la page.
 
 ## Fournisseurs de traduction automatique
 

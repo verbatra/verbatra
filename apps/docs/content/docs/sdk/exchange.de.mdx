@@ -109,7 +109,7 @@ function localeWatchPaths(
 ## Das Arbeitsmappen-Paar
 
 Die Übergabe für menschliche Übersetzerinnen, als Excel-Arbeitsmappe oder als Text mit
-Trennzeichen; siehe [Menschliche Übersetzung](/de/docs/manual-translation).
+Trennzeichen; siehe [Manuelle Übersetzung](/de/docs/manual-translation).
 
 ### exportWorkbook
 
@@ -139,7 +139,7 @@ function exportWorkbook(
 `xlsx`; `csv` und `tsv` schreiben stattdessen eine `<locale>.csv` bzw. `<locale>.tsv` pro Locale, `out`
 benennt dafür also ein Verzeichnis (das angelegt wird, falls es fehlt) und bei `xlsx` einen Dateipfad.
 `out` ist standardmäßig `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) oder, bei den
-Getrennt- und XLIFF-Formaten, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
+Formaten mit Trennzeichen und den XLIFF-Formaten, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
 `{ path, locales }` zurück: den absoluten geschriebenen Pfad und eine Zeilenzahl pro Locale.
 
 Bevor irgendetwas gelesen wird, weist `EXPORT_OUTPUT_CONFLICT` ein `out` zurück, das außerhalb von
@@ -152,7 +152,7 @@ Ein `xlsx`-Pfad wird außerdem abgelehnt, wenn er keine Datei benennt (auch eine
 Pfadtrennzeichen endet) oder `cwd` selbst benennt; ein `csv`-, `tsv`- oder XLIFF-Verzeichnis darf `cwd`
 sein. Scheitert das Schreiben, weil das Verzeichnis nicht schreibbar ist, ein Verzeichnis oder eine
 Datei im Weg liegt oder die Platte voll ist, wirft es `EXPORT_UNWRITABLE` mit der Datei und dem
-Dateisystem-Code in der Message und dem Dateisystem-Fehler als `cause`.
+Dateisystem-Code in der Meldung und dem Dateisystem-Fehler als `cause`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -198,7 +198,7 @@ Zusammenfassung fehlschlagen, statt zu werfen.
 bevor die Datei dieser Locale geschrieben wird. Eine Locale, deren Sperre danach noch belegt ist,
 schlägt mit `LOCK_CONTENDED` auf ihrer eigenen Zusammenfassung fehl, während die anderen Locales
 importiert werden. Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum
-Standard von zehn Minuten. Ein Dry-Run nimmt keine Sperre, daher gilt keine der beiden Optionen für
+Standard von zehn Minuten. Ein Dry Run nimmt keine Sperre, daher gilt keine der beiden Optionen für
 ihn.
 
 <AvailableFrom version="0.12.0" />
@@ -220,7 +220,7 @@ Mit `xliff2` oder `xliff12`, die beide jede Version lesen, und standardmäßig b
 `importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/de/docs/the-cache) in TMX hinein und
 wieder heraus, also in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und
 lesen. Keine der beiden Funktionen konstruiert einen Provider, liest einen API-Key oder stellt eine
-Netzwerkanfrage: jeder Wert kommt aus der Datei oder aus dem Übersetzungsspeicher, der ohnehin schon
+Netzwerkanfrage: Jeder Wert kommt aus der Datei oder aus dem Übersetzungsspeicher, der ohnehin schon
 auf der Platte liegt. Das ist nicht das Arbeitsmappen-Paar in einem anderen Format. Das
 Arbeitsmappen-Paar übergibt einer Übersetzerin einen Ausschnitt des offenen Deltas pro Locale;
 dieses Paar bewegt den ganzen Übersetzungsspeicher als eine mehrsprachige Datei zwischen Werkzeugen.
@@ -273,13 +273,13 @@ deshalb auf zu passen, sobald sich Provider, Modell, Tonfall, die Glossarbegriff
 zweites Mal zu importieren ändert nichts.
 
 Gibt bei beschädigten Daten einen Bericht zurück, statt zu werfen: wie viele Einheiten gelesen
-wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates`,
+wurden, eine Aufschlüsselung pro Locale nach `added`, `unchanged`, `overwritten`, `kept`, `duplicates`,
 `conflicting` und `rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein
 Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wurde
 (`subflowDroppedUnits`), sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
 `memoryWritable` ist false, wenn die Datei des Übersetzungsspeichers von einem neueren verbatra
 geschrieben wurde; sie bleibt dann unangetastet. Die Zählungen pro Locale werden trotzdem gemeldet,
-wie bei einem Probelauf, sodass `added` und `overwritten` beschreiben, was gelandet wäre; bei
+wie bei einem Dry Run, sodass `added` und `overwritten` beschreiben, was gelandet wäre; bei
 `memoryWritable` false ist nichts gelandet.
 
 <AvailableFrom version="0.12.0" />
@@ -328,7 +328,7 @@ Konfiguration sucht, die `configPath`-Datei oder die `glossaryPath`-Datei benenn
 der Groß- und Kleinschreibung und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung,
 noch einmal nach dem Auflösen symbolischer Links. Scheitert das Schreiben, weil das Verzeichnis
 nicht schreibbar ist, an dem Pfad ein Verzeichnis liegt oder die Platte voll ist, wirft es
-`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Message. Geschrieben werden nur
+`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Meldung. Geschrieben werden nur
 Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe Menge, die ein Lauf
 wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US` wird zu `en-US`), was
 nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein leerer
@@ -349,7 +349,7 @@ function exportTmx(
 
 **Beispiel:** [Der TMX-Roundtrip](/de/docs/programmatic-api#der-tmx-roundtrip)
 
-Gibt `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, `otherConfiguration` zählt Einträge, die ausgelassen wurden, weil sie unter einem anderen Konfigurations-Fingerprint gespeichert sind (einem früheren Provider, Modell, Ton oder Glossar), einmal pro Locale und Hash, und `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
+Gibt `{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, `otherConfiguration` zählt Einträge, die ausgelassen wurden, weil sie unter einem anderen Konfigurations-Fingerprint gespeichert sind (einem früheren Provider, Modell, Tonfall oder Glossar), einmal pro Locale und Hash <AvailableFrom version="0.13.5" />, und `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
 
 <AvailableFrom version="0.12.0" />
 

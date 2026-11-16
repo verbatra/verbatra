@@ -1,0 +1,132 @@
+---
+title: 简介
+seoTitle: "verbatra 简介：i18n 翻译自动化"
+description: "verbatra 是什么，它解决什么问题：只翻译已更改的键。了解 CLI 和 SDK 如何与 Studio 和 MCP 服务器配合。"
+type: overview
+---
+
+<DocsHomeHeader
+  eyebrow="文档"
+  headline="配置 verbatra，让每个语言环境保持同步。"
+  lead="CLI、SDK、Studio 和 MCP 服务器的指南与参考：从快速上手开始，或者让你的编码智能体来配置 verbatra。"
+>
+
+<DocsHomeTabs
+  label="入口"
+  tabs={[
+    { label: "快速上手", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "MCP 服务器", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
+/>
+
+<DocsHomeAgentTip title="正在使用编码智能体？">
+把提示词复制到 Claude Code、Cursor 或任何编码智能体中，它就会替你配置 verbatra；每一步见[用 AI 智能体配置 verbatra](/zh-CN/docs/start-with-ai)。要让它直接读取和编辑你的译文，请连接 MCP 服务器（见 [verbatra mcp](/zh-CN/docs/cli/mcp)）。
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
+
+<DocsHomeBody>
+
+<DocsHomeSection title="从你的目标开始" lead="选择你要做的事；每张卡片都会打开对应的页面。">
+
+<DocsHomePaths
+  cards={[
+    {
+      goal: "翻译一个项目",
+      page: "快速上手",
+      body: "安装 CLI，不用密钥预览运行，然后翻译你的第一个文件。",
+      href: "/docs/quickstart",
+    },
+    {
+      goal: "用门禁拦住 pull request",
+      page: "CI 与退出码",
+      body: "语言环境发生漂移时让 pull request 失败，并为脚本提供 JSON 输出。",
+      href: "/docs/ci-and-exit-codes",
+    },
+    {
+      goal: "交给译者",
+      page: "手动翻译",
+      body: "导出一个工作簿让人来翻译，再把它导入回来。",
+      href: "/docs/manual-translation",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+<DocsHomeSection id="pick-your-stack" title="选择技术栈" lead="标有“快速上手”的卡片会打开该技术栈的分步指南；其他卡片会打开它的 init 命令和文件布局。">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "快速上手", description: "在 React 应用中翻译 i18next JSON 文件。" },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "快速上手", description: "让 next-intl 消息文件在每个语言环境中保持同步。" },
+    { label: "Vue", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "快速上手", description: "在 Vue 应用中翻译 vue-i18n JSON 消息。" },
+    { label: "Nuxt", icon: "web", mark: "deviconNuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-和-nuxt-搭配-vue-i18n", description: "在 Nuxt 应用中翻译 vue-i18n JSON 消息。" },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "快速上手", description: "在 Angular 应用中翻译 ngx-translate JSON 文件。" },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "快速上手", description: "为 Flutter 的 gen-l10n 翻译 ARB 文件。" },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "翻译 strings.xml 资源，每个语言环境一个文件夹。" },
+    { label: "iOS 和 macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-和-macos", description: "翻译 .strings、.stringsdict 和 String Catalogs。" },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "根据 POT 模板翻译 PO 文件。" },
+    { label: "Java 和 Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "/docs/pick-your-stack#java-和-spring", description: "翻译 .properties 消息包。" },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "翻译 .resx 资源文件。" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "翻译嵌套的 YAML 语言文件。" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "翻译 XLIFF 文件，翻译工具之间交换用的格式。" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "翻译扁平的 INI 语言文件。" },
+  ]}
+/>
+
+<DocsHomeNote>
+没有看到你的技术栈？请从[快速上手](/zh-CN/docs/quickstart)开始，或者用自定义格式适配器（见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)）让 verbatra 学会你的格式。
+</DocsHomeNote>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="每次运行都是差异比对，而不是重写。" lead="运行 `verbatra translate` 时会发生什么。">
+
+手动维护一个源语言环境，意味着其他每个语言文件都会漂移：新键在目标文件中缺失，编辑过的字符串留下过期的译文，删除的键则作为孤立的键留着。verbatra 把每个目标与已提交的锁文件 `verbatra.lock.json` 比对，只把已更改的内容发给你配置的提供商，从而消除这种差距；没有新内容可翻译时，再运行一次根本不会调用提供商。每条结果在写入之前都会经过检查，因此损坏的占位符会被搁置并重试，绝不会发布出去。完整流程见[运行的工作原理](/zh-CN/docs/how-it-works)。
+
+<DocsHomeSteps />
+
+verbatra 读写常见的语言文件格式，从 JSON 和 YAML 到 XLIFF、gettext，以及 Android 和 Apple 的消息目录，并通过统一的接口，使用任何受支持的 LLM 或机器翻译提供商进行翻译（也可以一个都不用，见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）；verbatra 未内置的格式，可以写成自定义适配器加入（见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)）。完整的列表见[格式](/zh-CN/docs/formats)和[提供商](/zh-CN/docs/providers)。
+
+</DocsHomeSection>
+
+<DocsHomeSection title="软件包" lead="一个引擎，四种使用方式。">
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      pkg: "cli",
+      body: "verbatra 可执行文件：从 init 和 extract 到 translate、check、export 和 studio 的每个命令，都是 SDK 之上的一层薄封装。从这里开始。",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      pkg: "sdk",
+      body: "底层的引擎：translate、watch、check、diff、doctor、extract、伪本地化、类型生成，以及 Excel 和 TMX 的往返流程，全部可以通过代码使用。",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      pkg: "studio",
+      body: "本地仪表盘，支持就地编辑、审校队列、展示覆盖率和运行情况的 Overview，以及浏览器智能体工具。除非你主动启用，否则不会产生提供商花费。",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      pkg: "mcp",
+      body: "一个 stdio MCP 服务器，向 Claude Code、Cursor 或任何 MCP 客户端提供翻译状态、术语表和编辑工具。",
+      href: "/docs/cli/mcp",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+</DocsHomeBody>

@@ -67,13 +67,13 @@ A setup run reports these checks, in this order. Plural rules, Plural completene
 | Network policy | the effective [network policy](/docs/network-policy) refuses the provider's host or a proxy it would use |
 | Source locale file | the source locale file is missing at its resolved path, is not a regular file, or does not parse under the configured format |
 | Plural rules | never; names the ICU and CLDR versions in use, and warns when a target locale has no ICU plural rules |
-| Plural completeness | never; warns and names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds); skipped for a format that does not store plural forms by CLDR category |
+| Plural completeness | never; warns and names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds) |
 | Locale codes | never; warns and names every valid but non-canonical code, such as `en-us` or `iw`, with the canonical form (see [Locale codes](/docs/config-file#locale-codes)) |
 | Locale state | never; warns and names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
 | Length limits | never; warns when `verbatra.limits.json` cannot be used (a run ignores it and a limit cannot be set until it is fixed), names a limit for a key the source no longer has or one the config's `maxLength` overrides, and says so when the source could not be read to check the keys; passes when the file is absent ([length limits](/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
 | Locale support | the provider does not support the source or a target locale; warns when a locale carries a warning (see [Locale support](#locale-support)) |
 
-Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON), as does Plural completeness for a format without CLDR plural forms. A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
+Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON), as does Plural completeness for a format without CLDR plural forms. A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as `fix:` and sent as `"fix"` in JSON, so an agent need not parse `detail`.
 
 A run with two problems:
 
@@ -92,6 +92,8 @@ verbatra doctor
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
+
+A clean run ends with `no problems found`, plus `, N warnings` when a check warned.
 
 ### Keys and files
 
@@ -170,6 +172,7 @@ The check fails on a finding and on a file it could not open, read to the end, o
     locale       de  sent as DE  glossary terms: 0
     local        lock  verbatra.lock.json  (no source text, translations or personal data)
     local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
     local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
     local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
     request      language-list  verbatra doctor --live  sends the API key

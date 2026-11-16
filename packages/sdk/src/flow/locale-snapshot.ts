@@ -58,7 +58,8 @@ export interface ReadLocaleFileSnapshotDeps {
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
- * cannot be combined, or a configured locale has no valid path spelling under that style.
+ * cannot be combined, or a configured locale, or the requested locale when it is not configured,
+ * has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
  * own code is preserved rather than remapped onto an {@link SdkErrorCode}.

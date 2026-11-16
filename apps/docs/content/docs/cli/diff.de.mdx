@@ -56,7 +56,7 @@ Eine Locale hat ausstehende Änderungen, sobald sie mindestens einen fehlenden o
 
 <AvailableFrom version="0.11.0" />
 
-`--unused` beantwortet eine andere Frage als `orphaned`: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nicht mehr? Es scannt die `roots` des [`extract`-Blocks](/de/docs/config-file#extract) mit dem Leser, den [`verbatra extract`](/de/docs/cli/extract) nutzt, und listet jeden Quell-Key, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt. Der Scan bleibt nur lesend: Nichts wird entfernt, und kein API-Key wird gelesen. Ob du einen Key löschst, entscheidest du.
+`--unused` beantwortet eine andere Frage als `orphaned`: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nicht mehr? Es scannt die `roots` des [`extract`-Blocks](/de/docs/config-file#extract) mit demselben Reader, den [`verbatra extract`](/de/docs/cli/extract) nutzt, und listet jeden Quell-Key, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt. Der Scan bleibt nur lesend: Nichts wird entfernt, und kein API-Key wird gelesen. Ob du einen Key löschst, entscheidest du.
 
 Der Scan bildet die i18next-Laufzeit nach. Folgendes zählt als Referenz:
 
@@ -93,7 +93,7 @@ Jeder gelistete Key zeigt seine dekodierte Schreibweise (einen gettext-`msgctxt`
 
 <AvailableFrom version="0.12.0" />
 
-Fehlende und geänderte Keys, die `translate` einer Person überlassen würde (eine Person hat den Wert außerhalb von verbatra geschrieben, importiert oder geändert, oder der Key passt auf `pinnedKeys`), erscheinen zusätzlich unter `protected`; siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations). Sie bleiben auch in `add` und `re-translate`, weil sie weiter ausstehen. Ist `verbatra.provenance.json` beschädigt oder stammt von einer neueren verbatra-Version, werden nur angeheftete Keys gelistet.
+Fehlende und geänderte Keys, die `translate` einer Person überlassen würde (eine Person hat den Wert außerhalb von verbatra geschrieben, importiert oder geändert, oder der Key passt auf `pinnedKeys`), erscheinen zusätzlich unter `protected`; siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations). Sie bleiben auch in `add` und `re-translate`, weil sie weiter ausstehen. Ist `verbatra.provenance.json` beschädigt oder stammt von einer neueren verbatra-Version, werden nur gepinnte Keys gelistet.
 
 ### JSON-Ausgabe
 
@@ -115,7 +115,7 @@ interface LocaleDiff {
   orphaned: string[];          // wird nur gemeldet
   emptySource?: string[];      // Quellwert leer: nie ausstehend
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
-  changedOrigins?: Record<string, KeyOrigin>; // fehlt, wenn die Provenienz-Datei unlesbar ist
+  changedOrigins?: Record<string, KeyOrigin>; // fehlt, wenn die Herkunftsdatei unlesbar ist
   protected?: string[];        // ausstehende Keys, die translate stehen lässt
 }
 ```
@@ -124,10 +124,10 @@ interface LocaleDiff {
 
 <AvailableFrom version="0.12.0" />
 
-`diff` zeigt eine Zeile, während es arbeitet (mit laufender Dateizahl, wenn `--unused` den Code scannt), und schlägt den nächsten Befehl vor:
+`diff` zeigt eine Zeile, während es arbeitet (`diffing and scanning the source` mit laufender Dateizahl unter `--unused`), und schlägt den nächsten Befehl vor:
 
 ```text output
-verbatra: diffing and scanning the source... done (0.8s)
+verbatra: diffing the locales... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
@@ -139,7 +139,7 @@ Sind alle ausstehenden Keys geschützt, schlägt es stattdessen `verbatra studio
 | --- | --- |
 | `0` | keine Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und kein vollständiger `--unused`-Scan hat einen ungenutzten Key gefunden |
 | `1` | mindestens eine Locale hat einen fehlenden oder geänderten Key, oder ein `complete`-Scan mit `--unused` hat einen ungenutzten Key gefunden |
-| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf, ein nicht konfigurierter `--locales`-Wert (`UNKNOWN_LOCALE`) oder ein Bedienfehler wie eine leere `--locales`-Liste (`INVALID_LOCALES`) |
+| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf, ein nicht konfigurierter `--locales`-Wert (`UNKNOWN_LOCALE`) oder ein Verwendungsfehler wie eine leere `--locales`-Liste (`INVALID_LOCALES`) |
 
 Verwaiste, möglicherweise dynamische und ignorierte Keys sowie ein Bericht mit `unreliable` oder `not-run` führen nie allein zu `1`. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 

@@ -97,7 +97,8 @@ function mergeValues(
 
 /**
  * Reads every key's current source and target text, across every requested target locale, in one
- * pass over the files already on disk. It writes nothing and calls no provider.
+ * pass over the locale files already on disk, plus the provenance file and lock-file for each
+ * translation's provenance. It writes nothing and calls no provider.
  *
  * This exists to back client-side search over translation content rather than key names alone: a
  * caller holding the result in memory can match a query against source or target text without a
@@ -117,7 +118,8 @@ function mergeValues(
  *
  * @param input - The config and the optional locale filter.
  * @param deps - Optional adapter registry and file-system overrides.
- * @returns Per-locale source and target text, keyed by key name.
+ * @returns Per target locale, the keys in source order followed by target-only keys, and for each
+ *   key its source text, target text and the provenance of the target.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`

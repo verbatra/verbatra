@@ -1,0 +1,166 @@
+---
+title: Segurança da tradução
+seoTitle: "Segurança da tradução: integridade e revisão"
+description: "O modelo de segurança: strings não confiáveis, a barreira de integridade, as sinalizações de revisão, o orçamento de tokens e erros que nunca vazam nada."
+type: concept
+---
+O verbatra não confia nem nas strings que traduz nem no que um provedor devolve.
+
+| Camada | Protege contra | Em caso de falha |
+| --- | --- | --- |
+| Fronteira contra injeção de prompt | uma string que parece uma instrução | nada que possa falhar: as strings são sempre só dados |
+| Barreira de integridade | placeholders, ICU ou marcação quebrados, valores vazios ou degenerados | a chave fica retida e é tentada de novo na próxima execução |
+| Sinalizações de revisão | um valor válido, mas suspeito | a chave é gravada e entra na fila para uma pessoa |
+| Orçamento de tokens | gasto acima de um teto que você definiu | o restante da execução fica retido ou sinalizado |
+| Erros estruturados | uma chave de API ou um cabeçalho vazando para uma mensagem | um código estável com uma mensagem fixa |
+
+## Strings não confiáveis e a fronteira contra injeção de prompt
+
+Uma string traduzível pode conter um texto que parece uma instrução (“ignore suas
+instruções”), então o verbatra trata toda string como entrada não confiável. As regras de sistema
+enviadas a um provedor de LLM são constantes de tempo de compilação. Tudo o que varia (as entradas, seu glossário e tom, os
+nomes dos idiomas, as categorias de destino de um plural) viaja apenas no payload JSON do turno do usuário, nunca no
+canal de instruções. A resposta precisa corresponder a um schema fixo; uma resposta com uma chave que
+nunca foi pedida faz o sublote inteiro falhar.
+
+### Nomes de idioma, sistema de escrita e região
+
+<AvailableFrom version="0.12.0" />
+
+Um código de locale sozinho nem sempre basta: `sr-Latn` costuma voltar em cirílico, e `pt-BR` e
+`pt-PT` se confundem. Por isso um provedor de LLM também recebe o nome em inglês, o sistema de escrita e a
+região de cada idioma, obtidos do Node.js para o locale da sua configuração, mesmo quando `localeMap` envia outro código.
+Eles viajam como dados, uma regra de sistema fixa pede ao modelo que escreva no sistema de escrita e na variante
+indicados, e eles não fazem parte da impressão digital do cache (veja [O cache de tradução](/pt-BR/docs/the-cache)). Um código que o Node.js não consegue nomear, como
+o `qaa`, de uso privado, é enviado sem nome.
+
+## A barreira de integridade
+
+Uma tradução válida para o schema ainda pode estar quebrada, então uma única barreira decide, a partir do próprio valor candidato,
+se o aceita; o relatório do próprio provedor nunca é considerado de confiança. A mesma barreira é aplicada em todos os caminhos de
+gravação: uma resposta do provedor, um acerto de cache, uma linha importada de uma pasta de trabalho e uma edição digitada no Studio. Um valor
+compartilhado por várias chaves com o mesmo texto de origem passa pela barreira chave a chave, comparado com a origem de cada uma.
+
+| Verificação | Um candidato é recusado quando |
+| --- | --- |
+| Placeholders | seus placeholders diferem dos da origem, comparados como multiconjunto (as contagens importam, a ordem não). O que conta como placeholder é definido por formato (veja [Formatos](/pt-BR/docs/formats)). |
+| ICU | para next-intl e ARB, ele deixa de ser analisado como mensagem ICU, ou seus ramos de plural não servem ao idioma de destino (abaixo). A comparação reconhece ramos, então um placeholder inventado dentro de um ramo de plural é detectado. |
+| Trechos inventados | para i18next, ngx-translate e YAML, ele acrescenta um trecho no formato de `{name}` que a origem nunca teve. Remover um é permitido, já que chaves `{ }` simples são texto literal ali. |
+| Marcação inline | suas tags HTML ou XML diferem das da origem ou estão desbalanceadas (abaixo). |
+| Degeneração | ele é um laço de repetição ou seu tamanho se distanciou muito do tamanho da origem. |
+| Vazio | ele está vazio ou só com espaços para uma origem não vazia. Limpar uma tradução é um ato deliberado: o valor sentinela `[[CLEAR]]` da pasta de trabalho faz isso (veja [Entregar com Excel ou CSV](/pt-BR/docs/manual-translation)). |
+
+Um candidato que viola várias verificações é recusado com um único motivo, o primeiro que se aplica nesta
+ordem: `empty`, `icu` (não é analisado), `placeholder`, `markup`, `icu` (ramos), `degenerate`. Cada
+motivo, e os detalhes que o verbatra imprime com ele, estão listados em
+[Motivos de recusa por integridade](/pt-BR/docs/error-codes#integrity-refusal-reasons).
+
+O que a barreira garante: um valor recusado nunca é gravado. Ele aparece no resumo da execução como uma
+incompatibilidade de integridade, mantém o hash anterior no arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)) e é tentado de novo
+na próxima execução. Uma chave que não recebeu tradução nenhuma (a chamada ao provedor falhou, ou a chave continuou
+ausente depois de uma requisição de reparo) é relatada como falha do provedor e é tentada de novo
+da mesma forma. Do lado da origem, uma chave cujo próprio valor é um ICU inválido é separada antes da tradução.
+
+O que ela não garante: que a tradução esteja correta. Ela prova a estrutura, não o sentido.
+
+### Ramos de plural por idioma de destino
+
+<AvailableFrom version="0.12.0" />
+
+Um plural ICU tem um ramo por categoria de plural do CLDR do seu idioma
+([exemplos](/pt-BR/docs/language-support#plurais)). Para next-intl e ARB, o verbatra lê as categorias do idioma
+de destino nos dados do CLDR embutidos no Node.js:
+
+- O verbatra pede a um provedor de LLM exatamente esses ramos (cardinal para `plural`, ordinal para
+  `selectordinal`). As categorias viajam como dados, então a fronteira contra injeção continua a mesma.
+- A barreira recusa um `plural` ou `selectordinal` que não tenha um ramo obrigatório ou mantenha um que o idioma
+  não tem, em todos os caminhos de gravação, e nomeia cada ramo errado.
+- Ramos de valor exato, como `=0`, precisam sobreviver todos, e uma tradução pode acrescentar outros. Os ramos do `select` são
+  as chaves do seu código, então uma tradução mantém exatamente os da origem.
+- Para um locale para o qual o Node.js não tem regras de plural, só `other` é obrigatório.
+
+Um valor gravado antes desta verificação, como um plural em francês sem `many`, permanece até que sua origem
+mude; [`verbatra check --qa`](/pt-BR/docs/cli/check#verificação-de-qualidade) o encontra agora.
+
+### Paridade da marcação inline
+
+<AvailableFrom version="0.11.0" />
+
+Uma tag inline removida ou quebrada (um `<b>` em um bloco `Trans` do i18next, um `&lt;b&gt;` com escape em um
+`<string>` do Android, um `<a href>` no gettext) quebra a renderização, então a barreira compara os nomes de tags e de
+atributos como multiconjunto:
+
+- **Recusado**: uma tag removida, inventada ou renomeada; um conjunto alterado de nomes de atributos (incluindo
+  a adição de `dir`); marcação desbalanceada ou aninhada de forma errada; duas tags fundidas em uma.
+- **Aceito**: as mesmas tags em outra ordem; um valor de atributo traduzido, como `title` ou
+  `alt`; `<br>` escrito como `<br/>`.
+- **Valores protegidos**: um atributo de URL precisa manter o esquema e o host (`/docs` pode virar `/de/docs`,
+  nunca `https://evil.example/docs`), uma URL `javascript:` é recusada, e valores como `style`,
+  manipuladores de evento ou um `<meta content>` precisam continuar exatamente como na origem.
+- **Não traduzido**: o conteúdo de `script`, `style` e elementos semelhantes precisa voltar
+  inalterado. Faça o escape dessa tag no texto (`&lt;script&gt;`) para traduzir o texto ao redor.
+
+Marcação inventada em uma string que não tinha nenhuma também é recusada, enquanto uma palavra comum entre colchetes angulares, como
+`<Enter>`, é lida como texto. As tags que o formato já informa como placeholders ficam a cargo da
+verificação de placeholders. Comentários, texto bruto e origens malformadas: veja
+[`markup`](/pt-BR/docs/error-codes#markup).
+
+## Sinalizações de revisão
+
+Uma segunda camada, só consultiva, sinaliza resultados suspeitos para uma pessoa. Uma sinalização nunca retém uma chave: o
+valor é gravado, registrado no arquivo de lock, listado em `needsReview` da execução e mantido na fila de revisão (no Studio, **Review queue**).
+
+| Motivo | Sinaliza uma tradução que |
+| --- | --- |
+| [`LENGTH_RATIO_OUTLIER`](/pt-BR/docs/error-codes#length_ratio_outlier) | é muito mais curta ou mais longa que a origem, ponderada pelo sistema de escrita |
+| [`MAX_LENGTH_EXCEEDED`](/pt-BR/docs/error-codes#max_length_exceeded) | é mais longa que o orçamento [`maxLength`](/pt-BR/docs/config-file#maxlength) da chave <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/pt-BR/docs/error-codes#equals_source) | é idêntica ao texto de origem, ignorando espaços ao redor |
+| [`GLOSSARY_TERM_MISSED`](/pt-BR/docs/error-codes#glossary_term_missed) | deixa de usar a tradução de um termo do glossário ou altera um termo que não deve ser traduzido |
+| [`GLOSSARY_FORBIDDEN_TERM`](/pt-BR/docs/error-codes#glossary_forbidden_term) | usa uma tradução que o glossário proíbe <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/pt-BR/docs/error-codes#integrity_reordered) | mantém todos os placeholders, mas em outra ordem |
+| [`PROVIDER_DEGRADED`](/pt-BR/docs/error-codes#provider_degraded) | veio de um lote que o provedor degradou, como uma formalidade descartada |
+| [`FUZZY_CACHE_REUSE`](/pt-BR/docs/error-codes#fuzzy_cache_reuse) | foi [reutilizada de uma origem parecida e editada](/pt-BR/docs/the-cache#reutilização-aproximada) <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/pt-BR/docs/error-codes#foreign_placeholder_changed) | remove ou altera um trecho parecido com placeholder que o seu formato não interpola (veja [Formatos](/pt-BR/docs/formats)), como `{name}` no i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/pt-BR/docs/error-codes#bidi_controls_changed) | deixa um caractere de controle de direção sem fechar ou acrescenta uma substituição de direção que inverte o texto <AvailableFrom version="0.12.0" /> |
+
+O DeepL, o Google e o LibreTranslate recebem esse trecho mascarado e retêm um valor que não conseguem mascarar
+ou restaurar ([`PLACEHOLDER_UNSUPPORTED`](/pt-BR/docs/error-codes#placeholder_unsupported)); a sinalização cobre LLMs e pessoas.
+
+Acertos de cache e valores compartilhados são sinalizados como traduções novas. As chaves sinalizadas aparecem como
+`needsReview` no resumo da execução, nas colunas de revisão da pasta de trabalho e na
+[página **Review** (revisão) do Studio](/pt-BR/docs/review-in-studio), até que uma pessoa aprove, rejeite ou reescreva o
+valor (veja [Decisões de revisão](/pt-BR/docs/the-lock-file#decisões-de-revisão)).
+
+## O orçamento de tokens
+
+`maxTokens` conta os tokens de uma execução em todas as chamadas e locales; `budgetBehavior: "stop"` retém
+o restante da execução quando o teto seria ultrapassado, para ser tentado de novo na próxima execução
+(veja [maxTokens e budgetBehavior](/pt-BR/docs/config-file#maxtokens-e-budgetbehavior)).
+
+O que o orçamento garante: o trabalho feito antes do teto continua gravado e registrado no arquivo de lock, e nada
+fica pela metade. O que ele não garante: uma requisição em andamento pode custar mais que o projetado, o teto
+limita uma execução (não uma sessão do `watch`), e as retraduções do Studio ou de agentes não são cobertas.
+
+## Erros nunca vazam nada
+
+Quando uma chamada ao provedor falha, o erro bruto do SDK (que pode carregar cabeçalhos de requisição ou credenciais) é
+descartado, nunca registrado em log nem relançado. Em vez disso, o verbatra gera um erro estruturado com um
+[código](/pt-BR/docs/error-codes#provider-error-codes) estável e uma mensagem fixa, sem segredos. A ocultação de chaves de API está em
+[Tratamento de dados e privacidade](/pt-BR/docs/data-handling#chaves-de-api).
+
+## Onde você vê isso
+
+Tudo o que foi descrito acima aparece como dados no resumo da execução (veja [RunSummary](/pt-BR/docs/sdk/run-summary)), por locale, e a falha de um locale
+nunca interrompe os outros.
+
+### Valores versionados
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra check --qa`](/pt-BR/docs/cli/check#verificação-de-qualidade) executa a barreira e as sinalizações de revisão sobre
+valores versionados, sem chamar um provedor.
+
+## Veja também
+
+- [Como funciona uma execução](/pt-BR/docs/how-it-works): onde cada verificação fica na sequência de etapas.
+- [Tratamento de dados e privacidade](/pt-BR/docs/data-handling): o que sai da sua máquina.

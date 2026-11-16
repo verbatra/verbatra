@@ -1,0 +1,127 @@
+---
+title: O cache de tradução
+seoTitle: "Como o cache do verbatra economiza requisições"
+description: "O que o verbatra.cache.json reutiliza entre execuções, como a impressão digital liga cada entrada à configuração e por que um erro no cache não para a execução."
+type: concept
+---
+O cache de tradução, `verbatra.cache.json`, é uma memória de tradução local indexada por conteúdo: ele
+lembra a tradução de um trecho de texto de origem, seja qual for a chave que o contém, de modo que o mesmo
+texto nunca é pago duas vezes. O arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)) responde “esta chave está
+em dia?”; o cache responde “já traduzimos este texto antes?”.
+
+## O que ele reutiliza
+
+Antes de uma chave ir ao provedor, o verbatra procura o hash da entrada de origem atual: o texto mais a
+descrição, o significado, o indicador de plural e os placeholders. Um acerto é gratuito. Como a busca é por
+conteúdo, a reutilização sobrevive ao que o arquivo de lock não enxerga:
+
+- **Uma chave renomeada.** Mova `home.title` para `landing.title` e a tradução dela é reutilizada.
+- **Conteúdo duplicado.** Duas chaves com o mesmo texto de origem e o mesmo contexto compartilham uma tradução.
+
+Um valor reutilizado não é aceito às cegas. Ele passa pela mesma
+[barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade) contra a origem atual que uma tradução nova, e um valor que
+não se encaixa mais é descartado e traduzido de novo. Os acertos de cache são informados
+por locale, separados das chaves traduzidas nesta execução.
+
+Um valor que um revisor [rejeitou](/pt-BR/docs/the-lock-file#decisões-de-revisão) nunca é reutilizado para aquela chave:
+o arquivo de procedência guarda um hash do texto recusado, e uma execução ignora qualquer acerto que corresponda a ele. A
+única brecha é um arquivo de procedência que a execução não consegue ler (um de um verbatra mais novo, ou um corrompido com
+`humanEdits: "overwrite"`); nesse caso a execução não conhece nenhuma rejeição.
+
+## A impressão digital
+
+Toda entrada é vinculada ao contexto em que foi produzida: uma impressão digital calculada sobre o provedor, o
+modelo, o tom, os termos do glossário daquele locale e o
+[`localeMap`](/pt-BR/docs/providers#códigos-de-locale-enviados-ao-provedor) do provedor, quando ele tem entradas. Mude qualquer um
+deles e as entradas anteriores deixam de corresponder, então um novo tom ou um glossário editado retraduz em vez de
+servir um resultado obsoleto. A parte do glossário são os termos que o verbatra enviaria ao provedor, depois de qualquer configuração `sensitiveData` que retenha ou oculte um termo, quer o provedor configurado use termos de glossário ou não (DeepL, Google Cloud Translation e LibreTranslate os ignoram), então um termo editado ainda retraduz. O indicador `caseSensitive` de um termo não faz parte dela. Cada locale tem a própria impressão digital, então editar apenas a tradução para o alemão
+de um termo do glossário mantém a correspondência das entradas do francês.
+
+O formato não faz parte da impressão digital; a barreira de integridade em cada acerto detecta um valor que não
+se encaixa mais. Com o provedor `none`, todas as entradas vão para um único grupo somente humano, que o tom e o
+glossário não afetam.
+
+## Reutilização aproximada
+
+<AvailableFrom version="0.11.0" />
+
+Um acerto exato exige que o texto de origem gere o mesmo hash de antes, então editar um único caractere
+resulta em uma falha de cache. [`fuzzyCache`](/pt-BR/docs/config-file#fuzzycache) é um fallback opcional para esse caso:
+quando a busca de uma chave não encontra acerto exato, o verbatra compara a origem dela com as outras entradas do mesmo locale e da mesma
+impressão digital, e reutiliza a mais próxima que esteja no `threshold` ou acima dele. A pontuação é um menos a
+distância de edição de caracteres dividida pelo comprimento da string mais longa, então `1` significa idêntico.
+
+### O limiar não é uma configuração de segurança
+
+Distância de caracteres não é significado. Remover um “não”, transformar “não pode” em “pode” ou trocar um
+nome de marca por outro são edições pequenas que pontuam acima de `0.9` e invertem o que a frase diz.
+O limiar decide quanto gasto com o provedor você evita, não o quanto uma reutilização é segura. A segurança vem de
+regras que não dependem do número:
+
+- **Fica desativada, a menos que você a ative.**
+- **Toda reutilização aproximada é sinalizada para revisão** com
+  [`FUZZY_CACHE_REUSE`](/pt-BR/docs/error-codes#fuzzy_cache_reuse), em toda execução, qualquer que seja a pontuação. Se
+  ninguém cuida da fila de revisão (veja [Revisar no Studio](/pt-BR/docs/review-in-studio)), deixe a reutilização aproximada desativada.
+- **Numerais alterados recusam a reutilização.** Se os numerais nas duas origens diferem em quantidade, valor
+  ou ordem, a entrada não é candidata. Isso vale para todo caractere numérico Unicode (de `m²` para
+  `m³`, `½` para `¼`), mas não para números escritos por extenso.
+- **Uma reutilização não encerra a chave.** O arquivo de lock mantém a linha de base antiga da chave, então ela continua alterada:
+  toda execução seguinte a oferece de novo sem custo de provedor, e o [`check`](/pt-BR/docs/cli/check) continua
+  informando a chave, até que uma tradução de verdade seja gravada.
+- **Um texto de origem inalterado nunca chega à camada aproximada.** Editar apenas uma descrição ou um
+  indicador de plural envia a chave ao provedor como de costume.
+
+### O que uma reutilização aproximada continua não sendo
+
+Uma reutilização aproximada é a tradução de um texto que não é mais a origem, então ela nunca é apresentada como um
+acerto exato:
+
+- Ela passa pela barreira de integridade como qualquer outro candidato; uma correspondência próxima cujos placeholders não
+  se encaixam mais é recusada, e a chave vai ao provedor.
+- Ela é informada separadamente dos acertos exatos, como `fuzzy-reused`, com a chave, a pontuação e o texto
+  de origem anterior; o SDK traz os mesmos dados em `LocaleSummary.fuzzyHits`.
+- Ela nunca é gravada de volta no cache, então uma execução posterior não a confunde com um acerto exato.
+
+A pontuação fica dentro de uma única impressão digital e é limitada: no máximo 256 candidatos por chave, e texto de origem
+com mais de 2.000 caracteres é ignorado. Com o provedor `none`, uma correspondência aproximada nunca é aplicada.
+
+## O arquivo
+
+`verbatra.cache.json` é um arquivo local e regenerável, ao lado do seu arquivo de lock. Mantenha-o fora do controle
+de versão: ele é uma otimização de custo, não uma linha de base compartilhada. O `verbatra init` o inclui no gitignore, e
+`translate`, `watch`, `import`, `tmx import` e `pseudo` adicionam a entrada a um `.gitignore` existente
+que não a tenha e avisam no stderr.
+
+O cache nunca faz uma execução falhar. Um arquivo ausente, corrompido ou grande demais vira um cache vazio e é
+reconstruído. Um arquivo de um verbatra mais novo também é tratado como vazio durante a execução, mas é deixado em disco
+intocado, com um aviso. Para recomeçar, apague o arquivo. Para a pontuação aproximada, o arquivo guarda cada
+string de origem ao lado das traduções, então ele cresce até aproximadamente o tamanho do seu texto de origem.
+
+## Mover uma memória entre ferramentas
+
+<AvailableFrom version="0.11.0" />
+
+O [`verbatra tmx`](/pt-BR/docs/cli/tmx) importa um arquivo TMX de outra ferramenta de tradução para o cache e
+exporta o cache como TMX. As unidades importadas são guardadas sob a impressão digital atual, então deixam de
+corresponder quando o provedor, o modelo, o tom, os termos do glossário que o verbatra enviaria ou o `localeMap` mudam, como todo o resto. Uma
+ressalva ao “apague e ele se reconstrói”: uma memória importada só é tão recuperável quanto o arquivo TMX de
+onde veio, então guarde esse arquivo.
+
+## Como ignorá-lo
+
+`--no-cache` em [`translate`](/pt-BR/docs/cli/translate) ou [`watch`](/pt-BR/docs/cli/watch) (`cache: false` no
+SDK) faz exatamente as chamadas ao provedor que uma execução sem cache faria, sem nem mesmo a reutilização aproximada,
+e deixa o arquivo intocado. Para manter a reutilização exata e descartar apenas o fallback aproximado, deixe `fuzzyCache`
+fora da configuração. Uma simulação nunca grava o cache e só o lê com o provedor `none`, para que
+o plano coincida com o de uma execução real.
+
+## Limitação
+
+Formas de plural sintetizadas por `generatePlurals` não são guardadas no cache, então sempre vêm do provedor.
+
+## Veja também
+
+- [`fuzzyCache`](/pt-BR/docs/config-file#fuzzycache): a opção de configuração e seu intervalo.
+- [`verbatra tmx`](/pt-BR/docs/cli/tmx): importa e exporta a memória de tradução como TMX.
+- [Como funciona uma execução](/pt-BR/docs/how-it-works): onde a busca no cache se encaixa no fluxo.
+- [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost): o que o cache economiza antes de você gastar.

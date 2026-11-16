@@ -221,7 +221,7 @@ Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "
 
 ## VS Code
 
-VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json` mit dem Schlüssel `servers`, die `init --agent --client vscode` schreibt. Ohne `--client` verbindet `init --agent` VS Code nur, wenn diese Datei schon existiert, und gibt für einen bloßen `.vscode/`-Ordner den Befehl aus. Es braucht kein `--cwd`:
+VS Code (der Agent-Modus von GitHub Copilot) liest die Datei `.vscode/mcp.json` mit dem Schlüssel `servers`; `init --agent --client vscode` schreibt sie. Ohne `--client` verbindet `init --agent` VS Code nur, wenn diese Datei schon existiert, und gibt für einen bloßen `.vscode/`-Ordner den Befehl aus. Es braucht kein `--cwd`:
 
 ```json title=".vscode/mcp.json"
 {

@@ -1,0 +1,135 @@
+---
+title: "SDK 参考"
+seoTitle: "面向 Node.js 和 TypeScript 的 verbatra SDK 参考"
+sidebarTitle: "概览"
+description: "安装 @verbatra/sdk，并找到每个入口函数的参考页面。不在磁盘上的文件通过你自己的文件系统交给 SDK。"
+type: reference
+---
+`@verbatra/sdk` 是 `verbatra` 命令所运行的引擎。CLI 只是一层薄封装，因此命令行能做的事，你都可以用代码完成。
+
+## 从这里开始
+
+刚接触 SDK？先从下面两页中选一页：
+
+<Cards>
+  <Card title="SDK 快速上手" href="/zh-CN/docs/sdk-quickstart">安装 SDK，不用密钥预览一次运行，在你自己的脚本中翻译，处理错误，并在 CI 中设门禁。</Card>
+  <Card title="SDK 实用示例" href="/zh-CN/docs/programmatic-api">完整的脚本，涵盖估算、监听模式、假提供商、审校队列，以及工作簿和 TMX 的往返流程。</Card>
+</Cards>
+
+## 参考页面
+
+这些页面列出了全部公开接口，按每个入口函数承担的任务分组。
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## 安装
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+需要 Node.js `^22.22.0 || >=24`。
+
+使用 pnpm 时，`pnpm add --save-dev @verbatra/sdk` 能正确安装，但会报告 `ERR_PNPM_IGNORED_BUILDS` 并以退出码 `1` 退出：pnpm 会拦住内置的 Gemini SDK 及其 `protobufjs` 的安装脚本，并留下一个尚待处理的 `pnpm-workspace.yaml`，导致项目中之后的每个 pnpm 命令都以同样的方式失败。运行一次 `pnpm approve-builds`，两个条目都不要批准；或者参阅[故障排查](/zh-CN/docs/troubleshooting)中的非交互式解决办法。这里没有像 CLI 那样的 `npx` 捷径可绕过，因为你是在导入库，而不是运行二进制文件。
+
+<Callout title="API 密钥与环境">
+SDK 从不读取、保存或接受 API 密钥。提供商在构造时从环境中读取它的密钥（例如 `ANTHROPIC_API_KEY`）。与 CLI 不同，SDK 不加载 `.env` 文件：在你自己的脚本中，自行设置该变量，例如用 `node --env-file=.env script.js`。
+</Callout>
+
+除特别说明外，每个入口函数都接受一个输入对象，其第一个字段是已校验的 `config`（来自 `loadConfig`）。大多数入口函数还接受可选的第二个参数 `deps`，用来注入注册表、提供商构建器或文件系统；正常使用时可以忽略它。`deps.fs` 能触及什么，见[依赖接缝](#依赖接缝)。
+
+## 依赖接缝
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` 替换 SDK 自己的 I/O 所经过的文件系统端口，类型为 `SdkFs`。这条接缝是完整的：运行状态文件、锁文件、术语表文件工具、工作簿和交换文件的 I/O，以及语言文件本身，都经过它，因为格式适配器读写时所用的端口，就是由同一个对象构建的。因此整个运行可以放在内存中进行，SDK 自己的测试就是这样避免接触磁盘的，嵌入 SDK 的应用也可以借此让项目的一部分由本地磁盘以外的存储支撑。
+
+<SdkTypeTable name="SdkFs" />
+
+实现必须遵守两点约定。读取有大小上限，因此 `readFileBounded` 和 `readBytesBounded` 接受字节上限，并把 `missing` 或 `too-large` 作为状态报告，而不是抛出错误，这能防止恶意或意外巨大的文件耗尽内存。写入应当是原子的，这样崩溃发生在写入中途时，也不会留下写了一半的文件；`createExclusive` 必须相对其他进程是原子的，因为它是每个语言环境写锁的基础原语。在写入语言文件、运行状态文件或工作簿等输出文件之前，SDK 会以父目录调用可选的 `mkdir`，因此 `writeFile` 和 `writeBytes` 不必自己创建目录；存储没有目录时，可以不提供 `mkdir`。`createExclusive` 不会得到这样的调用，会自己创建缺失的父目录。其他必需的成员是 `fileExists` 和 `deleteFile`，后者在文件已不存在时也算成功。
+
+`readDirectory` 是可选的，因此在源码提取出现之前写成的实现仍能编译。[`extract`](/zh-CN/docs/sdk/inspect#extract) 是唯一需要它的入口函数，它缺失时会报告 `EXTRACT_FS_UNSUPPORTED`。`readDirectory` 把一个目录的直接条目列为 `{ name, kind }`，其中 `kind` 是 `"file"`、`"directory"` 或 `"other"`。符号链接应归入 `"other"`：扫描从不跟随符号链接，这正是让它留在所给根目录之内的原因。
+
+`realpath` 同样是可选的。它解析现有路径中的每个符号链接，[`generateTypes`](/zh-CN/docs/sdk/run#generatetypes)、[`exportTmx`](/zh-CN/docs/sdk/exchange#exporttmx)、[`exportWorkbook`](/zh-CN/docs/sdk/exchange#exportworkbook) 和 [`pseudolocalize`](/zh-CN/docs/sdk/run#pseudolocalize) 的输出防护用它来查看输出路径实际落在哪里，因此链接无法把写入的文件带到 `cwd` 之外，或带到项目所依赖的文件上。没有它时，这些防护按路径的字面写法比较。输出路径上的链接若其目标不存在，则无法解析，防护会假定 `writeFile` 和 `writeBytes` 替换那里的链接，而不是穿过它写入，默认的原子写入就是这样做的。
+
+`rename` 也是可选的。
+
+<AvailableFrom version="0.12.0" />
+
+它以一个原子步骤，把文件移到同一目录中的新名称，替换已有的同名文件；源文件缺失时，以 `code` 为 `ENOENT` 的错误 reject。写锁用它清除已不存在的进程留下的锁或回收防护，并释放自己的锁：文件被移到一旁，改名为唯一的 `<name>.<pid>.<tag>.<uuid>.stale`，只有在它仍是锁所预期的那条记录时才删除。其他情况，例如另一个进程在此期间取得的锁，会用 `createExclusive` 放回原处。重命名以 `EPERM`、`EBUSY` 或 `EACCES` 失败（Windows 对被另一个进程打开的文件就是这样报告的），算作“本次轮询未回收”，锁会继续轮询，直到超时。释放锁的重命名因任何原因失败时，释放会退而读取写锁文件，并在写锁文件仍带有持有者的令牌时将其删除；对 `EPERM`、`EBUSY` 或 `EACCES` 失败，会重试几次，每次间隔一次轮询。本应放回却无法放回的记录（因为第三个进程在此期间占用了该路径）会被删除，因为从此以后其持有者的令牌检查都会失败。没有 `rename` 时，锁会读取文件，并在文件未变时将其删除，这会留下更大的窗口，使另一个进程刚取得的锁被删除。
+
+把文件移到一旁再放回是两个步骤，因此在少数交错情形下，两个进程可能短暂地都认为自己持有同一把锁。所以每把锁都记录一个随机的所有权令牌，在锁所保护的每次写入（语言文件、锁文件、来源记录文件、术语表）之前，持有者都会检查写锁文件是否仍带有它的令牌。若没有，操作以 `LOCK_CONTENDED` 停止，被中断的那次写入不会进行；写入多个文件的操作，可能已经完成了更早的写入。释放时发现写锁文件缺失或持有另一个令牌，而操作本身已成功的，同样按这种方式报告，因为另一个进程可能在此期间更改了相同的文件；操作失败的，则抛出它自己的错误。检查和写入仍是两个步骤，两者之间的时间没有任何限制：持有者在检查之后暂停（机器休眠、进程被停止、调试器、时钟跳变，或事件循环长时间阻塞），它的心跳就会停止，因此其锁一旦已有三个间隔那么久（默认 30 秒），同一台机器上的另一个进程就会接管，而暂停的持有者恢复后仍可能再写一次。令牌检查依赖 `createExclusive` 创建的文件能被 `readFileBounded` 读回，因此自定义实现必须遵守这一约定。
+
+`touch` 和 `mtimeMs` 也是可选的。
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` 把现有文件的修改时间设为当前时间，`mtimeMs(path)` 以毫秒返回修改时间，文件缺失时返回 `undefined`。有了 `touch`，锁的持有者会在锁中记录 10 秒的心跳间隔，并在持有锁期间按该间隔刷新文件的修改时间。持有者在创建写锁文件之后也会立即更新它的修改时间，这样文件的存在时长以本进程的时钟为准，而不是文件服务器的时钟。有了 `mtimeMs`，等待中的进程会把本机上这样的锁视为已过期：其记录的进程仍在运行，但文件已有三个记录的间隔（默认 30 秒）没有刷新。这涵盖了比其持有时间更久的锁记录，例如为长时间运行的 Studio、`watch` 或 MCP 服务器进程放回、而该进程其实早已释放了这把锁。回收防护不记录心跳：只有当其进程确已消失，并且在两次轮询中都看到它没有变化时，才会清除。没有这些成员时，只有在锁所记录的进程确已消失时，才会判定该锁已过期。
+
+进程在锁被移到一旁时崩溃，可能在 `.verbatra-local/locks/` 中留下 `.stale` 文件。这些文件可以放心手动删除；下一次获取锁时，一旦移走它们的进程已消失，就会删除它们，或者在实现了 `touch` 时，一旦它们超过过期阈值（从移动时算起）就会删除。没有 `touch` 的文件系统会一直保留它们，直到移走它们的进程消失。
+
+`deps.fs` 无法触及调用方提供的 `deps.adapterRegistry`。这些适配器是调用方构造的，它们的文件访问取决于调用方接入了什么。同时提供两者，就意味着由调用方负责这一接线。
+
+配置加载同样在接缝之外。`loadConfig` 和 `loadConfigWithMeta` 不接受 `deps`：它们从真实磁盘读取配置文件本身，并通过自己的 `fs` 选项读取配置中指定的术语表文件，因此之后某个流程收到的 `deps.fs` 触及不到这两次读取。要把整个项目放在内存中，把同一个 `SdkFs` 作为 `loadConfig({ fs })` 传入，并把配置作为 `configOverride` 而不是文件交进去。各流程按自己的 `cwd` 解析路径，所以也要把它传给流程。
+
+示例只用必需的成员，把整个项目放在内存中。在提供商 `none` 下，运行不需要密钥，并把 `greeting` 留给人工翻译。
+
+```ts title="示例"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```

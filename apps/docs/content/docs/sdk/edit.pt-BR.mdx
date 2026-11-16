@@ -1,0 +1,103 @@
+---
+title: "Editar"
+seoTitle: "SDK: editar um valor ou substituir texto"
+description: "Grave um valor corrigido ou pré-visualize e aplique uma busca e substituição literal nos valores dos seus locales de destino."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Editar uma chave
+
+### editEntry
+
+<AvailableFrom version="0.5.0" />
+
+Grava uma correção digitada por uma pessoa para uma chave e um locale. O valor candidato passa pela
+mesma barreira de integridade de uma tradução de provedor antes de qualquer coisa chegar ao disco;
+se for aceito, o arquivo de locale e a entrada do arquivo de lock dessa chave são atualizados dentro da trava
+de escrita do locale. Nunca chama um provedor.
+
+```ts title="Assinatura"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**Retorna:** `EditEntryResult`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key), [`KEY_PINNED`](/pt-BR/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/pt-BR/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/pt-BR/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid)
+
+**Exemplo:** [Editar e retraduzir uma única chave](/pt-BR/docs/programmatic-api#editar-e-retraduzir-uma-única-chave)
+
+Retorna `{ accepted: true, value }` ou
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sem
+gravar nada (veja [A barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade)). Monte
+qualquer schema sobre os motivos a partir da tupla exportada `INTEGRITY_GATE_REASONS`. `"empty"` recusa um valor
+em branco para uma origem que tem texto; para limpar uma chave, use no lugar o valor sentinela `[[CLEAR]]` da pasta de trabalho. Uma
+recusa por `placeholder` ou `markup` também traz `details`: cada placeholder ou tag por trás dela,
+com o prefixo `-` quando o candidato o omitiu ou `+` quando o inventou.
+
+O valor é registrado no `verbatra.provenance.json` com o `origin` `human`; passe
+`actor: "agent"` quando um agente de IA o escreveu, para que o registro diga isso (quem chama é que
+afirma, nada o verifica); qualquer outro `actor` lança um `TypeError` antes de qualquer leitura. Um arquivo de procedência corrompido lança `PROVENANCE_FILE_INVALID` antes de o valor passar pela barreira
+e nada é gravado; um arquivo de um verbatra mais novo, ou um que o registro faria crescer além do tamanho
+que o verbatra lê de volta, é deixado intocado e o valor é gravado sem registro.
+
+<AvailableFrom version="0.12.0" />
+
+Com `actor: "agent"`, uma chave que corresponde aos `pinnedKeys` da configuração lança `KEY_PINNED` antes de qualquer gravação. A edição de uma pessoa em uma chave fixada é aceita.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` limita a espera pela trava de escrita do locale antes de a chamada falhar com `LOCK_CONTENDED` (10 minutos por padrão), `onLockWait` relata essa espera, e um limite inválido falha com `LOCK_TIMEOUT_INVALID` antes de qualquer leitura.
+
+## Substituir em vários locales
+
+Uma busca e substituição literal nos valores dos seus locales de destino, em duas etapas. `previewValueReplace` lista o que mudaria e por que alguns valores não mudariam. `applyValueReplace` altera os que você escolher, decidindo cada um de novo sob a trava de escrita. Nenhuma das duas lê o locale de origem em busca de correspondências, e nenhuma chama um provedor.
+
+### previewValueReplace
+
+Lista os valores de destino que contêm `find`, com um status para cada um. A correspondência é literal: sem sintaxe de padrão, sem normalização Unicode (um `find` em NFD não corresponde a um valor em NFC) e sem conversão de quebras de linha. `replace` é inserido como foi escrito, então `$&` e `$1` não têm nenhum significado especial. `caseSensitive` tem padrão `true`. Uma correspondência nunca começa nem termina dentro de um par substituto (surrogate pair), e um `find` vazio, um com mais de 20.000 caracteres, ou um `find` ou `replace` que contém um surrogate sem par lança `FIND_TEXT_INVALID`. Somente leitura.
+
+```ts title="Assinatura"
+function previewValueReplace(
+  input: PreviewValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ValueReplacePreview>;
+```
+
+<SdkTypeTable name="PreviewValueReplaceInput" />
+
+**Retorna:** `ValueReplacePreview`
+
+**Lança:** [`FIND_TEXT_INVALID`](/pt-BR/docs/error-codes#find_text_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid)
+
+Toda entrada tem um status. `ready` e `stale-source` podem ser aplicados; `stale-source` marca uma chave cujo texto de origem mudou desde que a sua tradução foi registrada. `gate-refused` traz o `reason` que o valor substituído viola, submetido à [mesma barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade) de uma edição contra o texto de origem atual. Para os formatos ICU (next-intl e ARB), uma substituição também é recusada com o motivo `icu` quando muda o que um argumento faz: o seu tipo, um estilo ou skeleton de número ou data, ou o número de `#` em um ramo de plural, comparado com o valor atual, ou com o texto de origem quando o valor atual não é um ICU válido. Um argumento renomeado em relação ao texto de origem é recusado como `placeholder`. `details` lista cada diferença, `-` para o valor comparado e `+` para o substituído. `too-long` é um valor que passaria de 20.000 caracteres; não é uma recusa por integridade e não tem `reason`. `pinned` é uma chave que corresponde a `pinnedKeys`. `protected` é um valor que uma pessoa escreveu ou importou, um valor alterado fora do verbatra, ou qualquer valor quando o arquivo de procedência não pode ser lido, o que inclui um arquivo de um verbatra mais novo; isso vale independentemente de `humanEdits`. Uma chave que é as duas coisas é listada como `pinned` com `protected: true` e precisa de `includePinned` e de `includeProtected`. `no-source-entry` é uma chave sem texto de origem contra o qual verificar, e `unchanged` é um valor que a substituição deixa como está.
+
+No máximo 1.000 valores são listados, na ordem dos `targetLocales` da configuração, seja qual for a ordem em que `locales` os nomeia. `truncated` diz quando mais valores corresponderam, e `before` e `after` são cortados em 200 caracteres em torno da primeira correspondência. `valueHash` é o hash que o registro de procedência guarda para o valor atual; devolva-o ao `applyValueReplace`. `baselineUnavailable: true` diz que o arquivo de lock não pôde ser lido, então nenhum valor foi comparado com o seu texto de origem registrado e nenhum é `stale-source`.
+
+### applyValueReplace
+
+Substitui `find` nos valores que você escolheu, recalculando cada novo valor a partir do texto no disco, dentro da trava de escrita do locale. Ele nunca aceita de quem chama um valor já calculado, e a pré-visualização é só informativa: cada entrada é decidida de novo.
+
+```ts title="Assinatura"
+function applyValueReplace(
+  input: ApplyValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ApplyValueReplaceResult>;
+```
+
+<SdkTypeTable name="ApplyValueReplaceInput" />
+
+**Retorna:** `ApplyValueReplaceResult`
+
+**Lança:** [`FIND_TEXT_INVALID`](/pt-BR/docs/error-codes#find_text_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid)
+
+Cada entrada termina como `applied`, `skipped` (com o seu motivo), `refused` (com o motivo de integridade), `changed` ou `too-long`. `changed` significa que o valor não corresponde mais ao seu `valueHash`, não contém mais `find` ou não existe mais, e nada foi gravado para ele. O hash ignora a normalização Unicode e as quebras de linha, então um valor que difere da pré-visualização só nisso é substituído quando `find` ainda corresponde e fica `changed` quando não corresponde. Uma chave fixada é ignorada, a menos que `includePinned` esteja definido e `actor` seja `human`, e um valor protegido é ignorado, a menos que `includeProtected` esteja definido; uma chave que é as duas coisas precisa dos dois. Com um arquivo de procedência de um verbatra mais novo, todo valor conta como protegido; `includeProtected` ainda o altera, mas o arquivo é deixado intocado e o valor não recebe registro. Quando o mesmo par `locale` e `key` aparece mais de uma vez, a primeira ocorrência decide, seja qual for o seu `valueHash`, e cada uma das seguintes é `skipped` como `duplicate-entry`.
+
+Os locales são processados um após o outro, na ordem em que cada um aparece primeiro em `entries`, cada um sob a sua própria trava, com uma gravação do arquivo de locale, uma atualização do arquivo de lock e do arquivo de procedência e uma atualização da memória de tradução. Uma chave obsoleta mantém o seu hash antigo no arquivo de lock, então o `check` ainda a relata como desatualizada, e o seu valor não é adicionado à memória de tradução. Todo valor gravado recebe um novo registro de procedência com `actor` como `origin` e sem decisão de revisão. `actor` é obrigatório, e um valor diferente de `human` ou `agent` lança um `TypeError` antes de qualquer leitura.
+
+Um locale que falha não interrompe os outros. `localeFailures` lista cada um com o seu `code` e `message`, como `LOCK_CONTENDED` quando a sua trava de escrita não fica livre dentro de `lockAcquireTimeoutMs`, `TARGET_UNWRITABLE`, `SOURCE_INVALID` ou um erro de adaptador. Uma entrada que a barreira de integridade recusou ainda volta como `refused`, e uma que uma verificação já havia resolvido antes da falha mantém o seu resultado; as demais são `skipped` como `locale-failed`, sem nada gravado para elas. Quando a falha traz `fileWritten: true`, ela veio depois da gravação do arquivo de locale, enquanto o arquivo de lock ou de procedência era atualizado ou a trava de escrita era liberada: as entradas aceitas ficam `applied`, os seus valores estão no disco, e o arquivo de lock ou a procedência podem estar atrasados, então revise o locale antes de qualquer nova tentativa. Não execute de novo, sem conferir, uma substituição cujo `find` ocorre no seu `replace`. A espera pela proteção do próprio arquivo de lock usa o padrão de 10 minutos, não `lockAcquireTimeoutMs`.

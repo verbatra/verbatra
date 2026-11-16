@@ -1,0 +1,133 @@
+---
+title: verbatra pseudo
+seoTitle: "verbatra pseudo: gera um pseudolocale de teste"
+description: "Gera um pseudolocale a partir das strings de origem para destacar botões cortados e rótulos não extraídos, sem chamar um provedor nem ler uma chave de API."
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+Execute seu app em um idioma que não existe. O `pseudo` gera um locale falso a partir das strings de origem: cada valor ganha acentos, fica mais longo e é envolvido em marcadores visíveis, para que botões cortados, frases concatenadas e rótulos não extraídos se destaquem. Com `--mode bidi`, em vez disso, ele renderiza cada string da direita para a esquerda. Ele não instancia nenhum provedor, não lê nenhuma chave de API e não faz nenhuma requisição de rede, então funciona antes de existir qualquer chave de API.
+
+## Sinopse
+
+```bash
+verbatra pseudo [flags]
+```
+
+## Exemplos
+
+```bash
+# gera en-XA em .verbatra-local/pseudo
+verbatra pseudo
+
+# renderiza cada string da direita para a esquerda em ar-XB
+verbatra pseudo --mode bidi
+
+# grava onde o servidor de desenvolvimento já serve arquivos estáticos (não faça commit de um arquivo bidi: o GitHub sinaliza o Unicode oculto dele)
+verbatra pseudo --out public/locales-pseudo
+
+# resultado legível por máquina para um script
+verbatra pseudo --json
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> a transformação: `accented` ou `bidi`, que renderiza cada palavra da direita para a esquerda (`INVALID_OPTION` em qualquer outro caso) |
+| `--locale` | `<code>` | `en-XA` (`ar-XB` com `--mode bidi`) | o pseudolocale a gerar; só letras, dígitos e hifens (`INVALID_LOCALE` em qualquer outro caso) |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | diretório sob o qual gravar o pseudolocale, relativo ao diretório de trabalho e dentro da raiz do projeto; um valor vazio gera `INVALID_OUT` |
+
+Também aceita as [flags globais](/pt-BR/docs/cli#flags-globais) `--cwd`, `--config` e `--json`.
+
+## Comportamento
+
+### O que a transformação faz
+
+| Etapa | O que você vê |
+| --- | --- |
+| Acentuar | toda letra ASCII vira um equivalente acentuado de aparência parecida, então `Save` aparece como `Śáṽé` |
+| Expandir | o valor cresce cerca de um terço do tamanho do texto traduzível, aproximadamente o que o alemão precisa em relação ao inglês |
+| Marcar | o valor é envolvido em `[` e `]`, então uma string cortada ou concatenada fica evidente |
+
+`Hello {{name}}, you have {{count}} unread messages` vira
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
+
+Só o texto traduzível muda. Os placeholders sobrevivem em todas as sintaxes que os adaptadores de formato (veja [Formatos](/pt-BR/docs/formats)) reconhecem, e dentro de uma mensagem ICU os nomes de argumento, as palavras-chave `plural` e `select` e os seletores de ramo continuam como foram escritos. As formas de plural do vue-i18n separadas por barra vertical são transformadas uma a uma: `car | cars` vira `[ćáŕ··] | [ćáŕś··]`. A transformação é determinística, então o arquivo gera diffs limpos.
+
+### Modo da direita para a esquerda
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` troca os acentos por uma substituição de direção da direita para a esquerda, a abordagem que o Android e o Chromium adotam para o pseudolocale `ar-XB` deles, para que um layout que pressupõe texto da esquerda para a direita fique evidente antes de existir qualquer tradução da direita para a esquerda.
+
+| Etapa | O que você vê |
+| --- | --- |
+| Substituição | cada palavra é envolvida em uma marca e uma substituição da direita para a esquerda (`U+200F U+202E` antes, `U+202C U+200F` depois), então `Save` é renderizado como `evaS` |
+| Manter | placeholders, sintaxe ICU, marcação, dígitos e pontuação ficam fora da substituição e são lidos da esquerda para a direita, como em um texto real da direita para a esquerda |
+
+Nada é acentuado, alongado nem colocado entre colchetes: a largura é o que o modo padrão testa. O arquivo mantém as letras na ordem armazenada, e todo valor passa pela mesma barreira de integridade, então placeholders e ramos de plural continuam idênticos byte a byte.
+
+O pseudolocale tem `ar-XB` como padrão, que o `Intl.Locale` e a maioria das bibliotecas de i18n resolvem como da direita para a esquerda, então um app que deriva `dir` do locale inverte sozinho. O `ar-XB` segue as regras de plural do árabe (`zero`, `one`, `two`, `few`, `many`, `other`). Mensagens ICU, `<plurals>` do Android, gettext, catálogos da Apple e barras verticais do vue-i18n resolvem uma contagem pelas formas que o arquivo já tem. O `i18next-json` guarda cada forma sob a própria chave `_one` ou `_other`, então o arquivo também recebe toda categoria que a origem não tem (`_zero`, `_two`, `_few`, `_many` e, do mesmo modo, as formas ordinais), preenchida a partir da forma `other` da origem, e nenhuma contagem recorre ao seu idioma de fallback. Passe `--locale en-XB` para manter as regras de plural do inglês e defina `dir="rtl"` você mesmo.
+
+Um sanitizador que remove caracteres de formatação Unicode remove a substituição, e a string volta a ser renderizada da esquerda para a direita. Editores e scanners de código que alertam sobre caracteres bidirecionais ocultos sinalizam o arquivo, mais um motivo para ele ficar em `.verbatra-local`.
+
+### Nada quebrado chega ao arquivo
+
+Todo valor gerado passa pela mesma barreira de integridade que a tradução de um provedor: os mesmos placeholders da origem, sintaxe de mensagem válida, não degenerado, não em branco. Um valor que falharia é copiado da origem sem alteração e nomeado em `copied verbatim`; isso é um relatório, não uma falha.
+
+### Para onde vai a saída
+
+O pseudolocale é gravado fora dos seus arquivos de locale reais, por padrão em `.verbatra-local/pseudo`, que o [`verbatra init`](/pt-BR/docs/cli/init) adiciona ao `.gitignore` (o `pseudo` acrescenta a entrada se ela estiver faltando). Seu `files.pattern` é expandido dentro desse diretório, então com `locales/{locale}.json` a execução padrão grava `.verbatra-local/pseudo/locales/en-XA.json`. Aponte seu servidor de desenvolvimento para lá, ou passe `--out` para gravar onde o seu build já serve.
+
+`PSEUDO_OUTPUT_CONFLICT` recusa, antes de qualquer coisa ser lida ou gravada:
+
+- um pseudolocale que nomeia o seu locale de origem ou um locale de destino,
+- um `--out` que coloca o arquivo no mesmo diretório de um arquivo de locale configurado,
+- um `--out` que é absoluto, sai da raiz do projeto ou, depois que os links simbólicos são resolvidos, cai fora do projeto, na raiz dele ou em um arquivo de que o projeto depende.
+
+Como o arquivo fica fora de `files.pattern`, o [`translate`](/pt-BR/docs/cli/translate) nunca gasta com ele e o [`check`](/pt-BR/docs/cli/check) e o [`diff`](/pt-BR/docs/cli/diff) nunca o relatam.
+
+### Formatos gravados com patch em um arquivo existente
+
+Os gravadores de `xliff` e `apple-xcstrings` aplicam patch nas unidades que já estão no documento de destino, então o arquivo do pseudolocale é copiado de novo do seu arquivo de origem a cada gravação, e uma chave adicionada depois à origem ainda chega. Um XLIFF copiado tem o `target-language` reescrito para o pseudolocale.
+
+### Saída JSON
+
+Schema: [`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os outros.
+
+Com `--json`, o [envelope](/pt-BR/docs/cli/output#saída-json) traz `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entradas gravadas, incluindo formas de plural adicionadas no modo bidi), `transformed` (valores que diferem da origem), `copied` (chaves copiadas sem alteração) e `written` (`false` quando o arquivo já estava atual).
+
+### Retorno no terminal
+
+<AvailableFrom version="0.12.0" />
+
+O resultado vai para o stdout; a linha de progresso e o próximo passo vão para o stderr:
+
+```text output
+verbatra: pseudolocalizing the source... done (0.1s)
+verbatra pseudo
+  en-XA (accented): 118 of 120 entries pseudolocalized
+    copied verbatim: legal.disclaimer, brand.name
+  wrote .verbatra-local/pseudo/locales/en-XA.json
+next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
+```
+
+Uma segunda execução sobre uma origem inalterada relata `unchanged` em vez de `wrote`. `--quiet` descarta as linhas do stderr. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | o pseudolocale foi gerado, com o arquivo alterado ou não; valores copiados sem alteração não mudam isso |
+| `2` | não foi possível executar: um erro de uso, um problema de configuração ou de origem, ou um pseudolocale ou caminho de saída recusado |
+
+Veja [o contrato dos códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída).
+
+## Veja também
+
+- [`verbatra translate`](/pt-BR/docs/cli/translate) faz o trabalho de verdade, quando você tem uma chave de API.
+- [`verbatra doctor`](/pt-BR/docs/cli/doctor) também valida um projeto sem gastar nada.
+- [Formatos](/pt-BR/docs/formats) lista a sintaxe de placeholder de cada formato.
+- [Arquivo de configuração](/pt-BR/docs/config-file) documenta `files.pattern`, que define o layout do arquivo gerado.

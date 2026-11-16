@@ -4,10 +4,11 @@ import { describe, expect, it } from "vitest";
 import { START_HERE_COMPONENT } from "./agent-entry";
 import { AI_SETUP_PROMPT } from "./ai-setup-prompt";
 import { AGENT_SKILLS_INSTALL_COMMAND } from "./install-commands";
+import { localeSuffixes } from "./locales";
 import { markdownUrl } from "./markdown-route";
 import { SITE_URL } from "./site";
 
-const LOCALES = ["", ".de", ".es", ".fr"];
+const LOCALES = localeSuffixes();
 const PROMPT_CHARACTER_LIMIT = 300;
 
 function page(suffix: string): string {

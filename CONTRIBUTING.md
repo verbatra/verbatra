@@ -331,6 +331,13 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    masks placeholders, add its wire to `MASKED_WIRES`
    (`packages/ai-providers/src/masked-wire.ts`) so the withheld count matches it.
 
+   Two more mapped types over `MachineProviderId` need an entry, and a missing
+   one is a compile error: `PROVIDER_KIND` in
+   `packages/sdk/src/config/provider-kind.ts` (`llm` or `machine-translation`)
+   and `PROVIDER_LANGUAGES` in `packages/sdk/src/config/provider-languages.ts`
+   (a function from the provider's options to its language support, which the
+   locale checks before a run read; an LLM provider returns `llmLanguageSupport`).
+
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` requires an env entry for every
@@ -350,10 +357,10 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
     `.claude/rules/git-conventions.md`.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
-    and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
-    `.fr.mdx` sibling of each in the same change. Add its row to the "What each
+    and to `(configure)/config-file.mdx`, and update the `.<locale>.mdx` sibling of
+    each, one per entry in `TRANSLATED_LOCALES` (`apps/docs/lib/locales.ts`), in the same change. Add its row to the "What each
     provider receives" table of `(concepts)/data-handling.mdx` and its siblings;
-    `scripts/verify-docs-data-flow-parity.test.mjs` fails until all four list it.
+    `scripts/verify-docs-data-flow-parity.test.mjs` fails until every locale lists it.
     The landing page reads three total `Record<MachineProviderId, ...>` tables that will
     not compile until the provider has an entry: `PROVIDER_DISPLAY` in
     `apps/docs/lib/landing-providers.ts`, `PROVIDER_IDS` in `apps/docs/lib/landing-facts.ts`
@@ -441,7 +448,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
-   and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update two total
+   and its `.<locale>.mdx` siblings (one per entry in `TRANSLATED_LOCALES`). Also update two total
    `Record<SupportedFormat, ...>` tables that will not compile until the new format has an
    entry: `FORMAT_DISPLAY` in `apps/docs/lib/landing-facts.ts` (its display `label`, which the
    landing marquee and the structured data read) and `FORMAT_ICONS` in
@@ -480,7 +487,7 @@ proposed again. `apple-xcstrings` remains the only adapter that implements
 **`.resx`** is flat XML: `<data name="Key"><value>text</value></data>` under a
 `<root>` that also carries an XSD schema preamble and several `<resheader>`
 elements. None of that is an obstacle, because `serializeEntries` receives
-`(entries, filePath, fs)` and can re-read the destination document and patch
+`(entries, filePath, fs, context, locale)` and can re-read the destination document and patch
 only the values it has entries for, leaving every other byte alone. That is the
 same write path `serializeXliffEntries` uses. It claims `.resx` only, never
 `.xml`, so the Android adapter's claim on `.xml` stays unambiguous. Placeholders
@@ -488,7 +495,7 @@ are .NET composite formatting (`{0}`, `{0,-10}`, `{1:C}`, with `{{` and `}}` as
 literals), which needs its own extractor: neither the single-brace extractor nor
 the MessageFormat one recognizes an alignment or format specifier as part of the
 token. The format has no plural construct, so no plural path is involved. One
-file per locale (`Resources.resx`, `Resources.de.resx`), which is what both
+file per locale (`Strings.en.resx`, `Strings.de.resx`), which is what both
 factories assume. No new dependency: `@xmldom/xmldom` is already here.
 
 **INI** is one section level, one line per key, every value a string, no typed
@@ -666,6 +673,33 @@ pins this side (the workflow file, branch and input it targets, the token scope,
 the empty permissions block, the secret check running before the token is
 minted), so run `pnpm test:scripts` after editing the job.
 
+## Adding a docs locale
+
+The docs site's locale set is `LOCALES` in `apps/docs/lib/locales.ts`; the rules for translating
+into it are in `.claude/rules/docs.md`. In order:
+
+1. Add the code to `LOCALES` in `apps/docs/lib/locales.ts` (region-qualified where the language
+   has regional forms, for example `zh-CN`). `apps/docs/verbatra.config.ts` and
+   `apps/docs/next.config.mjs` pick it up from there.
+2. Run `pnpm --filter @verbatra/docs typecheck`: every `Record<Locale, ...>` table, such as
+   `MESSAGE_CATALOGS` (`lib/message-catalogs.ts`), `LOCALE_DISPLAY_NAMES`
+   (`lib/language-select-copy.ts`), `OG_LOCALES` (`lib/site.ts`), `OG_LOCALE_FONTS`
+   (`lib/og-locale-fonts.ts`) and `HOME_PRIORITY` (`app/sitemap.ts`), now fails until it has an
+   entry. `UI_TRANSLATIONS` (`lib/ui-translations.ts`) is keyed by `TranslatedLocale`.
+3. Create `apps/docs/messages/<locale>.json`: fill it with `verbatra export` then `verbatra
+   import` (an agent-written catalog), or run `pnpm i18n` with a provider key.
+4. Add `meta.<locale>.json` beside every `meta.json` under `apps/docs/content/docs/` and one
+   `page.<locale>.mdx` beside every English page, including the stack templates under
+   `apps/docs/content/templates/`.
+5. Give every per-locale table in the tests an entry; the `Record<Locale, ...>` ones fail to
+   typecheck, and `scripts/*.test.mjs` tables wrapped in `assertLocaleTable`
+   (`scripts/docs-locales.mjs`) fail when run.
+6. For a non-Latin script, add an `OG_LOCALE_FONTS` face and build its subset
+   (`pnpm --filter @verbatra/docs og:fonts --source-dir <dir>`), and add a `:lang(<locale>)` font
+   rule in the single block in `apps/docs/app/global.css`.
+7. Run the docs unit suite (`pnpm --filter @verbatra/docs test`), `pnpm test:scripts`, and the docs
+   Playwright suite (`pnpm --filter @verbatra/docs test:e2e` after a build).
+
 ## Refreshing the Studio screenshots
 
 The documentation site ships real screenshots of Verbatra Studio, in
@@ -705,7 +739,7 @@ Two conventions to preserve:
 
 - **Studio is captured in English only.** The alt text and captions are
   translated in every locale, but the UI in the image stays English. Capturing
-  four locales would quadruple the asset count and the refresh cost for very
+  every locale would multiply the asset count and the refresh cost by the number of locales for very
   little gain, and English-UI screenshots under translated alt text is the
   normal convention. Do not "fix" this by adding locale variants.
 - **Both themes, always.** Studio ships light and dark, and the docs render the

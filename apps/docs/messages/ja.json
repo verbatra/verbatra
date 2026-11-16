@@ -1,0 +1,879 @@
+{
+  "docs": {
+    "machineTranslated": {
+      "title": "機械翻訳されたページ",
+      "text": "このページは自動翻訳のため、誤りや不自然な表現が含まれている可能性があります。正式な内容は英語版です。",
+      "viewOriginal": "英語の原文を読む",
+      "joined": "{machine}<link>{original}</link>。",
+      "joinedOutdated": "{machine}{outdated}<link>{original}</link>。"
+    },
+    "outdatedTranslation": {
+      "title": "翻訳が古い可能性があります",
+      "text": "この翻訳の後に英語のページが変更されました。"
+    },
+    "notTranslated": {
+      "title": "この言語ではまだ提供していません",
+      "text": "このページはまだ翻訳されていないため、英語で表示しています。"
+    },
+    "codeBlock": {
+      "output": "出力"
+    },
+    "callout": {
+      "note": "注",
+      "warning": "警告"
+    },
+    "pagination": {
+      "label": "ページナビゲーション"
+    },
+    "breadcrumb": {
+      "label": "パンくずリスト"
+    },
+    "availableFrom": {
+      "title": "{version} から利用可能",
+      "text": "verbatra {version} 以上が必要です。それより前のリリースにはこの機能がありません。<code>verbatra --version</code> でインストール済みのバージョンを確認し、古い場合はアップグレードしてください。",
+      "packageTitle": "{version} から利用可能",
+      "packageText": "{version} 以上が必要です。それより前のリリースにはこの機能がないため、パッケージが古い場合はアップグレードしてください。"
+    },
+    "llms": {
+      "heading": "AI エージェント向け",
+      "index": "llms.txt（索引）",
+      "full": "llms-full.txt（全文）"
+    },
+    "screenshot": {
+      "label": "Verbatra Studio",
+      "tablistLabel": "スクリーンショットのテーマ",
+      "dark": "ダーク",
+      "light": "ライト"
+    },
+    "diffPanel": {
+      "label": "変更された翻訳キーだけが再翻訳される様子を示す差分",
+      "caption": "変更されたキーだけをプロバイダーに送ります。最新のキーには手を加えません。"
+    },
+    "statusBadges": {
+      "new": "新機能"
+    },
+    "startHere": {
+      "title": "ここから始める",
+      "lead": "`@verbatra/cli` をインストールすると、コマンド 1 つで Claude Code、Codex、Gemini CLI、Cursor、VS Code を verbatra に接続できます（課金はオフ）。ほかのエージェントにはプロンプトを貼り付けます。",
+      "markdown": "ここから始める：プロジェクトに `@verbatra/cli` をインストールしたら、`{command}` でコーディングエージェントを接続します（課金はオフ）。"
+    },
+    "mcpInstall": {
+      "label": "{client} に追加"
+    },
+    "theme": {
+      "light": "ライトテーマ",
+      "switchToLight": "ライトテーマに切り替える",
+      "switchToDark": "ダークテーマに切り替える"
+    }
+  },
+  "landing": {
+    "meta": {
+      "title": "Verbatra：変更されたキーだけを翻訳する i18n CLI",
+      "ogTitle": "Verbatra：翻訳するのは変更された部分だけ",
+      "description": "Verbatra はオープンソースの i18n CLI と SDK です。ロケールファイルの欠落しているキーと変更されたキーを見つけ、自分の API キーでそのキーだけを翻訳します。",
+      "ogDescription": "変更された i18n キーだけを翻訳し、キーが欠落している間は CI を失敗させます。",
+      "ogImageAlt": "Verbatra：翻訳するのは変更された部分だけ。その下に、ロケールごとに欠落している 2 件のキーを見つける check の実行と、そのキーだけを送る translate の実行が並んでいます。",
+      "definition": "Verbatra は i18n ロケールファイル向けのオープンソースの CLI と SDK です。新しいキーと変更されたキーだけを、選んだ AI または機械翻訳プロバイダーに送り、キーが欠落している間は CI を失敗させます。"
+    },
+    "install": {
+      "copy": "コピー",
+      "copied": "コピーしました",
+      "copyFailed": "コピーに失敗しました",
+      "copyAria": "インストールコマンドをコピー",
+      "copyAgentAria": "エージェントのセットアップコマンドをコピー",
+      "aiLabel": "AI エージェント向けのプロンプト",
+      "copyPromptAria": "AI エージェントのセットアップ用プロンプトをコピー",
+      "copyCommand": "{command} をコピー",
+      "promptCta": "プロンプトで始める",
+      "promptCopied": "プロンプトをコピーしました",
+      "promptCopyFailed": "プロンプトをコピーできませんでした。プレビューで選択し、手でコピーしてください。",
+      "promptPreviewLabel": "エージェントに渡すこのプロンプトをコピーします"
+    },
+    "faq": {
+      "heading": "Verbatra を導入する前に",
+      "lead": "短い回答を並べ、それぞれに詳しいドキュメントへのリンクを付けています。",
+      "docs": {
+        "label": "関連ドキュメント",
+        "quickstart": "クイックスタート",
+        "safety": "翻訳の安全性",
+        "compare": "詳しい比較"
+      },
+      "items": {
+        "cost": {
+          "question": "Verbatra は無料ですか？",
+          "answer": "はい。<license>MIT ライセンス</license>のオープンソースで、無料です。費用は変更されたキーのぶんのプロバイダー料金だけで、<link>実行前に費用を見積もる</link>と規模を先に確認できます。"
+        },
+        "providers": {
+          "question": "Verbatra はどの翻訳プロバイダーに対応していますか？",
+          "answer": "{providers} に対応しています{pending, select, yes {（{upcoming} は {next} から）} other {}}。<code>provider</code> に 1 つ指定します（人だけが翻訳する場合は <code>none</code>）。詳しくは<link>プロバイダー</link>を参照してください。"
+        },
+        "privacy": {
+          "question": "Verbatra は文字列や API キーをどこかに送りますか？",
+          "answer": "送り先は、コマンドが翻訳するときの、設定したプロバイダーだけです。テレメトリはありません。API キーは環境変数にだけ置き、各プロバイダーが受け取る内容は<link>データの取り扱いとプライバシー</link>に載っています。"
+        },
+        "ci": {
+          "question": "翻訳が欠けているとき、Verbatra は pull request を失敗させられますか？",
+          "answer": "はい。<code>verbatra check</code> は API キー不要で、ロケールに欠落しているキーや古くなったキーがある間は終了コード 1 で終了します。<link>GitHub Action</link> は、これを pull request で実行します。"
+        },
+        "compare": {
+          "question": "Verbatra はほかの i18n ツールと何が違いますか？",
+          "answer": "ホスト型のプラットフォームではなく、手元のコミット済みファイルに対して動く CLI です。<link>比較ページ</link>では、ほかのツールが優れている点も含めて、出典付きで照らし合わせています。"
+        }
+      }
+    },
+    "footer": {
+      "tagline": "選んだプロバイダーを通じて、i18n ロケールファイルを同期した状態に保つオープンソースの CLI と SDK です。",
+      "cols": {
+        "product": {
+          "title": "製品",
+          "documentation": "ドキュメント",
+          "cliReference": "CLI リファレンス",
+          "sdk": "SDK",
+          "studio": "Studio",
+          "mcpServer": "MCP サーバー",
+          "githubAction": "GitHub Action",
+          "howItWorks": "仕組み",
+          "providers": "プロバイダー",
+          "formats": "フォーマット",
+          "lockFile": "ロックファイル",
+          "configFile": "設定ファイル",
+          "compare": "比較",
+          "llmsIndex": "llms.txt（索引）",
+          "llmsFull": "llms-full.txt（全文）",
+          "aiTxt": "ai.txt（利用ポリシー）"
+        },
+        "agents": {
+          "title": "エージェント向け"
+        },
+        "packages": {
+          "title": "パッケージ",
+          "releases": "リリースノート"
+        },
+        "community": {
+          "title": "コミュニティ",
+          "contributing": "コントリビューション",
+          "codeOfConduct": "行動規範",
+          "security": "セキュリティポリシー"
+        },
+        "legal": {
+          "title": "法的情報",
+          "license": "MIT ライセンス",
+          "privacy": "プライバシーポリシー",
+          "imprint": "運営者情報（Impressum）",
+          "contact": "お問い合わせ",
+          "licenses": "ライセンス"
+        }
+      },
+      "versionParts": "CLI と SDK v{cli}、Studio v{studio}、MCP サーバー v{mcp}",
+      "legalLicense": "MIT ライセンスのオープンソース",
+      "legalCopyright": "© 2026 Mario Kreitz",
+      "githubAria": "GitHub の Verbatra",
+      "npmAria": "npm の Verbatra",
+      "language": "言語"
+    },
+    "brand": {
+      "vmarkAlt": "verbatra"
+    },
+    "nav": {
+      "docs": "ドキュメント",
+      "reference": "リファレンス",
+      "languageSwitcher": {
+        "chooseLanguage": "言語を選択",
+        "triggerAriaSuffix": "言語を選択",
+        "machineTranslatedLabel": "機械翻訳",
+        "machineTranslatedDescription": "この言語のインターフェースとドキュメントページは AI で翻訳されています。"
+      },
+      "skipToContent": "本文へスキップ"
+    },
+    "topNav": {
+      "label": "メイン",
+      "menu": {
+        "open": "メニューを開く",
+        "close": "メニューを閉じる",
+        "title": "メニュー"
+      }
+    },
+    "banner": {
+      "headline": "翻訳するのは<accent>変更された部分だけ</accent>",
+      "lead": "Verbatra はすべてのキーのハッシュをロックファイルに記録し、変更されたキーだけをプロバイダーに送り、ドリフトがあると CI を失敗させます。",
+      "ctaPrimary": "はじめる",
+      "ctaCompare": "ほかのツールと比較",
+      "keysChanged": "{count, plural, other {# 件のキーに変更あり}}"
+    },
+    "marquee": {
+      "heading": "すでに使っているロケールファイルとプロバイダーに対応",
+      "pause": "アニメーションを一時停止",
+      "play": "アニメーションを再生",
+      "providers": "プロバイダー",
+      "formats": "ファイルフォーマット",
+      "new": "新機能",
+      "allProviders": "すべてのプロバイダー",
+      "allFormats": "すべてのフォーマット"
+    },
+    "lockDemo": {
+      "label": "ロックファイル",
+      "heading": "{count, plural, =2 {二つのキーが変更され、二つを送信} other {# 件のキーが変更され、# 件を送信}}",
+      "steps": "実行の仕組み",
+      "pause": "アニメーションを一時停止",
+      "play": "アニメーションを再生",
+      "edit": {
+        "label": "編集",
+        "text": "ソースファイルの {count, plural, other {# 件の値}}を変更します。"
+      },
+      "compare": {
+        "label": "比較",
+        "text": "Verbatra はすべてのキーのハッシュを計算し、ロックファイルと比較します。{count, plural, other {記録されたハッシュのうち # 件が一致しなくなりました。}}"
+      },
+      "send": {
+        "label": "送信",
+        "text": "プロバイダーに送るのは、この {count, plural, other {# 件のキー}}だけです。残りの {rest} 件は送りません。"
+      },
+      "badge": {
+        "changed": "{count} 件変更"
+      },
+      "tags": {
+        "changed": "変更あり",
+        "stale": "古い"
+      },
+      "gap": "…ほか {count} 件、変更なし",
+      "foot": {
+        "compare": "古い（stale）とは、記録されたハッシュが現在の {file} の値のハッシュと一致しないことです。残りの {count} 件は一致しています。",
+        "generated": "{date} 生成",
+        "lock": "{file}：{count, plural, other {# 件のハッシュ}}を更新しました。"
+      },
+      "preGenerated": "事前生成（リアルタイムではありません）"
+    },
+    "gate": {
+      "heading": "プロバイダーが誤っても、何も書き込まれません",
+      "lead": "すべての候補訳は、ファイルに届く前に整合性ゲートを通ります。",
+      "candidate": {
+        "label": "候補訳",
+        "text": "{key} を変更しました（{file}）。プロバイダーは訳文を返しましたが、{placeholder} が抜けています。",
+        "foot": "まだ検証も書き込みもしていません。",
+        "missing": "欠落",
+        "edited": "変更あり",
+        "answer": "プロバイダーの回答"
+      },
+      "refused": {
+        "label": "拒否",
+        "text": "ゲートは候補訳をソースと比較して拒否します。ファイルには手を加えません。",
+        "stamp": "未書き込み"
+      },
+      "stale": {
+        "label": "古いまま",
+        "text": "キーは古いままなので、チェックは引き続き失敗します。",
+        "foot": "{file} は前の値のままです。キーは古いままで、次の実行で再試行されます。"
+      },
+      "valueUnchanged": "未変更"
+    },
+    "highlights": {
+      "heading": "どこに聞いても、答えは同じ",
+      "lead": "どのインターフェースも同じロックファイルを読むため、どこで確認しても、ドイツ語は古い {stale} 件、最新 {upToDate} 件です。",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "MCP サーバー"
+      },
+      "mcp": {
+        "badge": "プロバイダーを呼び出さない",
+        "copyAria": "MCP のセットアップコマンドをコピー"
+      },
+      "studio": {
+        "label": "ロケールの対応率"
+      },
+      "sdk": {
+        "copyAria": "SDK のインストールコマンドをコピー"
+      }
+    },
+    "features": {
+      "label": "機能",
+      "heading": "翻訳の作業全体に対応",
+      "lead": "ソースコードの最初の文字列から、本番に出るレビュー済みの訳文まで。",
+      "items": {
+        "studio": {
+          "title": "Studio でレビューする",
+          "body": "プロジェクトを扱うローカルのダッシュボード。全ロケールを閲覧し、レビューキューを処理し、値をその場で編集できます。"
+        },
+        "handoff": {
+          "title": "人に受け渡す",
+          "body": "翻訳者向けに Excel ブック、CSV、TSV、XLIFF をエクスポートし、あとでインポートして戻します。インポートした値は、以降の機械翻訳の実行から保護されます。"
+        },
+        "extract": {
+          "title": "ソースから抽出する",
+          "body": "コードから翻訳の呼び出しを探し、誰かが翻訳する前に、新しいキーをソースロケールに追加します。"
+        },
+        "watch": {
+          "title": "開発中は監視する",
+          "body": "開発中に監視プロセスを動かしておくと、ソースロケールを変更するたびに、保存と同時に翻訳されます。"
+        },
+        "types": {
+          "title": "型付きキー",
+          "body": "キーとメッセージ引数の TypeScript 宣言を生成するので、キーのタイプミスはビルドの失敗になります。"
+        },
+        "doctor": {
+          "title": "費用が発生する前に確認する",
+          "body": "doctor は API キーなしで構成を確認し、見積もりは費用が発生する前に実行の規模を示します。"
+        }
+      },
+      "more": "…ほか {count} 件",
+      "moreChecks": "…ほかのチェックもすべて合格",
+      "emptyCell": "翻訳者が入力",
+      "badges": {
+        "extract": "{count, plural, other {# 件の新しいキー}}",
+        "types": "{count, plural, other {# 件のキーを宣言済み}}",
+        "doctor": "API キー不要",
+        "watch": "保存のたびに",
+        "handoff": "{count, plural, other {翻訳待ち # 行}}",
+        "studio": "実際のスクリーンショット"
+      }
+    },
+    "steps": {
+      "items": {
+        "check": {
+          "title": "チェック",
+          "body": "`verbatra check` はソース、ターゲット、ロックファイルを比較します。プロバイダーは呼び出さず、API キーも不要です。"
+        },
+        "translate": {
+          "title": "翻訳",
+          "body": "`verbatra translate` は欠落しているキーと変更されたキーだけを送り、プレースホルダーの不一致、壊れたインラインマークアップ、無効な ICU 構文を含む結果は拒否します。"
+        },
+        "ci": {
+          "title": "CI にゲートを設ける",
+          "body": "GitHub Action が pull request ごとに `check` を実行し、ロケールが同期していない間は失敗させます。"
+        }
+      }
+    },
+    "compare": {
+      "columns": {
+        "criterion": "比較項目",
+        "manual": "手作業の流れ",
+        "lingoDetail": "現行の CLI とプラットフォーム",
+        "manualDetail": "製品なし、出典なし"
+      },
+      "verdicts": {
+        "yes": "はい",
+        "no": "いいえ",
+        "partial": "一部",
+        "unknown": "不明",
+        "noneFound": "未検出",
+        "notApplicable": "該当なし"
+      },
+      "rows": {
+        "license": {
+          "label": "オープンソースとライセンス",
+          "verbatra": {
+            "value": "MIT"
+          },
+          "lingo": {
+            "value": "Apache-2.0（リポジトリ）",
+            "note": "CLI はライセンス欄なし、本体は記載なし"
+          },
+          "tolgee": {
+            "value": "Apache-2.0 コア",
+            "note": "企業版は非商用ライセンス、CLI は MIT"
+          },
+          "weblate": {
+            "value": "GPL-3.0-or-later",
+            "note": "`wlc` CLI も同じ"
+          },
+          "crowdin": {
+            "value": "MIT（CLI、Action）",
+            "note": "本体のソースは未検出"
+          },
+          "lokalise": {
+            "value": "BSD-3-Clause（CLI）",
+            "note": "本体のソースは未検出"
+          },
+          "phrase": {
+            "value": "MIT（CLI、Action）",
+            "note": "本体のソースは未検出"
+          }
+        },
+        "selfHosting": {
+          "label": "セルフホスト",
+          "verbatra": {
+            "value": "ローカルのみ",
+            "note": "マシンと CI、ホスト型なし"
+          },
+          "lingo": {
+            "note": "旧 CLI はローカルの Ollama で動作"
+          },
+          "tolgee": {
+            "note": "高度機能は要ライセンス"
+          },
+          "weblate": {
+            "note": "Weblate ホスト型も"
+          },
+          "crowdin": {
+            "note": "料金ページにオンプレミス記載なし"
+          },
+          "lokalise": {
+            "note": "オンプレミスとプライベートクラウドは非対応"
+          },
+          "phrase": {
+            "note": "料金ページにセルフホスト記載なし"
+          },
+          "manual": {
+            "note": "製品なし、選ぶサービスによる"
+          }
+        },
+        "pricing": {
+          "label": "料金体系",
+          "verbatra": {
+            "value": "無料",
+            "note": "プロバイダーから直接請求"
+          },
+          "lingo": {
+            "value": "従量課金",
+            "note": "Sandbox プランは無料"
+          },
+          "tolgee": {
+            "value": "無料プラン",
+            "note": "有料はホスト単語数で課金"
+          },
+          "weblate": {
+            "value": "セルフホスト：無料",
+            "note": "ホスト型は文字列数課金、公開オープンソースは Libre 無料"
+          },
+          "crowdin": {
+            "value": "有料プラン",
+            "note": "主に単語数課金、試用あり、オープンソース向け無料"
+          },
+          "lokalise": {
+            "value": "有料 4 段階",
+            "note": "試用 14 日"
+          },
+          "phrase": {
+            "value": "有料プラン",
+            "note": "シートと単語数で課金、試用 14 日"
+          },
+          "manual": {
+            "value": "開発者の時間",
+            "note": "別途サービス費用"
+          }
+        },
+        "providers": {
+          "label": "AI と機械翻訳のプロバイダー",
+          "verbatra": {
+            "value": "{count} 個を内蔵"
+          },
+          "lingo": {
+            "value": "多数の LLM",
+            "note": "OpenAI、Anthropic、Google。DeepL 型エンジン記載なし"
+          },
+          "tolgee": {
+            "value": "機械翻訳と LLM",
+            "note": "DeepL、Google、Amazon、OpenAI、Anthropic、Gemini、Baidu（セルフホストのみ）"
+          },
+          "weblate": {
+            "value": "29 サービス",
+            "note": "DeepL、OpenAI、Anthropic、LibreTranslate などを内蔵"
+          },
+          "crowdin": {
+            "value": "機械翻訳と AI",
+            "note": "DeepL、Google、Microsoft、Amazon、OpenAI、Anthropic、Gemini など"
+          },
+          "lokalise": {
+            "value": "Google Translate、DeepL",
+            "note": "Pro AI の LLM"
+          },
+          "phrase": {
+            "value": "Phrase Language AI",
+            "note": "Google、Amazon、Microsoft、Strings は 2026-06-30 に DeepL 削除"
+          },
+          "manual": {
+            "value": "任意サービス",
+            "note": "貼り付け先"
+          }
+        },
+        "ownKeys": {
+          "label": "自分の API キーを使う",
+          "verbatra": {
+            "note": "環境変数のみ"
+          },
+          "lingo": {
+            "note": "企業向け機能、旧 CLI は自分のキー"
+          },
+          "tolgee": {
+            "note": "LLM は可、機械翻訳はセルフホストのみ明記"
+          },
+          "weblate": {
+            "note": "管理者が各サービスの認証情報を設定"
+          },
+          "crowdin": {
+            "note": "外部機械翻訳は自分のキー、AI は自分のキーか Crowdin 管理"
+          },
+          "lokalise": {
+            "note": "機械翻訳と AI のドキュメントに記載なし"
+          },
+          "phrase": {
+            "note": "連携エンジンは自前契約、Strings 内は未確認"
+          },
+          "manual": {
+            "value": "自前アカウント"
+          }
+        },
+        "incremental": {
+          "label": "差分のみの翻訳",
+          "verbatra": {
+            "note": "ロックファイルのキー別ハッシュ"
+          },
+          "lingo": {
+            "note": "CLI のロックファイル差分"
+          },
+          "tolgee": {
+            "note": "新規・インポートのキーのみ、ロックファイル未検出"
+          },
+          "weblate": {
+            "note": "未翻訳文字列のみ（自動翻訳アドオン）"
+          },
+          "crowdin": {
+            "note": "未翻訳文字列のみ（事前翻訳）"
+          },
+          "lokalise": {
+            "note": "空の値のみ（自動化、事前翻訳）"
+          },
+          "phrase": {
+            "note": "空の訳文のみ（事前翻訳）"
+          },
+          "manual": {
+            "value": "手作業"
+          }
+        },
+        "cli": {
+          "label": "コマンドラインツール（CLI）",
+          "verbatra": {
+            "note": "`verbatra`"
+          },
+          "lingo": {
+            "note": "`@lingo.dev/cli`、旧オープンソース版 `lingo.dev` も公開"
+          },
+          "tolgee": {
+            "note": "`@tolgee/cli`、MIT"
+          },
+          "weblate": {
+            "note": "`wlc`"
+          },
+          "crowdin": {
+            "note": "Crowdin CLI"
+          },
+          "lokalise": {
+            "note": "Lokalise CLI v2"
+          },
+          "phrase": {
+            "note": "Phrase Strings CLI"
+          }
+        },
+        "ci": {
+          "label": "CI と GitHub Action",
+          "verbatra": {
+            "note": "公式 Action、欠落や古さで `check` は 1 で終了"
+          },
+          "lingo": {
+            "note": "GitHub App、action.yml 同梱"
+          },
+          "tolgee": {
+            "note": "公式 Action"
+          },
+          "weblate": {
+            "note": "PR、公式の同期 Action 未検出、linter はベータ"
+          },
+          "crowdin": {
+            "note": "公式 GitHub Action"
+          },
+          "lokalise": {
+            "note": "公式プッシュとプルの Action"
+          },
+          "phrase": {
+            "note": "CI で CLI、Phrase の組織に setup-cli Action"
+          }
+        },
+        "mcp": {
+          "label": "MCP サーバー",
+          "verbatra": {
+            "note": "ローカル、stdio"
+          },
+          "weblate": {
+            "note": "公式 MCP サーバー"
+          },
+          "crowdin": {
+            "note": "ホスト型"
+          },
+          "lokalise": {
+            "note": "ホスト型、ベータ"
+          },
+          "phrase": {
+            "note": "ホスト型、Phrase ログイン"
+          }
+        },
+        "inContext": {
+          "label": "コンテキスト内編集",
+          "lingo": {
+            "note": "ドキュメントと README に記載なし"
+          },
+          "tolgee": {
+            "note": "Alt/Option クリックでエディターが開く"
+          },
+          "weblate": {
+            "note": "公式コンテキスト内エディター"
+          },
+          "crowdin": {
+            "note": "Crowdin In-Context"
+          },
+          "lokalise": {
+            "note": "LiveJS Web エディター"
+          },
+          "phrase": {
+            "note": "In-Context Editor、公式フレームワークアダプター"
+          }
+        },
+        "translatorUi": {
+          "label": "翻訳者向けの Web インターフェース",
+          "verbatra": {
+            "note": "ローカルの Studio、ホスト型なし"
+          },
+          "lingo": {
+            "note": "企業向けレビューキューのみ、汎用エディター未検出"
+          },
+          "tolgee": {
+            "note": "Web 版、ホスト型かセルフホスト"
+          },
+          "weblate": {
+            "note": "Web 翻訳 UI"
+          },
+          "crowdin": {
+            "note": "ブラウザーのエディター"
+          },
+          "lokalise": {
+            "note": "キーエディターあり、Web 上かは不明"
+          },
+          "phrase": {
+            "note": "ブラウザーの Strings Editor"
+          },
+          "manual": {
+            "value": "使うサービスの UI"
+          }
+        },
+        "formats": {
+          "label": "ファイルフォーマット",
+          "detail": "ベンダーの一覧、統一なし",
+          "verbatra": {
+            "value": "{count} 種類",
+            "note": "ドキュメント掲載"
+          },
+          "lingo": {
+            "value": "18 種類",
+            "note": "一覧あり"
+          },
+          "tolgee": {
+            "value": "17 種類",
+            "note": "概要ページ"
+          },
+          "weblate": {
+            "value": "50 種類",
+            "note": "一覧あり"
+          },
+          "crowdin": {
+            "value": "17 種類",
+            "note": "文字列ベースの一覧"
+          },
+          "lokalise": {
+            "value": "30 種類",
+            "note": "一覧あり"
+          },
+          "phrase": {
+            "value": "47 件",
+            "note": "項目を掲載"
+          },
+          "manual": {
+            "value": "どれでも",
+            "note": "手でコピーしたもの全般"
+          }
+        }
+      },
+      "sourceLink": "{tool}、{criterion}、出典",
+      "sourceLinkNth": "{tool}、{criterion}、出典 {number}",
+      "pairSummary": "Verbatra と {tool}",
+      "sources": "出典",
+      "manualNote": "手作業の流れは製品ではないため、出典はありません。この列は、文字列を翻訳サービスに手でコピーし、結果を貼り戻す作業を表します。",
+      "lastChecked": "最終確認",
+      "fairness": "各セルは、その日付にベンダー自身のページが述べていた内容です。「未検出」は検索で見つからなかったという意味で、製品にその機能がないという意味ではありません。"
+    },
+    "openSource": {
+      "newTab": "（新しいタブで開きます）",
+      "contributorsHeading": "コントリビューター",
+      "contributorAria": "GitHub の {name}",
+      "contributingGuide": "コントリビューションガイド"
+    },
+    "closing": {
+      "heading": "まずドライランから",
+      "lead": "この手順は、すでにロケールファイルがあるプロジェクト向けで、どちらのステップも API キーは不要です。",
+      "label": "トークンを消費する前に",
+      "proof": {
+        "label": "プロジェクト情報",
+        "provenance": "npm の来歴証明",
+        "license": "MIT ライセンス",
+        "telemetry": "CLI はテレメトリを送信しません",
+        "coverage": "カバレッジゲート {threshold}%",
+        "ci": "CI ワークフロー"
+      }
+    },
+    "fab": {
+      "label": "トップへ戻る"
+    }
+  },
+  "compare": {
+    "meta": {
+      "title": "Verbatra と Lingo.dev、Tolgee、Crowdin などの比較",
+      "description": "Verbatra と Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase を比較。ライセンス、プロバイダー、API キー、CI、MCP、フォーマットを日付つきの出典で示します。",
+      "ogImageAlt": "Verbatra と他ツールの比較（verbatra のワードマーク付き）"
+    },
+    "heading": "Verbatra と他ツールの比較",
+    "takeaway": "自前の API キーで、変更キーだけを CI で翻訳します。MIT ライセンスです。",
+    "scope": "Verbatra は CLI と SDK、ほかの列は翻訳プラットフォームと手作業で、ロケール翻訳を保つ方法として比べます。",
+    "stronger": "他社の強み：コンテキスト内編集（Tolgee、Crowdin、Lokalise、Phrase）と翻訳者用ホスト型エディター。",
+    "skip": "比較を飛ばす",
+    "pickerLabel": "Verbatra と比較するツール",
+    "caption": "ロケールファイルを翻訳済みに保つ方法：Verbatra、Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase、手作業の流れ",
+    "lingoNote": "Lingo.dev のセルは、旧オープンソース CLI の `lingo.dev` と明記している場合を除き、現行の `@lingo.dev/cli` とホスト型プラットフォームを指します。",
+    "formatsNote": "フォーマットの数は各ベンダー自身の一覧によるもので、相互に統一していません。",
+    "nextHeading": "自分で試す",
+    "quickstart": "クイックスタートから始める",
+    "home": "Verbatra のホームページに戻る",
+    "breadcrumbHome": "ホーム",
+    "breadcrumbCompare": "比較",
+    "noneFound": "「未検出」は検索で見つからなかっただけで、機能の不在ではありません。",
+    "checkedLine": "{label} <time>{date}</time>。{noneFound}"
+  },
+  "legal": {
+    "privacy": {
+      "meta": {
+        "title": "プライバシーポリシー",
+        "description": "verbatra ドキュメントサイトがデータをどう取り扱うかの説明です。"
+      },
+      "title": "プライバシーポリシー",
+      "lastUpdated": "最終更新日：<stamp>{date}</stamp>",
+      "languageVersions": "このプライバシーポリシーは、英語版と各言語の翻訳版で提供しています。すべての言語版は内容が同じで、同等の効力を持ちます。",
+      "s1": {
+        "heading": "1. 責任者",
+        "body": "このサイトのデータ処理の責任者は Mario Kreitz、Mönchfeldstraße 7, 70378 Stuttgart, ドイツです。連絡先は<imprint>運営者情報（Impressum）</imprint>と同じです。メールは <email>info@kreitz-webdev.de</email> に送れます。GDPR 第 37 条も § 38 BDSG（ドイツ連邦データ保護法）も、このサイトに指名を求めていないため、データ保護オフィサーは指名していません。"
+      },
+      "s2": {
+        "heading": "2. 概要",
+        "body": "このサイトは、プライバシーを尊重するように作られています。ブラウザーでサードパーティのスクリプトや分析スクリプトを読み込まず、サイト横断のトラッキングも行わず、Cookie を設定するのは分析に異議を述べた場合だけです（第 5 節）。収集するのは、サイトの運営と、集計した利用状況の把握に必要な最小限のデータだけです。以下の各節で、何をなぜ処理するのかを具体的に説明します。"
+      },
+      "s3": {
+        "heading": "3. サーバーログとホスティング",
+        "body": "このサイトは、<contabo>Contabo</contabo>（Contabo GmbH, Welfenstraße 22, 81541 München, ドイツ）から借りた仮想サーバーでセルフホストし、Plesk で管理しています。Contabo はサーバーインフラを提供し、その際に、この節と第 4 節に記載したデータを、運営者に代わって処理者として（GDPR 第 28 条）処理します。サイトを訪れると、Web サーバーが標準のアクセスログを処理します。ログには、IP アドレス、リクエストの日時、要求された URL、参照元ページ、ブラウザーの user-agent 文字列が含まれることがあります。サイトを配信するアプリケーションも、たとえばお問い合わせフォームの通知を送信できないときに、運用メッセージとエラーメッセージを自身のコンテナーログに書き込みます。このデータは、ページの配信、エラーの診断、不正利用の防止といった、サイトの運用と保護のために使います。法的根拠は GDPR 第 6(1)(f) 条（安全に機能するサービスという正当な利益）です。Web サーバーのアクセスログは、これらの目的に不要になり次第削除します。コンテナーログは自動でローテーションされ、3 個のファイル（各 10 MB）までに制限されます。上限に達すると、最も古いファイルを削除します。"
+      },
+      "s4": {
+        "heading": "4. 分析",
+        "body": "ページビューは、このサイトと同じサーバー（第 3 節を参照）で自前運用しているオープンソースの分析ツール Umami で集計するため、分析データが第三者に渡ることはありません。ブラウザーで分析スクリプトは動作せず、ページビューの集計のためにデバイスへ書き込むものもありません。分析に関連してデバイスから読み取るのは、第 5 節で説明するオプトアウト用 Cookie だけで、異議を尊重する目的でしか読み取りません。代わりに、ブラウザーがこのサイトのページを直接読み込んだとき（バックグラウンドで先読みしたときは除く）、Web サーバーがそのリクエストの次の情報を Umami サーバーに転送します。IP アドレス、ブラウザーの user-agent 文字列、ブラウザーの Accept-Language ヘッダーの最初の言語タグ（例：en-US、ページビューごとに転送されます）、参照元ページ（クエリ文字列を除く）、読み込んだページのパス、およびページアドレスの 5 つの UTM パラメーター（utm_source、utm_medium、utm_campaign、utm_term、utm_content。それぞれ 255 文字に切り詰め）です。広告のクリック ID などそれ以外のクエリパラメーターとフラグメントは破棄し、転送しません。クリック、コピーしたテキスト、その他の操作は記録しません。<strong>IP アドレスと user-agent 文字列そのものは保存しません。</strong>Umami サーバーは、ウェブサイト ID、IP アドレス、user-agent 文字列、毎月変わる値、サーバーの秘密鍵をハッシュ化して、仮名化されたセッション識別子を計算します。ページビューごとに、その識別子、時刻、ページのパス（上記の UTM パラメーターがあれば付く）、参照元ページを保存します。セッションについては、その言語タグ、ブラウザー、オペレーティングシステム、デバイスの種類（user-agent 文字列から判定）、国、地域、都市も保存します。国、地域、都市は、同じサーバー上の GeoLite2 データベースで IP アドレスから調べ、ほかのサービスには接続しません。セッション識別子は IP アドレスから導かれるため、これは匿名ではなく、個人データの仮名化された処理です。結果は集計した形でしか見ず、個々の訪問者を特定しようとはしません。ページビューの集計のためにデバイスへ何も保存せず、オプトアウト用 Cookie も異議を尊重する目的でしか読み取らないため、§ 25 TDDDG（ドイツ電気通信デジタルサービスデータ保護法）に基づく同意は不要です。処理の法的根拠は GDPR 第 6(1)(f) 条（サイトの利用状況を把握するという正当な利益）です。分析の記録は、このサーバー上の Umami データベースに保存されます。ブラウザーが Global Privacy Control (GPC) または Do Not Track のシグナルを送る場合、何も転送しません。下のボタンで異議を述べることもできます。ボタンは第 5 節で説明する Cookie を設定し、ブラウザーがその Cookie を送っている間も、何も転送しません。このサイトの以前の分析設定でブラウザーのローカルストレージに保存されたオプトアウトは、もう読み取りません。その方法でオプトアウトした場合は、ここでもう一度オプトアウトしてください。Umami の詳細は<umami>ドキュメント</umami>を参照してください。",
+        "optOut": {
+          "optOut": "分析をオプトアウトする",
+          "optIn": "分析を再び許可する",
+          "statusOptedOut": "保存しました。分析をオプトアウトしています。このブラウザーがその Cookie を保持している間、ページビューは集計されません。",
+          "statusOptedIn": "保存しました。分析を再び許可しています。ブラウザーが GPC または Do Not Track のシグナルを送らない限り、ページビューは集計されます。",
+          "signals": "ブラウザーが Global Privacy Control (GPC) または Do Not Track のシグナルを送る場合、どちらのボタンを選んでも、ページビューは集計されません。ボタンは JavaScript なしでも動作します。"
+        }
+      },
+      "s5": {
+        "heading": "5. Cookie",
+        "body": "このサイトが Cookie を設定するのは、第 4 節のボタンで分析に異議を述べたときだけです。Cookie は verbatra_analytics_optout で、値は 1、有効期間は 1 年です。保存するのは異議だけで、サーバーがページビューの転送をやめるために使います。利用者が求めたときにだけ設定され、この目的に厳密に必要なため、同意は不要です（§ 25 第 2 項第 2 号 TDDDG）。分析を再び許可すると削除されます。ほかの Cookie は設定しません。ブラウザーのストレージには、2 つの選択が保存されます。ライトテーマとダークテーマを切り替えると、その選択はローカルストレージ（local storage）にキー theme で保存されます。インストールコマンドの上のタブでパッケージマネージャー（npm、pnpm、yarn、bun）を選ぶと、その選択はローカルストレージとセッションストレージ（session storage）の両方にキー package-manager で保存され、ほかのインストールコマンドにも同じパッケージマネージャーが表示されます。どちらの項目も、選択する前には書き込まれません。どちらもブラウザー内にとどまり、このサーバーにもほかの誰にも送られず、ブラウザーでこのサイトのデータを消去すればいつでも削除できます。同意が必要なものはデバイスに保存されないため、Cookie 同意バナーは不要です。"
+      },
+      "s6": {
+        "heading": "6. フォントとアセット",
+        "body": "フォントと画像（ホームページのコントリビューターのアバターを含む）はセルフホストで、このサイト自身のサーバーから配信されます。そのため、ページを読み込んでも Google Fonts、GitHub、その他の第三者へのリクエストは発生しません。ステータスバッジは埋め込んでいません。サードパーティのスクリプト、画像、埋め込みコンテンツは実行時に読み込まれず、ブラウザーで分析スクリプトも動作しません。GitHub や npm などの外部サイトに接続するのは、それらへのリンクをたどったときだけです。"
+      },
+      "s7": {
+        "heading": "7. GitHub と npm",
+        "body": "プロジェクトのソースコード、issue、ディスカッションは <repo>GitHub</repo> で、公開パッケージは <npm>npm</npm> でホストされています。どちらかのサイトで操作する場合（たとえば issue を開く、ディスカッションに参加する、パッケージを見るなど）、そのプロバイダーが独立した管理者としてデータを処理し、<ghprivacy>GitHub のプライバシーステートメント</ghprivacy>または <npmprivacy>npm のプライバシーポリシー</npmprivacy>が適用されます。"
+      },
+      "s8": {
+        "heading": "8. 権利",
+        "body": "GDPR に基づき、アクセス、訂正、消去、処理の制限、異議、データポータビリティの権利があります（GDPR 第 15 条から第 21 条）。異議を述べる権利は第 9 節で別に説明します。監督機関に苦情を申し立てる権利もあります（GDPR 第 77 条）。このサイトを管轄する監督機関は「Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg」（バーデン＝ヴュルテンベルク州データ保護・情報自由担当コミッショナー）で、所在地は Heilbronner Straße 35, 70191 Stuttgart, ドイツ、ウェブサイトは <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi> です。これらの権利を行使するには、下記の連絡先に連絡してください。"
+      },
+      "objection": {
+        "heading": "9. 異議を述べる権利（GDPR 第 21 条）",
+        "body": "第 3 節、第 4 節、第 12 節で説明したとおり、GDPR 第 6(1)(f) 条（正当な利益）に基づいて個人データを処理する場合、<strong>本人の特別な状況に関する理由により、いつでもその処理に異議を述べる権利があります</strong>。異議が述べられた場合、その個人データの処理は行いません。ただし、本人の利益、権利、自由に優先する、やむを得ない正当な根拠を示せる場合、または処理が法的請求の確立、行使、防御に役立つ場合は除きます。異議は、<email>info@kreitz-webdev.de</email> への簡単なメッセージだけで述べられます。"
+      },
+      "s9": {
+        "heading": "10. お問い合わせ",
+        "body": "プライバシーに関する質問や要望は、<email>info@kreitz-webdev.de</email> にメールしてください。"
+      },
+      "s10": {
+        "heading": "11. このポリシーの変更",
+        "body": "サイトの変化や法的要件の変更に応じて、このプライバシーポリシーを更新することがあります。下の日付が最新の改訂日です。"
+      },
+      "s11": {
+        "heading": "12. お問い合わせフォーム",
+        "body": "<contact>お問い合わせフォーム</contact>を使うと、問い合わせに対応するため、送信された名前、メールアドレス、メッセージを処理します。通知メールは、ドイツでホストしている自前のメールサーバーから直接送信され、配信にサードパーティのメールプロバイダーは関与せず、EU 域外へのデータ移転もありません。ホスティングプロバイダー（第 3 節を参照）のほかに、GDPR 第 28 条の処理者として関与するのは Arcjet（Arcjet Labs, Inc., San Francisco, USA）だけです。Arcjet は、ボットや不正利用からフォームを守るため、Cloud API を通じてリクエストの IP アドレスとヘッダー（メッセージの内容は除く）を処理します。<arcjetprivacy>Arcjet のプライバシードキュメント</arcjetprivacy>によると、Arcjet はこのリクエストデータを 30 日間保持し、そこから得た集計データはそれより長く保持します。Arcjet は米国に拠点を置き、リクエストが EU 内で処理されることを保証していないため、このデータは第三国である米国に移転される可能性があります（GDPR 第 44 条以下）。Arcjet は EU-U.S. Data Privacy Framework の認証を受けていないため、同フレームワークに対する欧州委員会の十分性認定はこの移転に及びません。移転は代わりに EU 標準契約条項（GDPR 第 46(2)(c) 条）に基づきます。これらの保護措置の写しは、<email>info@kreitz-webdev.de</email> にメールして請求できます。法的根拠は GDPR 第 6(1)(f) 条（フォームを安全に運用し、問い合わせに対応するという正当な利益）です。送信内容と、それによって生じる通知メールは、運営者の受信トレイ以外のどこにも保存されません。お問い合わせへの対応が完了した時点で削除します。"
+      },
+      "s12": {
+        "heading": "13. AI による翻訳支援",
+        "body": "このプロジェクトの verbatra は AI で翻訳を支援するツールで、このドキュメントサイト自体の翻訳にも使っています。ソース言語は英語です。インターフェースのテキスト（ナビゲーション、ボタン、それに類する文字列）は、英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini 言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします。ドキュメントページも AI で翻訳しますが、この自動化された処理の流れの外にある別の手順で行います。一部のテキスト（これらの法的ページの一部を含む）は、その処理の流れで生成せず、直接書いたり修正したりしています。訳文はできる範囲で確認していますが、すべての訳文を公開前に人がレビューしているわけではないため、誤りを含む可能性があります。誤りを見つけた場合は、<contact>お問い合わせフォーム</contact>から知らせてください。この情報は、透明性のために任意で提供しています。"
+      }
+    },
+    "imprint": {
+      "meta": {
+        "title": "運営者情報（Impressum）",
+        "description": "verbatra ドキュメントサイトの法的開示情報（Impressum）です。"
+      },
+      "intro": "このウェブサイトの運営者情報（Impressum）です。以下の詳細はドイツ語で記載しています。",
+      "lastUpdated": "最終更新日：<stamp>{date}</stamp>",
+      "contactLinkNote": "すばやく電子的に返信を受けたい場合は、<link>オンラインのお問い合わせフォーム</link>も利用できます。"
+    },
+    "contact": {
+      "meta": {
+        "title": "お問い合わせ",
+        "description": "verbatra ドキュメントサイトの運営者に連絡します。"
+      },
+      "title": "お問い合わせ",
+      "intro": "このフォームで、サイトの運営者に直接連絡できます。<imprint>運営者情報（Impressum）</imprint>に記載のメールアドレスとは別の、もう 1 つの直接の電子的な連絡手段です。",
+      "privacyNotice": "名前、メールアドレス、メッセージは、お問い合わせへの回答にだけ使い、対応が完了したら削除します。詳細は<privacy>プライバシーポリシー</privacy>を参照してください。",
+      "form": {
+        "nameLabel": "名前",
+        "namePlaceholder": "お名前",
+        "emailLabel": "メールアドレス",
+        "emailPlaceholder": "you@example.com",
+        "messageLabel": "メッセージ",
+        "messagePlaceholder": "メッセージの内容",
+        "submit": "送信",
+        "submitting": "送信中…",
+        "successTitle": "送信しました",
+        "successBody": "お問い合わせを受け付けました。できるだけ早く返信します。",
+        "errorTitle": "問題が発生しました",
+        "errorBody": "メッセージを送信できませんでした。しばらくしてからもう一度お試しください。",
+        "rateLimitedBody": "最近のメッセージ送信が多すぎます。しばらくしてからもう一度お試しください。",
+        "validationErrorBody": "強調表示された項目を修正して、もう一度お試しください。",
+        "noScript": "メッセージを送信するには、このフォームに JavaScript が必要です。JavaScript を使えない場合は、<imprint>運営者情報（Impressum）</imprint>に記載のメールアドレスに直接連絡してください。",
+        "errors": {
+          "required": "この項目は必須です。",
+          "invalid_email": "有効なメールアドレスを入力してください。",
+          "too_short": "メッセージは 10 文字以上にしてください。",
+          "too_long": "この項目が長すぎます。"
+        }
+      }
+    },
+    "licenses": {
+      "meta": {
+        "title": "ライセンス",
+        "description": "verbatra ドキュメントサイトが配布するサードパーティのソフトウェア、フォント、アセットのライセンスです。"
+      },
+      "title": "ライセンス",
+      "intro": "verbatra 自体は MIT ライセンスです。このサイトは、サードパーティのパッケージ、フォント、アセットも配布しており、それぞれ固有のライセンスが適用されます。以下の一覧とライセンス本文は、作者が書いたとおり英語で掲載しています。",
+      "brands": "すべての製品名、ロゴ、ブランドは、それぞれの所有者に帰属します。verbatra は、これらの所有者と提携しておらず、承認も受けていません。verbatra が対応するフォーマットとプロバイダーを示すためにだけ掲載しています。"
+    }
+  },
+  "notFound": {
+    "meta": {
+      "title": "ページが見つかりません",
+      "description": "verbatra のサイトにこのページはありません。"
+    },
+    "title": "このページは存在しません",
+    "lead": "アドレスの入力ミスか、ページの移動が考えられます。ドキュメントとホームページから探せます。",
+    "home": "ホームページへ移動",
+    "docs": "ドキュメントを開く"
+  }
+}

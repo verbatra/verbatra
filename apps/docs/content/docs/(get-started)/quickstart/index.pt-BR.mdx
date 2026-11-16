@@ -1,0 +1,152 @@
+---
+title: Início rápido
+seoTitle: "Início rápido: traduza seu primeiro arquivo"
+description: Instale a CLI, gere uma configuração, pré-visualize a execução sem chave de API e traduza seu primeiro arquivo de locale.
+type: tutorial
+---
+Ao fim desta página, um arquivo de locale em inglês terá um irmão em alemão, escrito por um provedor e verificado pelo verbatra, além do arquivo de lock que faz toda execução seguinte traduzir só o que mudou. Você precisa do Node.js `^22.22.0 || >=24` e de cerca de 10 minutos. Os quatro primeiros passos não exigem conta nem chave de API.
+
+<Callout title="Já tem arquivos de locale e um agente de programação?">
+Passe ao seu agente o prompt de [Configurar o verbatra com um agente de IA](/pt-BR/docs/start-with-ai). Ele adiciona o verbatra em torno dos arquivos de locale que o seu projeto já tem e para antes de gastar qualquer coisa. Os passos abaixo partem do zero.
+</Callout>
+
+Existe um início rápido que também carrega o arquivo traduzido no seu app para [React](/pt-BR/docs/quickstart/react), [Next.js](/pt-BR/docs/quickstart/nextjs), [Vue](/pt-BR/docs/quickstart/vue), [Angular](/pt-BR/docs/quickstart/angular) e [Flutter](/pt-BR/docs/quickstart/flutter).
+
+## Passos
+
+<Steps>
+<Step>
+
+### Instalar a CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+Os comandos abaixo usam `npx`. Com pnpm, yarn ou bun, execute `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra` em vez disso. Se o pnpm terminar com `ERR_PNPM_IGNORED_BUILDS`, veja [O pnpm bloqueia os scripts de instalação de uma dependência (ERR_PNPM_IGNORED_BUILDS)](/pt-BR/docs/troubleshooting#o-pnpm-bloqueia-os-scripts-de-instalação-de-uma-dependência-err_pnpm_ignored_builds).
+
+</Step>
+<Step>
+
+### Adicionar um arquivo de locale de origem
+
+Pule este passo se o seu projeto já tem arquivos de locale. Caso contrário, crie um:
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Gerar uma configuração
+
+```bash
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
+```
+
+`--format` nomeia o formato do seu arquivo: [Escolher sua stack](/pt-BR/docs/pick-your-stack) traz o id de cada framework. `--yes` aceita o que o `init` detectou em vez de perguntar; omita-o para responder às perguntas interativas que o [`verbatra init`](/pt-BR/docs/cli/init) lista.
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run  (Preview what a run would translate, without calling the provider.)
+```
+
+O novo `verbatra.config.ts` traduz de `en` para `de`. Adicione códigos a `targetLocales` para ter mais idiomas.
+
+</Step>
+<Step>
+
+### Pré-visualizar a execução sem chave de API
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Esta é a forma no terminal interativo; em um pipe ou na CI, cada etapa também recebe uma linha própria, veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal). Uma simulação não instancia nenhum provedor, então não precisa de chave de API, não gasta nada e não grava nada. O [`verbatra doctor`](/pt-BR/docs/cli/doctor) verifica o restante da configuração do mesmo modo.
+
+</Step>
+<Step>
+
+### Traduzir
+
+```bash
+cp .env.example .env
+```
+
+Abra o `.env` e cole sua chave de API depois de `GEMINI_API_KEY=`. As chaves de API só vêm do ambiente, e a CLI carrega [`.env.local` e `.env`](/pt-BR/docs/cli#arquivos-de-ambiente) nele. Ainda sem chave de API? O Gemini tem um nível gratuito: crie uma no [Google AI Studio](https://aistudio.google.com/apikey). Todos os outros provedores e suas variáveis estão em [Provedores](/pt-BR/docs/providers).
+
+```bash
+npx @verbatra/cli translate
+```
+
+O verbatra envia as duas chaves ausentes ao Gemini, verifica cada resultado e grava o arquivo em alemão. O resumo começa com `de: 2 translated, 0 unchanged` e lista os tokens que a execução usou. A redação depende do modelo, por exemplo:
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Verificar se todos os locales estão sincronizados
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+O `check` não chama nenhum provedor e termina com `1` assim que um locale sai de sincronia, então o mesmo comando pode barrar um pull request.
+
+</Step>
+</Steps>
+
+## O que acabou de acontecer
+
+- `locales/de.json` contém as mesmas chaves, na mesma ordem da sua origem, e `{{name}}` sobreviveu: um resultado que perde um placeholder fica retido e nunca é gravado. Veja [Segurança da tradução](/pt-BR/docs/translation-safety).
+- `verbatra.lock.json` registra um hash da string de origem por trás de cada tradução, então a próxima execução envia só as chaves novas e alteradas. Veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file).
+- `verbatra.provenance.json` registra qual provedor e qual modelo escreveram cada valor. Veja [Procedência: quem escreveu cada valor](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor).
+- `verbatra.cache.json` e `.verbatra-local/` guardam o cache de tradução, que pode ser regenerado, e o estado local das execuções. O `init` já colocou os dois no gitignore. Veja [O cache de tradução](/pt-BR/docs/the-cache).
+
+Faça commit dos arquivos de locale, do arquivo de lock e do arquivo de procedência juntos, para que todas as máquinas e a sua CI comparem com a mesma linha de base.
+
+## Próximos passos
+
+<Cards>
+  <Card title="Adicionar um idioma" href="/pt-BR/docs/add-a-language" description="Adicione um locale de destino e deixe uma execução preenchê-lo." />
+  <Card title="Executar o verbatra na CI" href="/pt-BR/docs/ci-and-exit-codes" description="Reprove um pull request quando um locale divergir." />
+  <Card title="Como funciona uma execução" href="/pt-BR/docs/how-it-works" description="O fluxo por trás dos comandos que você acabou de executar." />
+  <Card title="Arquivo de configuração" href="/pt-BR/docs/config-file" description="Tudo o que o verbatra.config.ts pode conter." />
+</Cards>

@@ -1,7 +1,7 @@
 ---
 title: "Inspecciona un proyecto"
 seoTitle: "SDK: inspecciona un proyecto sin escribir nada"
-description: "Puntos de entrada de solo lectura del SDK tras doctor, check y diff, más las comprobaciones de integridad y el estado del lock y de la procedencia."
+description: "Puntos de entrada de solo lectura del SDK tras doctor, check y diff, más comprobaciones de integridad y estado de bloqueo y procedencia; ninguno escribe nada."
 type: reference
 ---
 ## Inspecciona el estado sin escribir
@@ -195,7 +195,7 @@ el texto encontrado. Una puerta de CI falla con cualquiera de los dos.
 
 <AvailableFrom version="0.12.0" />
 
-Comprueba un solo archivo de locale después de que una persona o un agente lo edite. Lee ese
+Comprueba un solo archivo de locale después de una edición. Lee ese
 archivo, el archivo de límites (un aviso si no se puede usar) y, para un locale de destino, el archivo de origen; no llama a ningún proveedor, no lee
 ninguna clave de API y no escribe nada.
 
@@ -343,7 +343,7 @@ Cada locale lleva además los mismos contadores `provenance` que informa `check`
 <AvailableFrom version="0.5.0" />
 
 Lee el propio archivo de bloqueo (`verbatra.lock.json`, exportado también como `LOCK_FILE_NAME`) y
-devuelve su forma parseada: `{ version, locales }`, donde cada locale asigna claves al hash del
+devuelve su forma analizada: `{ version, locales }`, donde cada locale asigna claves al hash del
 contenido de origen desde el que se tradujeron por última vez. Un archivo ausente degrada a un bloqueo
 vacío, el mismo comportamiento de primera ejecución en el que se apoya `translate`; usa `lockState`
 cuando necesites distinguir la ausencia.
@@ -394,7 +394,7 @@ No necesita configuración.
 <AvailableFrom version="0.5.0" />
 
 Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de
-`translate` o `watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca
+`translate` o `watch` que no fue una ejecución de prueba persistió en `.verbatra-local/run-status.json`. Nunca
 lanza: un archivo inservible degrada a `available: false`. El archivo es telemetría de mejor
 esfuerzo, no una línea base de corrección.
 
@@ -410,7 +410,7 @@ function runStatus(
 **Devuelve:** `RunStatusResult`
 
 No necesita configuración. Devuelve `{ available: false, reason }` (consulta `RUN_STATUS_UNAVAILABLE_REASONS`)
-o `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }`; `incomplete: { failed, partial }` cuenta los locales de la ejecución registrada que fallaron o se detuvieron a medias y se omite cuando no hubo ninguno.
+o `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }`; `incomplete: { failed, partial }` cuenta los locales de la ejecución registrada que fallaron o se detuvieron a medias y se omite cuando no hubo ninguno. <AvailableFrom version="0.13.5" />
 
 Una instantánea anterior a que el presupuesto de tokens se hiciera cumplir se sigue leyendo, sin un
 `budget` con `supported: false` (su `tokensUsed: 0` no era un recuento). Las instantáneas nuevas
@@ -453,7 +453,7 @@ cada locale como `{ locale, needsReview, approved?, fuzzyHits? }` y cada entrada
 `includeApproved: true`. Cuando el archivo de procedencia está dañado o viene de una versión más
 nueva de verbatra, devuelve `{ available: false, reason: "provenance-unreadable" }`. Un archivo de
 origen, de destino o de bloqueo que no se puede leer hace fallar la llamada igual que en `check`.
-Hasta la 0.11 la cola eran solo las marcas de la última ejecución.
+Hasta la 0.11 la cola eran solo las señales de la última ejecución.
 
 ### provenanceReport
 
@@ -510,7 +510,7 @@ Un locale lleva `entries` solo en las páginas que contienen alguna de sus entra
 
 <AvailableFrom version="0.13.0" />
 
-Renderiza un mensaje ICU tal como se lee en una configuración regional: una fila por rama, es decir, por cada categoría plural, rama exacta y opción de select y por cada lugar donde aparece una, variando un argumento cada vez y manteniendo el resto en valores de ejemplo. Solo previsualiza los formatos cuyos mensajes usan sintaxis ICU, `next-intl-json` y `arb`; cualquier otro formato, también uno `custom:`, responde `supported: false`. El mensaje es texto no fiable y la llamada nunca lanza por él: un mensaje de más de 20.000 caracteres, anidado más allá de 16 llaves, con más de 256 caracteres `{` y `<` o que no es ICU válido vuelve como `valid: false` con un `reason`, igual que una configuración regional desconocida. No lee ni escribe ningún archivo y no hace ninguna petición.
+Renderiza un mensaje ICU tal como se lee en un locale: una fila por rama, es decir, por cada categoría plural, rama exacta y opción de select y por cada lugar donde aparece una, variando un argumento cada vez y manteniendo el resto en valores de ejemplo. Solo previsualiza los formatos cuyos mensajes usan sintaxis ICU, `next-intl-json` y `arb`; cualquier otro formato, también uno `custom:`, responde `supported: false`. El mensaje es texto no fiable y la llamada nunca lanza por él: un mensaje de más de 20.000 caracteres, anidado más allá de 16 llaves, con más de 256 caracteres `{` y `<` o que no es ICU válido vuelve como `valid: false` con un `reason`, igual que un locale desconocido. No lee ni escribe ningún archivo y no hace ninguna petición.
 
 ```ts title="Firma"
 function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;

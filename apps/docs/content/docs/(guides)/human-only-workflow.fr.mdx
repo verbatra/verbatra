@@ -1,7 +1,7 @@
 ---
 title: Travailler sans traduction automatique
 seoTitle: "Utiliser verbatra sans traduction automatique"
-description: "Désactive par principe la traduction automatique de verbatra : aucune chaîne n'atteint un service de traduction et chaque texte vient d'une personne."
+description: "Désactive par principe la traduction automatique dans verbatra : aucune chaîne n'atteint un service de traduction et chaque traduction vient d'une personne."
 type: how-to
 ---
 <AvailableFrom version="0.12.0" />
@@ -74,7 +74,7 @@ L'étape 1 est facultative, car `verbatra diff` et `verbatra check` montrent les
 
 ## En CI
 
-`translate` sort avec `3` quand des clés attendent une personne ([codes de sortie](/fr/docs/cli/output#codes-de-sortie)), donc un pipeline peut faire échouer le build, ouvrir une demande de traduction ou simplement le signaler. L'[action GitHub](/fr/docs/github-action#mode-humain-uniquement) laisse passer l'étape sur le code `3` et met sa sortie `needs-human` à `"true"` pour qu'une étape suivante agisse.
+`translate` sort avec `3` quand des clés attendent une personne ([codes de sortie](/fr/docs/cli/output#codes-de-sortie)), donc un pipeline peut faire échouer le build, ouvrir une demande de traduction ou simplement le signaler. La [GitHub Action](/fr/docs/github-action#mode-100--humain) laisse passer l'étape sur le code `3` et met sa sortie `needs-human` à `"true"` pour qu'une étape suivante agisse.
 
 ## Voir aussi
 

@@ -89,7 +89,9 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `SENSITIVE_CONTENT_WITHHELD`: under `sensitiveData.mode: "block"` or `"redact"`, keys were not
  *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or
  *   glossary terms with a match were left out of the request. Under `redact` a key is withheld
- *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
+ *   when the match is in its key name, a configured pattern ran out of time on it, its value
+ *   already contains `__VBR`, the match overlaps a placeholder, or a token did not come back
+ *   exactly once.
  * - `RUN_CANCELLED`: the run's `signal` aborted while this locale was running. The keys not yet
  *   translated were not sent, or their request was abandoned; they get no lock-file entry and stay
  *   pending for the next run, and the locale is `partial`, or `failed` when other keys were
@@ -284,7 +286,7 @@ export interface EstimateIdentity {
   readonly provider: ProviderId;
   /**
    * The configured model, absent for a provider that takes none (`deepl`, `google-translate`,
-   * `libretranslate`).
+   * `libretranslate`, `none`).
    */
   readonly model?: string;
   /**

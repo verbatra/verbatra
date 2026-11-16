@@ -1,7 +1,7 @@
 ---
 title: Le fichier de verrouillage et la provenance
 seoTitle: "Le fichier de verrouillage et de provenance"
-description: "Ce que verbatra.lock.json et verbatra.provenance.json enregistrent, comment la dérive est détectée et pourquoi tu commites les deux fichiers."
+description: "Ce que notent verbatra.lock.json et verbatra.provenance.json, la détection de la dérive, la sérialisation des exécutions parallèles et pourquoi les commiter."
 type: concept
 ---
 `verbatra.lock.json` est la référence avec laquelle chaque exécution compare, pour qu'une exécution
@@ -19,10 +19,10 @@ réenregistrer un fichier source en CRLF ne change rien.
 
 ## Comment la dérive est détectée
 
-Une clé source que la cible n'a pas est manquante. Pour une clé présente, le hash source actuel est
+Une clé source non vide que la cible n'a pas est manquante. Pour une clé présente, le hash source actuel est
 comparé à celui enregistré : une différence signifie que la source a changé et la clé est
 retraduite ; une correspondance signifie qu'elle n'est jamais envoyée, donc une seconde exécution
-sans modification de la source ne coûte rien. Le pipeline complet est sur
+sans modification de la source ne coûte rien. Le pipeline est sur
 [Comment se déroule une exécution](/fr/docs/how-it-works).
 
 ### Clés protégées
@@ -35,7 +35,7 @@ est [protégée](/fr/docs/protecting-human-translations) et reste obsolète au l
 ## Adopter un projet existant
 
 Des fichiers de locale qui contiennent déjà des traductions relues ne sont pas retraduits. À la
-première exécution il n'y a pas de fichier de verrouillage, donc rien ne peut être périmé : une clé
+première exécution il n'y a pas de fichier de verrouillage, donc rien ne peut être obsolète : une clé
 que la cible possède garde sa valeur, seules les clés manquantes sont traduites, et l'exécution
 enregistre chaque hash source comme référence, sans coût fournisseur.
 
@@ -43,7 +43,7 @@ L'adoption se décide par la présence d'une clé, jamais par sa valeur, ce qui 
 
 - **Une valeur vide ou non traduite compte comme traduite.** Supprime la clé (la vider ne suffit
   pas) et l'exécution suivante la traduit.
-- **Une traduction déjà périmée est enregistrée comme à jour.** Corrige-la ou supprime-la avant la
+- **Une traduction déjà obsolète est enregistrée comme à jour.** Corrige-la ou supprime-la avant la
   première exécution.
 
 La même règle garde les formes plurielles écrites à la main, donc `generatePlurals` est sans risque
@@ -64,7 +64,7 @@ retente. Les clés orphelines n'ont pas d'entrée, et des clés triées gardent 
 ## Le verrou d'écriture
 
 Deux exécutions qui touchent la même locale en même temps pourraient toutes deux comparer avec une
-référence périmée et payer deux fois, donc chaque écriture prend un verrou inter-processus propre à
+référence obsolète et payer deux fois, donc chaque écriture prend un verrou inter-processus propre à
 cette locale sous `.verbatra-local/`. Un second écrivain attend, puis compare avec une référence qui
 contient le résultat du premier. Des locales différentes ne se bloquent jamais.
 
@@ -114,7 +114,7 @@ jamais écrasé. Si le report ne peut pas être écrit, cette locale ne tourne p
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/fr/docs/error-codes#locale_state_not_carried_over), pour que
 l'exécution suivante réessaie ; les autres locales tournent normalement.
 
-D'ici là, chaque lecture traite l'ancien état comme celui de `pt-BR` sans écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
+D'ici là, chaque lecture traite l'ancien état comme celui de `pt-BR` sans écrire, donc une clé obsolète est signalée comme obsolète. Une écriture sur une seule clé
 (une modification, une retraduction, une décision de relecture) et `verbatra import` déplacent
 d'abord l'état, de la même façon. Le contrôle `locale-state` de
 [`verbatra doctor`](/fr/docs/cli/doctor) nomme tout état resté en arrière.
@@ -187,7 +187,7 @@ s'applique à la valeur exacte que le relecteur a vue et est refusée si elle a 
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
   [`REVIEW_REJECT_UNSUPPORTED`](/fr/docs/error-codes#review_reject_unsupported).
 
-Seules les valeurs de classe machine entrent dans la file de relecture et dans la porte `--require-reviewed`. Les comptes `byReviewState` de `check` et de `lock.state` couvrent chaque valeur selon sa décision enregistrée, quelle que soit son origine : une valeur écrite ou importée par une personne sans décision y compte comme `unreviewed` sans figurer dans la file ; lis-les avec `byOrigin`.
+Seules les valeurs `machine`, `memory`, `fuzzy` et `agent` entrent dans la file de relecture et dans la barrière `--require-reviewed`. Les comptes `byReviewState` de `check` et de `lock.state` couvrent chaque valeur selon sa décision enregistrée : une valeur écrite ou importée par une personne sans décision y compte donc comme `unreviewed`, sans être dans la file ; lis-les avec `byOrigin`.
 
 Les décisions vivent dans ce fichier commité, donc la file de relecture et
 [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) voient le même

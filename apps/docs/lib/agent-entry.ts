@@ -1,10 +1,7 @@
 import { fileURLToPath } from "node:url";
-import de from "../messages/de.json";
-import en from "../messages/en.json";
-import es from "../messages/es.json";
-import fr from "../messages/fr.json";
 import { AGENT_INIT_COMMAND } from "./install-commands";
 import { type MarkdownFile, replaceMarkdown } from "./llm-markdown";
+import { DEFAULT_LOCALE, type Locale, TRANSLATED_LOCALES, translationFilePattern } from "./locales";
 import {
   isMcpInstallClient,
   isMcpInstallConfigs,
@@ -13,6 +10,7 @@ import {
   mcpInstallClientName,
   mcpInstallMarkdown,
 } from "./mcp-install-links";
+import { MESSAGE_CATALOGS } from "./message-catalogs";
 
 export const START_HERE_COMPONENT = "StartHere";
 
@@ -24,21 +22,21 @@ export const START_HERE_PAGES = [
 
 export const START_HERE_SILENT_IN_MARKDOWN = "(agents)/start-with-ai";
 
-const MESSAGES = { en, de, es, fr } as const;
+const TRANSLATION_FILE = translationFilePattern();
 
-export type MarkdownLocale = keyof typeof MESSAGES;
+export type MarkdownLocale = Locale;
 
 export function markdownLocale(path: string | undefined): MarkdownLocale {
-  const suffix = path?.match(/\.(de|es|fr)\.mdx$/)?.[1];
-  return suffix === "de" || suffix === "es" || suffix === "fr" ? suffix : "en";
+  const suffix = path === undefined ? undefined : TRANSLATION_FILE.exec(path)?.[2];
+  return TRANSLATED_LOCALES.find((locale) => locale === suffix) ?? DEFAULT_LOCALE;
 }
 
 export function startHereMarkdown(locale: MarkdownLocale): string {
-  return MESSAGES[locale].docs.startHere.markdown.replace("{command}", AGENT_INIT_COMMAND);
+  return MESSAGE_CATALOGS[locale].docs.startHere.markdown.replace("{command}", AGENT_INIT_COMMAND);
 }
 
 export function mcpInstallLabel(locale: MarkdownLocale, clientName: string): string {
-  return MESSAGES[locale].docs.mcpInstall.label.replace("{client}", clientName);
+  return MESSAGE_CATALOGS[locale].docs.mcpInstall.label.replace("{client}", clientName);
 }
 
 function isSilentPage(path: string | undefined): boolean {

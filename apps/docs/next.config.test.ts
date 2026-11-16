@@ -1,7 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match.js";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
+import { localeAlternation, TRANSLATED_LOCALES } from "@/lib/locales";
 import nextConfig, { DEFAULT_LOCALE_PREFIX_REDIRECTS, MOVED_DOCS_PAGES } from "./next.config.mjs";
 
 describe("next.config", () => {
@@ -83,12 +85,52 @@ const CONTENT_DIR = join(import.meta.dirname, "content/docs");
 
 function docsPageFiles(slug: string): string[] {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" }).filter((file) =>
-    new RegExp(`(^|/)${slug}(/index)?(\\.(de|es|fr))?\\.mdx$`).test(file),
+    new RegExp(`(^|/)${slug}(/index)?(\\.(${localeAlternation(TRANSLATED_LOCALES)}))?\\.mdx$`).test(
+      file,
+    ),
   );
 }
 
 describe("moved docs pages", () => {
+  it("spells one move out literally, in every locale including zh-CN, pt-BR and ja and as Markdown", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    for (const redirect of [
+      { source: "/docs/testing", destination: "/docs/translation-safety" },
+      {
+        source: "/:locale(de|es|fr|zh-CN|pt-BR|ja)/docs/testing",
+        destination: "/:locale/docs/translation-safety",
+      },
+      { source: "/docs/testing.md", destination: "/docs/translation-safety.md" },
+      {
+        source: "/:locale(de|es|fr|zh-CN|pt-BR|ja)/docs/testing.md",
+        destination: "/:locale/docs/translation-safety.md",
+      },
+    ]) {
+      expect(redirects).toContainEqual({ ...redirect, permanent: true });
+    }
+  });
+
   const moves = Object.entries(MOVED_DOCS_PAGES);
+
+  it.each(moves)(
+    "matches /de/docs/%s but not /en/docs/%s through Next's own matcher",
+    async (from) => {
+      const redirects = (await nextConfig.redirects?.()) ?? [];
+      const localized = redirects.find(
+        (redirect) =>
+          redirect.source === `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
+      );
+      const match = getPathMatch(localized?.source ?? "", {
+        removeUnnamedParams: true,
+        strict: true,
+      });
+      expect(match(`/de/docs/${from}`)).toEqual({ locale: "de" });
+      expect(match(`/zh-CN/docs/${from}`)).toEqual({ locale: "zh-CN" });
+      expect(match(`/pt-BR/docs/${from}`)).toEqual({ locale: "pt-BR" });
+      expect(match(`/ja/docs/${from}`)).toEqual({ locale: "ja" });
+      expect(match(`/en/docs/${from}`)).toBe(false);
+    },
+  );
 
   it.each(moves)(
     "redirects /docs/%s permanently, in every locale and as Markdown",
@@ -96,9 +138,15 @@ describe("moved docs pages", () => {
       const redirects = (await nextConfig.redirects?.()) ?? [];
       const expected = [
         { source: `/docs/${from}`, destination: `/docs/${to}` },
-        { source: `/:locale(de|es|fr)/docs/${from}`, destination: `/:locale/docs/${to}` },
+        {
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
+          destination: `/:locale/docs/${to}`,
+        },
         { source: `/docs/${from}.md`, destination: `/docs/${to}.md` },
-        { source: `/:locale(de|es|fr)/docs/${from}.md`, destination: `/:locale/docs/${to}.md` },
+        {
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}.md`,
+          destination: `/:locale/docs/${to}.md`,
+        },
       ];
       for (const redirect of expected) {
         expect(redirects).toContainEqual({ ...redirect, permanent: true });
@@ -109,5 +157,49 @@ describe("moved docs pages", () => {
   it.each(moves)("leaves no page at /docs/%s and one page per locale at its target", (from, to) => {
     expect(docsPageFiles(from)).toEqual([]);
     expect(docsPageFiles(to)).toHaveLength(i18n.languages.length);
+  });
+});
+
+describe("a locale code with a hyphen in a redirect source", () => {
+  const source = `/:locale(${localeAlternation(["de", "zh-CN", "ja"])})/docs/old`;
+  const nextOptions = { removeUnnamedParams: true, strict: true };
+
+  it("leaves the hyphen unescaped, and Next's path-to-regexp still reads the group", () => {
+    expect(localeAlternation(["zh-CN"])).toBe("zh-CN");
+    expect(() => getPathMatch(source, nextOptions)).not.toThrow();
+  });
+
+  it("matches the same paths as the escaped spelling", () => {
+    const escaped = getPathMatch(source.replace("zh-CN", "zh\\-CN"), nextOptions);
+    const plain = getPathMatch(source, nextOptions);
+    for (const path of ["/zh-CN/docs/old", "/zh/docs/old", "/zh-CNx/docs/old", "/ja/docs/old"])
+      expect(plain(path), path).toEqual(escaped(path));
+  });
+
+  it("matches the exact code Next routes with, and captures it whole", () => {
+    const match = getPathMatch(source, nextOptions);
+    expect(match("/zh-CN/docs/old")).toEqual({ locale: "zh-CN" });
+    expect(match("/ja/docs/old")).toEqual({ locale: "ja" });
+    expect(match("/de/docs/old")).toEqual({ locale: "de" });
+  });
+
+  it("does not match a bare language, a longer code or another page", () => {
+    const match = getPathMatch(source, nextOptions);
+    expect(match("/zh/docs/old")).toBe(false);
+    expect(match("/zh-CNx/docs/old")).toBe(false);
+    expect(match("/zhXCN/docs/old")).toBe(false);
+    expect(match("/zh-CN/docs/other")).toBe(false);
+  });
+
+  it("rejects the wrong case when Next matches case-sensitively", () => {
+    const match = getPathMatch(source, { ...nextOptions, sensitive: true });
+    expect(match("/zh-CN/docs/old")).toEqual({ locale: "zh-CN" });
+    expect(match("/zh-cn/docs/old")).toBe(false);
+  });
+
+  it("leaves case-sensitive routing off, so the [lang] guard is what rejects a wrong-case code", () => {
+    expect((nextConfig.experimental as { caseSensitiveRoutes?: boolean }).caseSensitiveRoutes).toBe(
+      undefined,
+    );
   });
 });

@@ -15,7 +15,7 @@ type: reference
 verbatra report <report> [flags]
 ```
 
-- `<report>`: der Bericht, der ausgegeben wird. `provenance` ist derzeit der einzige; jeder andere Name ist ein Bedienfehler.
+- `<report>`: der Bericht, der ausgegeben wird. `provenance` ist derzeit der einzige; jeder andere Name ist ein Verwendungsfehler.
 
 ## Beispiele
 
@@ -57,11 +57,11 @@ Es gibt kein `--out`: Der Bericht geht wie bei `check` und `diff` auf stdout, al
 
 Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-`--json` gibt einen [Envelope](/de/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Provenienz-Datei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
+`--json` gibt einen [Envelope](/de/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Herkunftsdatei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
 
-### Unlesbare Provenienz-Datei
+### Unlesbare Herkunftsdatei
 
-Ein Bericht ohne lesbare Provenienz-Datei würde jeden Wert als `unrecorded` listen, und das ist nicht dasselbe wie gar keine Aufzeichnung. Der Befehl schlägt deshalb sicher mit Exit `1` fehl, wie [`check --require-reviewed`](/de/docs/cli/check), damit ein CI-Job keine leere Audit-Datei archiviert.
+Ein Bericht ohne lesbare Herkunftsdatei würde jeden Wert als `unrecorded` listen, und das ist nicht dasselbe wie gar keine Aufzeichnung. Der Befehl schlägt deshalb sicher mit Exit `1` fehl, wie [`check --require-reviewed`](/de/docs/cli/check), damit ein CI-Job keine leere Audit-Datei archiviert.
 
 ### Rückmeldung im Terminal
 
@@ -87,5 +87,5 @@ Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 ## Siehe auch
 
 - [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence) behandelt den Bericht, sein Schema und die Markierungen maschineller Übersetzung in XLIFF- und TMX-Exporten.
-- [Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) erklärt die Provenienz-Datei, die der Bericht liest.
+- [Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) erklärt die Herkunftsdatei, die der Bericht liest.
 - [`verbatra check --require-reviewed`](/de/docs/cli/check) lässt CI fehlschlagen, solange eine maschinelle Übersetzung nicht freigegeben ist.

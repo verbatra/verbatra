@@ -1,0 +1,181 @@
+---
+title: GitHub Action を使う
+seoTitle: "GitHub Action で i18n を翻訳し、ゲートで止める"
+description: "コンポジット Action で GitHub Actions に verbatra を組み込みます。プッシュ時の翻訳や pull request のゲートに使え、注釈とジョブの概要も表示されます。"
+type: how-to
+---
+Action を使うと、GitHub Actions のジョブで verbatra を実行し、その結果を確認できます。Action は `translate`、`check`、`diff` を `--json` 付きで実行します。ほかのコマンドや `--prune` などのオプションが必要な場合は、[CLI を直接実行](/ja/docs/ci-and-exit-codes)します。
+
+始める前に、次のものが必要です。
+
+- Action を実行するディレクトリの直下にある verbatra の設定ファイル（[設定ファイルの探索](#設定ファイルの探索)を参照）
+- 固定する `@verbatra/cli` の正確なバージョン（`0.9.3` 以上）
+- `translate` の場合のみ：リポジトリシークレットとして登録したプロバイダーの API キー
+- Actions Runner v2.327.1 以上と `verbatra/action` `v1.3.0` 以上（このページの説明の前提で、`qa`、`require-reviewed`、`sensitive`、`locales`、`needs-human` にも必要）
+
+## ワークフローに Action を追加する
+
+Action は [verbatra/action](https://github.com/verbatra/action) と [GitHub Marketplace](https://github.com/marketplace/actions/verbatra) にあります。npm パッケージはありません。下の例のようにコミット SHA に固定するか、常に v1 系の最新を指す `verbatra/action@v1` タグを使います。以前の `mariokreitz/verbatra/packages/github-action` というパスは、もう解決されません。
+
+```yaml title=".github/workflows/translate.yml"
+name: translate
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verbatra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<commit-sha>
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6 # an exact @verbatra/cli release, 0.9.3 or newer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+Action は `@verbatra/cli` と `@verbatra/sdk` を、そのバージョンちょうどで一時ディレクトリにインストールします。プロジェクトの依存関係には手を加えないため、ジョブにインストールの手順は不要です。
+
+### プロバイダーの API キーを渡す
+
+リポジトリシークレットの API キーを、プロバイダーが読む変数名にマッピングします。変数名は[プロバイダー](/ja/docs/providers#api-キーは環境変数から読み込む)に一覧があります。Action に API キーの入力はないため、API キーが入力や CLI 引数として渡ることはありません。
+
+## pull request をゲートで止める
+
+ロケールファイルがドリフトした pull request を失敗させるには `command: check` を設定します。未処理のキーも一覧するには `command: diff` を設定します。どちらも読み取り専用でプロバイダーを呼び出さないため、API キーは不要で、フォークからの pull request でも動作します。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+```
+
+## 翻訳品質のチェック
+
+<AvailableFrom version="0.12.0" />
+
+`command: check` に `qa: "true"` を加えると、手で入力した値を含め、コミット済みのすべての訳文に対して [`verbatra check --qa`](/ja/docs/cli/check#品質チェック) を実行します。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          qa: "true"
+```
+
+- 各検出結果は、`verbatra qa: <locale>` というタイトルの注釈 1 件になります。整合性ゲートが拒否する値はエラー、レビューの理由に当たるものは警告です。
+- エラーの検出結果が 1 件でもあると、ステップは失敗します。警告と不完全な複数形でも失敗させるには `qa-strict: "true"` を、エラーだけを報告するには `qa-severity: error` を加えます。CLI は、この 2 つを同時に指定すると拒否します。
+
+## レビュー済みの訳文を必須にする
+
+<AvailableFrom version="0.12.0" />
+
+`command: check` に `require-reviewed: "true"` を加えると、[`verbatra check --require-reviewed`](/ja/docs/cli/check#レビュー済みの訳文を必須にする) を実行します。コミット済みの `verbatra.provenance.json` で、機械が書いた訳文が承認されていない間は、ステップが失敗します。このファイルには、[Studio](/ja/docs/review-in-studio) がレビューの判断を記録します。読み取り専用で API キーが不要な点は変わらず、`qa` と組み合わせられます。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          require-reviewed: "true"
+```
+
+- 未承認のキーがあるロケールごとに、そのキーを示す [`REVIEW_REQUIRED`](/ja/docs/error-codes#review_required) のエラー注釈が 1 件付きます。ジョブの概要には `unreviewed` 列が加わります。
+- `verbatra.provenance.json` が壊れている場合や、より新しい verbatra が書いたものである場合は、ゲートが失敗し、`REVIEW_STATE_UNREADABLE` の注釈が 1 件付きます。
+
+## ロケールを選んでソースをスキャンする
+
+`locales` に `de,fr` のようなカンマ区切りの一覧を設定すると、どのコマンドもそのロケールだけに限定されます。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.13.6
+          command: check
+          locales: "de,fr"
+```
+
+### 機密情報
+
+<AvailableFrom version="0.12.0" />
+
+`command: check` に `sensitive: "true"` を加えると、`verbatra check --sensitive` を実行します。ソースファイルまたは用語集に、`sensitiveData` の検出器やパターンに一致する内容（メールアドレス、API キー、カード番号など）が含まれると、ステップが失敗します。該当するキーごとに注釈を付けますが、一致した内容は出力しません。古い `version` や `0.12.0-next.*` のプレリリースを指定すると、何かをインストールする前にステップが失敗します。
+
+## 人手のみのモード
+
+<AvailableFrom version="0.12.0" />
+
+`provider: { id: "none" }` を設定している場合（[機械翻訳なしで実行する](/ja/docs/human-only-workflow)を参照）、人に任せるキーが残ると `translate` は終了コード `3` で終了します。Action はこれを失敗ではなく、受け渡す作業として扱います。ステップは成功し、該当するロケールごとに `NEEDS_HUMAN` の警告が付き、ジョブの概要にキーが一覧され、出力 `needs-human` が `"true"` になります。この値で分岐できます。
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        id: verbatra
+        with:
+          version: 0.13.6
+      - if: steps.verbatra.outputs.needs-human == 'true'
+        run: echo "Some keys need a human translation; see the job summary."
+```
+
+この扱いは `translate` だけです。`check` と `diff` が終了コード `3` で終了することはないため、これらの失敗は常にステップの失敗になります。
+
+## 設定ファイルの探索
+
+`config-path` が空の場合、Action は `working-directory`（デフォルトはリポジトリのルート）の直下に、認識できる設定ファイルがあることを求めます。親ディレクトリは探しません。そのためモノレポでは、`working-directory` をアプリに向け、設定ファイルもそこに置きます。
+
+```yaml
+      with:
+        version: 0.13.6
+        working-directory: apps/docs
+```
+
+設定ファイルが見つからない場合、CLI をインストールする前にステップが失敗し、確認したディレクトリが示されます。ほかの場所から設定ファイルを読み込むには `config-path` を設定します。相対パスは `working-directory` を基準に解決されます。
+
+## 訳文を保存する
+
+`translate` は、更新したロケールファイルを、ランナーのチェックアウトに書き込みます。Action がコミットすることはありません。コミットしてプッシュする、または pull request を作成するステップを自分で追加し、そのジョブにだけ `contents: write` または `pull-requests: write` を付与します。
+
+## 入力
+
+| 入力 | デフォルト | 説明 |
+| --- | --- | --- |
+| `version` | 必須 | 実行する `@verbatra/cli` の正確なリリース（`0.9.3` 以上）。dist-tag、範囲指定、`^` や `~` の接頭辞はステップを失敗させます |
+| `command` | `translate` | `translate`、`check`、`diff`。それ以外はステップを失敗させます |
+| `config-path` | `""` | 読み込む設定ファイル（`--config`）。`working-directory` からの相対パス |
+| `working-directory` | `""` | 実行するディレクトリ（`--cwd`）。空の場合はリポジトリのルート |
+| `dry-run` | `"false"` | `"true"` でプロバイダーを呼び出さず、書き込みもせずにプレビューする（`--dry-run`）。`translate` のみ |
+| `qa` | `"false"` | `"true"` で品質チェックを追加する（`--qa`）。`check` のみ |
+| `qa-severity` | `""` | 報告する最も低い重大度、`error` または `warning`（`--severity`）。`qa` が必要 |
+| `qa-strict` | `"false"` | `"true"` で警告でも失敗させる（`--strict`）。`qa` が必要 |
+| `require-reviewed` | `"false"` | `"true"` で、機械が書いた未承認の訳文でも失敗させる（`--require-reviewed`）。`check` のみ |
+| `sensitive` | `"false"` | `"true"` で機密情報のスキャンを追加する（`--sensitive`）。`check` のみ |
+| `locales` | `""` | 実行を限定するターゲットロケールのカンマ区切りの一覧（`--locales`） |
+| `node-version` | `"24"` | セットアップする Node.js のバージョン。CLI 0.13.0 以上：22 系は `22.22.0` 以上、24 以上（Action v1.4.0：偶数のメジャーバージョンのみ）。CLI 0.12.x：`^22.18.0 || >=24`。それより前：`>=22.14.0` |
+
+真偽値の入力に指定できるのは `"true"` と `"false"` だけです。真偽値が不正な場合や、必要な `command` や `qa` なしで入力を指定した場合は、CLI のインストール前に終了コード `1` でステップが失敗します。未知の `qa-severity` と、`qa-strict` と組み合わせた `qa-severity: error` は、CLI がインストール後に終了コード `2` で拒否します。
+
+## 出力
+
+| 出力 | 値 |
+| --- | --- |
+| `needs-human` | `translate` が終了コード `3` で終了し、人に任せるキーが残った場合は `"true"`、それ以外は `"false"` |
+
+## 実行で表示される内容
+
+- **注釈**：`translate` が終了コード `1` の場合、失敗した、または一部完了のロケールごとに、`verbatra: <locale>` というタイトルのエラー注釈が 1 件付きます。`check` または `diff` では、ドリフトしたロケールごとに、`verbatra check: <locale>` または `verbatra diff: <locale>` というタイトルの注釈が 1 件付きます。これらはすべて、Action がそのロケールのファイルを見つけられる場合は、そのファイルに付きます。一部完了のロケールの `LOCALE_PARTIAL` 注釈には、保留されたキーが原因ごとにまとめて示されます。`check` を実行するたびに、CLDR のカテゴリが足りない複数形を持つロケールごとに、`PLURAL_CATEGORIES_INCOMPLETE` の警告が 1 件付きます。`sensitive` を指定すると、フラグが付いたキーごとに `SENSITIVE_CONTENT` のエラー注釈が付き、概要に 1 行が加わります。実行全体が失敗した場合は、`verbatra` という注釈が 1 件付きます。CLI が提供していれば、エラーコード、`(cause: X)` の形の原因、`Next step:` のヒントが含まれます。GitHub が 1 つの重大度につき表示する注釈は最大 10 件のため、Action はドリフト、レビュー、品質のエラー、警告の順に並べ、残りの件数を示す通知を 1 件追加します。
+- **ジョブの概要**：ロケールごとに 1 行で、実行したコマンドに応じた件数を示します。そのほかに、合計の行と、一部完了と失敗のロケールが表示されます。`qa` を指定すると、最大 1,000 件の検出結果を載せた表が加わります。不完全な複数形には専用のセクションがあります。
+- **終了コード**：Action はまず注釈と概要を出力し、その後 CLI 自身の[終了コード](/ja/docs/cli/output#終了コード)で終了します。例外として、`translate` の終了コード `3` は成功として扱われ、CLI の実行前の失敗（作業ディレクトリがない、設定ファイルがない、インストールの失敗）は終了コード `1` で終了します。拒否された入力には `::error::` が 1 件付き、概要は作られません。
+
+## セキュリティ
+
+2 つの参照を固定します。`uses:` はコミット SHA に、`version` は正確なリリースに固定します（[npm の現在のバージョン](https://www.npmjs.com/package/@verbatra/cli)）。Action は、`latest` に解決される可能性のあるものをすべて拒否します。入力は、引用符で囲まれた引数の配列として CLI に渡され、シェルのテキストに埋め込まれることはありません。
+
+## 関連項目
+
+- [CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)：どの CI システムでも使える同じゲートです。
+- [verbatra/action](https://github.com/verbatra/action)：リリースノートと、`action.yml` から生成された入力のリファレンスです。

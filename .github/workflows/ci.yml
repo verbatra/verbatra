@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Guard against em dash (U+2014)
+      - name: Guard against em dash and horizontal bar (U+2014, U+2015)
         run: pnpm check:no-em-dash
 
       - name: Check (lint and format)
@@ -240,11 +240,15 @@ jobs:
           cache-to: type=gha,mode=max
 
   docs-e2e:
-    name: Docs accessibility and layout suite
+    name: Docs accessibility and layout suite (shard ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -263,13 +267,13 @@ jobs:
         run: pnpm --filter @verbatra/docs exec playwright install --with-deps chromium
 
       - name: Run the Playwright suite
-        run: pnpm --filter @verbatra/docs test:e2e
+        run: pnpm --filter @verbatra/docs test:e2e --shard=${{ matrix.shard }}/3
 
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: docs-e2e-results
+          name: docs-e2e-results-${{ matrix.shard }}
           path: apps/docs/test-results
           retention-days: 5
 

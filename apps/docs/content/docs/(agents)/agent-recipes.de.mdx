@@ -1,7 +1,7 @@
 ---
 title: verbatra mit JSON skripten
 seoTitle: "verbatra mit JSON-Ausgabe und Exit-Codes skripten"
-description: "Steuere verbatra aus einem Shell-Skript oder einer Agenten-Schleife: stdout bleibt sauber, du liest die Payloads und verzweigst auf den Exit-Code."
+description: "Steuere verbatra per Shell-Skript oder Agenten-Schleife: stdout bleibt sauber, du liest Payloads, verzweigst auf den Exit-Code und folgst einem Watch-Strom."
 type: how-to
 ---
 <StartHere />
@@ -37,7 +37,7 @@ Jeder Payload unten stammt aus einem kleinen Projekt: Quell-Locale `en`, eine Zi
 {"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"emptySource":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
-`translate --dry-run` beantwortet „was würde ein Lauf tun“, ohne Provider-Aufruf, ohne Schlüssel und ohne etwas zu schreiben. Es endet mit `0`. Jede Liste pro Locale ist vorhanden, auch wenn sie leer ist, also reduziere das Ergebnis auf die Felder, mit denen du arbeitest:
+`translate --dry-run` beantwortet „was würde ein Lauf tun“, ohne Provider-Aufruf, ohne API-Key und ohne etwas zu schreiben. Es endet mit `0`. Jede Liste pro Locale ist vorhanden, auch wenn sie leer ist, also reduziere das Ergebnis auf die Felder, mit denen du arbeitest:
 
 ```bash
 verbatra translate --dry-run --json 2>/dev/null \
@@ -163,7 +163,7 @@ echo "$summary" | jq -r 'if .ok | not then "run error [\(.code)] \(.message)"
 exit $status
 ```
 
-Mit einem offenen Key in `de` gibt sie `de: 1 pending` und dann `succeeded: de` aus und endet mit `0`; gegen einen nicht erreichbaren Provider gibt sie `failed: de` aus und endet mit `1`; ist nichts offen, gibt sie `nothing pending` aus, ohne etwas zu bezahlen. Der erste Schritt nutzt `diff`, weil es nur liest, keinen Schlüssel braucht und sein Exit-Code allein sagt, ob es Arbeit gibt. Der Schlüssel für `translate` kommt aus der Umgebung; siehe [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung).
+Mit einem offenen Key in `de` gibt sie `de: 1 pending` und dann `succeeded: de` aus und endet mit `0`; gegen einen nicht erreichbaren Provider gibt sie `failed: de` aus und endet mit `1`; ist nichts offen, gibt sie `nothing pending` aus, ohne etwas zu bezahlen. Der erste Schritt nutzt `diff`, weil es nur liest, keinen API-Key braucht und sein Exit-Code allein sagt, ob es Arbeit gibt. Der API-Key für `translate` kommt aus der Umgebung; siehe [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung).
 
 ## Deinem Agenten von verbatra erzählen
 
@@ -202,7 +202,7 @@ Die meisten Coding-Agenten lesen zu Beginn einer Sitzung eine Projekt-Anweisungs
 
 ## Das Skills-Paket
 
-[verbatra/skills](https://github.com/verbatra/skills) enthält drei Skill-Dokumente, die einem Agenten dieses Wissen von Anfang an mitgeben: welche Befehle Geld kosten, dass ein Probelauf keinen Provider erzeugt und warum ein kostenpflichtiges Tool absichtlich fehlen kann. Installiere eines mit der CLI von [skills.sh](https://www.skills.sh/docs):
+[verbatra/skills](https://github.com/verbatra/skills) enthält drei Skill-Dokumente, die einem Agenten dieses Wissen von Anfang an mitgeben: welche Befehle Geld kosten, dass ein Dry Run keinen Provider erzeugt und warum ein kostenpflichtiges Tool absichtlich fehlen kann. Installiere eines mit der CLI von [skills.sh](https://www.skills.sh/docs):
 
 ```bash
 npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
@@ -216,7 +216,7 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 Tausche den Namen nach `--skill` oder wiederhole das Flag, um mehr als einen zu installieren. Für einen anderen Agenten tauschst du die ID nach `-a`, zum Beispiel `codex`, `cursor`, `github-copilot` oder `gemini-cli`; siehe die [Liste der unterstützten Agenten](https://github.com/vercel-labs/skills).
 
-In Claude Code installiert das verbatra-Plugin alle drei Skills zusammen mit dem MCP-Server (Ausgaben ausgeschaltet) und einem Hook, der bearbeitete Locale-Dateien prüft. Nutze es also statt eines `verbatra`-Eintrags in `.mcp.json`, nie zusätzlich. Siehe [Das verbatra-Plugin](/de/docs/connect-an-mcp-client#das-verbatra-plugin).
+In Claude Code installiert das verbatra-Plugin alle drei Skills zusammen mit dem MCP-Server (kostenpflichtige Tools aus) und einem Hook, der bearbeitete Locale-Dateien prüft. Nutze es also statt eines `verbatra`-Eintrags in `.mcp.json`, nie zusätzlich. Siehe [Das verbatra-Plugin](/de/docs/connect-an-mcp-client#das-verbatra-plugin).
 
 ## Siehe auch
 

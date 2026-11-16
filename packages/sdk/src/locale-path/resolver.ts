@@ -127,9 +127,10 @@ function sharedCataloguePathFor(cwd: string, pattern: string): (locale: string) 
  * files should use it too rather than re-deriving the mapping: a watcher that guesses at paths will
  * disagree with the SDK the moment a non-literal locale style is configured.
  *
- * The whole configured locale set is mapped eagerly during construction, so an unusable layout or a
- * path collision is reported here, before any file is read and before any provider is called,
- * rather than partway through a run.
+ * The whole configured locale set, the source locale and every target locale, is mapped eagerly
+ * during construction, except for a shared-catalogue format, where no locale is spelled or checked.
+ * An unusable layout or a path collision is therefore reported here, before any file is read and
+ * before any provider is called, rather than partway through a run.
  *
  * For a shared-catalogue format (such as `apple-xcstrings`), `pathFor` resolves every locale to the
  * same path (the `{locale}` token is still required in the pattern but substitutes to the empty
@@ -145,8 +146,8 @@ function sharedCataloguePathFor(cwd: string, pattern: string): (locale: string) 
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the pattern lacks the `{locale}` token, a
  * segment style's token does not stand alone between separators, or a configured locale has no
  * valid single-segment spelling under the declared style.
- * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same
- * absolute path, for a format that is not a shared-catalogue format.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales (the source locale
+ * included) resolve to the same absolute path, for a format that is not a shared-catalogue format.
  */
 export function createLocalePathResolver(
   cwd: string,

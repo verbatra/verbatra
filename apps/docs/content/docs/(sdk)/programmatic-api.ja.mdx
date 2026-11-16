@@ -1,0 +1,450 @@
+---
+title: SDK レシピ
+seoTitle: "スクリプトと CI ジョブ向けの verbatra SDK レシピ"
+description: "自分のスクリプトや CI ジョブから verbatra を動かす、実行できる完全なパターン集です。どれも公開された @verbatra/sdk のエントリポイントで作られています。"
+type: how-to
+---
+最初の実行は [SDK クイックスタート](/ja/docs/sdk-quickstart)で説明しています。このページはその続きとして、スクリプトにコピーして使える完全なレシピを紹介します。すべてのエントリポイントは [SDK リファレンス](/ja/docs/sdk)にまとまっています。SDK は `.env` ファイルを読み込みません。プロバイダーを呼び出すレシピは `node --env-file=.env` で実行します。レート制限のあるプロバイダーで 1 つの言語ずつ処理するには、`translate` に `locales: ["de"]` を渡します。
+
+## 費用をかける前に実行を見積もる
+
+<AvailableFrom version="0.11.0" />
+
+`estimate: true` は `dryRun` を含みます。見積もりの数値は `RunSummary.estimate` に入ります。課金の単位で分岐するには `unit` を、[`rates`](/ja/docs/config-file#rates) ブロックで金額が算出されたかどうかで分岐するには `pricing` を使います。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const summary = await translate({ config: await loadConfig(), estimate: true });
+const estimate = summary.estimate;
+
+if (estimate !== undefined) {
+  console.log(`${estimate.keys} keys in ${estimate.requests} requests to ${estimate.rateKey}`);
+
+  if (estimate.unit === "tokens") {
+    console.log(`about ${estimate.inputTokens} in, ${estimate.outputTokens} out`);
+  } else {
+    console.log(`about ${estimate.sourceCharacters} source characters`);
+  }
+
+  if (estimate.pricing === "priced") {
+    console.log(`about ${estimate.cost} ${estimate.currency}, rates read ${estimate.asOf}`);
+    for (const locale of estimate.locales) {
+      console.log(`  ${locale.locale}: ${locale.cost}`);
+    }
+  } else {
+    console.log(`no currency figure: ${estimate.pricing}`);
+  }
+
+  console.log(`leaves out: ${estimate.caveats.join(", ")}`);
+}
+```
+
+見積もりが示すのは実行計画の見込みであり、請求額ではありません。算出の方法は[実行前に費用を見積もる](/ja/docs/estimating-cost)で、`caveats` に含まれる各 `EstimateCaveatCode` が何を見積もりから外すかは [RunSummary](/ja/docs/sdk/run-summary) で説明しています。
+
+## 書き込まずに CI でチェックする
+
+`check` は、プロバイダーを呼び出さず、どのファイルにも触れずに、読み取りと差分の比較だけをします。`inSync` フラグが true になるのは、欠落しているキーも古くなったキーもない場合に限られます。
+
+```ts
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+if (!summary.inSync) {
+  for (const locale of summary.locales) {
+    if (!locale.inSync) {
+      console.error(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+    }
+  }
+  process.exitCode = 1;
+}
+```
+
+件数ではなくキー名が必要な場合は、`diff` に切り替えます。`diff` は、ロケールごとに `missing`、`changed`、`orphaned` のキーの一覧を返し、同じ `hasPendingChanges` のゲートを備えています。CI で CLI を実行する場合は、[CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)を参照してください。
+
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
+## API キーなしで統合をテストする
+
+`createProvider` として渡すフェイクのプロバイダーを使うと、ファイルと整合性ゲートを含む処理全体を、API キーなし、ネットワーク呼び出しなし、決定的な出力で実行できます。自分のツールの単体テストに必要なものです。
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+この実行は実際のファイルを書き込むため、プロジェクトの一時的なコピーに対してテストしてください。実際のプロバイダーも同じ方法で差し込めます（[カスタムプロバイダー](/ja/docs/sdk/extend#カスタムプロバイダー)を参照）。
+
+## 長時間動くプロセスで監視する
+
+`watch` は、起動時にすぐ 1 回実行し、その後はデバウンスされたソースの変更ごとに 1 回実行します。各実行は `onRun` で報告されます。きれいに終了するには `controller.stop()` を await します。`controller.stop()` は監視プロセスを閉じ、実行中の処理が終わるまで待ちます。その後でプロセスが終了します。
+
+```ts
+import { loadConfig, watch } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const controller = await watch({
+  config,
+  onRun: (result) => {
+    if (result.status === "succeeded") {
+      console.log(`ran: ${result.summary.succeeded.length} ok, ${result.summary.failed.length} failed`);
+    } else {
+      console.error(`run failed: ${result.error.code} ${result.error.message}`);
+    }
+  },
+});
+
+process.on("SIGINT", () => {
+  void controller.stop().then(() => {
+    process.exit(0);
+  });
+});
+```
+
+起動後の実行の失敗でスローされることはありません。`{ status: "failed" }` として届き、監視は続きます。
+
+## 実行をキャンセルする
+
+<AvailableFrom version="0.12.0" />
+
+`AbortSignal` を `signal` として渡します。すると `translate` は reject せずに resolve します。すでに届いた分は書き込み、残りは未処理のままにして、`cancelled: true` を設定します。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
+  process.exitCode = 130;
+}
+```
+
+中断によって開始されなかったロケールには [`RUN_CANCELLED` のエラーコード](/ja/docs/error-codes#run_cancelled)が付き、実行の途中で止められたロケールには [`RUN_CANCELLED` の通知](/ja/docs/error-codes#notice-run_cancelled)が付きます。すべてのロケールが終わった後に中断が届いた場合、`cancelled` は設定されません。起動時の実行全体のエラーは、引き続き reject されます。
+
+## ソースコードからキーを抽出する
+
+<AvailableFrom version="0.11.0" />
+
+`extract` は、ロケールファイルではなくアプリケーションのコードを読む唯一のエントリポイントです。書き込むのはソースカタログだけで、しかも本当に新しいキーだけです。既存のキーは値を保ち、どの呼び出し箇所にも現れないキーには手を加えません。スキャンで解決できなかったものはすべてデータとして返されます。そのため、書き込む実行の前に、ドライランをゲートとして使えます。
+
+```ts
+import { extract, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await extract({ config, dryRun: true });
+
+console.log(`${preview.scannedFiles} files scanned, ${preview.existingKeys} keys already present`);
+for (const added of preview.added) {
+  console.log(`+ ${added.key} = ${JSON.stringify(added.value)} (${added.file}:${added.line})`);
+}
+for (const conflict of preview.conflicts) {
+  console.warn(`${conflict.key} has two defaults: ${conflict.values.join(" | ")}`);
+}
+for (const site of preview.dynamic) {
+  console.warn(`non-static key argument at ${site.file}:${site.line}`);
+}
+for (const diagnostic of preview.diagnostics) {
+  console.warn(`${diagnostic.file}: ${diagnostic.reason}`);
+}
+
+if (preview.added.length > 0 && preview.conflicts.length === 0) {
+  const run = await extract({ config });
+  console.log(`wrote ${run.added.length} keys to ${run.sourcePath}: ${run.written}`);
+}
+```
+
+`config.extract` でフレームワークとソースコードのルートディレクトリを指定する必要があります。指定がないと、呼び出しは `EXTRACT_NOT_CONFIGURED` をスローします。そのほかにスローされるすべてのエラーは、[`extract`](/ja/docs/sdk/inspect#extract) に一覧があります。
+
+## 型付きカタログを生成する
+
+<AvailableFrom version="0.11.0" />
+
+`generateTypes` は、ソースカタログを TypeScript として宣言します。すべてのキーのユニオン型と、各メッセージが展開する引数の型を含みます。読み込むファイルは 1 つ、書き込むファイルも 1 つです。変更のないカタログに対して 2 回実行すると、バイト単位で同一の内容が書き込まれます。これによって `check` モードが CI のゲートとして使えます。
+
+```ts
+import { generateTypes, loadConfigWithMeta } from "@verbatra/sdk";
+
+const loaded = await loadConfigWithMeta();
+const out = "src/generated/messages.d.ts";
+const configPath = loaded.source.kind === "override" ? undefined : loaded.source.filepath;
+
+const result = await generateTypes({
+  config: loaded.config,
+  out,
+  ...(configPath !== undefined ? { configPath } : {}),
+});
+
+console.log(`${result.keys} keys in ${result.path}, ${result.withArguments} take arguments`);
+for (const message of result.unresolved) {
+  console.warn(`arguments not claimed for ${message.key}: ${message.reason}`);
+}
+
+// In CI, compare instead of writing.
+const gate = await generateTypes({ config: loaded.config, out, check: true });
+if (gate.stale) {
+  console.error(`${gate.path} is out of date, re-generate it`);
+  process.exitCode = 1;
+}
+```
+
+`configPath` を渡すと、実行が読み込んだ設定ファイルが出力パスとして拒否されます。`check` の実行は何も書き込まず、`stale` を報告するだけです。書き込みを伴う実行が拒否するすべてのケースは、[`verbatra types`](/ja/docs/cli/types) に一覧があります。
+
+## 疑似ロケールを作る
+
+<AvailableFrom version="0.11.0" />
+
+`pseudolocalize` は、ソース文字列だけから偽のロケールを作ります。そのため、API キーがなくても、レイアウトの切り詰めや、抽出されていない文字列を確認できます。プロバイダーは呼び出しません。出力は `files.pattern` の外に書き込まれるため、どの実行もこのロケールに費用をかけず、ドリフトとして報告することもありません。
+
+```ts
+import { loadConfig, pseudolocalize } from "@verbatra/sdk";
+
+const result = await pseudolocalize({ config: await loadConfig() });
+
+console.log(`${result.locale} written to ${result.path}: ${result.written}`);
+console.log(`${result.transformed} of ${result.entries} entries transformed`);
+for (const key of result.copied) {
+  console.warn(`copied from source verbatim, a pseudolocalized value would not pass the gate: ${key}`);
+}
+```
+
+`locale` のデフォルトは `en-XA` で、`mode: "bidi"` の場合は `ar-XB` です。`out` のデフォルトは `.verbatra-local/pseudo` です。変換は決定的です。そのため、ソースが変わっていなければ、2 回目の実行では何も書き換えず、`written` は false になります。
+
+## 1 つのキーを編集して再翻訳する
+
+ここで紹介するのは、Verbatra Studio が使っているのと同じエントリポイントです。独自のレビューのフローを作るときに使えます。現在の値は `keyValue` で読み取ります。人による修正は `editEntry` で保存します。1 つのキーについてプロバイダーを再実行するには `retranslateEntry` を使います。どちらの書き込み関数も、全体の実行と同じ整合性チェックに候補訳を通します。拒否された値ではスローせず、2 通りのどちらかを表す結果を返します。
+
+```ts
+import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Read the live values feeding your edit UI.
+const current = await keyValue({ config, locale: "de", key: "checkout.title" });
+console.log(`source: ${current.source}, target: ${current.target ?? "(not yet translated)"}`);
+
+// Save a human-typed correction. No provider call.
+const edit = await editEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  value: "Zur Kasse",
+});
+if (!edit.accepted) {
+  console.error(`rejected (${edit.reason} check failed), nothing written`);
+}
+
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
+if (retry.accepted) {
+  console.log(`wrote: ${retry.value}`);
+  if (retry.reviewReasons.length > 0) {
+    console.warn(`flagged for review: ${retry.reviewReasons.join(", ")}`);
+  }
+}
+```
+
+[`retranslateEntry`](/ja/docs/sdk/review#retranslateentry) に、それぞれがスローするものの一覧があります。
+
+### 人が書いた値
+
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` は、人が書いた値を `KEY_PROTECTED` で拒否します。`editEntry` が保存したばかりの値も同じです。例外は、`includeHuman: true` を渡した場合と、設定ファイルで `humanEdits: "overwrite"` を指定した場合です。そのため、このレシピでは `includeHuman: true` を渡しています。固定されたキーは、常に拒否されます。[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。
+
+## レビューキューを処理する
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` は、機械が書いた値のうち、まだ誰も承認していないものをすべて、前回の実行がフラグを付けた理由とともに一覧します。このスクリプトは、フラグのない値を承認し、それ以外を却下します。却下した値は削除されるため、次の `translate` で再び埋められます。`expectedValue` を渡すと、その間に値が変わっていた場合に、呼び出しが `REVIEW_VALUE_CHANGED` をスローします。前回の実行の記録がないマシン（新しいクローンや CI ランナーなど）では、`reasons` も空になります。そのため、このスクリプトは `lastRunAt` がなければ停止します。
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[レビューと再翻訳](/ja/docs/sdk/review#approveentry)に、バッチ版の関数と、スローされるすべてのコードがあります。
+
+## すべての値をまとめて読む
+
+<AvailableFrom version="0.10.0" />
+
+`localeValues` は、`keyValue` の一括版です。ディスク上にすでにあるファイルを 1 回走査し、ロケールごとに、各キーの現在のソースとターゲットのテキストを返します。
+
+```ts title="scan-values.ts"
+import { loadConfig, localeValues } from "@verbatra/sdk";
+
+const report = await localeValues({ config: await loadConfig() });
+
+for (const { locale, values } of report) {
+  for (const [key, pair] of Object.entries(values)) {
+    if (pair.source === undefined) {
+      console.warn(`${locale}/${key}: orphaned, no source key any more`);
+    } else if (pair.target === undefined) {
+      console.warn(`${locale}/${key}: not translated yet`);
+    } else if (pair.target.includes("TODO")) {
+      console.log(`${locale}/${key}: ${pair.target}`);
+    }
+  }
+}
+```
+
+読み取り専用です。プロバイダーを呼び出さず、何も書き込まず、ロックファイルにもキャッシュにも触れません。設定済みのすべてのターゲットロケールが対象です。`locales` を渡すと一部に絞り込めます。`targetLocales` にないロケールを渡すと、`UNKNOWN_LOCALE` をスローします。
+
+## ブックの往復
+
+翻訳が必要な文字列を Excel のブックにエクスポートし、翻訳者に渡して、記入済みのファイルをインポートし直します。`importWorkbook` は、`translate` と同じドリフトと整合性のチェックを実行し、同じ形の `RunSummary` を返します。
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Write a workbook of the missing and changed strings.
+const exported = await exportWorkbook({ config });
+for (const sheet of exported.locales) {
+  console.log(`${sheet.locale}: ${sheet.rows} rows`);
+}
+console.log(`wrote ${exported.path}`);
+
+// ...later, after the translator returns the file, import it back.
+const summary = await importWorkbook({ config, workbook: exported.path });
+console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} failed`);
+```
+
+`importWorkbook` に `dryRun: true` を渡すと、何も書き込まずに、戻されたファイルを検証できます。翻訳者が編集できる内容と、行の検証方法については、[Excel や CSV で受け渡す](/ja/docs/manual-translation)を参照してください。
+
+## TMX の往復
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` と `exportTmx` は、[翻訳メモリ](/ja/docs/the-cache)を TMX に出し入れします。TMX は、主要な翻訳プラットフォームが出力し、読み込む交換フォーマットです。ブックのペアとは異なり、翻訳メモリ全体を 1 つの多言語ファイルとして、ツール間で移します。
+
+```ts
+import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Validate another tool's file before it touches the memory.
+try {
+  const preview = await importTmx({ config, file: "legacy.tmx", dryRun: true });
+  console.log(`${preview.units} units, source language ${preview.sourceLanguage ?? "undeclared"}`);
+  for (const locale of preview.locales) {
+    console.log(
+      `${locale.locale}: +${locale.added}, kept ${locale.kept}, conflicting ${locale.conflicting}`,
+    );
+  }
+
+  // Then land it. Pass overwrite: true to let the file win where the two disagree.
+  const landed = await importTmx({ config, file: "legacy.tmx" });
+  if (!landed.memoryWritable) {
+    console.error("the memory file was written by a newer verbatra and was left untouched");
+  }
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at === undefined) {
+    throw error;
+  }
+  console.error(`legacy.tmx is malformed at line ${at.line}, column ${at.column}`);
+}
+
+// ...and hand this project's memory to another tool.
+const exported = await exportTmx({ config, out: "out/memory.tmx" });
+console.log(`${exported.units} units to ${exported.path}`);
+```
+
+`importTmx` は、破損したデータをスローせずに報告します。ファイルを拒否する場合は `SOURCE_INVALID` をスローします。`tmxErrorLocation` は、そのエラーやその `cause` をキャストせずに、位置を読み取ります。エクスポートされるのは、現在の設定のフィンガープリントに一致するエントリだけです。これは、実行が再利用するのと同じ集合です。
+
+## ファイルを使わない設定
+
+`loadConfig` はメモリ上の `configOverride` を受け付けます。読み込んだファイルとまったく同じように検証されるため、ディスク上に設定ファイルがなくても、コードだけで verbatra を動かせます。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig({
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de", "fr"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  },
+});
+
+await translate({ config });
+```

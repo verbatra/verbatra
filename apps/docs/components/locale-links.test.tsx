@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import type { Locale } from "@/lib/locales";
 
 const route = vi.hoisted(() => ({ pathname: "/de/compare" }));
 
@@ -12,7 +13,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 
 const { LocaleLinks } = await import("./locale-links");
 
-function render(pathname: string, current: "en" | "de" | "es" | "fr"): Document {
+function render(pathname: string, current: Locale): Document {
   route.pathname = pathname;
   const markup = renderToStaticMarkup(<LocaleLinks label="Sprache" current={current} />);
   return new DOMParser().parseFromString(markup, "text/html");
@@ -33,6 +34,9 @@ describe("LocaleLinks", () => {
       ["/de/compare", "de", "de", LOCALE_DISPLAY_NAMES.de],
       ["/es/compare", "es", "es", LOCALE_DISPLAY_NAMES.es],
       ["/fr/compare", "fr", "fr", LOCALE_DISPLAY_NAMES.fr],
+      ["/zh-CN/compare", "zh-CN", "zh-CN", LOCALE_DISPLAY_NAMES["zh-CN"]],
+      ["/pt-BR/compare", "pt-BR", "pt-BR", LOCALE_DISPLAY_NAMES["pt-BR"]],
+      ["/ja/compare", "ja", "ja", LOCALE_DISPLAY_NAMES.ja],
     ]);
   });
 
@@ -43,8 +47,19 @@ describe("LocaleLinks", () => {
       null,
       null,
       "page",
+      null,
+      null,
+      null,
     ]);
-    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/de", "/es", "/fr"]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/",
+      "/de",
+      "/es",
+      "/fr",
+      "/zh-CN",
+      "/pt-BR",
+      "/ja",
+    ]);
   });
 
   it("is a navigation landmark named by its visible, localized label", () => {

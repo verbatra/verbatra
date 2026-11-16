@@ -13,11 +13,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isTranslationFile, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DOCS_ROOT = resolve(REPO_ROOT, "apps/docs/content/docs");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 const CONFIG_FENCE = /^```(\w+) title="([^"]+)"[^\n]*\n([\s\S]*?)^```/gm;
 
@@ -91,7 +90,7 @@ function englishPages(directory) {
     if (statSync(path).isDirectory()) {
       return englishPages(path);
     }
-    return name.endsWith(".mdx") && !/\.(?:de|es|fr)\.mdx$/.test(name) ? [path] : [];
+    return name.endsWith(".mdx") && !isTranslationFile(name) ? [path] : [];
   });
 }
 

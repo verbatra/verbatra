@@ -1,0 +1,102 @@
+---
+title: 人手翻訳を保護する
+seoTitle: "ソースが変わっても人手翻訳を保護する"
+description: ソーステキストが変わっても翻訳者が書いた文字列を残し、上書きの代わりに機械翻訳の提案を受け取り、機械に触らせないキーを固定します。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+一部の翻訳を人が書いた場合に使います。たとえば、対価を払って作った法務、マーケティング、ブランドの文面です。そのソーステキストが変わると翻訳キーは古くなり、単純な機械翻訳の実行では訳文が上書きされてしまいます。verbatra はデフォルトでこれを残します。このページでは、該当するキーの確認、解決、ルールの厳格化と緩和の方法を説明します。
+
+`translate` を 1 回以上実行して、`verbatra.provenance.json` が存在し、各値を誰が書いたかが記録されているプロジェクトが必要です。
+
+## 保護されるもの
+
+キーのソーステキストが変わったとき、値を人が書いていれば、`translate` と `watch` はその値に手を付けません。
+
+| 出どころ | 値の出どころ |
+| --- | --- |
+| `human` | 人による編集（たとえば Studio の編集ダイアログ） |
+| `import` | `verbatra import` で翻訳者への受け渡しから取り込んだ行 |
+| `external` | verbatra の外で行われた編集（pull request で翻訳者がロケールファイルを変更した場合など） |
+
+機械の出力（`machine`、`memory`、`fuzzy`）、エージェントの編集（`agent`）、まだ記録のない値（`unrecorded`）は、通常どおり再翻訳されます。レビュー担当者が却下した値が保護されることはありません。各出どころがどう記録されるかは、[来歴：各値を誰が書いたか](/ja/docs/the-lock-file#来歴各値を誰が書いたか)を参照してください。
+
+## 保護されたキーを見つける
+
+保護されたキーはプロバイダーに送られず、値を保ち、古いままになるため、見える状態が続きます。
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 1 would translate, 12 unchanged, 1 protected
+    protected:       checkout.terms (import)
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+- `verbatra translate` はそれ以外をすべて翻訳し、そのキーを保護されたキーとして一覧に示し、終了コード `0` で終了します。
+- `verbatra check` はそのキーを古くなったキーとして数え、終了コード `1` で終了します。CI のゲートに、人の作業が必要であることが表れます。
+- `verbatra diff` は `protected` の下に一覧表示します。
+- `verbatra export` は、ほかの古くなったキーと同じく、`changed` として翻訳者に渡します。
+
+## 保護されたキーの解決
+
+保護されたキーは、人がその内容を決めた時点で古くなくなります。
+
+- Studio で編集するか、変更せずに保存してテキストを維持します。どちらの場合も、値は新しいソーステキストに対して `human` として記録されます。
+- エクスポートして翻訳者に更新してもらい、受け渡しファイルをインポートします。[Excel や CSV で受け渡す](/ja/docs/manual-translation)を参照してください。
+- `verbatra translate --include-human` で、1 回の実行に限って意図的に再翻訳します。
+
+## 上書きの代わりに提案
+
+人のテキストを置き換えずに、機械が何を書くかを確認するには、`humanEdits` を `suggest` に設定します。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+この場合も、保護されたキーはプロバイダーに送られますが、答えは提案にとどまります。提案は実行サマリーのキーの隣に表示され、届いたかどうか、届かなかった理由を示す `suggestionStatus` が付き、翻訳メモリに保存されます。ロケールファイルには書き込まれません。新しいテキストに対する完全一致の翻訳メモリのエントリが、そのまま提案になることもあり、次回の実行でも費用をかけずに同じ提案が返されます。これらのキーは送られるため、`translate --estimate` の見積もりに含まれます。人手のみのプロジェクトには問い合わせるプロバイダーがないため、`suggest` は `protect` と同じ動作になります。
+
+すべてを再翻訳する動作に戻すには、`humanEdits` を `overwrite` に設定します。[`humanEdits` と `pinnedKeys`](/ja/docs/config-file#humanedits-と-pinnedkeys) を参照してください。
+
+## キーの固定
+
+商標や法的な免責事項のように、機械が一切触れてはならないキーがあります。そのようなキーは `pinnedKeys` に列挙します。`*` は任意の文字列に一致します。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+固定されたキーは、欠落していても、`--include-human` を付けても、翻訳も提案も再翻訳もされません。人が埋めるまで、理由 `pinned` の保護されたキーとして一覧に示されます。
+
+## エージェント
+
+AI エージェントは、人の作業を置き換えられません。MCP ツールの `translation.retranslateEntry` は、保護された値を [`KEY_PROTECTED`](/ja/docs/error-codes#key_protected) で、固定されたキーを [`KEY_PINNED`](/ja/docs/error-codes#key_pinned) で拒否します。呼び出しごとにこの拒否を無効にする手段はありません。保護された値については、プロジェクトの `humanEdits` の設定だけが結果を変えます（`overwrite` ならキーを再翻訳し、`suggest` では `translation.translatePending` が提案を報告するだけです）。固定されたキーは常に拒否されます。`translation.translatePending` は、保護されたキーに手を付けず、一覧に示します。エージェントは、キーが固定されていなければ、`translation.editEntry` で値を書き込めます。その値は `agent` として記録されるため、人の作業として通ることはありません。
+
+## Studio での操作
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+**Translations**（訳文）ページは、保護されたキーに **Protected**（保護済み）の印を付け、保護されたキーだけに絞り込めて、現在の値の出どころを表示します。キーを開いて編集するか、変更せずに保存してテキストを維持します。キーエディターで保護されたキーを再翻訳すると拒否され、そのあとに **Replace anyway**（このまま置換）が表示されます。これを選ぶと、意図的に再翻訳します。[Studio でレビューする](/ja/docs/review-in-studio)を参照してください。
+
+## エッジケース
+
+- **より新しい verbatra が書いた来歴ファイル**：出どころを読み取れないため、アップグレードするまで、`translate` は値を持つ古くなったキーをすべて保護します。`check` と `diff` が保護されたキーとして一覧に示すのは、固定されたキーだけです。
+- **壊れた来歴ファイル**：ドライランも含め、`translate` は [`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid) で失敗します。`check` と `diff` は動作し続け、保護されたキーとして示すのは固定されたキーだけです。
+- **人手のみのプロジェクト**：保護されたキーは、翻訳メモリが埋められなかったキーと同じく、終了コード `3` の対象に含まれます。どちらも人が必要だからです。
+
+## 関連項目
+
+- [設定ファイル](/ja/docs/config-file#humanedits-と-pinnedkeys)：`humanEdits` と `pinnedKeys` です。
+- [`verbatra translate`](/ja/docs/cli/translate#人が書いたキー)：`--include-human` です。
+- [ロックファイルと来歴](/ja/docs/the-lock-file#来歴各値を誰が書いたか)：`verbatra.provenance.json` が各出どころをどう記録するかを説明します。
+- [機械翻訳なしで実行する](/ja/docs/human-only-workflow)：すべての値を人が書くプロジェクトです。

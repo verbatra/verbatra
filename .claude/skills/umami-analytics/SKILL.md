@@ -73,8 +73,8 @@ cookie or route, or the privacy wording that describes them.
 | Counting in a route handler or page | Count only in proxy.ts through `countedPageview`, so prefetch and RSC rules stay in one place |
 | Logging a failed send | `sendPageview` stays silent: no IP, user agent or error text in logs |
 | Adding the Umami origin to the CSP | The browser never talks to Umami; csp-smoke fails on any third-party request |
-| Changing the counted data without the policy | Update legal.privacy.s4 in all four locales and verbatra.lock.json in the same change |
-| Adding a cookie, localStorage or sessionStorage write (including a fumadocs `persist` or `groupId`) without the policy | Name the key, when it is written and that it is never sent in legal.privacy.s5 in all four locales, and pin it in privacy/page.test.tsx |
+| Changing the counted data without the policy | Update legal.privacy.s4 in every locale and verbatra.lock.json in the same change |
+| Adding a cookie, localStorage or sessionStorage write (including a fumadocs `persist` or `groupId`) without the policy | Name the key, when it is written and that it is never sent in legal.privacy.s5 in every locale, and pin it in privacy/page.test.tsx |
 
 ## Tests
 

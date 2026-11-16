@@ -2,11 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PROGRESS_TYPES = resolve(REPO_ROOT, "packages/sdk/src/progress/types.ts");
 const PAGE = "apps/docs/content/docs/sdk/run";
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 function unionMembers(source) {
   const union = /export type ProgressEvent =([^;]*);/.exec(source)?.[1];

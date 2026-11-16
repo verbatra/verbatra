@@ -121,8 +121,8 @@ provider: {
 
 Reads `DEEPL_API_KEY`; `options` may be `{}`. DeepL has no model and no output-token limit, and degrades with a notice rather than failing:
 
-- **Placeholders** travel as numbered markers in an ignored tag (`Hello {{name}}` as `Hello <x>{0}</x>`) and are restored. `PLACEHOLDER_UNSUPPORTED` withholds a value with a non-literal placeholder or other text holding `<`, `>`, `{` or `}`, and a result with a lost, repeated, changed or bare marker, an unknown entity or a stray tag. Markup alone goes as plain text. <AvailableFrom version="0.12.0" />
-- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key sends no formality at all and reports `FORMALITY_DOWNGRADED`. A paid key requests `prefer_more` or `prefer_less`, so a language without formality, such as Swedish, falls back with the same notice instead of failing. The [glossary](#tone-and-glossary-across-providers) is not applied.
+- **Placeholders** travel as numbered markers in an ignored tag (`Hello {{name}}` as `Hello <x>{0}</x>`) and are restored. `PLACEHOLDER_UNSUPPORTED` withholds the whole value when it has a tag, a placeholder is non-literal, or the text outside placeholders holds `<`, `>`, `{` or `}`; a result with a lost, repeated, changed or bare marker, an unknown entity or a stray tag is dropped whole. Markup alone goes as plain text. <AvailableFrom version="0.12.0" />
+- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key sends no formality and reports `FORMALITY_DOWNGRADED`. A paid key requests `prefer_more` or `prefer_less`, so a language without formality, such as Swedish, falls back with the same notice. The [glossary](#tone-and-glossary-across-providers) is not applied.
 
 <AvailableFrom version="0.12.0" />
 
@@ -141,12 +141,12 @@ provider: {
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `requestTimeoutMs` | positive integer | `120000` | Bounds the whole call (no retries). |
+| `requestTimeoutMs` | positive integer | `120000` | Bounds the whole call. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
 Reads `GOOGLE_TRANSLATE_API_KEY`, an API key for a Google Cloud project with the Cloud Translation API enabled. Only Basic (v2) works: Advanced (v3) needs a service account.
 
-- **Placeholders** are masked as for DeepL, inside `<span translate="no">`; line breaks, tabs and double spaces are withheld too. <AvailableFrom version="0.12.0" />
+- **Placeholders** are masked as for DeepL, inside `<span translate="no">`; a masked value with a line break, tab or double space is withheld too. <AvailableFrom version="0.12.0" />
 - **Codes.** Each code sent is checked as well-formed BCP 47 before any call (`en_US` fails with `INVALID_REQUEST`). Regional codes are allowed; a pair Google rejects fails with `INVALID_REQUEST` from the API.
 
 <AvailableFrom version="0.12.0" />
@@ -256,7 +256,7 @@ provider: {
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `baseUrl` | `http` or `https` URL | required | The API root, without `/translate`. |
-| `requestTimeoutMs` | positive integer | `120000` | Bounds the whole call (no retries). |
+| `requestTimeoutMs` | positive integer | `120000` | Bounds the whole call. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
 Its languages are the models installed on your server:
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **Key.** `LIBRETRANSLATE_API_KEY` is sent as `api_key` only when set. A server started with `--api-keys` fails the run with `MISSING_API_KEY` when it is unset, and with `AUTH_FAILED` when it rejects it.
-- **Placeholders** are masked as for DeepL, as bare `{0}` markers; markup is kept, so only braces beside a placeholder count.
+- **Placeholders** are masked as for DeepL, as bare `{0}` markers; markup is kept, so in a value with tags only braces outside placeholders count.
 - **Markup.** A value with HTML-style tags is sent in `html` format: text inside tags is translated, the tags stay (phrasing across a tag may suffer), and changed tags are refused.
 - **Language check.** Every target warns `LOCALE_UNVERIFIED_BY_PROVIDER` on every run; `verbatra doctor --locales --live` checks them against the server.
 
@@ -298,7 +298,7 @@ A request carries only its target locale's glossary terms, and every output is c
 
 ### Batching
 
-A locale's work goes out in sequential sub-batches of at most [`maxBatchSize`](/docs/config-file#maxbatchsize) entries. A failed sub-batch is withheld and retried next run while the rest proceed. DeepL and Google Cloud Translation also split a sub-batch to fit their own request caps.
+A locale's work goes out in sequential sub-batches of at most [`maxBatchSize`](/docs/config-file#maxbatchsize) entries. A failed sub-batch is withheld and retried next run while the rest proceed. DeepL and Google Cloud Translation split a sub-batch to fit their own request caps.
 
 ### Retries
 
@@ -379,7 +379,7 @@ A provider failure surfaces as a [structured, secret-free error](/docs/translati
 
 ### Output-token limits
 
-The LLM providers cap each response's tokens; a model that stops at the cap raises [`OUTPUT_TRUNCATED`](/docs/error-codes#output_truncated). verbatra re-splits a truncated sub-batch into halves, down toward one entry, and withholds only an entry that still overflows. To fix it for good, lower `maxBatchSize` or raise `maxTokens` (Anthropic) or `maxOutputTokens`. A reasoning model spends hidden reasoning tokens from the same budget, so give it generous headroom.
+The LLM providers cap each response's tokens; a model that stops at the cap raises [`OUTPUT_TRUNCATED`](/docs/error-codes#output_truncated). verbatra re-splits a truncated sub-batch into halves and withholds only an entry that still overflows. To fix it, lower `maxBatchSize` or raise `maxTokens` (Anthropic) or `maxOutputTokens`. A reasoning model's hidden tokens share that budget, so leave headroom.
 
 ### Review flags
 

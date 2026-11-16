@@ -38,8 +38,8 @@ export interface CreateProviderContext {
 
 /**
  * Builds a {@link TranslationProvider} from the config's `provider` block. Passed as
- * `deps.createProvider` to {@link translate}, {@link watch}, and {@link retranslateEntry}, it is the
- * seam for injecting a stub in a test or a provider the SDK does not ship.
+ * `deps.createProvider` to {@link translate}, {@link watch}, {@link retranslateEntry}, and
+ * {@link retranslateEntries}, it is the seam for injecting a stub in a test or a provider the SDK does not ship.
  *
  * The default implementation dispatches on the provider ID and reads the API key from the
  * environment. A factory that throws is reported as `PROVIDER_CONSTRUCTION_FAILED`, whose message

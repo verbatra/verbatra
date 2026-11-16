@@ -1,0 +1,155 @@
+---
+title: verbatra tmx
+seoTitle: "verbatra tmx：翻訳メモリを TMX で再利用する"
+description: "ほかのツールの TMX 翻訳メモリをインポートして、以降の実行で費用をかけずに再利用します。このプロジェクトの翻訳メモリを TMX でエクスポートすることもできます。"
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+翻訳メモリを、主要な翻訳プラットフォームが使う交換フォーマットの TMX で出し入れします。`tmx import` は、ほかのツールの翻訳メモリを[このプロジェクトの翻訳メモリ](/ja/docs/the-cache)に取り込みます。以降の実行では、その文字列に再び費用をかけることなく再利用できます。`tmx export` は、翻訳メモリを書き出します。どちらの方向でも、プロバイダーの呼び出し、API キーの読み取り、ネットワークへのアクセスのどれもしません。実際のインポートでは、既存の `.gitignore` に足りないエントリも追加されます。詳しくは[.gitignore のエントリ](/ja/docs/cli#gitignore-のエントリ)を参照してください。
+
+## 書式
+
+```bash
+verbatra tmx <direction> [file] [flags]
+```
+
+- `<direction>`：`import` または `export`（それ以外は `INVALID_DIRECTION` で拒否）
+- `[file]`：読み書きする TMX ファイル。デフォルトはプロジェクトルートの `verbatra-memory.tmx`
+
+## 例
+
+```bash
+# ほかのツールの翻訳メモリをこのプロジェクトに取り込む
+verbatra tmx import legacy.tmx
+
+# 取り込まれる内容を報告し、何も変更しない
+verbatra tmx import legacy.tmx --dry-run
+
+# ファイルと翻訳メモリが食い違う場合に、ファイルを優先する
+verbatra tmx import legacy.tmx --overwrite
+
+# 翻訳メモリを verbatra-memory.tmx に書き出す
+verbatra tmx export
+
+# ドイツ語だけを、指定したパスに書き出す
+verbatra tmx export out/memory.tmx --locales de
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 設定済みのすべてのターゲットロケール | ターゲットロケールのうち、このカンマ区切りの部分集合だけをインポートまたはエクスポートする |
+| `--dry-run` | なし | オフ | インポート専用です。翻訳メモリを変更せずに検証して報告します。エクスポートでは `INVALID_DIRECTION` で拒否されます。 |
+| `--overwrite` | なし | オフ | インポート専用です。翻訳メモリがすでに持つ訳文を、インポートした翻訳単位で置き換えます。エクスポートでは `INVALID_DIRECTION` で拒否されます。 |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。ここでは、設定ファイルの探索と、渡した相対パスの `[file]` は `--cwd` を基準に解決されます。翻訳メモリとデフォルトの `verbatra-memory.tmx` は、[プロジェクトルート](/ja/docs/config-file#作業ディレクトリと-env)を基準に解決されます。
+
+## 動作
+
+### インポートする翻訳単位の条件
+
+ほかのツールのファイルは信頼できない入力です。翻訳メモリ内の翻訳単位は、誰にも再確認されないまま再利用されることがあります。そのため、すべての候補訳は、プロバイダーの出力と同じ[整合性ゲート](/ja/docs/translation-safety)を、翻訳メモリに入る時点で通過する必要があります。
+
+- プレースホルダーが、対応するソースセグメントのものと一致している
+- インラインの HTML または XML のタグが、ソースセグメントのものと一致している（そのため、`<img onerror>` のような注入されたタグは拒否される）
+- 設定されたフォーマットのアダプターのもとで、有効な ICU メッセージである
+- 暴走した出力になっていない
+- ソースにテキストがあるのに、空になっていない
+
+ソースセグメントが空の翻訳単位は、どの文字列も特定しないため、同じく拒否されます。インラインマークアップ（`bpt`、`ept`、`ph`、`it`）はテキストに平坦化されるので、意味のあるものを含んでいたマークアップは、プレースホルダーのチェックで検出されます。`sub` 要素のテキストは別のフロー（ツールチップや代替テキスト）なので、除外されます。verbatra のエクスポートが書き込む `x-origin` や `x-review` を含め、セグメントのプロパティは無視されます。翻訳メモリには出どころが記録されません。
+
+何も黙って捨てられることはありません。すべての拒否、使えない翻訳単位、ソースロケールのセグメントがない翻訳単位、平坦化された翻訳単位、除外された `sub` のテキストは、理由ごとに数えられます。
+
+<AvailableFrom version="0.12.0" />
+
+拒否された翻訳単位は、それぞれ、序数、理由、チェックが特定できる場合は問題の内容とともに一覧表示されます。たとえば `unit 12: icu ({count} plural: missing arm "few" required by the target language)` です。
+
+### 言語タグの照合
+
+TMX ファイルは、作成したツールの表記で言語を綴ります。照合では推測をしません。
+
+1. 両側を小文字にし、アンダースコアをハイフンに変えるので、`pt_BR`、`pt-br`、`pt-BR` は 1 つのロケールです。完全一致が優先されます。
+2. 完全一致がない場合は、タグのサブタグの接頭辞にあたる設定済みのロケールが一致し、最も長いものが優先されます（RFC 4647 の lookup）。`de` と `de-AT` が設定されていれば、`de-AT-1996` は `de-AT` に、`de-CH-1901` は `de` に入ります。
+3. 短いタグは、地域やバリアントだけを加えた設定済みのロケールにも届きますが、文字体系を加えたものには届きません。`de` は `de-DE` に、`pt` は `pt-BR` に入りますが、`sr` は `sr-Latn` には入りません。
+4. 文字体系や地域が異なるタグは、一致しません。`zh-CN` が `zh-TW` として保存されることも、`de-AT` が `de-CH` として保存されることもありません。
+5. タグがあいまいになるのは、届きうるロケールが 1 本の接頭辞の連鎖上にない場合だけです。たとえば、`pt-BR` と `pt-AO` が設定されているときの `pt` です。
+
+すべてのセグメントは、`--locales` を指定した場合でも、ソースロケールと設定済みのすべてのターゲットに対して一度に解決されます。そのため、ソースが `pt` のプロジェクトにある `pt-BR` のターゲットが、ソースとして読まれることはありません。ソースセグメントも、ターゲットセグメントと同じ順位づけをします。完全一致のタグは接頭辞の一致より優先され、値が等しければ一致とみなされ、同順位で値が異なるセグメント（`en-US` の「Color」と `en-GB` の「Colour」）は翻訳単位を拒否します。ソースと 1 つのターゲットが同じタグに正規化される設定ファイルは、その場で拒否されます。
+
+同じロケールに届く 2 つのターゲットセグメントがあっても、後のものが勝つことはありません。完全一致のタグは接頭辞の一致より優先され、同順位で値が異なる 2 つのセグメントは、そのロケールには何も保存せず、その翻訳単位を競合として数えます。一致しないタグはタグごとに数えられ、最初の `body` の外にある `tu` 要素も数えられ、ソースロケールではないヘッダーの `srclang` は報告されます。
+
+### ファイルと翻訳メモリが食い違う場合
+
+プロジェクトの翻訳メモリが優先されます。すでにあるものと異なるインポートした訳文は、`--overwrite` を渡さない限り、拒否され、`kept`（維持）として数えられます。1 つのファイルの中では、ソースごとに最初の翻訳単位が優先され、後の繰り返しは重複として数えられます。そのため、同じファイルを 2 回インポートしても、2 回目には何も書き込まれません。
+
+<Callout type="warn">
+`--overwrite` は、翻訳メモリがすでに持つ訳文を置き換え、以降の実行は置き換えた訳文を再利用します。まず `--dry-run` で実行し、`overwritten` の件数を確認してください。
+</Callout>
+
+インポートした翻訳単位は、プロジェクトの現在の設定のフィンガープリントで保存されます。そのため、プロバイダー、モデル、トーン、verbatra が送る用語集の用語、`localeMap` が同じである間だけ、そのまま再利用されます。これらを変えたら、ファイルを再インポートします。より新しい verbatra が書いた翻訳メモリのファイルには触れません。ドライランと同じように、件数は報告されます。
+
+### インポートした翻訳単位とあいまい一致による再利用
+
+受け付けた翻訳単位のソーステキストは、変更された文字列に対して[あいまい一致による再利用](/ja/docs/the-cache)がスコアを付けるインデックスに加わります。そのため、自分の文字列と異なるインポート済みのソースの訳文が、その文字列に使われることがあります。このような再利用も、実際のエントリに対する整合性ゲートを通過し、`FUZZY_CACHE_REUSE` のレビューフラグが付きます。自分の文字列と同一でもハッシュが異なるインポート済みのソース（自分のエントリに、TMX が持てない説明や意味がある場合）は、再利用されません。複数形は、テキストで照合されます。インポートは複数形のフラグをソースファイルから取るので、`cart.items_one` と `cart.items_other` は、ほかのキーと同じように翻訳メモリから埋められます。完全一致だけを許可するには、設定ファイルから `fuzzyCache` を省きます。
+
+### エクスポートで書き込まれるもの
+
+異なるソース文字列ごとに 1 つの `tu` が書き込まれ、ソースセグメントと、エクスポートするロケールごとに 1 つのターゲットセグメントが入ります。ヘッダーは TMX 1.4b です（`srclang`、`creationtool`、`creationtoolversion`、`segtype`、`o-tmf`）。書き込まれるのは、現在の設定のフィンガープリントのエントリだけです。以前のプロバイダー、モデル、トーン、用語集の設定で保存されたエントリは除外され、`otherConfiguration` として数えられ、サマリーには専用の行が付きます。<AvailableFrom version="0.13.5" /> 言語タグは BCP 47 の形式で書かれ（`en_US` は `en-US` になります）、XML 1.0 で表現できない文字は取り除かれて数えられ、空の翻訳メモリからは有効な空のファイルができます。古いキャッシュから引き継がれた、保存されたソーステキストのないエントリは、除外されて数えられます。サマリーの合計は `tu` 要素を、ロケールごとの件数はターゲットセグメントを数えます。そのため、1 つの文字列が複数のロケールに翻訳されている場合、ロケールごとの件数の合計は総数より大きくなります。
+
+<AvailableFrom version="0.12.0" />
+
+すべてのターゲットセグメントには、`verbatra.provenance.json` に基づく `<prop type="x-origin">`（`machine`、`human`、`import`、`unknown`）が付きます。`machine` のセグメントには、さらに `<prop type="x-review">`（`approved`、`unreviewed`、`rejected`）が付きます。来歴ファイルまたはロックファイルを読み取れない場合は、プロパティが書き込まれず、結果に `provenanceMarkers: "unavailable"` と示されます。詳しくは[機械翻訳の証跡を記録する](/ja/docs/provenance-evidence#tmx)を参照してください。
+
+ファイルは、プロジェクトルートの内側にだけ書き込まれます。ファイルを指さないパス、プロジェクトルートの外に出るパス、プロジェクトが依存するファイル（ロケールファイル、ロックファイル、来歴ファイル、キャッシュファイル、設定ファイル、用語集ファイル）を指すパスは、翻訳メモリを読む前に `TMX_OUTPUT_CONFLICT` で拒否されます。シンボリックリンクを解決した後でも同じです。ディスクへの書き込みが失敗すると、ファイルとファイルシステムのコードを示して `TMX_UNWRITABLE` で停止します。
+
+### JSON 出力
+
+スキーマ：[`tmx-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/tmx-envelope.json) がエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[JSON 出力](/ja/docs/cli/output#json-出力)のエンベロープ（envelope）に、インポートまたはエクスポートの結果が入ります。
+
+```ts
+// tmx import
+{ dryRun: boolean; file: string; units: number; locales: ImportTmxLocaleResult[];
+  unmatchedLanguages: TmxLanguageReport[]; ambiguousLanguages: TmxLanguageReport[];
+  memoryWritable: boolean; /* plus the skipped, unmatched and conflicting unit counts */ }
+
+// tmx export
+{ path: string; units: number; locales: { locale: string; units: number }[];
+  withoutSource: number; otherConfiguration?: number; illegalCharactersRemoved: number;
+  provenanceMarkers: "written" | "unavailable" }
+```
+
+インポートのロケールごとに、`added`、`unchanged`、`overwritten`、`kept`、`duplicates`、`conflicting`、理由ごとの `rejected` の件数、`refusals` の一覧が報告されます。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+どちらの方向でも、stderr に進捗の行が 1 行表示されます。続けて `tmx import` は、`verbatra translate` を提案します。ドライランの後は、実際のインポートを提案し、その提案にはファイル、`--overwrite`、`--locales`、`--cwd`、`--config` が引き継がれます。`tmx export` は何も提案しません。
+
+```text output
+verbatra: importing legacy.tmx into the memory... done (0.2s)
+next: verbatra translate (reuses the imported memory before calling a provider)
+```
+
+`--quiet` を付けると、これらの行は表示されません。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | ファイルを読み取った、または書き込んだ。スキップまたは拒否された翻訳単位は報告されるが、失敗ではない |
+| `2` | 実行できなかった（設定のエラー、TMX ファイルがない、または読み取れない（`SOURCE_UNREADABLE`）、大きすぎる、または解析できない、ソースロケールファイルを解析できない（`SOURCE_INVALID`）、エクスポートのパスの拒否（`TMX_OUTPUT_CONFLICT`）、書き込みの失敗（`TMX_UNWRITABLE`、`MEMORY_UNWRITABLE`）、または使い方の誤り） |
+
+無効なファイルのメッセージには、失敗した行、列、翻訳単位が示されます。エンティティ宣言と内部 DTD サブセットは、その場で拒否されます。外部の doctype は破棄され、取得されることはありません。詳しくは[終了コード](/ja/docs/cli/output#終了コード)の仕様を参照してください。
+
+## 関連項目
+
+- [翻訳キャッシュ](/ja/docs/the-cache)は、翻訳メモリと、そのエントリを識別する方法を説明しています。
+- [Excel や CSV で受け渡す](/ja/docs/manual-translation)は、未処理の文字列を xlsx、CSV、TSV で人に受け渡す方法を扱います。
+- [翻訳の安全性](/ja/docs/translation-safety)は、インポートした翻訳単位が通過するチェックを説明しています。
+- [`tmxErrorLocation`](/ja/docs/sdk/exchange#tmxerrorlocation) は、SDK から TMX エラーの位置を読み取ります。

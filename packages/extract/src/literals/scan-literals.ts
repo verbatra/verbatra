@@ -26,8 +26,9 @@ export interface LiteralFinding {
   /** The one-based column the literal starts at: its opening quote, or its first character of JSX text. */
   readonly column: number;
   /**
-   * The literal's text with whitespace collapsed, cut to at most 80 characters. In JSX text and a
-   * quoted JSX attribute value, character references such as `&amp;` are decoded.
+   * The literal's text with whitespace collapsed, cut to its first 80 characters with `...`
+   * appended when it was cut. In JSX text and a quoted JSX attribute value, character references
+   * such as `&amp;` are decoded.
    */
   readonly text: string;
   /** Whether `text` was cut short. A cut excerpt ends in `...`. */

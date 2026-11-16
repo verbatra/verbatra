@@ -1,0 +1,30 @@
+{
+  "title": "指南",
+  "pages": [
+    "---日常使用---",
+    "../(get-started)/add-a-language",
+    "extract-keys",
+    "estimating-cost",
+    "protecting-human-translations",
+    "../(help)/recovery-and-rollback",
+    "---自动化---",
+    "ci-and-exit-codes",
+    "github-action",
+    "../(agents)/agent-recipes",
+    "---与译者协作---",
+    "manual-translation",
+    "translation-agency",
+    "review-in-studio",
+    "changes-in-studio",
+    "history-in-studio",
+    "human-only-workflow",
+    "provenance-evidence",
+    "---AI 智能体---",
+    "../(agents)/connect-an-mcp-client",
+    "../(agents)/agent-tools-in-studio",
+    "---扩展---",
+    "../(sdk)/programmatic-api",
+    "custom-format-adapters",
+    "../(configure)/network-policy"
+  ]
+}

@@ -85,7 +85,7 @@ The report is the `result` of the usual [JSON envelope](/docs/cli/output#json-ou
 | `entries[].reviewState` | string | `unreviewed`, `approved` or `rejected` |
 | `entries[].provider` | string, optional | the provider `id` that answered, for a `machine` value |
 | `entries[].model` | string, optional | the configured model, when the record names one |
-| `entries[].reviewer` | string, optional | the reviewer named with the decision, when one was given |
+| `entries[].reviewer` | string, optional | the reviewer named with the decision, when one was given and the decision still applies |
 
 When the provenance file cannot be read, the result is `{ "available": false, "reason": "provenance-unreadable" }`. New optional fields may be added later; existing ones keep their meaning.
 
@@ -123,7 +123,7 @@ XLIFF 2.0 has no state qualifier, so the unit's `verbatra` metadata group, which
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` is `machine`, `human`, `import` or `unknown`; `x-review` is `approved`, `unreviewed` or `rejected`. A memory entry is a pair of texts, not a key, so a segment is `machine` if any key with that exact text is machine class, and `approved` only when every such key is. A text no record describes is `unknown`.
+`x-origin` is `machine`, `human`, `import` or `unknown`; `x-review` is `approved`, `unreviewed` or `rejected`. A memory entry is a pair of texts, not a key, so a segment is `machine` if any key with that exact text is machine class, and `rejected` when any such key is rejected, otherwise `approved` only when every such key is. A text no record describes is `unknown`.
 
 ### Importing marked files
 

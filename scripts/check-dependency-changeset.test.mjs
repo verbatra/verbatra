@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -11,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   diffResolvedDependencies,
   evaluate,
@@ -427,6 +428,10 @@ describe("evaluate", () => {
   });
 });
 
+function withoutGitEnv() {
+  return Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")));
+}
+
 describe("the script end to end in a real repository", () => {
   const fixtures = [];
 
@@ -441,7 +446,7 @@ describe("the script end to end in a real repository", () => {
       const stdout = execFileSync(process.execPath, [join(cwd, "scripts", SCRIPT_NAME)], {
         cwd,
         encoding: "utf8",
-        env: { ...process.env, BASE_SHA: "", HEAD_BRANCH: "", ...env },
+        env: { ...withoutGitEnv(), BASE_SHA: "", HEAD_BRANCH: "", ...env },
         stdio: ["ignore", "pipe", "pipe"],
       });
       return { code: 0, output: stdout };
@@ -451,7 +456,7 @@ describe("the script end to end in a real repository", () => {
   }
 
   function git(cwd, args) {
-    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+    return execFileSync("git", args, { cwd, encoding: "utf8", env: withoutGitEnv() }).trim();
   }
 
   function write(dir, relativePath, contents) {
@@ -491,6 +496,19 @@ describe("the script end to end in a real repository", () => {
     git(dir, ["commit", "--quiet", "-m", message]);
     return git(dir, ["rev-parse", "HEAD"]);
   }
+
+  it("builds and checks a fixture without touching a git index the caller exports", () => {
+    const decoy = join(tmpdir(), `verbatra-guard-decoy-${process.pid}`);
+    vi.stubEnv("GIT_INDEX_FILE", decoy);
+    try {
+      const dir = makeRepo();
+      const base = git(dir, ["rev-parse", "HEAD"]);
+      expect(run(dir, { BASE_SHA: base }).code).toBe(0);
+      expect(existsSync(decoy)).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 
   it("fails a bundled bump with no changeset", () => {
     const dir = makeRepo();

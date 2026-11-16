@@ -310,9 +310,10 @@ export async function currentBranch(
  * @param input - The config and the project directory.
  * @param deps - Optional process runner override.
  * @returns The branch and the changed files, or `available: false` with a
- * {@link LocaleGitUnavailableReason} when git is missing, the project is not in a work tree, git
- * refused the repository's ownership, the repository configures a filter verbatra cannot switch off,
- * or a command timed out, wrote too much or failed.
+ * {@link LocaleGitUnavailableReason} when a configured locale file lies outside the project
+ * directory, git is missing or too old, the project is not in a (non-bare) work tree, git refused
+ * the repository's ownership, the repository configures a filter verbatra cannot switch off, or a
+ * command timed out, wrote too much or failed.
  *
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.

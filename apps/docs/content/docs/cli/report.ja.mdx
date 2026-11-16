@@ -1,0 +1,91 @@
+---
+title: verbatra report
+seoTitle: "verbatra report：各訳文を誰が書いたか"
+description: 読み取り専用のプロジェクトレポートを出力します。来歴レポートは、各訳文の出どころと、人がレビューしたかどうかを一覧します。
+status: new
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance` は `verbatra.provenance.json`、ロックファイル、ロケールファイルを読み込み、ターゲットロケールごとに、機械が書いた値の件数、人がレビューした値の件数、人が書いたかインポートした値の件数を出力します。プロバイダーを呼び出さず、API キーも不要で、何も書き込みません。レポートは補足的な証跡であり、法的助言ではありません。
+
+## 書式
+
+```bash
+verbatra report <report> [flags]
+```
+
+- `<report>`：出力するレポートです。現在は `provenance` だけで、ほかの名前は使い方の誤りになります。
+
+## 例
+
+```bash
+# ロケールごとの件数（機械翻訳で未レビュー、機械翻訳でレビュー済み、人が書いた値、インポート、その他）
+verbatra report provenance
+
+# 監査ファイル用に、各キーの出どころとレビューの状態を出力する
+verbatra report provenance --json > provenance-report.json
+
+# ドイツ語ロケールだけを対象にする
+verbatra report provenance --locales de
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | すべての設定済みターゲット | このカンマ区切りの部分集合だけをレポートする。設定にないロケールは `UNKNOWN_LOCALE`、空のリストは `INVALID_LOCALES` で失敗し、どちらも終了コード `2` になる |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。
+
+## 動作
+
+### 出力
+
+```text output
+verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
+  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
+  de      12                   40                 3      85      1         0           0        141
+Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
+```
+
+1 行目には、ソースロケール、verbatra のバージョン、レポートの作成日時が示されます。各行は、ソースとそのロケールの両方に値があるキーを数えます。[来歴レポート](/ja/docs/provenance-evidence#来歴レポート)に、各分類の説明、レポートでわかることとわからないこと、JSON スキーマの全体があります。
+
+`--out` はありません。レポートは `check` や `diff` と同じく stdout に出力されるため、保存するにはリダイレクトします。
+
+### JSON 出力
+
+スキーマ：[`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` は、[JSON 出力](/ja/docs/cli/output#json-出力)のエンベロープを 1 つ出力します。`result` には、監査ファイル向けに、すべてのキーの出どころ、レビューの状態、プロバイダー、モデル、レビュー担当者が一覧されます。来歴ファイルを読み込めない場合、結果は `{ "available": false, "reason": "provenance-unreadable" }` です。
+
+### 読み込めない来歴
+
+読み込める来歴ファイルがないままレポートを作ると、すべての値が `unrecorded` として一覧されます。これは記録がないことと同じではありません。そのためコマンドは、安全側で失敗し（fail closed）、終了コード `1` で終了します。[`check --require-reviewed`](/ja/docs/cli/check) と同じ動作です。これにより、CI ジョブが空の監査ファイルをアーカイブすることはありません。
+
+### ターミナルへの表示
+
+コマンドは、ファイルを読み込んでいる間、1 行を表示します。機械翻訳がレビュー待ちの場合は、Studio を提案します。
+
+```text output
+verbatra: reading the provenance record... done (0.1s)
+next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
+```
+
+これらの行は stderr に出力され、`--quiet` で表示されなくなります。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | レポートが出力された |
+| `1` | レポートなし。`verbatra.provenance.json` が破損している、またはより新しい verbatra が書き込んだ |
+| `2` | 実行できなかった。設定エラー、読み取れないソースファイルまたはロックファイル、設定にないまたは空の `--locales` 値（`UNKNOWN_LOCALE`、`INVALID_LOCALES`）、不明なレポート名 |
+
+終了コードの規則は[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [機械翻訳の証跡を記録する](/ja/docs/provenance-evidence)：レポート、そのスキーマ、XLIFF と TMX のエクスポートにある機械翻訳のマーカー
+- [ロックファイルと来歴](/ja/docs/the-lock-file#来歴各値を誰が書いたか)：レポートが読み込む来歴ファイルの説明
+- [`verbatra check --require-reviewed`](/ja/docs/cli/check)：機械翻訳が未承認の間、CI を失敗させる

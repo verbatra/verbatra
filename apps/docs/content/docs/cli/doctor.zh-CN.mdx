@@ -1,0 +1,274 @@
+---
+title: verbatra doctor
+seoTitle: "verbatra doctor：校验项目配置"
+description: "检查项目是否配置正确，并在一份报告中给出所有问题，不调用提供商，也不读取 API 密钥。"
+type: reference
+---
+<AvailableFrom version="0.9.0" />
+
+检查项目是否配置正确，并在一份报告中给出所有问题。`doctor` 不构造提供商，不写入任何文件，只有 `--live` 才会读取 API 密钥的值，它会在一次请求中发送该密钥，用来获取提供商的语言列表（LibreTranslate 不发送）。在 [`verbatra init`](/zh-CN/docs/cli/init) 之后，或其他命令失败时运行它。
+
+## 用法
+
+```bash
+verbatra doctor [flags]
+```
+
+## 示例
+
+```bash
+# report every setup problem at once
+verbatra doctor
+
+# validate a project in another directory, with an explicit config
+verbatra doctor --cwd apps/web --config verbatra.config.ts
+
+# machine-readable report for a CI preflight step
+verbatra doctor --json
+
+# list hardcoded user-facing strings, with no key set
+verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--literals` | 无 | 关闭 | 不检查配置，改为扫描 [`extract`](/zh-CN/docs/config-file#extract) 源代码根目录中硬编码的面向用户的字符串（见[未翻译的字面量](#未翻译的字面量)） |
+| `--locales` | 无 | 关闭 | 检查之后，按目标语言环境列出发送的代码、提供商支持情况、术语表和正式程度（见[语言环境支持](#语言环境支持)） |
+| `--live` | 无 | 关闭 | 先获取提供商当前的语言列表，不消耗翻译配额；隐含 `--locales` |
+| `--data-flow` | 无 | 关闭 | 不检查配置，改为说明哪些数据发送到哪个主机、哪些内容写入本地（见[数据流向](#数据流向)） |
+
+另外接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。`--locales` 和 `--live` 不能与 `--literals` 组合（`INVALID_OPTION`，退出码 `2`），`--data-flow` 不能与这三个中的任何一个组合。
+
+## 行为
+
+### 检查内容
+
+<AvailableFrom version="0.12.0" />
+
+一次配置检查按以下顺序报告这些检查项。Plural rules、Plural completeness、Locale codes、Locale state 和 Length limits 仅供参考，从不失败：有内容可报告时输出 `[warn]`，否则输出 `[ok  ]`。
+
+| 检查项 | 失败条件 |
+| --- | --- |
+| Configuration | 找不到配置文件，或配置未通过校验 |
+| Format adapter | 配置的 `format` 没有解析到任何文件适配器 |
+| Provider | 配置的 `provider.id` 没有解析到任何提供商工厂函数 |
+| API key environment variable | 该提供商读取密钥所用的变量未设置 |
+| Network policy | 当前生效的网络策略（[限制网络访问](/zh-CN/docs/network-policy)）拒绝提供商的主机，或拒绝它会使用的代理 |
+| Source locale file | 源语言文件在其解析出的路径上缺失、不是常规文件，或无法按配置的格式解析 |
+| Plural rules | 从不；列出所用的 ICU 和 CLDR 版本，并在某个目标语言环境没有 ICU 复数规则时发出警告 |
+| Plural completeness | 从不；对缺少其语言所用 CLDR 类别的每个目标复数发出警告并指明；对目标尚无任何形式的复数，按运行会写入的内容来判断（空白的源形式算作缺失，且只在复数生成实际运行的地方才生成复数），刻意比 `translate` 仅针对 i18next 的通知更严格（最多 10 条；目标已有复数中的缺口由 [`verbatra check`](/zh-CN/docs/cli/check#复数类别) 列出） |
+| Locale codes | 从不；对每个有效但不规范的代码（如 `en-us` 或 `iw`）发出警告，并指明规范形式（见[语言环境代码](/zh-CN/docs/config-file#语言环境代码)） |
+| Locale state | 从不；对锁文件、缓存或来源记录文件中保存了状态、但配置中没有列出的每个语言环境发出警告并指明，同时说明 `translate` 是否会[沿用](/zh-CN/docs/the-lock-file#写法不同的语言环境代码)它 |
+| Length limits | 从不；`verbatra.limits.json` 无法使用时发出警告（运行会忽略它，在修复之前也无法设置长度限制），指明源文件中已不存在的键或被配置的 `maxLength` 覆盖的键对应的限制，并在无法读取源文件来核对键时说明；文件不存在时通过（[长度限制](/zh-CN/docs/config-file#maxlength)） <AvailableFrom version="0.13.0" /> |
+| Locale support | 提供商不支持源语言环境或某个目标语言环境；某个语言环境带有警告时发出警告（见[语言环境支持](#语言环境支持)） |
+
+即使前面的检查失败，每项检查也都会运行。唯一的例外是配置：配置无法加载时，需要它的检查输出 `[skip]`（JSON 中为 `"status": "skipped"`），格式没有 CLDR 复数形式时的 Plural completeness 同样如此。检查发现值得注意的情况但未失败时，输出 `[warn]`（JSON 中为 `"status": "warn"`），且从不改变退出码。失败的检查还带有 `fix`，即一条祈使句形式的下一步，输出为 `fix:`，在 JSON 中以 `"fix"` 发送，智能体因此不必解析 `detail`。
+
+存在两个问题的一次运行：
+
+```text output
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
+  [ok  ] Provider: Provider "anthropic" resolves to a factory.
+  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.
+  [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
+  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+  ...
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
+2 problems found (run verbatra doctor again after fixing them)
+```
+
+没有问题的运行以 `no problems found` 结束，有检查项发出警告时还会附上 `, N warnings`。
+
+### 密钥与文件
+
+- API 密钥**只按名称**检查：`doctor` 只问变量是否已设置，从不看它保存的内容。各提供商的变量见[提供商](/zh-CN/docs/providers)。
+- `openai-compatible` 会回退到占位密钥，所以只有当配置指定了它自己的 `provider.options.apiKeyEnvVar` 且该变量未设置时，才会失败。`libretranslate` 的密钥是可选的，所以该检查从不失败。
+- 使用 [`provider: { id: "none" }`](/zh-CN/docs/human-only-workflow) 时，Provider、API key 和 Network policy 检查通过，Locale support 被跳过。
+- 缺失的**目标**文件没有问题：`translate` 会创建它。**源**文件会被解析，所以目录、空文件或格式错误的内容都会使它失败。
+- `doctor` 先加载[环境文件](/zh-CN/docs/cli#环境文件)，所以 dotenv 文件中的密钥算作已设置；使用 `--literals` 时两者都不加载。
+
+### 语言环境支持
+
+<AvailableFrom version="0.12.0" />
+
+Locale support 检查询问提供商能否翻译每个已配置的语言环境。DeepL 和 Google Cloud Translation 对照 verbatra 内置的带日期语言表来评估；LLM 提供商接受任何语言环境。它恰好在 [`verbatra translate`](/zh-CN/docs/cli/translate) 会以 `LOCALE_UNSUPPORTED_BY_PROVIDER` 拒绝的语言环境上失败；其他情况下，语言环境带有警告或 `--live` 无法获取列表时，输出 `[warn]`。各种评估结果的含义见[语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)。
+
+`--locales` 在检查之后按语言环境输出评估结果：
+
+```text output
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+每一行列出语言环境、提供商收到的代码（经过 [`localeMap`](/zh-CN/docs/providers#发送给提供商的语言环境代码) 之后，标记为 `(localeMap)`）、评估结果，以及术语表和 `formal` 或 `informal` 语气是否适用。警告仅供参考。
+
+`--live` 改为对照提供商当前的列表来评估（DeepL 的 `/v3/languages`、Cloud Translation 的 `languages`、LibreTranslate 的 `/languages`）。LibreTranslate 没有内置语言表，只有 `--live` 能给出 `unverified` 之外的评估结果，所以在运行 `--live` 之前，Locale support 一直显示 `[warn]`。只有在密钥变量已设置（LibreTranslate 不需要）且网络策略（见[限制网络访问](/zh-CN/docs/network-policy)）允许该主机时才会发出请求；否则，或请求失败时，使用内置语言表，并由一行 `live language list` 说明原因。
+
+### 未翻译的字面量
+
+<AvailableFrom version="0.11.0" />
+
+`--literals` 找出从未进入消息目录的面向用户的字符串。它遍历你的 [`extract` 块](/zh-CN/docs/config-file#extract)的源代码根目录，只读取、绝不写入你的源文件，不构造提供商，不读取密钥，也不加载 `.env` 文件。只运行两项检查：Configuration 和 Untranslated literals。每条检查结果列出文件、行和列，空白被折叠，JSX 字符引用被解码，最多 80 个字符：
+
+```text output
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+```
+
+会报告的内容：`.tsx`、`.jsx` 和 `.js` 文件中的 JSX 文本；面向用户的 JSX 属性（`alt`、`title`、`placeholder`、`label`、`aria-label` 以及其他携带文本的 `aria-*`）；以及任何其他包含两个或更多单词的字符串。
+
+从不报告的内容：
+
+- 传给 `t(...)`、`$t(...)`、`i18n.t(...)` 或 `useTranslation` 中重命名的 `t` 的字符串，或在 `<Trans>` 或 `<Translation>` 内渲染的字符串；
+- 对象键、导入说明符、类名、CSS 值、测试 id、`data-*`、id 或关键字属性（`aria-describedby`、`aria-labelledby`、`aria-controls`、`rel`、`sandbox`、`allow`、`autoComplete`、`referrerPolicy`、`crossOrigin`）、URL，以及不含字母的字符串；
+- 类型位置的字面量（`as` 或 `satisfies` 之前的值仍会检查）、日志信息、错误信息（`new ValidationError(...)`、`throw Error(...)`）、比较操作数，以及带表达式的模板字面量；
+- `describe`（zod）、`query`、`execute`、`prepare`、`format`、`parse`、`z.enum`、`setItem`、`getItem` 和 `removeItem` 的直接参数，以及 `on`、`off`、`once`、`emit`、`addEventListener` 和成员 `get` 或 `set` 的第一个参数；嵌套更深的文案，以及传给 `setError` 之类函数的信息，仍会被报告；
+- 测试文件、story 文件、声明文件或配置文件中的任何内容。
+
+要排除某个字面量，请在它上方加 `// verbatra-ignore-next-line`（JSX 中为 `{/* verbatra-ignore-next-line */}`），或在它所在行的末尾加 `// verbatra-ignore-line`。next-line 指令针对下一行含代码的行，对 JSX 开始标签则针对该标签的所有属性。对于在任何地方都没有问题的字符串，请把它列在 `extract.literals.ignore` 下，其中的字符引用要先解码（`Tom & Jerry`）。被排除的字面量仍会连同原因一起列出。
+
+存在检查结果时，以及有文件无法打开、无法读到末尾或被认为过大时（扫描会继续），该检查都会失败。没有 `extract` 块的项目会使它失败。
+
+### 数据流向
+
+<AvailableFrom version="0.12.0" />
+
+`--data-flow` 不检查配置，改为说明本项目的数据流向，作为 DPA（数据处理协议）或 NDA（保密协议）审查的依据；各类别的含义见[数据处理与隐私](/zh-CN/docs/data-handling)。它不读取 API 密钥，也不发出网络请求。只运行两项检查：Configuration 和 Data flow。Data flow 从不失败：网络策略（见[限制网络访问](/zh-CN/docs/network-policy)）拒绝某个主机或含有无效值时，或无法读取源文件来统计数量时，它输出 `[warn]`。
+
+```text output
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  data flow (manifest version 1)
+    provider     deepl (machine-translation)
+    network      any host (no policy set)
+    destination  api.deepl.com  default  paid-key  before-construction  permitted
+    destination  api-free.deepl.com  default  free-key  before-construction  permitted
+    sent         source-text, placeholder-markers, language-codes
+    api key      required
+    placeholders masked
+    sensitive    off
+    counts       3 source keys, 0 with a description or meaning, 1 with placeholders it cannot mask (withheld)
+    locale       de  sent as DE  glossary terms: 0
+    local        lock  verbatra.lock.json  (no source text, translations or personal data)
+    local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
+    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
+    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
+    request      language-list  verbatra doctor --live  sends the API key
+    request      dns-lookup  each connection to a destination host
+    agent        mcp  verbatra mcp  redactable
+    agent        studio-agent-tools  verbatra studio --expose-agent-tools
+```
+
+清单列出：提供商；每个目的主机、它的来源（内置、`provider.options.baseUrl` 或某个 `*_BASE_URL` 变量）和策略判定（`permitted`、`deferred`、`refused` 或 `invalid-policy`）；发送的数据类型，以及源键的数量、带描述或含义的键的数量、提供商无法遮蔽占位符的键的数量（这是对源键的估算：一次运行只发送缺失或已更改的键，在 `sensitiveData: redact` 下还可能搁置更多）；每个目标语言环境的代码和术语表术语数量；本地文件及其相对项目的路径，以及它们是否包含源文本、译文或个人数据；以及其他请求和智能体入口。DeepL 会同时列出两个主机，因为决定使用哪个主机的密钥从不被读取。生效的代理只列出其变量和主机，绝不包含其凭据，字段只列出此配置可能发送的内容。使用 `provider: { id: "none" }` 时，它会说明没有任何内容被发送。它只列出主机、数据类别和条件，绝不包含密钥值或文件内容。
+
+使用 `--json` 时，清单位于 `result.dataFlow` 下。它的 `version` 字段只在字段被重命名或移除时才会改变；新增字段可能不改版本号就出现，所以请忽略你不认识的字段。SDK 的 [`dataFlowManifestSchema`](/zh-CN/docs/sdk/inspect#dataflowmanifestschema) 会校验它。
+
+### JSON 输出
+
+Schema：[`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，[信封](/zh-CN/docs/cli/output#json-输出)在 `result` 下携带报告。`ok` 恰好在命令以 `0` 退出时为 true：
+
+```ts
+interface DoctorResult {
+  ok: boolean;                 // true exactly when the command exits 0
+  checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  dataFlow?: DataFlowManifest; // only with --data-flow: what goes where, version 1
+  locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
+}
+
+interface DoctorCheck {
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "network-policy"
+    | "source-file"
+    | "plural-rules"
+    | "plural-completeness"
+    | "locale-codes"
+    | "locale-state"
+    | "limits" // 0.13.0
+    | "locales"
+    | "untranslated-literals"
+    | "data-flow";
+  title: string;               // stable, human-readable name
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
+  detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check
+}
+
+interface LocaleCapabilityReport {
+  provider: string;
+  coverage: "listed" | "open";       // "open" for an LLM provider
+  tableVersion: string;              // the table's date (YYYY-MM-DD)
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;
+    formality: boolean;
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+配置无法加载时、提供商未知时，以及使用 `provider: { id: "none" }` 时，`result.locales` 不存在。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+运行期间，`doctor` 会在 stderr 输出一行，`--quiet` 会去掉它：`checking the setup`；使用 `--live` 时为 `checking the setup and fetching the provider's language list`；使用 `--data-flow` 时为 `describing the data flow`；使用 `--literals` 时为带文件数量的 `scanning the source for literals`。报告仍在 stdout。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 没有检查失败（`warn` 仍以 `0` 退出） |
+| `1` | 至少一项检查失败，包括不受支持的语言环境；使用 `--literals` 时，发现了字面量或有文件无法扫描 |
+| `2` | 无法运行：用法错误，或显式指定的 `--config` 路径不存在 |
+
+查找不到配置，或配置未通过校验，都算作检查失败（退出码 `1`），因为报告它正是该命令的职责。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [`verbatra init`](/zh-CN/docs/cli/init) 生成 `doctor` 所校验的配置和 `.env.example`。
+- [`verbatra check`](/zh-CN/docs/cli/check) 是配置无误之后要运行的漂移门禁。
+- [配置文件](/zh-CN/docs/config-file)记录了 `doctor` 校验的每个配置项。
+- [提供商](/zh-CN/docs/providers)列出每个提供商读取的 API 密钥变量。
+- [语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)列出 Locale support 检查所用的语言表。

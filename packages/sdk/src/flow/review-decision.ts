@@ -523,8 +523,9 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
 
 /**
  * Records that a person reviewed a key's current translation and accepts it. It writes only the
- * provenance file (`verbatra.provenance.json`), never a locale file or the lock-file, and calls no
- * provider.
+ * provenance file (`verbatra.provenance.json`), apart from first moving the state that a respelled
+ * spelling of the locale (such as `pt_BR` for `pt-BR`) holds in the lock-file, translation memory
+ * and provenance file to the configured code; it never writes a locale file and calls no provider.
  *
  * The approval is stored on the value, not on the key: any later write that changes the value or
  * the source it was translated from starts a fresh, unreviewed record. It is also stored with the
@@ -552,8 +553,11 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
- * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
+ * `lockAcquireTimeoutMs` elapsed, the lock-file guard could not be acquired within its ten-minute
+ * default, a lock could not be reclaimed from an abandoned holder, or a lock was taken over by
+ * another process before a write (nothing was written) or before it was released (the writes were
+ * made and are on disk).
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
@@ -660,8 +664,11 @@ export async function approveEntry(
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
- * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
+ * `lockAcquireTimeoutMs` elapsed, the lock-file guard could not be acquired within its ten-minute
+ * default, a lock could not be reclaimed from an abandoned holder, or a lock was taken over by
+ * another process before a write (nothing was written) or before it was released (the writes were
+ * made and are on disk).
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is

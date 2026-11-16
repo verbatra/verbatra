@@ -103,7 +103,7 @@ const summary = await translate({ config, ...options });
 ### watch
 
 Vigila el archivo del locale de origen y vuelve a ejecutar `translate` en cada cambio asentado por el
-anti-rebote. Dispara una ejecución inicial inmediatamente al arrancar, y luego una ejecución por cambio
+antirrebote. Dispara una ejecución inicial inmediatamente al arrancar, y luego una ejecución por cambio
 asentado. Las ejecuciones se serializan: los cambios durante una ejecución se colapsan en un único
 seguimiento.
 
@@ -139,8 +139,8 @@ en curso. Cada código de la línea **Lanza** se rechaza al arrancar, antes de q
 así que `watch` mismo rechaza en lugar de devolver un controlador. Dos de ellos pesan más en una
 sesión que en una sola ejecución: un `concurrency` mayor que 1 contra una configuración que fija
 `maxTokens` lanza siempre `CONCURRENCY_BUDGET_CONFLICT`, porque no existe un watch en dry run, y,
-desde 0.12.0, un proveedor que no se puede construir, por ejemplo porque falta su variable de API
-key, lanza `PROVIDER_CONSTRUCTION_FAILED` una sola vez en lugar de hacer fallar cada ejecución.
+desde 0.12.0, un proveedor que no se puede construir, por ejemplo porque falta su variable de clave de API,
+lanza `PROVIDER_CONSTRUCTION_FAILED` una sola vez en lugar de hacer fallar cada ejecución.
 Todo fallo posterior al arranque se comunica a través de `onRun` y la vigilancia continúa.
 
 ### releaseHeldLocks
@@ -211,10 +211,10 @@ reglas de plural del árabe encajan con las formas de plural de tu origen.
 `locale` es `en-XA` por defecto y `out` es
 `.verbatra-local/pseudo`, que `verbatra init` ya añade a `.gitignore`; el `files.pattern`
 configurado se expande dentro, así que el archivo conserva la disposición que espera la aplicación.
-Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un archivo de locale
+Un pseudolocale que nombre un locale configurado, o que acabe sobre un archivo de locale
 configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
 puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
-absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`, y, cuando `deps.fs` implementa `realpath` como el valor por
+que sea absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`, y, cuando `deps.fs` implementa `realpath` como el valor por
 defecto, con uno que acaba así, en el directorio de un archivo de locale configurado o sobre otro
 archivo del que depende el proyecto, una vez resueltos los enlaces simbólicos. Como el archivo vive fuera de
 `files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como

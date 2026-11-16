@@ -1,0 +1,193 @@
+---
+title: 技術スタックを選ぶ
+seoTitle: "verbatra で使うフレームワークと i18n フォーマット"
+description: "使っているフレームワークを見つけて、verbatra を設定するフォーマット ID と init コマンドをコピーします。ロケールファイルの一般的な配置も載せています。"
+type: reference
+---
+以下から使っているフレームワークを見つけ、[クイックスタート](/ja/docs/quickstart)のコマンドの代わりに、そのフレームワークの `init` コマンドを使います。各ファイルの配置は、ロケールファイルが見つからないときに `init` が書き込むパターンです。ファイルがすでにある場合は、`init` が場所を検出します。パターンを自分で指定するには `--path` を使います。各フォーマットの動作の詳細は[フォーマット](/ja/docs/formats)にあります。一部の技術スタックには、手順ごとのクイックスタートもあります。そのリンクは、各セクションの末尾にあります。
+
+<StackCards
+  labelledBy="page-title"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "#i18next-を使う-react" },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "#next-intl-を使う-nextjs" },
+    { label: "Vue と Nuxt", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "#vue-i18n-を使う-vue-と-nuxt" },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "#ngx-translate-を使う-angular" },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "#flutter" },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "#android" },
+    { label: "iOS と macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "#ios-と-macos" },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "#gettext" },
+    { label: "Java と Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "#java-と-spring" },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+    { label: "その他のフォーマット", icon: "custom", formats: [], href: "#その他のフォーマット" },
+  ]}
+/>
+
+## i18next を使う React
+
+i18next、react-i18next、next-i18next のプロジェクト向けです。
+
+- フォーマット：`i18next-json`
+- ファイル：`locales/{locale}.json`
+
+<InitCommand format="i18next-json" />
+
+詳細：[4 つの JSON フォーマット](/ja/docs/formats#4-つの-json-フォーマット)。
+
+手順ごとの説明：[React クイックスタート](/ja/docs/quickstart/react)。
+
+## next-intl を使う Next.js
+
+next-intl のメッセージファイル向けです。値は ICU メッセージです。
+
+- フォーマット：`next-intl-json`
+- ファイル：`messages/{locale}.json`
+
+<InitCommand format="next-intl-json" />
+
+詳細：[4 つの JSON フォーマット](/ja/docs/formats#4-つの-json-フォーマット)。
+
+手順ごとの説明：[Next.js クイックスタート](/ja/docs/quickstart/nextjs)。
+
+## vue-i18n を使う Vue と Nuxt
+
+Nuxt I18n を含む vue-i18n 向けです。プレースホルダーは波括弧 1 つ、複数形はパイプで区切ります。
+
+- フォーマット：`vue-i18n-json`
+- ファイル：`src/locales/{locale}.json`
+
+<InitCommand format="vue-i18n-json" />
+
+詳細：[4 つの JSON フォーマット](/ja/docs/formats#4-つの-json-フォーマット)。
+
+手順ごとの説明：[Vue クイックスタート](/ja/docs/quickstart/vue)。
+
+## ngx-translate を使う Angular
+
+ngx-translate の JSON 向けです。フラットでも入れ子でも使えます。
+
+- フォーマット：`ngx-translate-json`
+- ファイル：`src/assets/i18n/{locale}.json`
+
+<InitCommand format="ngx-translate-json" />
+
+詳細：[4 つの JSON フォーマット](/ja/docs/formats#4-つの-json-フォーマット)。
+
+手順ごとの説明：[Angular クイックスタート](/ja/docs/quickstart/angular)。
+
+## Flutter
+
+Flutter の Application Resource Bundle 向けです。`init` は `localeStyle: "posix"` も設定します。そのため `pt-BR` は `app_pt_BR.arb` と書かれ、`flutter gen-l10n` はこの名前を読みます。
+
+- フォーマット：`arb`
+- ファイル：`lib/l10n/app_{locale}.arb`
+
+<InitCommand format="arb" />
+
+詳細：[ARB](/ja/docs/formats#arb)。
+
+手順ごとの説明：[Flutter クイックスタート](/ja/docs/quickstart/flutter)。
+
+## Android
+
+`strings.xml` リソース向けです。`init` は `localeStyle: "android"` も設定します。そのためプレースホルダー `{locale}` は、ソースでは `values`、ドイツ語では `values-de` に展開されます。
+
+- フォーマット：`android-xml`
+- ファイル：`app/src/main/res/{locale}/strings.xml`
+
+<InitCommand format="android-xml" />
+
+詳細：[Android strings.xml](/ja/docs/formats#android-stringsxml)。
+
+## iOS と macOS
+
+プロジェクトが文字列をどう保存しているかに応じて、2 つのフォーマットがあります。`.strings` ファイルと、その `.stringsdict` の複数形を使う場合は次のとおりです。
+
+- フォーマット：`apple-strings`
+- ファイル：`{locale}.lproj/Localizable.strings`
+
+<InitCommand format="apple-strings" />
+
+Xcode の String Catalog を使う場合、カタログはすべてのロケールを 1 つのファイルに含みます。先に Xcode でカタログを作成してください。verbatra はカタログに書き込みますが、作成はしません。
+
+- フォーマット：`apple-xcstrings`
+- ファイル：`{locale}Localizable.xcstrings`
+
+パターンには `{locale}` プレースホルダーが必要ですが、String Catalog では空文字列に展開されます。すべてのロケールが、1 つのファイル `Localizable.xcstrings` を読み書きします。
+
+<InitCommand format="apple-xcstrings" />
+
+詳細：[Apple .strings](/ja/docs/formats#apple-strings) と [Xcode String Catalogs](/ja/docs/formats#xcode-string-catalogs-xcstrings)。
+
+## gettext
+
+`.po` カタログと、その `.pot` テンプレート向けです。Python、PHP、C のプロジェクトで使われます。`init` は `localeStyle: "posix"` も設定します。そのため `pt-BR` は `pt_BR` と書かれます。
+
+- フォーマット：`gettext-po`
+- ファイル：`locales/{locale}/LC_MESSAGES/messages.po`
+
+<InitCommand format="gettext-po" />
+
+詳細：[gettext .po/.pot](/ja/docs/formats#gettext-popot)。
+
+## Java と Spring
+
+`.properties` のメッセージバンドル向けです。`init` は `localeStyle: "posix"` も設定します。そのため `pt-BR` は `messages_pt_BR.properties` と書かれます。
+
+- フォーマット：`properties`
+- ファイル：`src/main/resources/messages_{locale}.properties`
+
+<InitCommand format="properties" />
+
+詳細：[Properties](/ja/docs/formats#properties)。
+
+## .NET
+
+`.resx` リソースファイル向けです。画像、アイコン、デザイナーのエントリには手を加えません。
+
+- フォーマット：`resx`
+- ファイル：`Resources/Strings.{locale}.resx`
+
+<InitCommand format="resx" />
+
+詳細：[.NET .resx](/ja/docs/formats#net-resx)。
+
+## YAML
+
+i18next と同じ `{{double-brace}}` プレースホルダーを使う、入れ子の YAML ロケールファイル向けです。
+
+- フォーマット：`yaml`
+- ファイル：`locales/{locale}.yml`
+
+<InitCommand format="yaml" />
+
+詳細：[YAML](/ja/docs/formats#yaml)。
+
+## XLIFF
+
+Angular の `ng extract-i18n`、CAT ツール（翻訳支援ツール）、翻訳会社から受け取る、XLIFF 1.2 と 2.0 のドキュメント向けです。
+
+- フォーマット：`xliff`
+- ファイル：`locales/{locale}.xlf`
+
+<InitCommand format="xliff" />
+
+詳細：[XLIFF](/ja/docs/formats#xliff)。
+
+## INI
+
+従来の INI ファイル向けです。`[section]` ヘッダーは 1 階層に対応します。
+
+- フォーマット：`ini`
+- ファイル：`locales/{locale}.ini`
+
+<InitCommand format="ini" />
+
+詳細：[INI](/ja/docs/formats#ini)。
+
+## その他のフォーマット
+
+verbatra が標準で提供していないフォーマットも、自分で書いたアダプターを通せば翻訳できます。[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)を参照してください。

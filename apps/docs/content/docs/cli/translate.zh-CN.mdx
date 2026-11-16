@@ -1,0 +1,173 @@
+---
+title: verbatra translate
+seoTitle: "verbatra translate：一次翻译已更改的键"
+description: "对每个目标语言环境翻译一次，只把新增和已更改的键发送给提供商，然后写入结果并退出。"
+type: reference
+---
+对每个目标语言环境运行一轮翻译，然后退出。`translate` 把源文件与锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）比对，只把新增或已更改的字符串发送给提供商，运行完整性检查（见[翻译安全](/zh-CN/docs/translation-safety)），写入语言文件，并更新锁文件。未更改的字符串绝不会发送两次。实际运行还会写入来源记录、新的缓存条目，并在 `.verbatra-local/` 下记录运行状态和历史，同时把缺失的条目添加到现有的 `.gitignore` 中，见 [.gitignore 条目](/zh-CN/docs/cli#gitignore-条目)。
+
+## 用法
+
+```bash
+verbatra translate [flags]
+```
+
+## 示例
+
+```bash
+# 用找到的配置翻译一次
+verbatra translate
+
+# 预览会被清理的键，不产生花费
+verbatra translate --prune --dry-run
+
+# 一次一个语言环境，有速率限制的免费套餐需要这样
+verbatra translate --locales de
+
+# 估算本次运行的规模和费用，不产生任何花费
+verbatra translate --estimate
+
+# 在本次运行超过 50000 个 token 之前停止
+verbatra translate --max-tokens 50000
+
+# 同时重新翻译由人编写的过期键
+verbatra translate --include-human
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 每个已配置的目标语言环境 | 只翻译这个以逗号分隔的子集；未配置的语言环境以 `UNKNOWN_LOCALE` 失败，空列表以 `INVALID_LOCALES` 失败，两者的退出码都是 `2` |
+| `--dry-run` | 无 | 关闭 | 报告一次运行会更改什么，不调用提供商，也不写入文件；不需要 API 密钥 |
+| `--prune` | 无 | 配置项 `prune`，否则为关闭 | 从已写入的文件和锁文件中删除孤立的键（存在于目标文件、但源文件中没有的键） |
+| `--lock-timeout` | `<seconds>` | `600` | 等待被占用的单个语言环境写锁的时长；取 `1` 到 `3600` 的整数 |
+| `--concurrency` | `<n>` | `1` | 最多同时翻译 `n` 个目标语言环境；取 `1` 到 `100` 的整数，设有 token 预算时会被拒绝 |
+| `--max-tokens` | `<n>` | 配置的 `maxTokens` | 本次运行的 token 硬性上限，取正整数（否则为 `INVALID_MAX_TOKENS`）；此值与配置的 `maxTokens` 取较低者 |
+| `--no-cache` | 无 | 关闭（缓存开启） | 本次运行绕过[翻译缓存](/zh-CN/docs/the-cache)（`verbatra.cache.json`） |
+| `--include-human` | 无 | 关闭 | 仅在本次运行中，同时重新翻译由人编写或导入的过期键；[固定的键](/zh-CN/docs/protecting-human-translations#固定的键)保持不动 |
+| `--estimate` | 无 | 关闭 | 估算这次运行会发送什么、花费多少，然后退出；隐含 `--dry-run` |
+
+另外接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。运行之前，`translate` 会加载[环境文件](/zh-CN/docs/cli#环境文件)。
+
+## 行为
+
+<Callout type="warn">
+不带 `--dry-run` 或 `--estimate` 的运行会把每个新增或已更改的字符串发送给提供商，托管提供商会为此计费：用 `--estimate` 衡量运行规模，用 `--max-tokens` 设置上限。
+</Callout>
+
+<Callout type="warn">
+通过明文 `http://`（非回环）把 API 密钥发送给自托管服务器时，密钥会在网络上未加密传输，见[密钥是可选的](/zh-CN/docs/providers#密钥是可选的)。
+</Callout>
+
+### 试运行
+
+`--dry-run` 不构造提供商，所以不需要 API 密钥，也不可能产生花费。它读取源文件和目标文件，与锁文件比对，并准确报告一次实际运行会更改什么。它不写入任何内容（不写语言文件，不更新锁文件，不写运行状态快照）；对机器提供商，它既不读也不写缓存（提供商为 `none` 时会读取翻译记忆库，见下文）；它也不获取写锁，所以从不等待正在进行的运行。
+
+<Callout>
+默认情况下，运行不删除任何内容：孤立的键只会被报告，并留在原处。`--prune`，或配置中的 `prune: true`，会从目标文件和锁文件中删除恰好这些键；`--prune --dry-run` 可以预览它们。
+</Callout>
+
+### 费用估算
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` 在试运行之上增加运行前估算：会发送多少个键，需要多少次提供商请求，以及提供商计费所依据的数量（LLM 或 `openai-compatible` 端点按 token，DeepL、Google Cloud Translation 或 LibreTranslate 按源字符；自托管的端点或服务器不计费，所以估算报告没有 API 费用）。只有配置中的 `rates` 块涵盖该提供商和模型时才会显示金额；否则会指明缺失的单价键，而不是编造 `0.00`。输出以 `estimate excludes:` 一行结尾，列出数字未涵盖的内容；以与提供商计费单位不同的单位保存的单价会被报告为不匹配，而不会用来定价。见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+
+### 部分语言环境
+
+<AvailableFrom version="0.9.0" />
+
+`--locales de,fr` 把运行限定在已配置目标的一部分。其他语言环境的文件、锁条目和缓存条目保持原样。在有速率限制的免费套餐上，可用它一次翻译一个语言环境，或重新运行结果为部分完成的单个语言环境。此时运行状态快照只描述该子集。
+
+### 写锁与中断
+
+一个语言环境最多等待 `--lock-timeout` 来获取被占用的[写锁](/zh-CN/docs/the-lock-file#写锁)，之后以 `LOCK_CONTENDED` 失败，而其他语言环境仍会运行。本机上已不再运行的 verbatra 进程遗留的锁会立即回收。超时只限定任何提供商调用之前的这段等待：把已写入的文件记录到锁文件中时，始终最多等待默认的 10 分钟，所以已写入的文件绝不会处于未记录的状态。等待超过 1 秒时，会在 stderr 输出一行，指明锁及其持有者（使用 `--json` 时为 `lock-wait` 记录），`--quiet` 不会去掉它。Ctrl-C 或 SIGTERM 会在命令退出前释放本次运行的锁。
+
+### token 上限
+
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` 始终是硬性停止：会超过上限的提供商请求会被搁置，不论 `budgetBehavior` 如何设置，它的键会列为 `budgetWithheld`。它的计数方式与已配置的 [`maxTokens` 预算](/zh-CN/docs/config-file#maxtokens-与-budgetbehavior)相同，可以收紧该预算，但绝不会放宽。被上限截断的运行以 `1` 退出。请先运行 `--estimate` 来选定一个数字。
+
+### 并行语言环境
+
+设有 token 预算时（来自 `maxTokens` 或 `--max-tokens`），`--concurrency` 会被拒绝并以退出码 `2` 结束，因为哪个语言环境失去其剩余工作，取决于各语言环境如何交错；试运行不受此限。如果在语言环境运行期间出现整个运行级别的错误（如锁文件损坏），不会再启动新的语言环境，正在运行的会先完成并释放它们的锁，然后命令以 `2` 退出。
+
+### 人工编写的键
+
+<AvailableFrom version="0.12.0" />
+
+值由人编写、导入或在 verbatra 之外更改过的过期键，默认保留：它被列为 `protected`，不发送给提供商，并且在 `verbatra check` 中仍显示为过期。stderr 的警告会说明保留了多少个（固定的键不计入），并指向 `--include-human`，它会在一次运行中重新翻译这些键（`humanEdits: "overwrite"`），因此不输出警告。受保护的键不会改变退出码，纯人工项目除外。见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+
+[`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength) 同样适用；无法使用的文件会被忽略，每个语言环境都会带有 `LIMITS_FILE_IGNORED` 通知。
+
+### 纯人工项目
+
+<AvailableFrom version="0.12.0" />
+
+在纯人工项目（`provider: { id: "none" }`，见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）中，不调用任何提供商。翻译记忆库覆盖的键会被写入，其他每个缺失或已更改的键都列为 `unfilled`，并以 `3` 退出；但只要有语言环境失败或部分完成，仍以 `1` 退出。试运行在这里会读取翻译记忆库，所以它的计划显示相同的 `cacheHits` 和 `unfilled` 键，`--estimate` 报告没有任何计费；两者同样以 `3` 退出。不使用 `--json` 时，stderr 的警告会说明有多少个键需要人处理，`next:` 提示指向 [`verbatra export`](/zh-CN/docs/cli/export)，你在那里把 `unfilled` 键交接出去。
+
+### 失败和部分完成的语言环境
+
+<AvailableFrom version="0.9.0" />
+
+一个语言环境失败不是致命的：运行会完成，并以 `1` 退出。**部分完成**的语言环境同样以 `1` 退出：它的文件已写入，但仍有键缺失，通常是因为某个提供商子批次失败，或完整性门禁拒绝了某条译文。人类可读的输出把每个被拒绝的键连同原因（`placeholder`、`markup`、`icu`、`degenerate` 或 `empty`）列在 `integrity-withheld` 下；使用 `--json` 时，每个语言环境在 `integrityRefusals` 中携带它们。运行中被标记为待审校的键，紧跟在该语言环境的 `N needs-review` 计数之后，列在 `needs-review:` 一行下，每个键附其[审校原因](/zh-CN/docs/translation-safety#审校标记)；使用 `--json` 时它们在 `needsReview` 中。<AvailableFrom version="0.13.5" />
+
+### 不支持的语言环境
+
+<AvailableFrom version="0.12.0" />
+
+已配置的 DeepL 或 Google Cloud Translation 提供商不支持的语言环境，会让整个运行以 `LOCALE_UNSUPPORTED_BY_PROVIDER` 被拒绝，退出码为 `2`，试运行和 `--estimate` 也是如此，且发生在产生任何花费之前。请用 `--locales` 排除它，或见[语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)。提供商无法应用的术语表或语气只会增加一条通知（`GLOSSARY_UNSUPPORTED_BY_PROVIDER`、`FORMALITY_UNSUPPORTED_BY_PROVIDER`），`LOCALE_UNVERIFIED_BY_PROVIDER` 以及对 LLM 的 `LOCALE_NOT_WELL_TESTED` 也是如此。
+
+### JSON 输出
+
+Schema：[`translate-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/translate-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，stdout 携带一个[信封](/zh-CN/docs/cli/output#json-输出)，其 `result` 是 `RunSummary`；[RunSummary](/zh-CN/docs/sdk/run-summary) 列出了每个字段，包括整个运行的和每个语言环境的。使用 `--json` 时，stderr 还会为每个 `locale-started`、`sub-batch`、`locale-finished` 和 `run-finished` 事件各携带一行 JSON，外加 `lock-wait` 和 `interrupted` 记录；[`stderr-record.json`](/zh-CN/docs/cli/output#schema) 会校验它们。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+`translate` 在运行之前列出语言环境和提供商，并在运行之后输出耗时、已用 token 和下一条命令。在交互式终端中，进度是一行加载动画（spinner）；stderr 重定向到管道时，每一步都是一行纯文本：
+
+```text output
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr: writing
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check (confirm every locale is in sync)
+```
+
+以非零退出码结束的实际运行，会以 `[warn] finished in 4.2s, 1830 tokens, see the summary above` 收尾，而不是 `[ok] done in`，错误带有下一步时，随后给出提供商的下一步。
+
+试运行以 `dry run over 2 locales, no provider call` 开头，估算以 `estimating 2 locales, no provider call` 开头，纯人工项目以 `filling 2 locales from the translation memory (provider none)` 开头。试运行或估算改为在每个语言环境的结尾输出 `would translate`。只保留了部分键的语言环境以 `partly done` 结尾，失败的以 `failed` 结尾，收尾行会加上失败了多少个。试运行以 `dry run done in 4.2s, nothing written` 收尾。估算以 `estimate done in 4.2s, nothing written` 收尾 <AvailableFrom version="0.13.0" />。这些行输出到 stderr，`--quiet` 会去掉它们。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 每个目标语言环境都已完整完成 |
+| `1` | 运行已完成，但有语言环境失败或部分完成 |
+| `2` | 无法运行：配置、源文件、格式、提供商、不支持的语言环境或锁文件错误，或用法错误 |
+| `3` | 纯人工项目：运行（包括试运行或 `--estimate`）干净地完成，但有键留给人工翻译 |
+| `130` | 释放写锁之后，因 Ctrl-C（SIGINT）而中断 |
+| `143` | 释放写锁之后，因 SIGTERM 而停止 |
+
+发生中断时，stderr 以 `verbatra: interrupted (SIGINT), released locks` 结尾，使用 `--json` 时则以记录 `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` 结尾。如果释放锁失败，或在 5 秒内未完成，这一行会改为说明情况（`could not release locks: <reason>` 或 `lock release did not finish within 5s`），JSON 记录则带有 `"locksReleased":false`，以及 `"reason":"failed"`（外加 `message`）或 `"reason":"timed-out"`（外加 `deadlineMs`）。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [运行的工作原理](/zh-CN/docs/how-it-works)说明读取、比对、翻译、写入的流程。
+- [翻译缓存](/zh-CN/docs/the-cache)说明 `--no-cache` 绕过什么。
+- [翻译安全](/zh-CN/docs/translation-safety)涵盖完整性检查和审校队列。
+- [`verbatra diff`](/zh-CN/docs/cli/diff) 以只读方式预览同样的待处理键。
+- [在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes) 展示如何在流程中根据这些退出码分支。

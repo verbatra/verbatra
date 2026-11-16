@@ -21,11 +21,11 @@ import {
   surfaceText,
 } from "@/lib/highlights-surfaces";
 import { MCP_ADD_COMMAND, SDK_INSTALL_COMMAND } from "@/lib/install-commands";
+import type { Locale } from "@/lib/locales";
+import { LOCALES } from "@/lib/locales";
 import { LOCK_FILE_NAME } from "@/lib/lock-demo";
-import de from "@/messages/de.json";
+import { MESSAGE_CATALOGS, type Messages } from "@/lib/message-catalogs";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 import { cssBlock, literalColours } from "@/test-support/css-block";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
@@ -65,7 +65,7 @@ async function renderIn(locale: string): Promise<HTMLElement> {
   rendering.locale = locale;
   const element = document.createElement("div");
   element.innerHTML = renderToStaticMarkup(
-    <NextIntlClientProvider locale={locale} messages={locale === "de" ? de : en}>
+    <NextIntlClientProvider locale={locale} messages={locale === "de" ? MESSAGE_CATALOGS.de : en}>
       {await Highlights()}
     </NextIntlClientProvider>,
   );
@@ -80,6 +80,8 @@ beforeAll(async () => {
 function panes(): Element[] {
   return Array.from(root.querySelectorAll(".vk-hl-panes > article.vk-hl-pane"));
 }
+
+const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];
 
 describe("Highlights", () => {
   it("keeps the section id and names it by a heading with no trailing period", () => {
@@ -104,12 +106,7 @@ describe("Highlights", () => {
     });
   });
 
-  it.each([
-    ["en", en],
-    ["de", de],
-    ["es", es],
-    ["fr", fr],
-  ] as const)(
+  it.each(CATALOG_ENTRIES)(
     "names the language of the fixture in the %s lead and never its locale code",
     (locale, catalog) => {
       const lead = createTranslator({
@@ -233,16 +230,11 @@ describe("Highlights", () => {
     expect(figure?.querySelector("table")?.hasAttribute("aria-label")).toBe(false);
     const german = await renderIn("de");
     expect(german.querySelector("figure figcaption")?.textContent).toBe(
-      de.landing.highlights.studio.label,
+      MESSAGE_CATALOGS.de.landing.highlights.studio.label,
     );
   });
 
-  it.each([
-    ["en", en],
-    ["de", de],
-    ["es", es],
-    ["fr", fr],
-  ] as const)(
+  it.each(CATALOG_ENTRIES)(
     "capitalises every %s surface name and uses one word for the provider",
     (_locale, catalog) => {
       for (const name of Object.values(catalog.landing.highlights.surfaces))
@@ -265,7 +257,7 @@ describe("Highlights", () => {
     expect(found).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(["en", "de", "es", "fr"])(
+  it.each(LOCALES)(
     "names the %s copy button with its visible word, so the label matches the content",
     (locale) => {
       const catalog = JSON.parse(
@@ -291,13 +283,15 @@ describe("Highlights", () => {
 
   it("keeps the CLI text English on a German page and translates only the surface names", async () => {
     const german = await renderIn("de");
-    expect(german.querySelector("section h2")?.textContent).toBe(de.landing.highlights.heading);
+    expect(german.querySelector("section h2")?.textContent).toBe(
+      MESSAGE_CATALOGS.de.landing.highlights.heading,
+    );
     const german3 = Array.from(german.querySelectorAll("h3"), (h) => h.textContent);
     expect(german3).toEqual([
-      de.landing.highlights.surfaces.cli,
-      de.landing.highlights.surfaces.studio,
-      de.landing.highlights.surfaces.sdk,
-      de.landing.highlights.surfaces.mcp,
+      MESSAGE_CATALOGS.de.landing.highlights.surfaces.cli,
+      MESSAGE_CATALOGS.de.landing.highlights.surfaces.studio,
+      MESSAGE_CATALOGS.de.landing.highlights.surfaces.sdk,
+      MESSAGE_CATALOGS.de.landing.highlights.surfaces.mcp,
     ]);
     for (const pre of german.querySelectorAll("pre")) expect(pre.getAttribute("lang")).toBe("en");
     expect(german.querySelector("a")?.getAttribute("href")).toBe("/de/docs/cli/check");

@@ -433,7 +433,8 @@ function loadOptionsFor(input: DataFlowInput, deps: DataFlowDeps): LoadConfigOpt
  *
  * A network environment variable holding an invalid value does not throw: the manifest reports it
  * in {@link DataFlowManifest.network} and gives every destination the verdict `invalid-policy`. A
- * source locale file that cannot be read leaves {@link DataFlowSent.counts} out and says why in
+ * source locale file that cannot be resolved or read, for example a missing or malformed file, an
+ * unknown format or an invalid file layout, leaves {@link DataFlowSent.counts} out and says why in
  * {@link DataFlowSent.countsUnavailable}. With the provider `none`, nothing is sent: the manifest
  * lists no destination, no field, no locale and no other request.
  *

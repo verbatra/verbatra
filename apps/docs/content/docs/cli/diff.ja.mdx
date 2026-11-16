@@ -1,0 +1,151 @@
+---
+title: verbatra diff
+seoTitle: "verbatra diff：実行で変わる内容をプレビューする"
+description: "実行で追加または再翻訳されるキーと、残る孤立キーをロケールごとに表示します。ファイルの書き込みもプロバイダーの呼び出しもありません。"
+type: reference
+---
+ターゲットロケールごとの未処理キーを、正確に一覧表示します。実行で追加されるキー、再翻訳されるキー、孤立したキーです。`diff` は [`verbatra translate`](/ja/docs/cli/translate) と同じ読み取りと差分計算をして、そこで止まります。プロバイダーの呼び出し、ファイルの書き込み、ロックファイル（[ロックファイルと来歴](/ja/docs/the-lock-file)を参照）の更新はなく、API キーも不要です。
+
+## 書式
+
+```bash
+verbatra diff [flags]
+```
+
+## 例
+
+```bash
+# ロケールごとの未処理キーを一覧表示する（未処理があれば終了コード 1）
+verbatra diff
+
+# ドイツ語とフランス語のロケールだけ
+verbatra diff --locales de,fr
+
+# ツールや pull request のコメント向けの、機械が読めるキー一覧
+verbatra diff --json
+
+# コードがもう参照しないソースキーも一覧表示する
+verbatra diff --unused
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 設定済みのすべてのターゲット | このカンマ区切りの部分集合だけを比較します。設定されていないロケールは `UNKNOWN_LOCALE`、空のリストは `INVALID_LOCALES` で失敗し、どちらも終了コード `2` です。 |
+| `--unused` | なし | オフ | [`extract` のソースコードのルートディレクトリ](/ja/docs/config-file#extract)のどの呼び出し箇所も参照していないソースロケールのキーも、一覧表示します。[使われていないソースキー](#使われていないソースキー)を参照してください。 |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。
+
+## 動作
+
+### 未処理のキーと孤立したキー
+
+各ロケールには、4 種類のキーが一覧表示されます。
+
+| 一覧 | 意味 |
+| --- | --- |
+| `missing`（`add` と表示） | ソースにあってターゲットにないキー（実行で追加される） |
+| `changed`（`re-translate` と表示） | 前回の翻訳以降にソースのテキストが変わったキー（実行で再翻訳される） |
+| `orphaned` | ターゲットにあってソースにないキー（報告のみ） |
+| `emptySource`（`empty source` と表示） | ソースの値が空または空白のみのキー（書くまで翻訳するものがなく、未処理にはならない） |
+
+ロケールに未処理の変更があるのは、欠落または変更されたキーが 1 件以上ある場合です。孤立したキーは未処理として数えられません。デフォルトの実行はそれらをそのまま残すためで、削除するのは [`verbatra translate --prune`](/ja/docs/cli/translate) だけです。[`verbatra check`](/ja/docs/cli/check) が件数を示すのに対し、`diff` はキーの一覧を示します。
+
+### 使われていないソースキー
+
+<AvailableFrom version="0.11.0" />
+
+`--unused` は、`orphaned` とは別の問いに答えます。ソースロケールファイルのどのキーを、アプリケーションがもう参照していないか、という問いです。[`extract` ブロック](/ja/docs/config-file#extract)の `roots` を、[`verbatra extract`](/ja/docs/cli/extract) と同じリーダーでスキャンし、静的な参照のないソースキーをすべて一覧表示します。2 つの一覧が統合されることはありません。スキャンは読み取り専用のままです。何も削除されず、API キーも読み込まれません。キーを削除するかどうかは、自分で決めます。
+
+スキャンは i18next のランタイムをモデル化しています。次のものが参照として数えられます。
+
+- `roots` 配下のどこかにある `t(...)`、`$t(...)`、`<object>.t(...)` の呼び出し（`const { t: translate } = useTranslation()`、`const tr = i18n.t`、`t.bind(i18n)`、`i18n.getFixedT(...)` のようなエイリアス経由の呼び出しも含む）
+- 静的な `keyPrefix` または `getFixedT` の 3 番目の引数（そのファイル内のすべての静的キーについて、プレフィックス付きの形も対象になります）、および `Trans` やオブジェクト内の静的な `i18nKey`
+- 名前空間付きのキー（`common:nav.home` は `nav.home` も対象）、自然言語のキー、静的なキー配列のすべての要素
+- 参照されたキーの複数形またはコンテキストのバリアント（`t("items", { count })` は `items_one` と `items_other` を対象）、および参照された親キーの配下のすべてのキー
+
+キーはカタログフォーマット自身のエンコーディングで比較されます。そのため、フラットなドット付き JSON キー、gettext の複数形や `msgctxt` のエントリ、Android の `<plurals>` エントリは、いずれもコードが指定するキーに一致します。`` t(`nav.${page}`) `` のように静的な先頭部分を持つテンプレートリテラルは、`nav.` 配下のキーを `unused` とは別に `possiblyDynamic` として一覧表示し、実行を失敗させることはありません。
+
+レポートには `status` が含まれます。`complete`（到達可能なすべてのキーが特定できたので、`unused` は信頼できる）、`unreliable`（一覧のキーがまだ使われている可能性があり、`unreliableBecause` が各理由を件数と箇所とともに示す）、`not-run`（何も一覧表示されず、`reason` が理由を示す）のいずれかです。
+
+| 理由 | `status` | 条件 |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | 静的な部分のないキー（`t(key)`、静的な先頭部分のないテンプレートリテラル、連結） |
+| `dynamic-key-prefix` | `unreliable` | 静的な文字列ではない `keyPrefix` または `getFixedT` のプレフィックス |
+| `trans-without-key` | `unreliable` | 静的な `i18nKey` のない `Trans` 要素 |
+| `aliased-translate-function` | `unreliable` | `this.tr = t` のように、単純な変数以外に `t` を代入している |
+| `translate-function-escapes` | `unreliable` | 直接の呼び出し、そのバインディング、ローカルのエイリアス、`Trans` や `Translation` の `t={t}`、フックの依存配列以外で使われている翻訳関数（`renderRow(t)`、`{ t }`、`return t`、`export default t`） |
+| `unrecognised-translate-source` | `unreliable` | スキャンがモデル化していないソースの `t` または `$t`（`useTranslation(...)` を返すラッパーフック、スプレッドで組み立てたフックのオプション、エクスポートされた `getFixedT` の結果など） |
+| `template-files-not-scanned` | `unreliable` | ルート配下の `.vue`、`.svelte`、`.html`、`.htm`、`.astro`、`.hbs`、`.handlebars`、`.ejs`、`.pug`、`.njk`、`.liquid`、`.mdx` のファイル（先頭の 20 件を一覧表示し、すべてを数える） |
+| `incomplete-scan` | `unreliable` | 大きすぎる、読み取れない、または最後まで読めないファイル（閉じられていない JSX 要素や、行末まで続く引用符付きの文字列も含む）、あるいは一覧できないディレクトリ |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | `extract` ブロックがない |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | SDK 呼び出し元のファイルシステムがディレクトリを一覧できない |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | フォーマットが `next-intl-json`、`vue-i18n-json`、`ngx-translate-json` のいずれかで、スキャンがそのランタイムをモデル化していない |
+| `NO_SOURCE_FILES` | `not-run` | ルート配下にソースファイルがない |
+| `NO_REFERENCES_FOUND` | `not-run` | カタログが空でないのに、スキャンしたファイルがどのキーも参照せず、動的キーの箇所もない（通常は、ルートがコードを外している） |
+
+認識される翻訳ソースは次のとおりです。静的な引数で、エクスポートされていないローカルのバインディングに分割代入された `useTranslation(...)`、静的な引数を持つローカルの `i18n.getFixedT(...)`、メンバー `t` の直接の呼び出し（`i18n.t("key")`、`this.props.t("key")`）とそのローカルのエイリアス、`<Translation>{(t) => ...}</Translation>`、`props.t(...)` を使う `withTranslation("ns")(Component)`、`import { t } from "i18next"` です。`t` または `$t` という名前のすべての変数やメンバーが判定対象になるため、無関係な `frame.t + 1` でレポートが信頼できないものになることがあります。`.tsx`、`.jsx`、`.js` ファイルでは、JSX テキストと引用符付きの属性値はマークアップとして読まれ、コードとしては読まれません。
+
+一覧表示される各キーは、デコードされた表記で示されます（gettext の `msgctxt` エントリは `menu|Open`）。`--json` には、アダプターが綴るとおりの `catalogKey` も含まれます。スキャンしたソースの外でだけ使われるキー（サーバーテンプレートや CMS）は、[`extract.unused.ignore`](/ja/docs/config-file#extract) に書きます。パターンはデコードされたキーに一致し、一致したキーは `ignored` の下に一覧表示されます。一覧から消えることはありません。
+
+### 保護されたキー
+
+<AvailableFrom version="0.12.0" />
+
+`translate` が人に任せる欠落しているキーと変更されたキー（人が値を書いた、インポートした、または verbatra の外で変更した場合、あるいはキーが `pinnedKeys` に一致する場合）は、`protected` の下にも一覧表示されます。詳しくは[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。これらはまだ未処理なので、`add` と `re-translate` にも残ります。`verbatra.provenance.json` が壊れている場合や、より新しい verbatra のものである場合は、固定されたキーだけが一覧表示されます。
+
+### JSON 出力
+
+スキーマ：[`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) がエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` は、[JSON 出力](/ja/docs/cli/output#json-出力)のエンベロープ（envelope）を 1 つ出力し、その `result` は `DiffSummary` です。`hasPendingChanges` が true になるのは、未処理のキーが原因でコマンドが終了コード `1` で終了する場合に限ります。
+
+```ts
+interface DiffSummary {
+  hasPendingChanges: boolean;
+  locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // --unused を付けた場合のみ
+}
+
+interface LocaleDiff {
+  locale: string;
+  missing: string[];           // 追加される
+  changed: string[];           // 再翻訳される
+  orphaned: string[];          // 報告のみ
+  emptySource?: string[];      // ソースの値が空：未処理にはならない
+  hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // 来歴ファイルが読めない場合は存在しない
+  protected?: string[];        // translate が手をつけない未処理キー
+}
+```
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`diff` は作業中に 1 行を表示し（`--unused` の場合は `diffing and scanning the source` に、スキャンしたファイル数が付きます）、次のコマンドを提案します。
+
+```text output
+verbatra: diffing the locales... done (0.8s)
+next: verbatra translate (send the pending keys to your provider)
+```
+
+すべての未処理キーが保護されている場合は、代わりに `verbatra studio` を提案します。`provider: { id: "none" }` の場合は `verbatra export` を提案します。これらの行は stderr に出力され、`--quiet` で表示されなくなります。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | どのロケールにも追加または再翻訳するキーがなく、`complete` の `--unused` スキャンでも使われていないキーが見つからなかった |
+| `1` | 少なくとも 1 つのロケールに欠落または変更されたキーがある、または `complete` の `--unused` スキャンで使われていないキーが見つかった |
+| `2` | 実行できなかった：実行全体のエラー、設定されていない `--locales` の値（`UNKNOWN_LOCALE`）、または空の `--locales` リスト（`INVALID_LOCALES`）のような使い方の誤り |
+
+孤立したキー、動的な可能性のあるキー、無視されたキー、および `unreliable` や `not-run` のレポートが、それだけで `1` の原因になることはありません。[終了コード](/ja/docs/cli/output#終了コード)の仕様を参照してください。
+
+## 関連項目
+
+- [`verbatra check`](/ja/docs/cli/check) は、これらの一覧の元になるロケールごとの件数を示します。
+- [`verbatra translate`](/ja/docs/cli/translate) は未処理の変更を適用します。`--prune` は孤立したキーを削除します。
+- [設定ファイル](/ja/docs/config-file#extract)に、`extract` ブロックと `unused.ignore` の説明があります。
+- [CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)に、パイプラインでの `diff` の例があります。

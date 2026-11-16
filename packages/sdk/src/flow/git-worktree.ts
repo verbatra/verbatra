@@ -8,7 +8,8 @@ import {
 } from "./git-exec.js";
 
 /**
- * Why {@link localeGitStatus} or {@link localeGitDiff} could not read the repository:
+ * Why {@link keyHistory}, {@link localeGitStatus} or {@link localeGitDiff} could not read the
+ * repository:
  *
  * - `git-missing`: no `git` executable was found.
  * - `not-a-repository`: the project is not inside a git work tree.
@@ -23,23 +24,25 @@ import {
  * - `git-too-old`: the repository is a partial clone and git is older than 2.45, which cannot be told
  *   not to fetch missing objects from the remote, so no command was run against it.
  * - `git-failed`: git failed in a way none of the other reasons names, such as a corrupt index.
- * - `custom-adapter`: ({@link localeGitDiff} only) the format is a `custom:` adapter, or the call
- *   was given an adapter registry, so the committed file cannot be read through a private
- *   in-memory file system.
+ * - `custom-adapter`: ({@link localeGitDiff} and {@link keyHistory} only) the format is a `custom:`
+ *   adapter, or the call was given an adapter registry, so the committed file cannot be read
+ *   through a private in-memory file system.
  * - `revision-unreadable`: ({@link localeGitDiff} only) the committed locale file is not a regular
  *   file or could not be parsed.
- * - `working-file-unreadable`: ({@link localeGitDiff} only) the locale file on disk is a symbolic
- *   link or sits behind one, or could not be parsed.
- * - `outside-project`: a configured locale file lies outside the project directory, for example
- *   with a `files.pattern` that starts with `../`, so the call cannot say what changed in it and
- *   does not report a partial list as a complete one.
+ * - `working-file-unreadable`: ({@link localeGitDiff} and {@link keyHistory} only) the locale file
+ *   on disk is a symbolic link or sits behind one, or could not be parsed.
+ * - `outside-project`: ({@link localeGitStatus}, {@link localeGitDiff} and {@link keyHistory} only)
+ *   a configured locale file lies outside the project directory, for example with a
+ *   `files.pattern` that starts with `../`, so the call cannot say what changed in it and does not
+ *   report a partial list as a complete one.
  */
 export type LocaleGitUnavailableReason = (typeof LOCALE_GIT_UNAVAILABLE_REASONS)[number];
 
 /**
  * The {@link LocaleGitUnavailableReason}s that name a repository that could not be read: all of
- * them except the ones only {@link localeGitDiff} and {@link localeGitStatus} give about a locale
- * file (`custom-adapter`, `revision-unreadable`, `working-file-unreadable` and `outside-project`).
+ * them except the ones only {@link localeGitDiff}, {@link localeGitStatus} and {@link keyHistory}
+ * give about a locale file (`custom-adapter`, `revision-unreadable`, `working-file-unreadable` and
+ * `outside-project`).
  */
 export type LocaleGitRepositoryUnavailableReason = Exclude<
   LocaleGitUnavailableReason,

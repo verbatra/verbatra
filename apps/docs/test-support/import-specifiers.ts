@@ -120,10 +120,55 @@ function isToken(tokens: Token[], index: number, text: string): boolean {
   return tokens[index]?.text === text && tokens[index]?.kind !== "string";
 }
 
-function specifierAfter(tokens: Token[], index: number): string | undefined {
+function statementStart(tokens: Token[], from: number): number {
+  for (let index = from - 1; index >= 0 && from - index < 200; index -= 1) {
+    const token = tokens[index];
+    if (token?.kind === "word" && (token.text === "import" || token.text === "export"))
+      return index;
+  }
+  return -1;
+}
+
+function isTypeSpecifier(specifier: Token[]): boolean {
+  return specifier[0]?.text === "type" && specifier.length >= 2 && specifier[1]?.text !== "as";
+}
+
+function bracedSpecifiersAreTypes(tokens: Token[], open: number): boolean {
+  const specifiers: Token[][] = [[]];
+  for (let index = open + 1; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === undefined || (token.kind === "punct" && token.text === "}")) break;
+    if (token.kind === "punct" && token.text === ",") specifiers.push([]);
+    else specifiers.at(-1)?.push(token);
+  }
+  const named = specifiers.filter((specifier) => specifier.length > 0);
+  return named.length > 0 && named.every(isTypeSpecifier);
+}
+
+function isTypeOnlyStatement(tokens: Token[], from: number): boolean {
+  const start = statementStart(tokens, from);
+  if (start < 0) return false;
+  if (tokens[start + 1]?.text === "type" && tokens[start + 2]?.text !== "from") return true;
+  return isToken(tokens, start + 1, "{") && bracedSpecifiersAreTypes(tokens, start + 1);
+}
+
+export interface ImportSpecifierOptions {
+  readonly skipTypeOnly?: boolean;
+}
+
+function specifierAfter(
+  tokens: Token[],
+  index: number,
+  options: ImportSpecifierOptions,
+): string | undefined {
   const word = tokens[index];
   if (word?.kind !== "word") return undefined;
-  if (word.text === "from") return stringAt(tokens, index + 1);
+  if (word.text === "from") {
+    const specifier = stringAt(tokens, index + 1);
+    return options.skipTypeOnly === true && isTypeOnlyStatement(tokens, index)
+      ? undefined
+      : specifier;
+  }
   if (word.text === "import")
     return isToken(tokens, index + 1, "(")
       ? stringAt(tokens, index + 2)
@@ -137,7 +182,7 @@ function specifierAfter(tokens: Token[], index: number): string | undefined {
   return resolves ? stringAt(tokens, index + 4) : undefined;
 }
 
-export function importSpecifiers(source: string): string[] {
+export function importSpecifiers(source: string, options: ImportSpecifierOptions = {}): string[] {
   const tokens = tokenize(source);
-  return tokens.flatMap((_, index) => specifierAfter(tokens, index) ?? []);
+  return tokens.flatMap((_, index) => specifierAfter(tokens, index, options) ?? []);
 }

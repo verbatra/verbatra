@@ -1,0 +1,86 @@
+---
+title: "RunSummary"
+seoTitle: "RunSummary：verbatra の実行が返すもの"
+description: "translate、importWorkbook、watch が resolve する値をフィールドごとに説明します。スクリプトで実行のトークン使用量や通知を読み取れます。"
+type: reference
+---
+## RunSummary の構造
+
+`translate` と `importWorkbook` は `RunSummary` で resolve されます。`watch` では、成功した各回の実行が `RunSummary` で resolve されます。
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // true when nothing was written and no provider was called
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; the CLI exits 1 on these
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // present when maxTokens is configured or passed to the run
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
+}
+
+interface LocaleSummary {
+  locale: string;
+  status: "succeeded" | "partial" | "failed";
+  translated: string[];          // keys translated this run (in dry-run, keys that would be)
+  cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
+  unchanged: string[];           // keys already up to date
+  orphaned: string[];            // target keys with no matching source key (always reported)
+  pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
+  invalidIcuSource: string[];    // source keys skipped for invalid ICU
+  emptySource?: string[];        // source keys with an empty value; nothing is sent or written for them
+  integrityMismatches: string[]; // translations the integrity gate withheld
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
+  providerFailures: string[];    // keys withheld because nothing was translated for them
+  budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
+  sensitiveWithheld: string[];   // keys sensitiveData kept from the provider (block or redact)
+  generated: string[];           // CLDR plural forms synthesized this run
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
+  malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
+  duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
+  notices: LocaleNotice[];       // provider notices and SDK notices for this locale
+  needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
+  usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
+}
+```
+
+知っておくと役立つ点は次のとおりです。
+
+- **needsReview** は、受け入れられて書き込まれたキーのうち、レビューのヒューリスティックがフラグを付けたものを、その理由コードとともに一覧します。理由コードは[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)で一覧し、説明しています。この集合は `REVIEW_REASON_CODES` タプルとして提供されます。実行時のスキーマや網羅的な参照表を作るときは、メンバーを書き直さず、このタプルから作ってください。レビューフラグは警告のみで、キーを保留することはありません。そのため、キーが `needsReview` と `integrityMismatches` の両方に現れることはありません。キューの処理は [Studio でレビューする](/ja/docs/review-in-studio)で説明しています。
+- **notices** はロケールごとにあり、最上位にはありません。プロバイダーの通知（DeepL の機能低下など）は[プロバイダーの通知](/ja/docs/error-codes#provider-notice-codes)に一覧があります。SDK の通知は、そのコードが `SdkNoticeCode` ユニオン型を構成し、[実行の通知](/ja/docs/error-codes#sdk-notice-codes)で説明しています。実行全体にかかわる通知（キャッシュの通知など。1 つのファイルがすべてのロケールで共有されます）は、実行内の各ロケールに付きます。
+- **usage** は、そのスコープで何も使用量を報告しなかった場合、偽のゼロではなく、常に `undefined` です。たとえば、ドライランはプロバイダーを呼び出さず、DeepL はトークンを報告しません。`RunSummary.usage` は、すべてのロケールの合計です。
+- **budget** は、`maxTokens` が設定されているか、実行に渡された場合にだけ現れます。内容は `{ maxTokens, behavior, supported, tokensUsed, exceeded }` です。`supported` は、`tokensUsed` がすべてプロバイダー自身が報告した使用量かどうかを示します。使える数値なしで返ってきたリクエストが 1 つでもあると、`false` になります。その場合、合計の一部は verbatra の見込みですが、数え方も上限の適用も同じように行われます。ドライラン、またはリクエストを 1 つも送らなかった実行は、`supported: true` で `tokensUsed: 0` を報告します。何も送らなかったため、見込みも立てていないからです。`behavior: "stop"` では、実行が送るすべてのリクエストの前に上限をチェックします。再分割されたリクエストの各半分も含みます。そのため、1 つの例外を除き、`tokensUsed` は `maxTokens` 以下に収まります。例外とは、最後に受け付けたリクエストです。これはプロバイダーが報告した値に照合し直されるため、後になって合計が上限を超えることがあります。超えた場合は、それ以上何も送られません。予約では抑えられないものが 2 つあります。どちらも、すでに受け付けたリクエストの内部で起きるためです。1 つは、キーが欠けて返ってきたときに、プロバイダー層が独自に修復の呼び出しを 1 回送ることです。そのため、受け付けた 1 つのバッチの費用が、見込みの約 2 倍になることがあります。もう 1 つは、数値の正確さがプロバイダーの報告の正確さに依存することです。どちらも照合の時点で反映され、その後は何も受け付けられません。予算が制限するのは、1 回の `translate` の呼び出しです。`watch` は実行のたびに新しい予算で始め、`retranslateEntry` はまったく対象外です。
+- 失敗したロケールの **error.code** は、保持された文字列です（元のプロバイダーまたはアダプターのコードで、`LOCALE_FAILED` はフォールバックとしてのみ使われます）。そのため、閉じた集合として扱わないでください。`failed` のロケールが、常に `error` を持つとは限りません。すべてのキーが保留され、`integrityMismatches`、`providerFailures`、`budgetWithheld` に載っているロケールは、何もスローされないまま失敗します。その理由は、これらの一覧と `notices` にあります。たとえば、プロバイダーのバッチの失敗なら `SUB_BATCH_FAILED`、トークン予算なら `BUDGET_TOKENS_EXCEEDED` です。`error` の有無ではなく、必ず `status` で判定します。
+- **cancelled** は、実行の `signal` が実行を中断した場合にだけ現れます。何が残るかは [`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled) で説明しています。
+- **estimate** は、実行前の見積もりを求められた場合にだけ現れます。`caveats` の一覧は空にならず、数値に含まれないものを `EstimateCaveatCode` のメンバーとして示します。
+  - `CACHE_NOT_CONSULTED`：翻訳メモリは読み取られないため、実際の実行ならキャッシュから返すキーも、数に含まれます。すべての見積もりに当てはまります。
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`：実際の実行は、同一のソース文字列ごとに代表を 1 つ送りますが、見積もりはすべてのキーを数えます。すべての見積もりに当てはまります。
+  - `TRANSPORT_RETRIES_NOT_COUNTED`：計画した 1 件のリクエストにつき、課金対象の呼び出しを 1 回だけ数えます。ただし、プロバイダーの SDK が失敗した呼び出しをその内部で再試行することがあり、再試行された試行にも課金される場合があります。すべての見積もりに当てはまります。
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`：レスポンスのサイズは、ソースに固定の拡張分を加えて見積もります。そのため、長くなる傾向のあるターゲット言語では、出力トークンがより多く報告されます。トークン課金のプロバイダーのみです。
+  - `TOKEN_COUNT_IS_HEURISTIC`：トークン数は、プロバイダー自身のトークナイザーではなく、文字数から算出します。トークン課金のプロバイダーのみです。
+  - `REPAIR_REQUESTS_NOT_COUNTED`：キーが欠けて返ってきたときの修復ラウンドと、途中で切れたレスポンスを半分に分けて再試行する処理は、数えません。トークン課金のプロバイダーのみです。
+- **cacheHits** は、プロバイダーではなく[翻訳メモリのキャッシュ](/ja/docs/the-cache)から返されたキーを一覧します。**fuzzyHits** は、変更されたソース文字列に対して訳文を再利用したキーを一覧します。各項目には、`key`、`similarity`、一致した `previousSource` があります。`fuzzyCache` が有効な場合にしか値が入らず、これらのキーが **cacheHits** に数えられることはありません。**unfilled**、**malformedRows**、**duplicateKeys** に値が入るのは `importWorkbook` だけです（`translate` の実行では空です）。それぞれ、インポート時にまだ翻訳が必要なキーの空白行（`new` と `changed` のどちらでエクスポートされたかは問いません）、リーダーが解析できなかったブックの行、最初の出現が採用された重複キーを示します。後ろの 2 つにあるオプションの `line` は、レコードが始まるファイルの行で、区切り文字ファイル（`csv` または `tsv`）のインポートにだけあります。例外は、[人手のみ](/ja/docs/human-only-workflow)のプロジェクトです。そこでは `translate` と `watch` が、翻訳メモリに完全一致のエントリがなかったすべてのキーを **unfilled** に一覧し、あいまい一致による再利用は適用されないため、**fuzzyHits** は空のままです。
+- **protected** は、`translate` の実行が手を付けなかったキーを一覧します。各項目には `reason`（`human`、`import`、`external`、`pinned`）があります。`humanEdits: "suggest"` の場合は、`suggestion` と `suggestionStatus` も付きます。`suggestion` は、プロバイダーの回答、または翻訳メモリの完全一致のエントリで、あいまい一致は含まれません。書き込まれてはいません。`suggestionStatus` は、ドライランでは `planned`、成功すると `suggested`、そうでなければその理由（`integrity-mismatch`、`provider-failure`、`budget-withheld`、`sensitive-withheld`）です。失敗した提案が、ロケールの状態を変えることはありません。これらのキーは **translated** に含まれず、ロケールの状態を変えることもなく、`check` では古いままです。`importWorkbook` では空のままです。[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。
+
+これらのエントリの型のうち 2 つは、単独でエクスポートされています。`protected` の各エントリは `ProtectedKey`、`notices` の各 SDK 通知は `SdkNotice` です。
+
+<SdkTypeTable name="ProtectedKey" />
+
+<SdkTypeTable name="SdkNotice" />
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+`RunBudget` を、3 つの `BudgetStanding` の値のいずれかに分類します。CLI の予算の行、Studio、`usage.summary` エージェントツールが報告するのと同じ分類です。`"within"` は、実行が上限に達しなかった場合です。`"stopped-before-ceiling"` は、`tokensUsed` がまだ `maxTokens` を下回っているときに、`"stop"` の予算がリクエストを保留した場合です。`"reached"` は、`tokensUsed` が `maxTokens` に達した、または超えた場合です。`exceeded` だけを読むのではなく、これを使ってください。`exceeded` は、後ろの 2 つのどちらでも `true` になるためです。
+
+```ts title="シグネチャ"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**戻り値**：`BudgetStanding`
