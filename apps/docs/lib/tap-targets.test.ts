@@ -46,6 +46,15 @@ describe("tap targets on a phone", () => {
     expect(height("#nd-page .group\\/heading > a[data-card]")?.["min-height"]).toBe("44px");
   });
 
+  it("lays the text and inline code of a heading anchor out inline, so a long code span wraps instead of widening the page", () => {
+    const phone = rules.filter((rule) => rule.media === PHONE);
+    const anchor = phone.find((rule) =>
+      rule.selector.split(/,\s*/).includes("#nd-page .group\\/heading > a[data-card]"),
+    );
+    expect(anchor?.declarations.display).toBe("block");
+    expect(anchor?.declarations["align-content"]).toBe("center");
+  });
+
   it.each(TAP_CLASS_SOURCES)("%s marks its controls with the tap class", (file) => {
     expect(readFileSync(join(process.cwd(), file), "utf8")).toContain("vk-tap");
   });

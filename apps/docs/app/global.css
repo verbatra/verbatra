@@ -3893,12 +3893,14 @@ html:has(.vk-home) {
   }
 
   #nd-page .group\/heading > a[data-card] {
-    display: inline-flex;
-    align-items: center;
+    display: block;
+    align-content: center;
     min-height: 44px;
   }
 
   #nd-page .group\/heading > a[data-card]:has(.vk-available-from) {
+    display: inline-flex;
+    align-items: center;
     flex-wrap: wrap;
     column-gap: 0.5rem;
     row-gap: 0.25rem;
