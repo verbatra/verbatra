@@ -43,13 +43,18 @@ class SdkError extends Error {
 
 <AvailableFrom version="0.12.0" />
 
-翻译提供商失败时抛出的结构化错误，用来代替原始的 SDK 或 HTTP 错误。其 `name` 是 `"ProviderError"`，`code` 是 `ProviderErrorCode`，错误信息固定且已脱敏。在 `MISSING_API_KEY` 失败时，`envVar` 指明提供商读取密钥所用的变量，绝不包含它的值。`retranslateEntry` 会重新抛出它，自定义提供商从 `translateBatch` 抛出它；[提供商错误码](/zh-CN/docs/error-codes#provider-error-codes)列出每个错误码。用 `error instanceof ProviderError` 测试它。在没有导出该类的旧版本中，请检查 `error.name === "ProviderError"` 并读取 `code`。
+翻译提供商失败时抛出的结构化错误，用来代替原始的 SDK 或 HTTP 错误。其 `name` 是 `"ProviderError"`，`code` 是 `ProviderErrorCode`，错误信息固定且已脱敏。在 `MISSING_API_KEY` 失败时，`envVar` 指明提供商读取密钥所用的变量，绝不包含它的值。`status` 为失败所对应的提供商响应的 HTTP 状态码，没有响应时则不存在。`retranslateEntry` 会重新抛出它，自定义提供商从 `translateBatch` 抛出它；[提供商错误码](/zh-CN/docs/error-codes#provider-error-codes)列出每个错误码。用 `error instanceof ProviderError` 测试它。在没有导出该类的旧版本中，请检查 `error.name === "ProviderError"` 并读取 `code`。
 
 ```ts title="签名"
 class ProviderError extends Error {
   readonly code: ProviderErrorCode;
   readonly envVar?: string;
-  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+  readonly status?: number;
+  constructor(
+    code: ProviderErrorCode,
+    message: string,
+    details?: { readonly envVar?: string; readonly status?: number },
+  );
 }
 ```
 

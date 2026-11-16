@@ -70,7 +70,7 @@ class SdkError extends Error {
 El error estructurado con el que falla un proveedor de traducción, en lugar de un error crudo del
 SDK o de HTTP. Su `name` es `"ProviderError"`, su `code` es un `ProviderErrorCode` y su mensaje es
 fijo y está redactado. En un fallo `MISSING_API_KEY`, `envVar` nombra la variable de la que el
-proveedor lee su clave, nunca su valor. `retranslateEntry` lo vuelve a lanzar, y un proveedor propio
+proveedor lee su clave, nunca su valor. `status` contiene el estado HTTP de la respuesta del proveedor detrás del fallo y no aparece si no hubo ninguna. `retranslateEntry` lo vuelve a lanzar, y un proveedor propio
 lo lanza desde `translateBatch`; [Códigos de error del proveedor](/es/docs/error-codes#provider-error-codes)
 enumera cada código. Compruébalo con `error instanceof ProviderError`. En una versión anterior, que
 no exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.
@@ -79,7 +79,12 @@ no exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.
 class ProviderError extends Error {
   readonly code: ProviderErrorCode;
   readonly envVar?: string;
-  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+  readonly status?: number;
+  constructor(
+    code: ProviderErrorCode,
+    message: string,
+    details?: { readonly envVar?: string; readonly status?: number },
+  );
 }
 ```
 

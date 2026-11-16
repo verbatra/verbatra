@@ -60,13 +60,18 @@ class SdkError extends Error {
 
 <AvailableFrom version="0.12.0" />
 
-L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et expurgé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
+L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et expurgé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `status` contient le statut HTTP de la réponse du fournisseur à l'origine de l'échec, et il est absent s'il n'y en a pas eu. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
 
 ```ts title="Signature"
 class ProviderError extends Error {
   readonly code: ProviderErrorCode;
   readonly envVar?: string;
-  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+  readonly status?: number;
+  constructor(
+    code: ProviderErrorCode,
+    message: string,
+    details?: { readonly envVar?: string; readonly status?: number },
+  );
 }
 ```
 
