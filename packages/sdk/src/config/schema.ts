@@ -3,6 +3,7 @@ import { formatIdSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
+import { caseInsensitiveRepeats } from "./case-insensitive.js";
 import { extractionConfigSchema } from "./extraction-config.js";
 import { type GlossaryInput, glossaryDefinitionSchema } from "./glossary.js";
 import { humanEditsSchema, pinnedKeysSchema } from "./human-edits.js";
@@ -24,18 +25,6 @@ const fuzzyCacheSchema = z.strictObject({
   enabled: z.boolean(),
   threshold: z.number().min(0.5).max(1).optional(),
 });
-
-function findCaseInsensitiveDuplicate(locales: readonly string[]): string | undefined {
-  const seen = new Set<string>();
-  for (const locale of locales) {
-    const key = locale.toLowerCase();
-    if (seen.has(key)) {
-      return locale;
-    }
-    seen.add(key);
-  }
-  return undefined;
-}
 
 /**
  * The zod schema every verbatra config is validated against. {@link loadConfig} applies it, so most
@@ -91,10 +80,12 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * `redact`. `allow` lists texts that are never reported, where `*` matches any run of characters
  * and case is ignored.
  *
- * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not
+ * Beyond the per-field checks, four whole-config rules are enforced: `targetLocales` must not
  * contain the source locale, it must not contain two locales that differ only in case (they
- * would collide on a case-insensitive file system), and every key of `provider.options.localeMap`
- * must be `sourceLocale` or one of `targetLocales`, spelled exactly as configured. The `{locale}`
+ * would collide on a case-insensitive file system), every key of `provider.options.localeMap`
+ * must be `sourceLocale` or one of `targetLocales`, and every key of a `tone` map must be `default`
+ * or one of `targetLocales`, with no two keys that differ only in case, each spelled exactly as
+ * configured. The `{locale}`
  * token requirement is a per-field check on `files.pattern`.
  */
 export const verbatraConfigSchema = z
@@ -139,9 +130,9 @@ export const verbatraConfigSchema = z
       path: ["targetLocales"],
     },
   )
-  .refine((config) => findCaseInsensitiveDuplicate(config.targetLocales) === undefined, {
+  .refine((config) => caseInsensitiveRepeats(config.targetLocales).length === 0, {
     error: (issue) => {
-      const duplicate = findCaseInsensitiveDuplicate(
+      const [duplicate] = caseInsensitiveRepeats(
         (issue.input as { targetLocales: readonly string[] }).targetLocales,
       );
       return `targetLocales must not contain case-insensitively duplicate locales: "${duplicate}"`;

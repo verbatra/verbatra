@@ -1,13 +1,31 @@
 import type { Tone } from "@verbatra/ai-providers";
 import { z } from "zod";
+import { caseInsensitiveRepeats, didYouMeanHint } from "./case-insensitive.js";
 
-export const DEFAULT_TONE_KEY = "default";
+const DEFAULT_TONE_KEY = "default";
 
 const toneSchema = z.enum(["formal", "informal", "neutral"]);
 
+const TONE_NAMES = toneSchema.options;
+
+function offendingEntries(input: unknown): readonly string[] {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    return [];
+  }
+  return Object.entries(input)
+    .filter(([, value]) => !(TONE_NAMES as readonly unknown[]).includes(value))
+    .map(([key, value]) => `tone.${key} is ${JSON.stringify(value)}`);
+}
+
 export const toneConfigSchema = z.union([toneSchema, z.record(z.string(), toneSchema)], {
-  error: () =>
-    `tone must be formal, informal or neutral, or a map from a target locale (or "${DEFAULT_TONE_KEY}") to one of them`,
+  error: (issue) => {
+    const offenders = offendingEntries(issue.input);
+    const where = offenders.length === 0 ? "" : ` (${offenders.join(", ")})`;
+    return (
+      `tone must be formal, informal or neutral, or a map from a target locale (or ` +
+      `"${DEFAULT_TONE_KEY}") to one of them${where}`
+    );
+  },
 });
 
 /**
@@ -36,37 +54,22 @@ export function toneForLocale(tone: ToneConfig | undefined, locale: string): Ton
   return Object.hasOwn(tone, DEFAULT_TONE_KEY) ? tone[DEFAULT_TONE_KEY] : undefined;
 }
 
-export interface ToneScope {
+interface ToneScope {
   readonly targetLocales: readonly string[];
   readonly tone?: ToneConfig | undefined;
 }
 
-export interface ToneMapIssue {
+interface ToneMapIssue {
   readonly path: readonly string[];
   readonly message: string;
 }
 
 function unknownKeyMessage(key: string, targets: readonly string[]): string {
-  const lowered = key.toLowerCase();
-  const sameIgnoringCase = targets.find((locale) => locale.toLowerCase() === lowered);
-  const hint = sameIgnoringCase === undefined ? "" : `; did you mean "${sameIgnoringCase}"?`;
+  const hint = didYouMeanHint(key, [DEFAULT_TONE_KEY, ...targets]);
   return (
     `"${key}" is not a target locale: a tone map key must be "${DEFAULT_TONE_KEY}" or one of ` +
     `targetLocales, spelled as configured${hint}`
   );
-}
-
-function caseInsensitiveRepeats(keys: readonly string[]): ReadonlySet<string> {
-  const seen = new Set<string>();
-  const repeats = new Set<string>();
-  for (const key of keys) {
-    const lowered = key.toLowerCase();
-    if (seen.has(lowered)) {
-      repeats.add(key);
-    }
-    seen.add(lowered);
-  }
-  return repeats;
 }
 
 export function findToneMapIssues(scope: ToneScope): readonly ToneMapIssue[] {
@@ -83,7 +86,7 @@ export function findToneMapIssues(scope: ToneScope): readonly ToneMapIssue[] {
       },
     ];
   }
-  const repeats = caseInsensitiveRepeats(keys);
+  const repeats = new Set(caseInsensitiveRepeats(keys));
   return keys.flatMap((key): readonly ToneMapIssue[] => {
     if (repeats.has(key)) {
       return [

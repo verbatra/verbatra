@@ -61,11 +61,24 @@ describe("verbatraConfigSchema: tone", () => {
     expect(issues.some((issue) => issue.message.includes("differs only in case"))).toBe(true);
   });
 
-  it("rejects an unknown tone value inside a map, naming the accepted shapes", () => {
+  it("rejects an unknown tone value inside a map, naming the accepted shapes and the key", () => {
     const issues = issuesOf(toneConfig({ ja: "casual" }));
     expect(issues).toEqual([
       { path: "tone", message: expect.stringContaining("formal, informal or neutral") },
     ]);
+    expect(issues[0]?.message).toContain('tone.ja is "casual"');
+  });
+
+  it("names every offending key of a map, not only the first", () => {
+    const [issue] = issuesOf(toneConfig({ ja: "casual", de: "polite" }));
+    expect(issue?.message).toContain('tone.ja is "casual"');
+    expect(issue?.message).toContain('tone.de is "polite"');
+  });
+
+  it("suggests the reserved default when a key differs from it only in case", () => {
+    const [issue] = issuesOf(toneConfig({ Default: "formal" }));
+    expect(issue?.path).toBe("tone.Default");
+    expect(issue?.message).toContain('did you mean "default"');
   });
 
   it("rejects a non-string, non-object tone", () => {
