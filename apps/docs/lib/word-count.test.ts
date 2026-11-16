@@ -5,6 +5,7 @@ import {
   groupWordSegments,
   lastWordStart,
   SPACELESS_SCRIPT,
+  type WordGroup,
   type WordSegment,
 } from "@/lib/word-count";
 
@@ -169,26 +170,71 @@ describe("groupWordSegments", () => {
       other("，"),
       other(" "),
     ];
-    const lists: WordSegment[][] = [[]];
-    for (let length = 1; length <= 6; length += 1)
-      for (const list of lists.filter((entry) => entry.length === length - 1))
-        for (const piece of alphabet) lists.push([...list, piece]);
-    for (const list of lists) {
-      const groups = groupWordSegments(list);
-      expect(groups.map((group) => group.text).join("")).toBe(list.map((s) => s.segment).join(""));
-      let offset = 0;
-      groups.forEach((group, position) => {
-        expect(group.index).toBe(offset);
-        offset += group.text.length;
-        const lone =
-          group.isWordLike && [...group.text].length === 1 && SPACELESS_SCRIPT.test(group.text);
-        if (!lone) return;
-        expect(groups[position - 1]?.isWordLike ?? false).toBe(false);
-        expect(groups[position + 1]?.isWordLike ?? false).toBe(false);
-      });
-    }
+    const offenders = offendersOver(alphabet, 6, (list, groups) => {
+      return textAndOffsetViolation(list, groups) ?? loneCharacterViolation(groups);
+    });
+    expect(offenders).toEqual([]);
   });
 });
+
+function loneCharacterViolation(groups: readonly WordGroup[]): string | undefined {
+  for (const [position, group] of groups.entries()) {
+    const lone =
+      group.isWordLike && [...group.text].length === 1 && SPACELESS_SCRIPT.test(group.text);
+    if (!lone) continue;
+    if (groups[position - 1]?.isWordLike === true) return "lone character after a word";
+    if (groups[position + 1]?.isWordLike === true) return "lone character before a word";
+  }
+  return undefined;
+}
+
+function endingViolation(groups: readonly WordGroup[]): string | undefined {
+  for (const [position, group] of groups.entries()) {
+    if (group.text === "") return "empty group";
+    const afterWord = position > 0 && groups[position - 1]?.isWordLike === true;
+    if (afterWord && group.isWordLike && ENDING_START.test(group.text))
+      return `group opens on the ending ${group.text}`;
+  }
+  return undefined;
+}
+
+const OFFENDER_LIMIT = 3;
+
+function offendersOver(
+  alphabet: readonly WordSegment[],
+  maxLength: number,
+  violationOf: (list: readonly WordSegment[], groups: readonly WordGroup[]) => string | undefined,
+): string[] {
+  const offenders: string[] = [];
+  const list: WordSegment[] = [];
+  const visit = (): void => {
+    const violation = violationOf(list, groupWordSegments(list));
+    if (violation !== undefined && offenders.length < OFFENDER_LIMIT)
+      offenders.push(`${JSON.stringify(list.map((piece) => piece.segment))}: ${violation}`);
+    if (list.length === maxLength) return;
+    for (const piece of alphabet) {
+      list.push(piece);
+      visit();
+      list.pop();
+    }
+  };
+  visit();
+  return offenders;
+}
+
+function textAndOffsetViolation(
+  list: readonly WordSegment[],
+  groups: readonly WordGroup[],
+): string | undefined {
+  if (groups.map((group) => group.text).join("") !== list.map((s) => s.segment).join(""))
+    return "text not preserved";
+  let offset = 0;
+  for (const group of groups) {
+    if (group.index !== offset) return `group at ${group.index}, expected ${offset}`;
+    offset += group.text.length;
+  }
+  return undefined;
+}
 
 const ENDING_START = /^(?:ます|ません|ました|した|さい|せん|たい|れる)/u;
 const KATAKANA_ENDING_START = /^(?:ター|ション)/u;
@@ -204,22 +250,10 @@ describe("groupWordSegments with kana pieces", () => {
       wordLike("ション"),
       other("、"),
     ];
-    const lists: WordSegment[][] = [[]];
-    for (let length = 1; length <= 6; length += 1)
-      for (const list of lists.filter((entry) => entry.length === length - 1))
-        for (const piece of alphabet) lists.push([...list, piece]);
-    for (const list of lists) {
-      const groups = groupWordSegments(list);
-      expect(groups.map((group) => group.text).join("")).toBe(list.map((s) => s.segment).join(""));
-      let offset = 0;
-      groups.forEach((group, position) => {
-        expect(group.index).toBe(offset);
-        expect(group.text).not.toBe("");
-        offset += group.text.length;
-        if (position > 0 && groups[position - 1]?.isWordLike === true && group.isWordLike)
-          expect(group.text).not.toMatch(ENDING_START);
-      });
-    }
+    const offenders = offendersOver(alphabet, 6, (list, groups) => {
+      return textAndOffsetViolation(list, groups) ?? endingViolation(groups);
+    });
+    expect(offenders).toEqual([]);
   });
 });
 
