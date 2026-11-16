@@ -99,7 +99,11 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
             </h2>
             <p>{t.rich(`${key}.body`, linkTags)}</p>
             {key === PRIVACY_ANALYTICS_KEY && (
-              <AnalyticsOptOut locale={locale} labels={optOutLabels} />
+              <>
+                <p>{t.rich(`${key}.extended`, linkTags)}</p>
+                <p>{t.rich(`${key}.retention`, linkTags)}</p>
+                <AnalyticsOptOut locale={locale} labels={optOutLabels} />
+              </>
             )}
           </section>
         ),

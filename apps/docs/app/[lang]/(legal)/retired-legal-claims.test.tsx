@@ -161,12 +161,23 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     sample: "it saves the entry umami.disabled in your browser's local storage",
   },
   {
-    claim: "Umami script running in the browser",
+    claim: "no analytics script runs in the browser, stated without the consent choice",
     pattern:
-      /Umami script|Umami-Skript|script de Umami|script Umami|script do Umami|Umami のスクリプト/,
-    sample: "When a page loads, the Umami script reads the page address",
-    portugueseSample: "Quando uma página carrega, o script do Umami lê o endereço da página.",
-    japaneseSample: "ページが読み込まれると、Umami のスクリプトがページのアドレスを読み取ります。",
+      /(^|\. )No analytics script runs in your browser|(^|\. )In deinem Browser läuft kein Analyseskript|(^|\. )En tu navegador no se ejecuta ningún script de analítica|(^|\. )Aucun script de statistiques ne s’exécute dans ton navigateur|(^|。)你的浏览器中不运行任何分析脚本|(^|\. )Nenhum script de análise é executado no seu navegador|(^|。)ブラウザーで分析スクリプトは動作せず|and no analytics script runs in your browser|und in deinem Browser läuft kein Analyseskript|y en tu navegador no se ejecuta ningún script de analítica|et aucun script de statistiques ne s’exécute dans ton navigateur|你的浏览器中也不运行分析脚本|e nenhum script de análise é executado no seu navegador|ブラウザーで分析スクリプトも動作しません/,
+    sample: "No analytics script runs in your browser, and nothing is written to your device.",
+    portugueseSample:
+      "Nenhum script de análise é executado no seu navegador, e nada é gravado no seu dispositivo.",
+    japaneseSample: "ブラウザーで分析スクリプトは動作せず、デバイスへ書き込むものもありません。",
+  },
+  {
+    claim: "no cookie consent banner is required",
+    pattern:
+      /no cookie consent banner is required|kein Cookie-Einwilligungsbanner erforderlich|no se necesita ningún banner de consentimiento de cookies|aucune bannière de consentement aux cookies n’est requise|不需要 Cookie 同意横幅|não é necessário um banner de consentimento de cookies|Cookie 同意バナーは不要です/,
+    sample:
+      "Because nothing requiring consent is stored on your device, no cookie consent banner is required.",
+    portugueseSample:
+      "Como nada que exija consentimento é armazenado no seu dispositivo, não é necessário um banner de consentimento de cookies.",
+    japaneseSample: "同意が必要なものはデバイスに保存されないため、Cookie 同意バナーは不要です。",
   },
   {
     claim: "site sets no cookies at all",
@@ -232,8 +243,8 @@ describe("legal pages: retired claim patterns", () => {
 
   const PORTUGUESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.portugueseSample !== undefined);
 
-  it("covers the twelve claims with a per-language pattern in Portuguese", () => {
-    expect(PORTUGUESE_CLAIMS).toHaveLength(12);
+  it("covers the thirteen claims with a per-language pattern in Portuguese", () => {
+    expect(PORTUGUESE_CLAIMS).toHaveLength(13);
   });
 
   it.each(PORTUGUESE_CLAIMS)(
@@ -245,7 +256,7 @@ describe("legal pages: retired claim patterns", () => {
 
   const JAPANESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.japaneseSample !== undefined);
 
-  it("covers the same twelve claims with a Japanese pattern", () => {
+  it("covers the same thirteen claims with a Japanese pattern", () => {
     expect(JAPANESE_CLAIMS.map(({ claim }) => claim)).toEqual(
       PORTUGUESE_CLAIMS.map(({ claim }) => claim),
     );
