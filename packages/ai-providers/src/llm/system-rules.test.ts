@@ -37,8 +37,8 @@ describe("SHARED_SYSTEM_RULES", () => {
     expect(toneRules).toHaveLength(1);
     const [rule = ""] = toneRules;
     expect(rule).toContain("register of address, never a casual style");
-    expect(rule).toContain("informal means the familiar second person (du, tu, tú)");
-    expect(rule).toContain("formal means the polite second person (Sie, vous, usted)");
+    expect(rule).toContain("informal means the familiar second person (du, tu, tú, você)");
+    expect(rule).toContain("formal means the polite second person (Sie, vous, usted, o senhor)");
     expect(rule).toContain("neutral avoids direct address");
     expect(rule).toContain("never slang or casual spoken style");
     expect(rule).toContain(
