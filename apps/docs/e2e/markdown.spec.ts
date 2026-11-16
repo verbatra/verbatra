@@ -137,9 +137,9 @@ test("puts the landing, comparison section included, before the docs in llms-ful
   const landing = await (await request.get("/index.md")).text();
   const headline = landing.split("\n").find((line) => line.startsWith("# ")) ?? "missing";
   expect(full.indexOf(headline)).toBeGreaterThan(0);
-  expect(full).toContain("## How Verbatra compares");
+  expect(full).toContain("## The alternatives: How Verbatra compares");
   expect(full.indexOf("/docs/quickstart)")).toBeGreaterThan(
-    full.indexOf("## How Verbatra compares"),
+    full.indexOf("## The alternatives: How Verbatra compares"),
   );
   for (const retired of [
     "Verbatra in numbers",
