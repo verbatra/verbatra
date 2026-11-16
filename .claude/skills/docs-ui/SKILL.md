@@ -281,7 +281,7 @@ gap lines, because there is no italic face and the browser would slant the glyph
 plain weight, never a slant); puts `text-wrap: balance` on every heading and `text-wrap: pretty` on
 paragraphs and list items. Landing headings that come from message strings also get `word-break:
 keep-all` with `overflow-wrap: anywhere` (so a heading whose groups are wider than 320px still wraps), and
-`breakBetweenWords` in `lib/word-breaks.tsx` inserts a `<wbr>` between the `Intl.Segmenter` words of a Han or
+`breakBetweenWords` in `lib/word-segments.tsx` inserts a `<wbr>` between the `Intl.Segmenter` words of a Han or
 kana string, so a heading breaks only between words. The ICU dictionary splits many words into single
 characters (每|个, 密|钥, 适|配|器), so `groupWordSegments` in `lib/word-count.ts` first joins
 consecutive one-character Han or kana segments into a run, then gives a run of up to three characters to the
