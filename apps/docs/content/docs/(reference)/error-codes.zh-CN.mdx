@@ -1034,7 +1034,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 ### BUDGET_TOKENS_EXCEEDED
 
-运行达到了它的 token 预算：配置中的 `maxTokens`，或单次运行的 `--max-tokens`。在 `"warn"` 下，运行继续；在 `"stop"` 下，尚未尝试的键被搁置，并列在 `budgetWithheld` 之下。
+运行达到了它的 token 预算：配置中的 `maxTokens`，或单次运行的 `--max-tokens`。在 `"warn"` 下，运行继续；在 `"stop"` 下，尚未尝试的键被搁置，并列在 `budgetWithheld` 之下。低于单个批次预测值的 `maxTokens` 会让该批次每次运行都被搁置；通知会提示降低 `maxBatchSize` 或提高 `maxTokens`。
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：`budgetBehavior: "warn"` 下无；`"stop"` 下一旦有键被搁置则为 `1`

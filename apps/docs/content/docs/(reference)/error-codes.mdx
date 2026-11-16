@@ -1137,7 +1137,7 @@ An XLIFF handoff marked keys reviewed or final, and they were recorded as approv
 
 ### BUDGET_TOKENS_EXCEEDED
 
-The run reached its token budget: `maxTokens` in the config, or `--max-tokens` for one run. Under `"warn"` the run continues; under `"stop"` the keys not yet attempted are withheld and listed under `budgetWithheld`.
+The run reached its token budget: `maxTokens` in the config, or `--max-tokens` for one run. Under `"warn"` the run continues; under `"stop"` the keys not yet attempted are withheld and listed under `budgetWithheld`. A `maxTokens` below one batch's projection withholds that batch every run; the notice says to lower `maxBatchSize` or raise `maxTokens`.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: none under `budgetBehavior: "warn"`; `1` under `"stop"` once keys are withheld

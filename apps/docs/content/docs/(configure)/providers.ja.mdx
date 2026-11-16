@@ -122,7 +122,7 @@ provider: {
 `DEEPL_API_KEY` を読み取ります。`options` は `{}` でもかまいません。DeepL にはモデルも出力トークンの上限もありません。失敗する代わりに、通知を出して機能を下げて動作します。
 
 - **プレースホルダー**：無視されるタグの中で番号付きマーカーとして送られ（`Hello {{name}}` は `Hello <x>{0}</x>`）、復元されます。`PLACEHOLDER_UNSUPPORTED` は、値にタグがある場合、プレースホルダーがリテラルでない場合、プレースホルダー以外のテキストに `<`、`>`、`{`、`}` を含む場合に、値全体を保留します。マーカーが失われた、重複した、変更された、またはタグの外に素のまま現れた結果や、未知のエンティティや余分なタグを含む結果は、全体が破棄されます。マークアップだけの場合は、プレーンテキストとして送られます。 <AvailableFrom version="0.12.0" />
-- **トーン**：丁寧さに対応します（`formal` は高め、`informal` は低め、`neutral` は指定なし）。無料プランの API キーでは丁寧さを送らず、`FORMALITY_DOWNGRADED` を報告します。有料の API キーでは `prefer_more` または `prefer_less` を要求するため、スウェーデン語のように丁寧さの区別がない言語は、同じ通知を出してフォールバックします。[用語集](#プロバイダーごとのトーンと用語集)は適用されません。日本語では `informal` が `prefer_less` を送るため、`ja: "neutral"` を指定してください。
+- **トーン**：丁寧さに対応します（`formal` は高め、`informal` は低め、`neutral` は指定なし）。無料プランの API キーでは丁寧さを送らず、`FORMALITY_DOWNGRADED` を報告します。有料の API キーでは `prefer_more` または `prefer_less` を要求するため、スウェーデン語のように丁寧さの区別がない言語は、同じ通知を出してフォールバックします。日本語は `ja: "neutral"` を使います（`informal` は `prefer_less` を送ります）。
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ provider: { id: "none" }
 
 | プロバイダー | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | ロケールごとに送信され、各トーンに決まった文体が割り当てられる（日本語は `formal` 以外、丁寧な です/ます） | 訳語、禁止された訳、翻訳しない用語、注記が、拘束力のあるデータとして送信される |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | ロケールごとに決まった文体で送信される（日本語は `formal` 以外、丁寧な です/ます） | 訳語、禁止された訳、翻訳しない用語、注記が、拘束力のあるデータとして送信される |
 | DeepL | 丁寧さに対応 | `GLOSSARY_IGNORED`。適用されるのは `glossaryId` だけ |
 | Google Cloud Translation、LibreTranslate | `formal` または `informal` では `FORMALITY_DOWNGRADED` | `GLOSSARY_IGNORED` |
 
@@ -353,7 +353,7 @@ provider: {
 }
 ```
 
-- **キー名**：設定どおりの `sourceLocale` かターゲットロケールでなければなりません。そうでない場合、設定は `CONFIG_INVALID` で失敗します。マップは、`none` を除くすべてのプロバイダーで `options` の下に置きます。
+- **キー名**：設定どおりの `sourceLocale` かターゲットロケールでなければなりません。そうでない場合、設定は `CONFIG_INVALID` で失敗します。
 - **値**：64 文字以下の空でない文字列で、そのまま送られます。機械翻訳プロバイダーにはコードとして、LLM にはコードの代わりに送られます（`"pt-BR (Brazilian Portuguese)"` も使えます）。LLM に渡す言語名は、引き続きキー名から決まります。DeepL に素の `EN` や `PT` を指定すると `INVALID_REQUEST` で失敗し、プロバイダーが拒否する値があると、そのサブバッチが失敗します。
 - **翻訳メモリへの影響**：新しいコードで送られるのは、新しい文字列と変更された文字列だけです。空でないマップは[翻訳メモリ](/ja/docs/the-cache)のフィンガープリントに含まれるため、変更すると別の区画になります。
 

@@ -60,7 +60,7 @@ export default defineConfig({
 | `provider.id` | プロバイダー ID | 必須 | 0.1.0 | 翻訳プロバイダー。機械翻訳を使わない場合は `none` |
 | `provider.options` | オブジェクト | 必須（`none` を除く） | 0.1.0 | 各[プロバイダー](/ja/docs/providers)に固有のオプション |
 | `glossary` | オブジェクトまたはファイルパス | なし | 0.1.0 | 固定の訳、使用を禁止する訳語、翻訳しない用語 |
-| `tone` | `"formal"`、`"informal"`、`"neutral"`、またはマップ | なし | 0.1.0 | 翻訳に使うトーン（適用の仕方は[プロバイダーごとのトーンと用語集](/ja/docs/providers#プロバイダーごとのトーンと用語集)を参照）。マップはターゲットロケールごとに個別のトーンを指定し、残りには `default` を使います。<AvailableFrom version="0.14.0" /> |
+| `tone` | `"formal"`、`"informal"`、`"neutral"`、またはマップ | なし | 0.1.0 | 翻訳に使うトーン（適用の仕方は[プロバイダーごとのトーンと用語集](/ja/docs/providers#プロバイダーごとのトーンと用語集)を参照）。マップはターゲットロケールごとにトーンを指定し、残りは `default` です。<AvailableFrom version="0.14.0" /> |
 | `prune` | 真偽値 | `false` | 0.3.0 | 孤立したキーをターゲットファイルとロックファイルから削除する。`translate --prune` で上書きできる |
 | `generatePlurals` | 真偽値 | `false` | 0.3.0 | ターゲット言語に必要な CLDR の複数形を合成する |
 | `fuzzyCache.enabled` | 真偽値 | ブロック内では必須 | 0.11.0 | わずかに変更されたソースの訳文を再利用する |
@@ -232,10 +232,10 @@ maxLength: {
 
 - 各リクエストのあとで、合計はプロバイダーが報告した使用量に合わせて調整されます。そのため、実行は `maxTokens` をわずかに超えて終わる場合があります（`budget` については [RunSummary の構造](/ja/docs/sdk/run-summary#runsummary-の構造)を参照）。機械翻訳プロバイダーはトークンを報告しないため、予測値で予算を管理します。
 - 失敗したリクエストや途中で切れたリクエストは、全額が計上されます。
-- 予測には、機械翻訳プロバイダーでも、LLM プロンプトの固定の余裕分が加算され、バッチ全体が対象になります。そのため、1 バッチの予測より小さい `maxTokens` は、毎回の実行でそのバッチを拒否します。通知には、`maxBatchSize` を下げるか `maxTokens` を上げるよう示されます。
+- 予測には、機械翻訳プロバイダーでも、LLM プロンプトの固定の余裕分が加算され、バッチ全体が対象になります。そのため、1 バッチの予測より小さい `maxTokens` は、毎回の実行でそのバッチを拒否します。
 - 保留されたキーがあるロケールは `partial` になり、キーが 1 つも書き込まれなかった場合は `failed` になります。どちらも終了コード `1` です。`"warn"` では終了コードは変わりません。
 
-予算が制限するのは 1 回の `translate` の実行であり、1 エントリの再翻訳には適用されません。`watch` は実行ごとに新しい予算で始めます。予算を設定すると、実際の実行では [`--concurrency`](/ja/docs/cli/translate#ロケールの並列処理) を `1` より大きくできません。ドライランは対象外です。`maxTokens` がない `budgetBehavior` は効果がありません。
+予算が制限するのは 1 回の `translate` の実行であり、1 エントリの再翻訳には適用されません。`watch` は実行ごとに新しい予算で始めます。予算を設定すると、実際の実行では [`--concurrency`](/ja/docs/cli/translate#ロケールの並列処理) を `1` より大きくできません。ドライランは対象外です。
 
 <Callout type="warn" title="2 つの異なる maxTokens">
 最上位の `maxTokens` は、この実行全体の予算です。Anthropic の無関係な `provider.options.maxTokens` は、1 回のレスポンスの上限です（[Anthropic](/ja/docs/providers#anthropic) を参照）。
@@ -354,7 +354,7 @@ provider:
 
 ### スキーマで検証できないこと
 
-設定の読み込みだけが、次のルールをチェックします。`targetLocales` のルールと[ロケールコード](#ロケールコード)、[`localeMap`](/ja/docs/providers#プロバイダーに送られるロケールコード) のキー、`openai-compatible` の `baseUrl` と [`apiKeyEnvVar`](/ja/docs/providers#openai-compatible) のルール、有効な [`network.allowedHosts`](/ja/docs/network-policy) のアドレスと範囲、[機密情報ガード](/ja/docs/data-handling#機密情報ガード)の安全ルール内の `sensitiveData.patterns`、インラインの[ロケールごとの用語集（バージョン 2）](#ロケールごとの用語集バージョン-2)の用語のルールです。
+設定の読み込みだけが、次のルールをチェックします。`targetLocales` のルールと[ロケールコード](#ロケールコード)、[`localeMap`](/ja/docs/providers#プロバイダーに送られるロケールコード) と `tone` マップのキー、`openai-compatible` の `baseUrl` と [`apiKeyEnvVar`](/ja/docs/providers#openai-compatible) のルール、有効な [`network.allowedHosts`](/ja/docs/network-policy) のアドレスと範囲、[機密情報ガード](/ja/docs/data-handling#機密情報ガード)の安全ルール内の `sensitiveData.patterns`、インラインの[ロケールごとの用語集（バージョン 2）](#ロケールごとの用語集バージョン-2)の用語のルールです。
 
 ## 作業ディレクトリと .env
 

@@ -1152,7 +1152,7 @@ Una entrega XLIFF marcó claves como revisadas o finales, y se registraron como 
 
 ### BUDGET_TOKENS_EXCEEDED
 
-La ejecución alcanzó su presupuesto de tokens: `maxTokens` en la config, o `--max-tokens` para una ejecución. Con `"warn"` la ejecución sigue; con `"stop"` las claves aún no intentadas se retienen y aparecen en `budgetWithheld`.
+La ejecución alcanzó su presupuesto de tokens: `maxTokens` en la config, o `--max-tokens` para una ejecución. Con `"warn"` la ejecución sigue; con `"stop"` las claves aún no intentadas se retienen y aparecen en `budgetWithheld`. Un `maxTokens` por debajo de la proyección de un lote retiene ese lote en cada ejecución; el aviso indica que bajes `maxBatchSize` o subas `maxTokens`.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: ninguno con `budgetBehavior: "warn"`; `1` con `"stop"` en cuanto se retienen claves

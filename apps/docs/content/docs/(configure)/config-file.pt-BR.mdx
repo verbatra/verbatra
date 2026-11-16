@@ -60,7 +60,7 @@ Opções desconhecidas são rejeitadas em todos os níveis, exceto `$schema` e m
 | `provider.id` | id de provedor | obrigatório | 0.1.0 | O provedor de tradução, ou `none` para nenhuma tradução automática. |
 | `provider.options` | objeto | obrigatório, exceto para `none` | 0.1.0 | As opções próprias do provedor (veja [Provedores](/pt-BR/docs/providers)). |
 | `glossary` | objeto ou caminho de arquivo | nenhum | 0.1.0 | Traduções fixas, traduções proibidas e termos que não devem ser traduzidos. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` ou um mapa | nenhum | 0.1.0 | O tom a usar na tradução, aplicado por provedor (veja [Tom e glossário entre provedores](/pt-BR/docs/providers#tom-e-glossário-entre-provedores)). Um mapa dá a cada locale de destino o próprio tom, com `default` para os demais. <AvailableFrom version="0.14.0" /> |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` ou um mapa | nenhum | 0.1.0 | O tom a usar na tradução, aplicado por provedor (veja [Tom e glossário entre provedores](/pt-BR/docs/providers#tom-e-glossário-entre-provedores)). Um mapa define um tom por locale de destino, mais `default`. <AvailableFrom version="0.14.0" /> |
 | `prune` | booleano | `false` | 0.3.0 | Remove as chaves órfãs dos arquivos de destino e do arquivo de lock; `translate --prune` a sobrepõe. |
 | `generatePlurals` | booleano | `false` | 0.3.0 | Sintetiza as formas de plural do CLDR de que um idioma de destino precisa. |
 | `fuzzyCache.enabled` | booleano | obrigatório no bloco | 0.11.0 | Reutiliza a tradução de uma origem ligeiramente alterada. |
@@ -232,10 +232,10 @@ Com `"stop"`:
 
 - Depois de cada requisição, o total é conferido com o uso informado pelo provedor, então uma execução pode terminar um pouco acima de `maxTokens` (veja o `budget` em [A anatomia do RunSummary](/pt-BR/docs/sdk/run-summary#a-anatomia-do-runsummary)). Provedores de tradução automática não informam tokens e são orçados pela projeção.
 - Uma requisição que falhou ou foi truncada é cobrada por inteiro.
-- A projeção soma uma margem fixa de prompt de LLM, inclusive para provedores de tradução automática, e cobre um lote inteiro, então um `maxTokens` abaixo da projeção de um lote o recusa em toda execução; o aviso diz para reduzir `maxBatchSize` ou aumentar `maxTokens`.
+- A projeção soma uma margem fixa de prompt de LLM, inclusive para provedores de tradução automática, e cobre um lote inteiro, então um `maxTokens` abaixo da projeção de um lote o recusa em toda execução.
 - Um locale com chaves retidas fica `partial`, ou `failed` se nenhuma chave foi gravada, e ambos terminam com código `1`. Com `"warn"`, o código de saída nunca muda.
 
-O orçamento limita uma execução de `translate`, nunca a retradução de uma única entrada; o `watch` começa um novo a cada execução. Um orçamento exclui [`--concurrency`](/pt-BR/docs/cli/translate#locales-em-paralelo) acima de `1` em uma execução real; uma simulação está isenta. `budgetBehavior` sem `maxTokens` não tem efeito.
+O orçamento limita uma execução de `translate`, nunca a retradução de uma única entrada; o `watch` começa um novo a cada execução. Um orçamento exclui [`--concurrency`](/pt-BR/docs/cli/translate#locales-em-paralelo) acima de `1` em uma execução real; uma simulação está isenta.
 
 <Callout type="warn" title="Dois maxTokens diferentes">
 O `maxTokens` de nível superior é este orçamento da execução inteira; o `provider.options.maxTokens` do Anthropic, sem relação com ele, limita uma única resposta (veja [Anthropic](/pt-BR/docs/providers#anthropic)).
@@ -354,7 +354,7 @@ O `package.json` não aceita schema; as formas executáveis são tipadas por `de
 
 ### O que o documento não consegue verificar
 
-Só o carregamento da configuração verifica estas regras: as regras de `targetLocales` e os [códigos de locale](#códigos-de-locale), as chaves de [`localeMap`](/pt-BR/docs/providers#códigos-de-locale-enviados-ao-provedor) e as regras de `baseUrl` e de [`apiKeyEnvVar`](/pt-BR/docs/providers#openai-compatible) do `openai-compatible`, os endereços e intervalos válidos de [`network.allowedHosts`](/pt-BR/docs/network-policy), os `sensitiveData.patterns` dentro das [regras de segurança](/pt-BR/docs/data-handling#proteção-de-conteúdo-sensível) e as regras de termo de um [glossário da versão 2](#glossário-por-locale-versão-2) inline.
+Só o carregamento da configuração verifica estas regras: as regras de `targetLocales` e os [códigos de locale](#códigos-de-locale), as chaves de [`localeMap`](/pt-BR/docs/providers#códigos-de-locale-enviados-ao-provedor) e do mapa `tone` e as regras de `baseUrl` e de [`apiKeyEnvVar`](/pt-BR/docs/providers#openai-compatible) do `openai-compatible`, os endereços e intervalos válidos de [`network.allowedHosts`](/pt-BR/docs/network-policy), os `sensitiveData.patterns` dentro das [regras de segurança](/pt-BR/docs/data-handling#proteção-de-conteúdo-sensível) e as regras de termo de um [glossário da versão 2](#glossário-por-locale-versão-2) inline.
 
 ## O diretório de trabalho e o .env
 
