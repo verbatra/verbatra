@@ -28,7 +28,7 @@ function reachable(entry: string): Map<string, string> {
   const parents = new Map<string, string>([[entry, ""]]);
   const queue = [entry];
   for (let file = queue.shift(); file !== undefined; file = queue.shift()) {
-    for (const specifier of importSpecifiers(readFileSync(file, "utf8"))) {
+    for (const specifier of importSpecifiers(readFileSync(file, "utf8"), { skipTypeOnly: true })) {
       const target = resolveSpecifier(file, specifier);
       if (target === undefined || parents.has(target)) continue;
       parents.set(target, file);
