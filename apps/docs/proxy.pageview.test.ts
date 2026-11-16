@@ -65,6 +65,15 @@ describe("proxy: server-side pageview", () => {
       { ...DOCUMENT_NAVIGATION, "sec-fetch-dest": "empty", "sec-fetch-mode": "cors" },
     ],
     ["a prefetch", { ...DOCUMENT_NAVIGATION, "sec-purpose": "prefetch" }],
+    [
+      "a visitor whose client tracker counts",
+      { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=full" },
+    ],
+    ["a visitor who chose off", { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=off" }],
+    [
+      "a visitor with the legacy opt-out",
+      { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics_optout=1" },
+    ],
     ["a Do Not Track visitor", { ...DOCUMENT_NAVIGATION, dnt: "1" }],
     ["a local run", { ...DOCUMENT_NAVIGATION, host: "localhost:3480" }],
     [

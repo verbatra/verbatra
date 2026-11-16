@@ -1,7 +1,7 @@
 import { hasForeignOrigin, mediaType, readBodyWithinLimit } from "@/app/api/contact/request-guard";
 import {
+  choiceCookies,
   MAX_OPT_OUT_BODY_BYTES,
-  optOutCookie,
   parseOptOutForm,
   privacyReturnPath,
 } from "./opt-out";
@@ -22,12 +22,7 @@ export async function POST(request: Request): Promise<Response> {
   if (body === undefined) return plainText(413, "Payload too large");
   const form = parseOptOutForm(body);
   if (form === undefined) return plainText(400, "Bad request");
-  return new Response(null, {
-    status: 303,
-    headers: {
-      location: privacyReturnPath(form),
-      "set-cookie": optOutCookie(form.choice),
-      "cache-control": "no-store",
-    },
-  });
+  const headers = new Headers({ location: privacyReturnPath(form), "cache-control": "no-store" });
+  for (const cookie of choiceCookies(form.choice)) headers.append("set-cookie", cookie);
+  return new Response(null, { status: 303, headers });
 }

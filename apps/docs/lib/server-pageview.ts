@@ -1,16 +1,14 @@
 import "server-only";
 import { isIPv4, isIPv6 } from "node:net";
+import { hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { MARKDOWN_SUFFIX } from "@/lib/markdown-route";
 import { requestHost } from "@/lib/request-host";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { SITE_HOST } from "@/lib/site";
+import { UMAMI_ORIGIN, UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
 
-export const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
-
-export const UMAMI_WEBSITE_ID = "fcf007b7-4579-4486-881c-e8686d61d63d";
-
-export const ANALYTICS_OPT_OUT_COOKIE = "verbatra_analytics_optout";
+export { UMAMI_ORIGIN, UMAMI_WEBSITE_ID };
 
 export const PAGEVIEW_TIMEOUT_MS = 1500;
 
@@ -179,14 +177,17 @@ export function isCountableNavigation(
   );
 }
 
-function sendsOptOutCookie(headers: Headers): boolean {
-  return (headers.get("cookie") ?? "")
-    .split(";")
-    .some((pair) => pair.trim() === `${ANALYTICS_OPT_OUT_COOKIE}=1`);
+export function isTrackingRefused(headers: Headers): boolean {
+  return (
+    headers.get("sec-gpc") === "1" ||
+    headers.get("dnt") === "1" ||
+    hasLegacyOptOut(headers.get("cookie")) ||
+    readChoiceCookie(headers.get("cookie")) === "off"
+  );
 }
 
-export function isTrackingRefused(headers: Headers): boolean {
-  return headers.get("sec-gpc") === "1" || headers.get("dnt") === "1" || sendsOptOutCookie(headers);
+function clientTrackerCounts(headers: Headers): boolean {
+  return readChoiceCookie(headers.get("cookie")) === "full";
 }
 
 function referrerWithoutQuery(headers: Headers): string | undefined {
@@ -251,6 +252,7 @@ export function countedPageview(
 ): Pageview | undefined {
   if (requestHost(request.headers, new URL(request.url).host) !== SITE_HOST) return undefined;
   if (isTrackingRefused(request.headers)) return undefined;
+  if (clientTrackerCounts(request.headers)) return undefined;
   if (!isCountableNavigation(request, response, servedPathname, routes)) return undefined;
   return pageviewFor(request);
 }

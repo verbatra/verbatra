@@ -1,15 +1,12 @@
 import { z } from "zod";
+import { choiceCookie } from "@/lib/analytics-choice";
 import { i18n, localizedPath } from "@/lib/i18n";
-import { ANALYTICS_OPT_OUT_COOKIE } from "@/lib/server-pageview";
+import { LEGACY_OPT_OUT_COOKIE } from "@/lib/umami-config.mjs";
 
 export const MAX_OPT_OUT_BODY_BYTES = 256;
 
-const ONE_YEAR_SECONDS = 31_536_000;
-
-const COOKIE_ATTRIBUTES = "HttpOnly; Secure; SameSite=Lax; Path=/";
-
 const optOutFormSchema = z.object({
-  choice: z.enum(["off", "on"]),
+  choice: z.enum(["full", "default", "off"]),
   lang: z.enum(i18n.languages),
 });
 
@@ -20,10 +17,11 @@ export function parseOptOutForm(body: string): OptOutForm | undefined {
   return result.success ? result.data : undefined;
 }
 
-export function optOutCookie(choice: OptOutForm["choice"]): string {
-  return choice === "off"
-    ? `${ANALYTICS_OPT_OUT_COOKIE}=1; ${COOKIE_ATTRIBUTES}; Max-Age=${ONE_YEAR_SECONDS}`
-    : `${ANALYTICS_OPT_OUT_COOKIE}=; ${COOKIE_ATTRIBUTES}; Max-Age=0`;
+export function choiceCookies(choice: OptOutForm["choice"]): readonly string[] {
+  return [
+    choiceCookie(choice),
+    `${LEGACY_OPT_OUT_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`,
+  ];
 }
 
 export function privacyReturnPath({ choice, lang }: OptOutForm): string {

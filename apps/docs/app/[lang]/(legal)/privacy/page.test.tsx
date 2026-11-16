@@ -9,8 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
 import { IMPRINT_PROVIDER_LINES } from "@/lib/legal-imprint";
 import { PACKAGE_MANAGER_GROUP } from "@/lib/package-manager-tabs";
-import { ANALYTICS_OPT_OUT_COOKIE } from "@/lib/server-pageview";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { LEGACY_OPT_OUT_COOKIE } from "@/lib/umami-config.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
@@ -569,7 +569,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
   it("names the cookie and the storage keys under the names the site code writes", async () => {
     const cookies = sectionText(await renderPrivacy(locale), /^5\. /);
 
-    for (const name of [ANALYTICS_OPT_OUT_COOKIE, THEME_STORAGE_KEY, PACKAGE_MANAGER_GROUP]) {
+    for (const name of [LEGACY_OPT_OUT_COOKIE, THEME_STORAGE_KEY, PACKAGE_MANAGER_GROUP]) {
       expect(cookies).toMatch(new RegExp(`(^|\\s)${name}[\\s.,]`));
     }
   });

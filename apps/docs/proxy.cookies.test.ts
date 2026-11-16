@@ -43,3 +43,28 @@ describe("proxy: locale cookie", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 });
+
+describe("proxy: legacy analytics opt-out migration", () => {
+  const OFF = "verbatra_analytics=off; Secure; SameSite=Lax; Path=/; Max-Age=31536000";
+
+  it("answers a request with the legacy cookie with the off choice cookie", async () => {
+    const response = await run("/privacy", { cookie: "verbatra_analytics_optout=1" });
+    expect(response.headers.get("set-cookie")).toBe(OFF);
+  });
+
+  it("migrates on a redirect as well", async () => {
+    const response = await run("/en/privacy", { cookie: "verbatra_analytics_optout=1" });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("set-cookie")).toBe(OFF);
+  });
+
+  it.each([
+    "verbatra_analytics_optout=1; verbatra_analytics=full",
+    "verbatra_analytics_optout=0",
+    "verbatra_analytics=off",
+    "theme=dark",
+  ])("sets nothing for the cookie header %s", async (cookie) => {
+    const response = await run("/privacy", { cookie });
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+});

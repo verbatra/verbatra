@@ -1,6 +1,7 @@
 import { createI18nMiddleware } from "fumadocs-core/i18n/middleware";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { choiceCookie, hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
 import { isBuiltDocsPage, scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import {
@@ -52,6 +53,14 @@ function withContentSecurityPolicy(request: NextRequest, response: Response): Re
   return response;
 }
 
+function withChoiceMigration(request: NextRequest, response: Response): Response {
+  const cookie = request.headers.get("cookie");
+  if (hasLegacyOptOut(cookie) && readChoiceCookie(cookie) === undefined) {
+    response.headers.append("set-cookie", choiceCookie("off"));
+  }
+  return response;
+}
+
 async function route(request: NextRequest, event: NextFetchEvent) {
   if (request.headers.has(NEXT_ACTION_HEADER)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -79,7 +88,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const response = await route(request, event);
   if (!(response instanceof Response)) return response;
   countPageview(request, response, event);
-  return withContentSecurityPolicy(request, response);
+  return withContentSecurityPolicy(request, withChoiceMigration(request, response));
 }
 
 export const config = {

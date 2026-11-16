@@ -18,40 +18,43 @@ function submit(
   );
 }
 
-function cookieAttributes(response: Response): string[] {
-  return (response.headers.get("set-cookie") ?? "").split(";").map((part) => part.trim());
+function setCookies(response: Response): string[][] {
+  return response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";").map((part) => part.trim()));
+}
+
+const LEGACY_CLEARED = [
+  "verbatra_analytics_optout=",
+  "HttpOnly",
+  "Secure",
+  "SameSite=Lax",
+  "Path=/",
+  "Max-Age=0",
+];
+
+function choiceAttributes(choice: string): string[] {
+  return [`verbatra_analytics=${choice}`, "Secure", "SameSite=Lax", "Path=/", "Max-Age=31536000"];
 }
 
 describe("POST /api/analytics", () => {
-  it("sets the opt-out cookie for a year and sends the visitor back to the privacy page", async () => {
-    const response = await submit("choice=off&lang=en");
+  it.each(["full", "default", "off"])(
+    "stores the choice %s for a year in a readable cookie and clears the legacy cookie",
+    async (choice) => {
+      const response = await submit(`choice=${choice}&lang=en`);
 
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/privacy?analytics=off#analytics-off");
-    expect(cookieAttributes(response)).toEqual([
-      "verbatra_analytics_optout=1",
-      "HttpOnly",
-      "Secure",
-      "SameSite=Lax",
-      "Path=/",
-      "Max-Age=31536000",
-    ]);
-    expect(response.headers.get("cache-control")).toBe("no-store");
-  });
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe(
+        `/privacy?analytics=${choice}#analytics-${choice}`,
+      );
+      expect(setCookies(response)).toEqual([choiceAttributes(choice), LEGACY_CLEARED]);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    },
+  );
 
-  it("clears the cookie when the visitor allows analytics again", async () => {
-    const response = await submit("choice=on&lang=de");
-
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/de/privacy?analytics=on#analytics-on");
-    expect(cookieAttributes(response)).toEqual([
-      "verbatra_analytics_optout=",
-      "HttpOnly",
-      "Secure",
-      "SameSite=Lax",
-      "Path=/",
-      "Max-Age=0",
-    ]);
+  it("returns to the localized privacy page", async () => {
+    const response = await submit("choice=full&lang=de");
+    expect(response.headers.get("location")).toBe("/de/privacy?analytics=full#analytics-full");
   });
 
   it.each(["fr", "es"])("returns to the %s privacy page", async (lang) => {
@@ -64,6 +67,7 @@ describe("POST /api/analytics", () => {
     ["a locale smuggling a path", "choice=off&lang=%2F%2Fevil.example"],
     ["an absolute return URL", "choice=off&lang=https://evil.example/"],
     ["an unknown choice", "choice=maybe&lang=en"],
+    ["the retired on choice", "choice=on&lang=en"],
     ["a missing choice", "lang=en"],
   ])("rejects %s without a cookie or a redirect", async (_case, body) => {
     const response = await submit(body);
