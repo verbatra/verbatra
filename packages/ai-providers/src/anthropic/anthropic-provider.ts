@@ -1,3 +1,4 @@
+import type { ProviderCallContext } from "../guard.js";
 import { type LlmCompletion, type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import { assertNotTruncated } from "../llm/truncation.js";
 import { toUsage as toUsageFromCounts } from "../llm/usage.js";
@@ -12,6 +13,8 @@ import { readStructuredOutput } from "./response.js";
 import type { AnthropicMessage, MessagesClient } from "./types.js";
 
 const PROVIDER_ID = "anthropic";
+
+const ENDPOINT: ProviderCallContext = { remedies: "anthropic" };
 
 export interface AnthropicDeps {
   readonly client?: MessagesClient;
@@ -55,8 +58,11 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<AnthropicMessage> {
-  return withSdkAttemptTimeout(timeoutMs, signal, (options) =>
-    client.messages.create(body, options),
+  return withSdkAttemptTimeout(
+    timeoutMs,
+    signal,
+    (options) => client.messages.create(body, options),
+    ENDPOINT,
   );
 }
 
