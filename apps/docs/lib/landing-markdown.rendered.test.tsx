@@ -34,6 +34,7 @@ const { LockDemo } = await import("@/components/landing/lock-demo");
 const { Gate } = await import("@/components/landing/gate");
 const { Highlights } = await import("@/components/landing/highlights");
 const { Features } = await import("@/components/landing/features");
+const { Comparison } = await import("@/components/landing/comparison");
 const { Faq, faqContent } = await import("@/components/landing/faq");
 const { FinalCta } = await import("@/components/landing/final-cta");
 const { LANDING_SECTIONS } = await import("./landing-sections");
@@ -45,15 +46,20 @@ const SECTIONS = {
   gate: () => Gate(),
   highlights: () => Highlights(),
   features: () => Features(),
+  compare: () => Comparison(),
   faq: async () => Faq({ locale: state.locale, items: await faqContent(state.locale) }),
   finalCta: () => FinalCta(),
 } as const;
 
 const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td, figcaption b, figcaption > span";
 
-const SKIPPED = ["[aria-hidden='true']", ".sr-only:not(caption)", "script", ".vk-lock-side"].join(
-  ", ",
-);
+const SKIPPED = [
+  "[aria-hidden='true']",
+  ".sr-only:not(caption)",
+  ".vk-comparison-short",
+  "script",
+  ".vk-lock-side",
+].join(", ");
 
 function normalized(text: string): string {
   return text

@@ -23,7 +23,7 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => localeState.current,
 }));
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/compare" }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/privacy" }));
 
 const { FOOTER_GROUPS, FullFooter } = await import("./footer");
 
@@ -183,7 +183,7 @@ describe("FullFooter", () => {
             "https://www.npmjs.com/package/@verbatra/sdk",
             "https://www.npmjs.com/package/@verbatra/studio",
             "https://www.npmjs.com/package/@verbatra/mcp",
-            `${prefix}/compare`,
+            `${prefix === "" ? "/" : prefix}#compare`,
           ]),
         );
       } finally {
@@ -255,7 +255,7 @@ describe("FullFooter", () => {
         "/docs/formats",
         "/docs/the-lock-file",
         "/docs/config-file",
-        "/compare",
+        "/#compare",
       ],
       ["/docs/cli/mcp", "/llms.txt", "/llms-full.txt", "/.well-known/ai.txt"],
       [
@@ -311,13 +311,13 @@ describe("FullFooter", () => {
       const doc = await renderFooter();
       const links = Array.from(doc.querySelectorAll(".vk-footer-bottom .vk-locale-links a"));
       expect(links.map((link) => link.getAttribute("href"))).toEqual([
-        "/compare",
-        "/de/compare",
-        "/es/compare",
-        "/fr/compare",
-        "/zh-CN/compare",
-        "/pt-BR/compare",
-        "/ja/compare",
+        "/privacy",
+        "/de/privacy",
+        "/es/privacy",
+        "/fr/privacy",
+        "/zh-CN/privacy",
+        "/pt-BR/privacy",
+        "/ja/privacy",
       ]);
       expect(links.map((link) => link.getAttribute("aria-current"))).toEqual([
         null,

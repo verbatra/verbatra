@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createMDX } from "fumadocs-mdx/next";
 import createNextIntlPlugin from "next-intl/plugin";
-import { localeAlternation, TRANSLATED_LOCALES } from "./lib/locales.ts";
+import { DEFAULT_LOCALE, localeAlternation, TRANSLATED_LOCALES } from "./lib/locales.ts";
 import { securityHeaders } from "./lib/security-headers.mjs";
 
 export const MOVED_DOCS_PAGES = {
@@ -15,6 +15,18 @@ function movedDocsPageRedirects(from, to) {
     {
       source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}${suffix}`,
       destination: `/:locale/docs/${to}${suffix}`,
+      permanent: true,
+    },
+  ]);
+}
+
+function retiredComparePageRedirects() {
+  return ["", ".md"].flatMap((suffix) => [
+    { source: `/compare${suffix}`, destination: "/#compare", permanent: true },
+    { source: `/${DEFAULT_LOCALE}/compare${suffix}`, destination: "/#compare", permanent: true },
+    {
+      source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/compare${suffix}`,
+      destination: "/:locale#compare",
       permanent: true,
     },
   ]);
@@ -34,7 +46,6 @@ const config = {
   outputFileTracingIncludes: {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
     "/[lang]/home-og": ["./assets/og-fonts/*.ttf"],
-    "/[lang]/compare-og": ["./assets/og-fonts/*.ttf"],
     "/[lang]/docs-og/[[...slug]]": ["./assets/og-fonts/*.ttf"],
   },
   experimental: {
@@ -51,6 +62,7 @@ const config = {
         destination: "https://verbatra.kreitz-webdev.de/:path*",
         permanent: true,
       },
+      ...retiredComparePageRedirects(),
       ...DEFAULT_LOCALE_PREFIX_REDIRECTS,
       ...Object.entries(MOVED_DOCS_PAGES).flatMap(([from, to]) => movedDocsPageRedirects(from, to)),
     ];

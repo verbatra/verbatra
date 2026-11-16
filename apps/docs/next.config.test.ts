@@ -35,6 +35,45 @@ describe("next.config", () => {
   });
 });
 
+describe("the retired compare page", () => {
+  const prefix = `/:locale(${localeAlternation(TRANSLATED_LOCALES)})`;
+
+  it("sends /compare and /compare.md to the landing comparison section, in every locale", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    for (const redirect of [
+      { source: "/compare", destination: "/#compare" },
+      { source: "/compare.md", destination: "/#compare" },
+      { source: `/${i18n.defaultLanguage}/compare`, destination: "/#compare" },
+      { source: `/${i18n.defaultLanguage}/compare.md`, destination: "/#compare" },
+      { source: `${prefix}/compare`, destination: "/:locale#compare" },
+      { source: `${prefix}/compare.md`, destination: "/:locale#compare" },
+    ]) {
+      expect(redirects).toContainEqual({ ...redirect, permanent: true });
+    }
+  });
+
+  it("sends /en/compare straight to the section, ahead of the generic /en prefix redirect", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    const sources = redirects.map((redirect) => redirect.source);
+    const generic = sources.indexOf(`/${i18n.defaultLanguage}/:path+`);
+    for (const suffix of ["", ".md"])
+      expect(sources.indexOf(`/${i18n.defaultLanguage}/compare${suffix}`)).toBeLessThan(generic);
+    expect(sources.indexOf(`/${i18n.defaultLanguage}/compare`)).toBeGreaterThan(-1);
+  });
+
+  it("matches /de/compare and /zh-CN/compare.md but not /en/compare through Next's own matcher", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    const localized = redirects.find((redirect) => redirect.source === `${prefix}/compare.md`);
+    const match = getPathMatch(localized?.source ?? "", {
+      removeUnnamedParams: true,
+      strict: true,
+    });
+    expect(match("/de/compare.md")).toEqual({ locale: "de" });
+    expect(match("/zh-CN/compare.md")).toEqual({ locale: "zh-CN" });
+    expect(match("/en/compare.md")).toBe(false);
+  });
+});
+
 describe("the default locale prefix", () => {
   it("sends /en and every /en/ path permanently to the unprefixed URL in one hop", async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];

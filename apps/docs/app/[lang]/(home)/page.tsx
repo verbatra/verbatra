@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
+import { Comparison } from "@/components/landing/comparison";
 import { Faq, faqContent } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
@@ -41,6 +42,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     gate: <Gate />,
     highlights: <Highlights />,
     features: <Features />,
+    compare: <Comparison />,
     faq: <Faq locale={locale} items={faqItems} />,
     finalCta: <FinalCta />,
   };

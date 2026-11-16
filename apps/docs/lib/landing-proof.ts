@@ -1,6 +1,6 @@
 import { CI_WORKFLOW_URL, CODECOV_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
-import { type Locale, localizedPath } from "./i18n";
-import { FAQ_ANSWER_LINKS } from "./landing-faq";
+import type { Locale } from "./i18n";
+import { FAQ_ANSWER_LINKS, faqHref } from "./landing-faq";
 
 export const PROOF_IDS = ["provenance", "license", "telemetry", "coverage", "ci"] as const;
 
@@ -14,9 +14,7 @@ const PROOF_HREFS: Readonly<Record<Exclude<ProofId, "telemetry">, string>> = {
 };
 
 export function proofHref(id: ProofId, locale: Locale): string {
-  return id === "telemetry"
-    ? localizedPath(locale, FAQ_ANSWER_LINKS.privacy.page)
-    : PROOF_HREFS[id];
+  return id === "telemetry" ? faqHref(locale, FAQ_ANSWER_LINKS.privacy) : PROOF_HREFS[id];
 }
 
 export function proofIsExternal(id: ProofId): boolean {

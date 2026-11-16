@@ -5,6 +5,7 @@ export const LANDING_SECTIONS = [
   "gate",
   "highlights",
   "features",
+  "compare",
   "faq",
   "finalCta",
 ] as const;

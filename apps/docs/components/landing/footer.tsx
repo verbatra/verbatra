@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { LocaleLinks } from "@/components/chrome-islands";
 import { VMark } from "@/components/vmark";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { comparisonHref } from "@/lib/landing-comparison";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { FooterContributors } from "./contributors";
 import { GithubIcon } from "./github-icon";
@@ -25,7 +26,7 @@ import {
 type FooterLink = {
   labelKey?: string;
   literal?: string;
-  href: string;
+  href: string | ((locale: Locale) => string);
   external?: boolean;
   localized?: boolean;
 };
@@ -50,7 +51,7 @@ const PRIMARY_GROUP: FooterGroup = {
     { labelKey: "cols.product.formats", href: "/docs/formats", localized: true },
     { labelKey: "cols.product.lockFile", href: "/docs/the-lock-file", localized: true },
     { labelKey: "cols.product.configFile", href: "/docs/config-file", localized: true },
-    { labelKey: "cols.product.compare", href: "/compare", localized: true },
+    { labelKey: "cols.product.compare", href: comparisonHref },
   ],
 };
 
@@ -103,6 +104,11 @@ const SECONDARY_GROUPS: ReadonlyArray<FooterGroup> = [
 
 export const FOOTER_GROUPS: ReadonlyArray<FooterGroup> = [PRIMARY_GROUP, ...SECONDARY_GROUPS];
 
+function footerHref(link: FooterLink, locale: Locale): string {
+  if (typeof link.href === "function") return link.href(locale);
+  return link.localized ? localizedPath(locale, link.href) : link.href;
+}
+
 function FooterLinkItem({
   link,
   label,
@@ -117,7 +123,7 @@ function FooterLinkItem({
   if (link.external) {
     return (
       <a
-        href={link.href}
+        href={footerHref(link, locale)}
         className="vk-tap vk-footer-link"
         target="_blank"
         rel="noreferrer noopener"
@@ -127,7 +133,7 @@ function FooterLinkItem({
       </a>
     );
   }
-  const href = link.localized ? localizedPath(locale, link.href) : link.href;
+  const href = footerHref(link, locale);
   return (
     <a href={href} className="vk-tap vk-footer-link">
       {label}

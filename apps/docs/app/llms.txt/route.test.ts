@@ -168,20 +168,7 @@ describe("llms.txt", () => {
     expect(site).toContain(
       `- [${en.landing.meta.title}](https://verbatra.kreitz-webdev.de/index.md): ${en.landing.meta.description}`,
     );
-    expect(site).toContain(
-      `- [${en.compare.meta.title}](https://verbatra.kreitz-webdev.de/compare.md): ${en.compare.meta.description}`,
-    );
-  });
-
-  it("links the html comparison page next to its markdown, as the page to cite", () => {
-    const site = body.slice(body.indexOf("## Site"), body.indexOf("## Introduction"));
-    const markdown = site.indexOf("(https://verbatra.kreitz-webdev.de/compare.md)");
-    const html = site.indexOf("(https://verbatra.kreitz-webdev.de/compare)");
-    expect(markdown).toBeGreaterThan(-1);
-    expect(html).toBeGreaterThan(markdown);
-    expect(site).toContain(
-      `- [${en.compare.meta.title} (HTML)](https://verbatra.kreitz-webdev.de/compare): `,
-    );
+    expect(site).not.toContain("/compare");
   });
 
   it("names the providers and formats from the registries the site renders", () => {

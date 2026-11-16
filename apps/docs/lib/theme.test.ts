@@ -422,9 +422,9 @@ describe("theme tokens", () => {
           rule.selector.includes(selector) &&
           rule.declarations["word-break"] === "keep-all",
       )?.declarations["overflow-wrap"];
-    for (const selector of [".vk-closer h2", ".vk-compare-title", ".vk-marquee-heading"])
+    for (const selector of [".vk-closer h2", ".vk-marquee-heading"])
       expect(wrapOf(selector)).toBe("break-word");
-    for (const selector of [".vk-h2", ".vk-display", ".vk-faq-question", ".vk-compare-note"])
+    for (const selector of [".vk-h2", ".vk-display", ".vk-faq-question"])
       expect(wrapOf(selector)).toBe("anywhere");
   });
 
@@ -442,9 +442,7 @@ describe("theme tokens", () => {
           rule.declarations["word-break"] === "keep-all",
       )?.declarations["overflow-wrap"];
     expect(wrapOf(".vk-closer h2")).toBe("break-word");
-    expect(wrapOf(".vk-compare-title")).toBe("break-word");
     expect(wrapOf(".vk-faq-question")).toBe("anywhere");
-    expect(wrapOf(".vk-compare-note")).toBe("anywhere");
   });
 });
 

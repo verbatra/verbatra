@@ -49,8 +49,6 @@ describe("markdownRewritePath", () => {
     ["/docs/cli/translate.md", "/en/docs.mdx/cli/translate"],
     ["/de/docs/formats.md", "/de/docs.mdx/formats"],
     ["/fr/docs.md", "/fr/docs.mdx"],
-    ["/compare.md", "/en/site.mdx/compare"],
-    ["/de/compare.md", "/de/site.mdx/compare"],
     ["/index.md", "/en/site.mdx/index"],
     ["/fr/index.md", "/fr/site.mdx/index"],
     ["/imprint.md", "/en/site.mdx/imprint"],
@@ -61,8 +59,8 @@ describe("markdownRewritePath", () => {
     expect(markdownRewritePath(pathname, null)).toBe(expected);
   });
 
-  it("rewrites the comparison page to markdown when the client asks for it", () => {
-    expect(markdownRewritePath("/fr/compare", "text/markdown")).toBe("/fr/site.mdx/compare");
+  it("rewrites the privacy page to markdown when the client asks for it", () => {
+    expect(markdownRewritePath("/fr/privacy", "text/markdown")).toBe("/fr/site.mdx/privacy");
   });
 
   it.each([
@@ -88,10 +86,12 @@ describe("markdownRewritePath", () => {
     ["/index", "text/markdown"],
     ["/xx/index.md", null],
     ["/de.md", null],
-    ["/compare", "text/html"],
-    ["/xx/compare.md", null],
+    ["/privacy", "text/html"],
+    ["/xx/privacy.md", null],
+    ["/compare.md", null],
+    ["/compare", "text/markdown"],
     ["/terms.md", null],
-    ["/compare/extra.md", null],
+    ["/privacy/extra.md", null],
   ])("leaves %s (Accept %s) alone", (pathname, accept) => {
     expect(markdownRewritePath(pathname, accept)).toBeNull();
   });
@@ -111,21 +111,21 @@ describe("isDocsPath", () => {
 });
 
 describe("hasMarkdownVariant", () => {
-  it("lists the comparison and the legal pages as the pages beside the landing with a markdown variant", () => {
-    expect(MARKDOWN_PAGES).toEqual(["/compare", "/imprint", "/privacy", "/licenses", "/contact"]);
+  it("lists the legal pages as the pages beside the landing with a markdown variant", () => {
+    expect(MARKDOWN_PAGES).toEqual(["/imprint", "/privacy", "/licenses", "/contact"]);
   });
 
   it.each([
     ["/docs/formats", true],
-    ["/compare", true],
-    ["/es/compare", true],
-    ["/compare.md", true],
+    ["/es/privacy", true],
+    ["/privacy.md", true],
     ["/", true],
     ["/de", true],
     ["/index.md", true],
     ["/privacy", true],
     ["/index", false],
-    ["/xx/compare", false],
+    ["/xx/privacy", false],
+    ["/compare", false],
     ["/terms", false],
   ])("classifies %s as having a markdown variant: %s", (pathname, expected) => {
     expect(hasMarkdownVariant(pathname)).toBe(expected);
@@ -162,7 +162,7 @@ describe(".mdx urls", () => {
     ["/docs.mdx/formats", true],
     ["/site.mdx/index", true],
     ["/docs/quickstart.md", false],
-    ["/compare", false],
+    ["/privacy", false],
   ])("classifies %s as an .mdx url: %s", (pathname, expected) => {
     expect(isMdxPath(pathname)).toBe(expected);
   });
@@ -172,8 +172,8 @@ describe(".mdx urls", () => {
     ["/de/docs.mdx", "/de/docs.md"],
     ["/docs.mdx/cli/translate", "/docs/cli/translate.md"],
     ["/en/docs.mdx/formats", "/docs/formats.md"],
-    ["/compare.mdx", "/compare.md"],
-    ["/es/compare.mdx", "/es/compare.md"],
+    ["/privacy.mdx", "/privacy.md"],
+    ["/es/privacy.mdx", "/es/privacy.md"],
     ["/index.mdx", "/index.md"],
     ["/fr/index.mdx", "/fr/index.md"],
     ["/site.mdx/index", "/index.md"],
@@ -183,17 +183,17 @@ describe(".mdx urls", () => {
   });
 
   it.each([
-    "//evil.example/compare.mdx",
+    "//evil.example/privacy.mdx",
     "/docs.mdx/%2e%2e%2fx",
     "/docs/a.mdx/b",
-    "/en//compare.mdx",
+    "/en//privacy.mdx",
   ])("never sends the hostile .mdx url %s anywhere but a page of this site", (pathname) => {
     const target = mdxRedirectPath(pathname, (locale, slug) => slug === "" && locale === "en");
     expect(target).toBeNull();
   });
 
   it("strips the default locale from a page url, like a docs url", () => {
-    expect(mdxRedirectPath("/en/compare.mdx")).toBe("/compare.md");
+    expect(mdxRedirectPath("/en/privacy.mdx")).toBe("/privacy.md");
     expect(mdxRedirectPath("/en/index.mdx")).toBe("/index.md");
   });
 
@@ -203,7 +203,7 @@ describe(".mdx urls", () => {
     expect(mdxRedirectPath("/docs/formats.mdx", exists)).toBe("/docs/formats.md");
     expect(mdxRedirectPath("/docs/no-such-page.mdx", exists)).toBeNull();
     expect(mdxRedirectPath("/de/docs.mdx/formats", exists)).toBeNull();
-    expect(mdxRedirectPath("/compare.mdx", exists)).toBe("/compare.md");
+    expect(mdxRedirectPath("/privacy.mdx", exists)).toBe("/privacy.md");
   });
 
   it.each([

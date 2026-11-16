@@ -2,14 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
-import {
-  COMPARE_ROWS,
-  COMPARE_TOOLS,
-  type CompareRowId,
-  type CompareTool,
-  compareCell,
-} from "@/lib/landing-compare";
-import { countWords, isSpaceless } from "@/lib/word-count";
+import { COMPARISON_ROWS, COMPARISON_VENDOR_NAMES } from "@/lib/landing-comparison";
+import { countWords } from "@/lib/word-count";
 
 const NAMESPACES = [
   "topNav",
@@ -19,7 +13,7 @@ const NAMESPACES = [
   "gate",
   "highlights",
   "features",
-  "compare",
+  "comparison",
   "openSource",
   "closing",
   "footer",
@@ -84,181 +78,72 @@ describe("the redesigned landing copy", () => {
     }
   });
 
-  it("labels every comparison row and holds copy only where a cell has some", () => {
-    const rows = branch(landing("en"), "compare.rows");
-    expect(Object.keys(rows)).toEqual([...COMPARE_ROWS]);
-    for (const row of COMPARE_ROWS) {
-      const keys = Object.keys(branch(rows, row)).filter((key) => key !== "detail");
-      expect(keys[0]).toBe("label");
-      expect(COMPARE_TOOLS.filter((tool) => keys.includes(tool))).toEqual(keys.slice(1));
-    }
-    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual([
-      "criterion",
-      "manual",
-      "lingoDetail",
-      "manualDetail",
+  interface ComparisonWordCaps {
+    readonly verdict: number;
+    readonly column: number;
+    readonly row: number;
+    readonly checked: number;
+  }
+
+  const SPACED_COMPARISON_CAPS: ComparisonWordCaps = { verdict: 2, column: 2, row: 8, checked: 4 };
+  const COMPARISON_CAPS: Readonly<Record<Locale, ComparisonWordCaps>> = {
+    en: SPACED_COMPARISON_CAPS,
+    de: SPACED_COMPARISON_CAPS,
+    es: SPACED_COMPARISON_CAPS,
+    fr: SPACED_COMPARISON_CAPS,
+    "zh-CN": { verdict: 3, column: 4, row: 16, checked: 6 },
+    "pt-BR": SPACED_COMPARISON_CAPS,
+    ja: { verdict: 4, column: 5, row: 20, checked: 8 },
+  };
+
+  it("labels exactly the six comparison rows, in the order of the data", () => {
+    expect(Object.keys(branch(landing("en"), "comparison.rows"))).toEqual([...COMPARISON_ROWS]);
+    expect(Object.keys(branch(landing("en"), "comparison.verdicts"))).toEqual([
+      "yes",
+      "partial",
+      "no",
     ]);
   });
+
+  for (const locale of i18n.languages) {
+    it(`caps ${locale} comparison verdicts, column labels, row labels and the checked line`, () => {
+      const copy = branch(landing(locale), "comparison");
+      const caps = COMPARISON_CAPS[locale];
+      for (const [key, word] of leaves(branch(copy, "verdicts")))
+        expect(countWords(word, locale), `${locale} ${key}`).toBeLessThanOrEqual(caps.verdict);
+      for (const [key, label] of leaves(branch(copy, "columns")))
+        expect(countWords(label, locale), `${locale} ${key}`).toBeLessThanOrEqual(caps.column);
+      for (const [key, label] of leaves(branch(copy, "rows")))
+        expect(countWords(label, locale), `${locale} ${key}`).toBeLessThanOrEqual(caps.row);
+      expect(
+        countWords(String(copy.lastChecked).replace("{date}", ""), locale),
+      ).toBeLessThanOrEqual(caps.checked);
+    });
+
+    it(`names every compared tool in the ${locale} table caption`, () => {
+      const caption = String(branch(landing(locale), "comparison").caption);
+      for (const name of Object.values(COMPARISON_VENDOR_NAMES))
+        expect(caption, `${locale} ${name}`).toContain(name);
+    });
+
+    it(`keeps one distinct ${locale} word for each comparison verdict`, () => {
+      const words = leaves(branch(landing(locale), "comparison.verdicts")).map(([, word]) => word);
+      expect(new Set(words).size, locale).toBe(3);
+    });
+  }
 
   const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;
 
   it("keeps French punctuation and guillemets off a line of their own in every non-legal namespace", () => {
     const path = fileURLToPath(new URL("../messages/fr.json", import.meta.url));
     const catalog = JSON.parse(readFileSync(path, "utf8")) as MessageTree;
-    expect(Object.keys(catalog).sort()).toEqual([
-      "compare",
-      "docs",
-      "landing",
-      "legal",
-      "notFound",
-    ]);
-    const trees = [
-      landing("fr"),
-      branch(catalog, "compare"),
-      branch(catalog, "docs"),
-      branch(catalog, "notFound"),
-    ];
+    expect(Object.keys(catalog).sort()).toEqual(["docs", "landing", "legal", "notFound"]);
+    const trees = [landing("fr"), branch(catalog, "docs"), branch(catalog, "notFound")];
     for (const tree of trees)
       for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(FRENCH_SPACING);
     for (const loose of ["a :", "a\u00a0;", "b ?", "\u00ab x", "x \u00bb"])
       expect(loose).toMatch(FRENCH_SPACING);
     expect("a\u202f: \u00ab\u202fx\u202f\u00bb").not.toMatch(FRENCH_SPACING);
-  });
-
-  const VERDICT_WORDS = ["yes", "no", "partial", "unknown", "noneFound", "notApplicable"] as const;
-
-  const FLAGGED_LONG_NOTES: ReadonlyArray<readonly [CompareRowId, CompareTool]> = [
-    ["license", "lingo"],
-    ["pricing", "weblate"],
-    ["pricing", "crowdin"],
-    ["providers", "tolgee"],
-    ["providers", "crowdin"],
-    ["ownKeys", "crowdin"],
-    ["ci", "verbatra"],
-    ["translatorUi", "lingo"],
-    ["inContext", "lingo"],
-    ["ownKeys", "lingo"],
-    ["ci", "phrase"],
-  ];
-
-  const ALL_CELLS = COMPARE_ROWS.flatMap((row) =>
-    COMPARE_TOOLS.map((tool) => [row, tool] as const),
-  );
-
-  interface CompareWordCaps {
-    readonly verdict: number;
-    readonly note: number;
-    readonly flaggedNote: number;
-    readonly value: number;
-  }
-
-  const SPACED_CAPS: CompareWordCaps = { verdict: 2, note: 8, flaggedNote: 10, value: 4 };
-  const COMPARE_CAPS: Readonly<Record<Locale, CompareWordCaps>> = {
-    en: SPACED_CAPS,
-    de: SPACED_CAPS,
-    es: SPACED_CAPS,
-    fr: SPACED_CAPS,
-    "zh-CN": { verdict: 3, note: 12, flaggedNote: 15, value: 5 },
-    "pt-BR": SPACED_CAPS,
-    ja: { verdict: 4, note: 14, flaggedNote: 18, value: 7 },
-  };
-
-  const QUALIFIER_BREAK = /[,:;，：；、]/;
-
-  function opensWithVerdict(note: string, vocabulary: readonly string[], locale: string): boolean {
-    const text = note.toLowerCase();
-    if (isSpaceless(locale))
-      return vocabulary.some(
-        (word) =>
-          text.startsWith(word) &&
-          (text.length === word.length || QUALIFIER_BREAK.test(text.charAt(word.length))),
-      );
-    const tokens = text.split(/\s+/);
-    const first = tokens[0] ?? "";
-    const leads = tokens.length === 1 || QUALIFIER_BREAK.test(first.charAt(first.length - 1));
-    return leads && vocabulary.includes(first.replace(/[,:;.，：；、。]+$/, ""));
-  }
-
-  function cell(locale: string, row: CompareRowId, tool: CompareTool): MessageTree | undefined {
-    const node = branch(landing(locale), `compare.rows.${row}`)[tool];
-    return typeof node === "object" ? node : undefined;
-  }
-
-  it("keeps one verdict vocabulary of single short words in every locale", () => {
-    for (const locale of i18n.languages) {
-      const vocabulary = branch(landing(locale), "compare.verdicts");
-      expect(Object.keys(vocabulary), locale).toEqual([...VERDICT_WORDS]);
-      for (const [key, word] of leaves(vocabulary)) {
-        expect(word, `${locale} ${key}`).not.toBe("");
-        expect(countWords(word, locale), `${locale} ${key}`).toBeLessThanOrEqual(
-          COMPARE_CAPS[locale].verdict,
-        );
-      }
-      expect(new Set(leaves(vocabulary).map(([, word]) => word)).size, locale).toBe(
-        VERDICT_WORDS.length,
-      );
-    }
-  });
-
-  it("gives a value to exactly the cells that show a value, and none to a verdict", () => {
-    for (const [row, tool] of ALL_CELLS) {
-      const node = cell("en", row, tool);
-      if (compareCell(row, tool).kind === "value")
-        expect(typeof node?.value, `${row}.${tool}`).toBe("string");
-      else expect(node?.value, `${row}.${tool}`).toBeUndefined();
-    }
-  });
-
-  for (const locale of i18n.languages) {
-    it(`caps a ${locale} qualifier at ${COMPARE_CAPS[locale].note} words and the eleven flagged ones at ${COMPARE_CAPS[locale].flaggedNote}`, () => {
-      const flagged = FLAGGED_LONG_NOTES.map(([row, tool]) => `${row}.${tool}`);
-      const noted = ALL_CELLS.filter(
-        ([row, tool]) => typeof cell("en", row, tool)?.note === "string",
-      );
-      for (const [row, tool] of noted) {
-        const note = cell(locale, row, tool)?.note;
-        expect(typeof note, `${locale} ${row}.${tool}`).toBe("string");
-        const cap = flagged.includes(`${row}.${tool}`)
-          ? COMPARE_CAPS[locale].flaggedNote
-          : COMPARE_CAPS[locale].note;
-        expect(countWords(String(note), locale), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(
-          cap,
-        );
-      }
-    });
-
-    it(`keeps a ${locale} value short and never opens a qualifier with a verdict word`, () => {
-      const vocabulary = leaves(branch(landing(locale), "compare.verdicts")).map(([, word]) =>
-        word.toLowerCase(),
-      );
-      for (const [row, tool] of ALL_CELLS) {
-        const node = cell(locale, row, tool);
-        const label = `${locale} ${row}.${tool}`;
-        expect(countWords(String(node?.value ?? ""), locale), label).toBeLessThanOrEqual(
-          COMPARE_CAPS[locale].value,
-        );
-        expect(opensWithVerdict(String(node?.note ?? ""), vocabulary, locale), label).toBe(false);
-      }
-    });
-  }
-
-  it("detects a verdict word that opens a qualifier, spaced or not", () => {
-    expect(opensWithVerdict("Yes, with a plugin", ["yes", "no"], "en")).toBe(true);
-    expect(opensWithVerdict("Yes with a plugin", ["yes", "no"], "en")).toBe(false);
-    expect(opensWithVerdict("支持，需要配置", ["支持", "不支持"], "zh-CN")).toBe(true);
-    expect(opensWithVerdict("不支持：需要配置", ["支持", "不支持"], "zh-CN")).toBe(true);
-    expect(opensWithVerdict("支持配置", ["支持", "不支持"], "zh-CN")).toBe(false);
-  });
-
-  it("detects a leading verdict word in every spaceless locale that joins the list", () => {
-    for (const locale of i18n.languages.filter(isSpaceless)) {
-      const vocabulary = leaves(branch(landing(locale), "compare.verdicts")).map(([, word]) =>
-        word.toLowerCase(),
-      );
-      expect(vocabulary.length, locale).toBeGreaterThan(0);
-      for (const word of vocabulary)
-        expect(opensWithVerdict(`${word}，x`, vocabulary, locale), `${locale} ${word}`).toBe(true);
-    }
   });
 
   it("names no sync command, which verbatra does not have", () => {

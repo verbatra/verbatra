@@ -54,7 +54,16 @@ import {
   MCP_ADD_COMMAND,
   SDK_INSTALL_COMMAND,
 } from "./install-commands";
-import { COMPARE_PATH } from "./landing-compare";
+import {
+  COMPARISON_LAST_CHECKED,
+  COMPARISON_ROWS,
+  COMPARISON_TOOLS,
+  COMPARISON_VENDOR_NAMES,
+  type ComparisonTool,
+  comparisonCell,
+  comparisonHref,
+} from "./landing-comparison";
+import { formatLandingDate } from "./landing-date";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
@@ -111,10 +120,7 @@ async function hero({ locale }: Context): Promise<string> {
   return blocks(
     `# ${t.markup("headline", { accent: (chunks: string) => markupChunks(chunks) })}`,
     t("lead"),
-    list([
-      link(t("ctaPrimary"), quickstart),
-      link(t("ctaCompare"), localizedPath(locale, COMPARE_PATH)),
-    ]),
+    list([link(t("ctaPrimary"), quickstart), link(t("ctaCompare"), comparisonHref(locale))]),
     fencedMarkdown("sh", null, HERO_INSTALL_COMMAND),
   );
 }
@@ -322,6 +328,43 @@ async function features({ locale }: Context): Promise<string> {
   );
 }
 
+async function comparison({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.comparison" });
+  const name = (tool: ComparisonTool) =>
+    tool === "manual" ? t("columns.manual") : COMPARISON_VENDOR_NAMES[tool];
+  const table = [
+    `| | ${COMPARISON_TOOLS.map(name).join(" | ")} |`,
+    `| --- | ${COMPARISON_TOOLS.map(() => "---").join(" | ")} |`,
+    ...COMPARISON_ROWS.map((row) => {
+      const verdicts = COMPARISON_TOOLS.map((tool) =>
+        t(`verdicts.${comparisonCell(row, tool).verdict}`),
+      );
+      return `| ${t(`rows.${row}`)} | ${verdicts.join(" | ")} |`;
+    }),
+  ].join("\n");
+  const sources = COMPARISON_ROWS.map((row) => {
+    const cited = COMPARISON_TOOLS.filter((tool) => comparisonCell(row, tool).sources.length > 0);
+    return [
+      `- **${t(`rows.${row}`)}**`,
+      ...cited.map(
+        (tool) =>
+          `  - ${name(tool)}: ${comparisonCell(row, tool)
+            .sources.map((url) => `<${url}>`)
+            .join(" ")}`,
+      ),
+    ].join("\n");
+  }).join("\n");
+  return blocks(
+    `## ${t("heading")}`,
+    t("lead"),
+    t("caption"),
+    table,
+    t("lastChecked", { date: formatLandingDate(COMPARISON_LAST_CHECKED, locale) }),
+    `${t("sources")}:`,
+    sources,
+  );
+}
+
 async function finalCta({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.closing" });
   return blocks(
@@ -345,6 +388,7 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     gate,
     highlights,
     features,
+    compare: comparison,
     faq,
     finalCta,
   };

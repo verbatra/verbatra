@@ -1,4 +1,3 @@
-import { compareMarkdown } from "@/lib/compare-markdown";
 import { i18n } from "@/lib/i18n";
 import { landingMarkdown } from "@/lib/landing-markdown";
 import { absolutizeMarkdownLinks } from "@/lib/markdown-links";
@@ -18,7 +17,7 @@ export async function GET(): Promise<Response> {
   const locale = i18n.defaultLanguage;
   const pages = source.getPages(locale);
   const sections = await Promise.all(pages.map(renderPage));
-  const site = await Promise.all([landingMarkdown(locale), compareMarkdown(locale)]);
+  const site = await landingMarkdown(locale);
 
   const body = `# Verbatra (full documentation)
 
@@ -26,7 +25,7 @@ export async function GET(): Promise<Response> {
 > documentation in a single file, for AI agents that ingest content directly. For a curated
 > index of links instead, see ${SITE_URL}/llms.txt.
 
-${site.join("\n\n")}
+${site}
 
 ${sections.join("\n\n")}
 `;

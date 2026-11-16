@@ -17,21 +17,9 @@ export const CommandRow = intlIsland(
   BLOCK,
 );
 export const FaqKeys = island(() => import("./faq-keys").then((m) => m.FaqKeys));
-export const ComparePicker = island(
-  () => import("./compare-picker").then((m) => m.ComparePicker),
-  BLOCK,
-);
 export const ScrollTop = island(() => import("./scroll-top").then((m) => m.ScrollTop), BLOCK);
 export const CopyButton = intlIsland(() =>
   import("@/components/ui/copy-button").then((m) => m.CopyButton),
 );
 
-await preloadIslands([
-  MarqueeMotion,
-  LockDemoMotion,
-  CommandRow,
-  FaqKeys,
-  ComparePicker,
-  ScrollTop,
-  CopyButton,
-]);
+await preloadIslands([MarqueeMotion, LockDemoMotion, CommandRow, FaqKeys, ScrollTop, CopyButton]);

@@ -96,7 +96,7 @@
         "label": "関連ドキュメント",
         "quickstart": "クイックスタート",
         "safety": "翻訳の安全性",
-        "compare": "詳しい比較"
+        "compare": "比較表"
       },
       "items": {
         "cost": {
@@ -117,7 +117,7 @@
         },
         "compare": {
           "question": "Verbatra はほかの i18n ツールと何が違いますか？",
-          "answer": "ホスト型のプラットフォームではなく、手元のコミット済みファイルに対して動く CLI です。<link>比較ページ</link>では、ほかのツールが優れている点も含めて、出典付きで照らし合わせています。"
+          "answer": "ホスト型のプラットフォームではなく、手元のコミット済みファイルに対して動く CLI です。<link>比較表</link>では、ほかのツールが優れている点も含めて照らし合わせています。"
         }
       }
     },
@@ -344,362 +344,6 @@
         }
       }
     },
-    "compare": {
-      "columns": {
-        "criterion": "比較項目",
-        "manual": "手作業の流れ",
-        "lingoDetail": "現行の CLI とプラットフォーム",
-        "manualDetail": "製品なし、出典なし"
-      },
-      "verdicts": {
-        "yes": "はい",
-        "no": "いいえ",
-        "partial": "一部",
-        "unknown": "不明",
-        "noneFound": "未検出",
-        "notApplicable": "該当なし"
-      },
-      "rows": {
-        "license": {
-          "label": "オープンソースとライセンス",
-          "verbatra": {
-            "value": "MIT"
-          },
-          "lingo": {
-            "value": "Apache-2.0（リポジトリ）",
-            "note": "CLI はライセンス欄なし、本体は記載なし"
-          },
-          "tolgee": {
-            "value": "Apache-2.0 コア",
-            "note": "企業版は非商用ライセンス、CLI は MIT"
-          },
-          "weblate": {
-            "value": "GPL-3.0-or-later",
-            "note": "`wlc` CLI も同じ"
-          },
-          "crowdin": {
-            "value": "MIT（CLI、Action）",
-            "note": "本体のソースは未検出"
-          },
-          "lokalise": {
-            "value": "BSD-3-Clause（CLI）",
-            "note": "本体のソースは未検出"
-          },
-          "phrase": {
-            "value": "MIT（CLI、Action）",
-            "note": "本体のソースは未検出"
-          }
-        },
-        "selfHosting": {
-          "label": "セルフホスト",
-          "verbatra": {
-            "value": "ローカルのみ",
-            "note": "マシンと CI、ホスト型なし"
-          },
-          "lingo": {
-            "note": "旧 CLI はローカルの Ollama で動作"
-          },
-          "tolgee": {
-            "note": "高度機能は要ライセンス"
-          },
-          "weblate": {
-            "note": "Weblate ホスト型も"
-          },
-          "crowdin": {
-            "note": "料金ページにオンプレミス記載なし"
-          },
-          "lokalise": {
-            "note": "オンプレミスとプライベートクラウドは非対応"
-          },
-          "phrase": {
-            "note": "料金ページにセルフホスト記載なし"
-          },
-          "manual": {
-            "note": "製品なし、選ぶサービスによる"
-          }
-        },
-        "pricing": {
-          "label": "料金体系",
-          "verbatra": {
-            "value": "無料",
-            "note": "プロバイダーから直接請求"
-          },
-          "lingo": {
-            "value": "従量課金",
-            "note": "Sandbox プランは無料"
-          },
-          "tolgee": {
-            "value": "無料プラン",
-            "note": "有料はホスト単語数で課金"
-          },
-          "weblate": {
-            "value": "セルフホスト：無料",
-            "note": "ホスト型は文字列数課金、公開オープンソースは Libre 無料"
-          },
-          "crowdin": {
-            "value": "有料プラン",
-            "note": "主に単語数課金、試用あり、オープンソース向け無料"
-          },
-          "lokalise": {
-            "value": "有料 4 段階",
-            "note": "試用 14 日"
-          },
-          "phrase": {
-            "value": "有料プラン",
-            "note": "シートと単語数で課金、試用 14 日"
-          },
-          "manual": {
-            "value": "開発者の時間",
-            "note": "別途サービス費用"
-          }
-        },
-        "providers": {
-          "label": "AI と機械翻訳のプロバイダー",
-          "verbatra": {
-            "value": "{count} 個を内蔵"
-          },
-          "lingo": {
-            "value": "多数の LLM",
-            "note": "OpenAI、Anthropic、Google。DeepL 型エンジン記載なし"
-          },
-          "tolgee": {
-            "value": "機械翻訳と LLM",
-            "note": "DeepL、Google、Amazon、OpenAI、Anthropic、Gemini、Baidu（セルフホストのみ）"
-          },
-          "weblate": {
-            "value": "29 サービス",
-            "note": "DeepL、OpenAI、Anthropic、LibreTranslate などを内蔵"
-          },
-          "crowdin": {
-            "value": "機械翻訳と AI",
-            "note": "DeepL、Google、Microsoft、Amazon、OpenAI、Anthropic、Gemini など"
-          },
-          "lokalise": {
-            "value": "Google Translate、DeepL",
-            "note": "Pro AI の LLM"
-          },
-          "phrase": {
-            "value": "Phrase Language AI",
-            "note": "Google、Amazon、Microsoft、Strings は 2026-06-30 に DeepL 削除"
-          },
-          "manual": {
-            "value": "任意サービス",
-            "note": "貼り付け先"
-          }
-        },
-        "ownKeys": {
-          "label": "自分の API キーを使う",
-          "verbatra": {
-            "note": "環境変数のみ"
-          },
-          "lingo": {
-            "note": "企業向け機能、旧 CLI は自分のキー"
-          },
-          "tolgee": {
-            "note": "LLM は可、機械翻訳はセルフホストのみ明記"
-          },
-          "weblate": {
-            "note": "管理者が各サービスの認証情報を設定"
-          },
-          "crowdin": {
-            "note": "外部機械翻訳は自分のキー、AI は自分のキーか Crowdin 管理"
-          },
-          "lokalise": {
-            "note": "機械翻訳と AI のドキュメントに記載なし"
-          },
-          "phrase": {
-            "note": "連携エンジンは自前契約、Strings 内は未確認"
-          },
-          "manual": {
-            "value": "自前アカウント"
-          }
-        },
-        "incremental": {
-          "label": "差分のみの翻訳",
-          "verbatra": {
-            "note": "ロックファイルのキー別ハッシュ"
-          },
-          "lingo": {
-            "note": "CLI のロックファイル差分"
-          },
-          "tolgee": {
-            "note": "新規・インポートのキーのみ、ロックファイル未検出"
-          },
-          "weblate": {
-            "note": "未翻訳文字列のみ（自動翻訳アドオン）"
-          },
-          "crowdin": {
-            "note": "未翻訳文字列のみ（事前翻訳）"
-          },
-          "lokalise": {
-            "note": "空の値のみ（自動化、事前翻訳）"
-          },
-          "phrase": {
-            "note": "空の訳文のみ（事前翻訳）"
-          },
-          "manual": {
-            "value": "手作業"
-          }
-        },
-        "cli": {
-          "label": "コマンドラインツール（CLI）",
-          "verbatra": {
-            "note": "`verbatra`"
-          },
-          "lingo": {
-            "note": "`@lingo.dev/cli`、旧オープンソース版 `lingo.dev` も公開"
-          },
-          "tolgee": {
-            "note": "`@tolgee/cli`、MIT"
-          },
-          "weblate": {
-            "note": "`wlc`"
-          },
-          "crowdin": {
-            "note": "Crowdin CLI"
-          },
-          "lokalise": {
-            "note": "Lokalise CLI v2"
-          },
-          "phrase": {
-            "note": "Phrase Strings CLI"
-          }
-        },
-        "ci": {
-          "label": "CI と GitHub Action",
-          "verbatra": {
-            "note": "公式 Action、欠落や古さで `check` は 1 で終了"
-          },
-          "lingo": {
-            "note": "GitHub App、action.yml 同梱"
-          },
-          "tolgee": {
-            "note": "公式 Action"
-          },
-          "weblate": {
-            "note": "PR、公式の同期 Action 未検出、linter はベータ"
-          },
-          "crowdin": {
-            "note": "公式 GitHub Action"
-          },
-          "lokalise": {
-            "note": "公式プッシュとプルの Action"
-          },
-          "phrase": {
-            "note": "CI で CLI、Phrase の組織に setup-cli Action"
-          }
-        },
-        "mcp": {
-          "label": "MCP サーバー",
-          "verbatra": {
-            "note": "ローカル、stdio"
-          },
-          "weblate": {
-            "note": "公式 MCP サーバー"
-          },
-          "crowdin": {
-            "note": "ホスト型"
-          },
-          "lokalise": {
-            "note": "ホスト型、ベータ"
-          },
-          "phrase": {
-            "note": "ホスト型、Phrase ログイン"
-          }
-        },
-        "inContext": {
-          "label": "コンテキスト内編集",
-          "lingo": {
-            "note": "ドキュメントと README に記載なし"
-          },
-          "tolgee": {
-            "note": "Alt/Option クリックでエディターが開く"
-          },
-          "weblate": {
-            "note": "公式コンテキスト内エディター"
-          },
-          "crowdin": {
-            "note": "Crowdin In-Context"
-          },
-          "lokalise": {
-            "note": "LiveJS Web エディター"
-          },
-          "phrase": {
-            "note": "In-Context Editor、公式フレームワークアダプター"
-          }
-        },
-        "translatorUi": {
-          "label": "翻訳者向けの Web インターフェース",
-          "verbatra": {
-            "note": "ローカルの Studio、ホスト型なし"
-          },
-          "lingo": {
-            "note": "企業向けレビューキューのみ、汎用エディター未検出"
-          },
-          "tolgee": {
-            "note": "Web 版、ホスト型かセルフホスト"
-          },
-          "weblate": {
-            "note": "Web 翻訳 UI"
-          },
-          "crowdin": {
-            "note": "ブラウザーのエディター"
-          },
-          "lokalise": {
-            "note": "キーエディターあり、Web 上かは不明"
-          },
-          "phrase": {
-            "note": "ブラウザーの Strings Editor"
-          },
-          "manual": {
-            "value": "使うサービスの UI"
-          }
-        },
-        "formats": {
-          "label": "ファイルフォーマット",
-          "detail": "ベンダーの一覧、統一なし",
-          "verbatra": {
-            "value": "{count} 種類",
-            "note": "ドキュメント掲載"
-          },
-          "lingo": {
-            "value": "18 種類",
-            "note": "一覧あり"
-          },
-          "tolgee": {
-            "value": "17 種類",
-            "note": "概要ページ"
-          },
-          "weblate": {
-            "value": "50 種類",
-            "note": "一覧あり"
-          },
-          "crowdin": {
-            "value": "17 種類",
-            "note": "文字列ベースの一覧"
-          },
-          "lokalise": {
-            "value": "30 種類",
-            "note": "一覧あり"
-          },
-          "phrase": {
-            "value": "47 件",
-            "note": "項目を掲載"
-          },
-          "manual": {
-            "value": "どれでも",
-            "note": "手でコピーしたもの全般"
-          }
-        }
-      },
-      "sourceLink": "{tool}、{criterion}、出典",
-      "sourceLinkNth": "{tool}、{criterion}、出典 {number}",
-      "pairSummary": "Verbatra と {tool}",
-      "sources": "出典",
-      "manualNote": "手作業の流れは製品ではないため、出典はありません。この列は、文字列を翻訳サービスに手でコピーし、結果を貼り戻す作業を表します。",
-      "lastChecked": "最終確認",
-      "fairness": "各セルは、その日付にベンダー自身のページが述べていた内容です。「未検出」は検索で見つからなかったという意味で、製品にその機能がないという意味ではありません。"
-    },
     "openSource": {
       "newTab": "（新しいタブで開きます）",
       "contributorsHeading": "コントリビューター",
@@ -721,30 +365,32 @@
     },
     "fab": {
       "label": "トップへ戻る"
-    }
-  },
-  "compare": {
-    "meta": {
-      "title": "Verbatra と Lingo.dev、Tolgee、Crowdin などの比較",
-      "description": "Verbatra と Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase を比較。ライセンス、プロバイダー、API キー、CI、MCP、フォーマットを日付つきの出典で示します。",
-      "ogImageAlt": "Verbatra と他ツールの比較（verbatra のワードマーク付き）"
     },
-    "heading": "Verbatra と他ツールの比較",
-    "takeaway": "自前の API キーで、変更キーだけを CI で翻訳します。MIT ライセンスです。",
-    "scope": "Verbatra は CLI と SDK、ほかの列は翻訳プラットフォームと手作業で、ロケール翻訳を保つ方法として比べます。",
-    "stronger": "他社の強み：コンテキスト内編集（Tolgee、Crowdin、Lokalise、Phrase）と翻訳者用ホスト型エディター。",
-    "skip": "比較を飛ばす",
-    "pickerLabel": "Verbatra と比較するツール",
-    "caption": "ロケールファイルを翻訳済みに保つ方法：Verbatra、Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase、手作業の流れ",
-    "lingoNote": "Lingo.dev のセルは、旧オープンソース CLI の `lingo.dev` と明記している場合を除き、現行の `@lingo.dev/cli` とホスト型プラットフォームを指します。",
-    "formatsNote": "フォーマットの数は各ベンダー自身の一覧によるもので、相互に統一していません。",
-    "nextHeading": "自分で試す",
-    "quickstart": "クイックスタートから始める",
-    "home": "Verbatra のホームページに戻る",
-    "breadcrumbHome": "ホーム",
-    "breadcrumbCompare": "比較",
-    "noneFound": "「未検出」は検索で見つからなかっただけで、機能の不在ではありません。",
-    "checkedLine": "{label} <time>{date}</time>。{noneFound}"
+    "comparison": {
+      "heading": "Verbatra と他ツールの比較",
+      "lead": "翻訳ワークフローを左右するポイントについて、チームがよく比較するツールごとの答えをまとめました。",
+      "caption": "Verbatra と Crowdin、Tolgee、Lingo.dev、手作業の流れの比較",
+      "columns": {
+        "question": "質問",
+        "manual": "手作業の流れ",
+        "manualShort": "手作業"
+      },
+      "rows": {
+        "vendorAccount": "ベンダーのアカウントなしで使える",
+        "ownKeys": "自分のプロバイダーキーを使う",
+        "changedKeys": "変更されたキーだけを翻訳する",
+        "ciGate": "翻訳が欠落または古いと CI を失敗させる",
+        "placeholderCheck": "翻訳後にプレースホルダーと ICU を検査する",
+        "webEditor": "翻訳者向けの Web エディター"
+      },
+      "verdicts": {
+        "yes": "はい",
+        "partial": "一部",
+        "no": "いいえ"
+      },
+      "lastChecked": "最終確認日 {date}",
+      "sources": "出典"
+    }
   },
   "legal": {
     "privacy": {

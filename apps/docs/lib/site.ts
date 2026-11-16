@@ -18,7 +18,7 @@ export const COVERAGE_THRESHOLD = versionData.coverageThreshold;
 
 export const LEGAL_LAST_UPDATED = "2026-10-16";
 
-export const LANDING_LAST_UPDATED = "2026-11-15";
+export const LANDING_LAST_UPDATED = "2026-11-16";
 
 export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";
 

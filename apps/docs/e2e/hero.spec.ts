@@ -195,7 +195,7 @@ for (const locale of LOCALES) {
         expect(order).toEqual([
           pageUrl(locale, "/docs/quickstart"),
           "chip",
-          pageUrl(locale, "/compare"),
+          `${homeUrl(locale)}#compare`,
         ]);
         const primary = await box(".vk-banner-ctas > a:first-child");
         const chip = await box(".vk-banner-install");

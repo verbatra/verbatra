@@ -96,7 +96,7 @@
         "label": "In the docs",
         "quickstart": "Quickstart",
         "safety": "Translation safety",
-        "compare": "Full comparison"
+        "compare": "Comparison table"
       },
       "items": {
         "cost": {
@@ -117,7 +117,7 @@
         },
         "compare": {
           "question": "How is Verbatra different from other i18n tools?",
-          "answer": "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison page</link> checks it against other tools, with sources, including where they are stronger."
+          "answer": "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison table</link> checks it against other tools, including where they are stronger."
         }
       }
     },
@@ -328,6 +328,31 @@
         "studio": "real screenshot"
       }
     },
+    "comparison": {
+      "heading": "How Verbatra compares",
+      "lead": "What decides a translation workflow, answered for the tools teams weigh most.",
+      "caption": "How Verbatra compares with Crowdin, Tolgee, Lingo.dev and a manual workflow",
+      "columns": {
+        "question": "Question",
+        "manual": "Manual workflow",
+        "manualShort": "Manual"
+      },
+      "rows": {
+        "vendorAccount": "Works without a vendor account",
+        "ownKeys": "Your own provider keys",
+        "changedKeys": "Translates only changed keys",
+        "ciGate": "Fails CI on missing or stale translations",
+        "placeholderCheck": "Checks placeholders and ICU after translating",
+        "webEditor": "Web editor for translators"
+      },
+      "verdicts": {
+        "yes": "Yes",
+        "partial": "Partial",
+        "no": "No"
+      },
+      "lastChecked": "Last checked {date}",
+      "sources": "Sources"
+    },
     "steps": {
       "items": {
         "check": {
@@ -343,362 +368,6 @@
           "body": "The GitHub Action runs `check` on each pull request and fails it while a locale is out of sync."
         }
       }
-    },
-    "compare": {
-      "columns": {
-        "criterion": "Criterion",
-        "manual": "Manual workflow",
-        "lingoDetail": "current CLI and platform",
-        "manualDetail": "no product, no sources"
-      },
-      "verdicts": {
-        "yes": "Yes",
-        "no": "No",
-        "partial": "Partial",
-        "unknown": "Unknown",
-        "noneFound": "None found",
-        "notApplicable": "n/a"
-      },
-      "rows": {
-        "license": {
-          "label": "Open source, license",
-          "verbatra": {
-            "value": "MIT"
-          },
-          "lingo": {
-            "value": "Apache-2.0 (repo)",
-            "note": "CLI: no license field; platform not described as open source"
-          },
-          "tolgee": {
-            "value": "Apache-2.0 core",
-            "note": "enterprise parts non-commercial license; CLI MIT"
-          },
-          "weblate": {
-            "value": "GPL-3.0-or-later",
-            "note": "`wlc` CLI too"
-          },
-          "crowdin": {
-            "value": "MIT (CLI, Action)",
-            "note": "no public platform source found"
-          },
-          "lokalise": {
-            "value": "BSD-3-Clause (CLI)",
-            "note": "no public platform source found"
-          },
-          "phrase": {
-            "value": "MIT (CLI, Action)",
-            "note": "no public platform source found"
-          }
-        },
-        "selfHosting": {
-          "label": "Self-hosting",
-          "verbatra": {
-            "value": "Local only",
-            "note": "your machine and CI; no hosted service"
-          },
-          "lingo": {
-            "note": "older open source CLI runs against local Ollama"
-          },
-          "tolgee": {
-            "note": "advanced features need a license"
-          },
-          "weblate": {
-            "note": "or hosted by Weblate"
-          },
-          "crowdin": {
-            "note": "pricing page names no on-premises option; no statement"
-          },
-          "lokalise": {
-            "note": "on-premises and private cloud not supported"
-          },
-          "phrase": {
-            "note": "pricing page names no self-hosted option; no statement"
-          },
-          "manual": {
-            "note": "no product; depends on the service you choose"
-          }
-        },
-        "pricing": {
-          "label": "Pricing model",
-          "verbatra": {
-            "value": "Free",
-            "note": "your provider bills usage to you directly"
-          },
-          "lingo": {
-            "value": "Usage-based",
-            "note": "free Sandbox tier"
-          },
-          "tolgee": {
-            "value": "Free plan",
-            "note": "paid tiers priced by hosted words"
-          },
-          "weblate": {
-            "value": "Self-hosted: free",
-            "note": "hosted: by strings; free Libre plan for public open source"
-          },
-          "crowdin": {
-            "value": "Paid plans",
-            "note": "mainly by hosted words; trials; free open source licenses"
-          },
-          "lokalise": {
-            "value": "4 paid tiers",
-            "note": "14-day trial"
-          },
-          "phrase": {
-            "value": "Paid plans",
-            "note": "metered by seats and words; 14-day trial"
-          },
-          "manual": {
-            "value": "Developer time",
-            "note": "plus the service you choose"
-          }
-        },
-        "providers": {
-          "label": "AI and machine translation providers",
-          "verbatra": {
-            "value": "{count} built in"
-          },
-          "lingo": {
-            "value": "Many LLMs",
-            "note": "OpenAI, Anthropic, Google; no engine like DeepL listed"
-          },
-          "tolgee": {
-            "value": "MT and LLMs",
-            "note": "incl. DeepL, Google, Amazon, OpenAI, Anthropic, Gemini; Baidu self-hosted only"
-          },
-          "weblate": {
-            "value": "29 services",
-            "note": "built in, including DeepL, OpenAI, Anthropic, LibreTranslate"
-          },
-          "crowdin": {
-            "value": "MT and AI",
-            "note": "DeepL, Google, Microsoft, Amazon; OpenAI, Anthropic, Gemini; and more"
-          },
-          "lokalise": {
-            "value": "Google Translate, DeepL",
-            "note": "LLMs in Pro AI"
-          },
-          "phrase": {
-            "value": "Phrase Language AI",
-            "note": "Google, Amazon, Microsoft; DeepL removed from Strings 2026-06-30"
-          },
-          "manual": {
-            "value": "Any service",
-            "note": "you paste into"
-          }
-        },
-        "ownKeys": {
-          "label": "Bring your own API keys",
-          "verbatra": {
-            "note": "environment variables only"
-          },
-          "lingo": {
-            "note": "Enterprise feature; older open source CLI: own keys"
-          },
-          "tolgee": {
-            "note": "LLM keys yes; MT keys stated for self-hosted"
-          },
-          "weblate": {
-            "note": "administrators set up each service with own credentials"
-          },
-          "crowdin": {
-            "note": "third-party MT: your keys; AI: your key or Crowdin-managed"
-          },
-          "lokalise": {
-            "note": "not mentioned in machine translation and AI docs"
-          },
-          "phrase": {
-            "note": "ecosystem engines: own contract; within Strings not confirmed"
-          },
-          "manual": {
-            "value": "Your own accounts"
-          }
-        },
-        "incremental": {
-          "label": "Incremental translation",
-          "verbatra": {
-            "note": "per-key hash in a lock file"
-          },
-          "lingo": {
-            "note": "lockfile diff in the CLI"
-          },
-          "tolgee": {
-            "note": "new/imported keys only; no lock file found"
-          },
-          "weblate": {
-            "note": "untranslated strings only (automatic translation add-on)"
-          },
-          "crowdin": {
-            "note": "untranslated strings only (pre-translation option)"
-          },
-          "lokalise": {
-            "note": "empty values only (automations, pre-translation)"
-          },
-          "phrase": {
-            "note": "empty translations only (pre-translation)"
-          },
-          "manual": {
-            "value": "By hand"
-          }
-        },
-        "cli": {
-          "label": "Command-line tool (CLI)",
-          "verbatra": {
-            "note": "`verbatra`"
-          },
-          "lingo": {
-            "note": "`@lingo.dev/cli`; older open source `lingo.dev` still published"
-          },
-          "tolgee": {
-            "note": "`@tolgee/cli`, MIT"
-          },
-          "weblate": {
-            "note": "`wlc`"
-          },
-          "crowdin": {
-            "note": "Crowdin CLI"
-          },
-          "lokalise": {
-            "note": "Lokalise CLI v2"
-          },
-          "phrase": {
-            "note": "Phrase Strings CLI"
-          }
-        },
-        "ci": {
-          "label": "CI and GitHub Action",
-          "verbatra": {
-            "note": "official Action; `check` exits 1 if keys missing or stale"
-          },
-          "lingo": {
-            "note": "GitHub App; repository ships an action.yml"
-          },
-          "tolgee": {
-            "note": "for an official Action"
-          },
-          "weblate": {
-            "note": "PRs; no official sync Action found; beta linter"
-          },
-          "crowdin": {
-            "note": "official GitHub Action"
-          },
-          "lokalise": {
-            "note": "official push and pull Actions"
-          },
-          "phrase": {
-            "note": "CLI in CI; setup-cli Action in Phrase's organisation"
-          }
-        },
-        "mcp": {
-          "label": "MCP server",
-          "verbatra": {
-            "note": "local, over stdio"
-          },
-          "weblate": {
-            "note": "for an official MCP server"
-          },
-          "crowdin": {
-            "note": "hosted"
-          },
-          "lokalise": {
-            "note": "hosted, in beta"
-          },
-          "phrase": {
-            "note": "hosted, signed in with a Phrase account"
-          }
-        },
-        "inContext": {
-          "label": "In-context editing",
-          "lingo": {
-            "note": "not in platform docs or repository README"
-          },
-          "tolgee": {
-            "note": "Alt/Option-click on an element opens the editor"
-          },
-          "weblate": {
-            "note": "for an official in-context editor"
-          },
-          "crowdin": {
-            "note": "Crowdin In-Context"
-          },
-          "lokalise": {
-            "note": "LiveJS web editor"
-          },
-          "phrase": {
-            "note": "In-Context Editor, official framework adapters"
-          }
-        },
-        "translatorUi": {
-          "label": "Web interface for translators",
-          "verbatra": {
-            "note": "local Studio dashboard; no hosted interface"
-          },
-          "lingo": {
-            "note": "Enterprise review queue only; no general editor found"
-          },
-          "tolgee": {
-            "note": "web platform, hosted or self-hosted"
-          },
-          "weblate": {
-            "note": "web translation interface"
-          },
-          "crowdin": {
-            "note": "online editor in the browser"
-          },
-          "lokalise": {
-            "note": "key editor documented; page does not say web-based"
-          },
-          "phrase": {
-            "note": "Strings Editor in the browser"
-          },
-          "manual": {
-            "value": "Your service's UI"
-          }
-        },
-        "formats": {
-          "label": "File formats",
-          "detail": "vendor lists, not normalized",
-          "verbatra": {
-            "value": "{count} formats",
-            "note": "listed in the docs"
-          },
-          "lingo": {
-            "value": "18 formats",
-            "note": "listed"
-          },
-          "tolgee": {
-            "value": "17 formats",
-            "note": "on the overview page"
-          },
-          "weblate": {
-            "value": "50 formats",
-            "note": "listed"
-          },
-          "crowdin": {
-            "value": "17 formats",
-            "note": "listed for string-based projects"
-          },
-          "lokalise": {
-            "value": "30 formats",
-            "note": "listed"
-          },
-          "phrase": {
-            "value": "47 entries",
-            "note": "format entries listed"
-          },
-          "manual": {
-            "value": "Any format",
-            "note": "whatever you copy by hand"
-          }
-        }
-      },
-      "sourceLink": "{tool}, {criterion}, source",
-      "sourceLinkNth": "{tool}, {criterion}, source {number}",
-      "pairSummary": "Verbatra and {tool}",
-      "sources": "Sources",
-      "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
-      "lastChecked": "Last checked",
-      "fairness": "Each cell states what the vendor's own pages said on that date, and \"None found\" means our search found nothing, not that the product lacks it."
     },
     "openSource": {
       "newTab": "(opens in a new tab)",
@@ -722,29 +391,6 @@
     "fab": {
       "label": "Back to top"
     }
-  },
-  "compare": {
-    "meta": {
-      "title": "Compare Verbatra with Lingo.dev, Tolgee, Crowdin and more",
-      "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise and Phrase: license, providers, own API keys, CI, MCP and formats, each with a dated source.",
-      "ogImageAlt": "How Verbatra compares, with the verbatra wordmark"
-    },
-    "heading": "How Verbatra compares",
-    "takeaway": "Verbatra translates only changed keys from your CI with your own API keys, under the MIT license.",
-    "scope": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated.",
-    "stronger": "Where others are stronger: in-context editing (Tolgee, Crowdin, Lokalise, Phrase) and a hosted editor for translators.",
-    "skip": "Skip the comparison",
-    "pickerLabel": "Compare Verbatra with",
-    "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow",
-    "lingoNote": "Lingo.dev cells refer to the current `@lingo.dev/cli` and the hosted platform unless they name the older open source CLI `lingo.dev`.",
-    "formatsNote": "Format counts come from each vendor's own list and are not normalized against each other.",
-    "nextHeading": "Try it yourself",
-    "quickstart": "Start with the quickstart",
-    "home": "Back to the Verbatra home page",
-    "breadcrumbHome": "Home",
-    "breadcrumbCompare": "Compare",
-    "noneFound": "\"None found\" means our search found nothing, not that the product lacks it.",
-    "checkedLine": "{label} <time>{date}</time>. {noneFound}"
   },
   "legal": {
     "privacy": {

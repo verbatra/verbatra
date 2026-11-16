@@ -75,10 +75,10 @@ describe("region-qualified locale codes", () => {
       markdownPathPatterns(REGIONAL);
     expect(docs.exec("/zh-CN/docs/formats")?.slice(1)).toEqual(["zh-CN", "/formats"]);
     expect(docs.exec("/pt-BR/docs")?.[1]).toBe("pt-BR");
-    expect(page.exec("/pt-BR/compare")?.slice(1)).toEqual(["pt-BR", "/compare"]);
+    expect(page.exec("/pt-BR/privacy")?.slice(1)).toEqual(["pt-BR", "/privacy"]);
     expect(homeMarkdown.exec("/zh-CN/index")?.[1]).toBe("zh-CN");
     expect(internalDocs.exec("/zh-CN/docs.mdx/formats")?.slice(1)).toEqual(["zh-CN", "/formats"]);
-    expect(internalSite.exec("/pt-BR/site.mdx/compare")?.slice(1)).toEqual(["pt-BR", "compare"]);
+    expect(internalSite.exec("/pt-BR/site.mdx/privacy")?.slice(1)).toEqual(["pt-BR", "privacy"]);
     expect(publicMdx.exec("/zh-CN/docs/formats.mdx")?.slice(1)).toEqual(["zh-CN", "/docs/formats"]);
   });
 

@@ -4,12 +4,10 @@ import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "fumadocs-ui/components/ui/popover";
 import { useI18n } from "fumadocs-ui/contexts/i18n";
 import type { LanguageSelectProps } from "fumadocs-ui/layouts/shared/slots/language-select";
-import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 import { i18n, isLocale } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
-import { carriedSearch, localeSwitchHref } from "@/lib/locale-switch";
 import { cn } from "@/lib/utils";
 
 function SparkleIcon({ className }: { className?: string }): ReactNode {
@@ -51,8 +49,6 @@ export function LocaleAwareLanguageSelect({
   ...rest
 }: LanguageSelectProps): ReactNode {
   const context = useI18n();
-  const router = useRouter();
-  const pathname = usePathname();
   const t = useTranslations("landing.nav.languageSwitcher");
   const baseId = useId();
   const descriptionId = `${baseId}-machine-translated`;
@@ -98,11 +94,7 @@ export function LocaleAwareLanguageSelect({
                   ? "bg-(--accent)/10 text-(--accent)"
                   : "text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
               )}
-              onClick={() => {
-                const kept = carriedSearch(pathname, window.location.search);
-                if (kept === "" || !isLocale(item.locale)) context.onChange?.(item.locale);
-                else router.push(`${localeSwitchHref(pathname, item.locale)}${kept}`);
-              }}
+              onClick={() => context.onChange?.(item.locale)}
             >
               <LocaleOptionLabel isMachineTranslated={isMachineTranslated} name={item.name} />
             </button>

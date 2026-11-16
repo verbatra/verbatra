@@ -5,7 +5,7 @@ import Button from "@/components/ui/button";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
-import { COMPARE_PATH } from "@/lib/landing-compare";
+import { comparisonHref } from "@/lib/landing-comparison";
 import {
   HERO_BACK_LOCALES,
   HERO_FILE_CHANGED_COUNT,
@@ -95,10 +95,7 @@ export async function Hero(): Promise<ReactNode> {
               />
             </div>
             <div className="vk-banner-compare-row">
-              <IntentPrefetchLink
-                href={localizedPath(locale, COMPARE_PATH)}
-                className="vk-banner-compare"
-              >
+              <IntentPrefetchLink href={comparisonHref(locale)} className="vk-banner-compare">
                 {t("ctaCompare")}
               </IntentPrefetchLink>
             </div>
