@@ -91,10 +91,10 @@ function classifyErrorStatus(
   }
 }
 
-function toProviderError({ code, message }: Classification): ProviderError {
+function toProviderError({ code, message }: Classification, status: number): ProviderError {
   return code === "MISSING_API_KEY"
-    ? new ProviderError(code, message, { envVar: LIBRETRANSLATE_ENV_VAR })
-    : new ProviderError(code, message);
+    ? new ProviderError(code, message, { envVar: LIBRETRANSLATE_ENV_VAR, status })
+    : new ProviderError(code, message, { status });
 }
 
 export function parseLibreTranslateHttpResult(
@@ -109,5 +109,5 @@ export function parseLibreTranslateHttpResult(
     }
     return parsed.data.translatedText;
   }
-  throw toProviderError(classifyErrorStatus(status, errorTextOf(body), keyConfigured));
+  throw toProviderError(classifyErrorStatus(status, errorTextOf(body), keyConfigured), status);
 }

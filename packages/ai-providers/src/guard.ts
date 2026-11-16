@@ -1,6 +1,7 @@
 import {
   type ClassifiedProviderErrorCode,
   classifyProviderError,
+  getDeepLStatus,
   getErrorStatus,
   isAbortError,
 } from "./error-classification.js";
@@ -15,7 +16,6 @@ import {
 import { findNetworkPolicyViolation } from "./network/guarded-fetch.js";
 import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
 import { statedRetryDelayMs } from "./retry-delay.js";
-import { markClientErrorRejection } from "./retryability.js";
 
 export const PROVIDER_CALL_FAILED_MESSAGE = `${LEAD_BY_CODE.PROVIDER_ERROR}.`;
 export const TIMEOUT_MESSAGE = `${LEAD_BY_CODE.TIMEOUT}.`;
@@ -70,8 +70,9 @@ export async function guardProviderCall<T>(
       throw new ProviderError("NETWORK_POLICY_VIOLATION", violation.message);
     }
     const code = classifyProviderError(error);
-    const failure = new ProviderError(code, messageFor(code, error, context));
-    const status = getErrorStatus(error);
-    throw status === undefined ? failure : markClientErrorRejection(failure, status);
+    const status = getErrorStatus(error) ?? getDeepLStatus(error);
+    throw new ProviderError(code, messageFor(code, error, context), {
+      ...(status === undefined ? {} : { status }),
+    });
   }
 }

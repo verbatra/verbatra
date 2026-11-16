@@ -91,5 +91,5 @@ export function parseGoogleTranslateHttpResult(status: number, body: unknown): r
     return parsed.data.data.translations.map((translation) => translation.translatedText);
   }
   const { code, message } = classifyErrorStatus(status, extractReasons(body));
-  throw new ProviderError(code, message);
+  throw new ProviderError(code, message, { status });
 }

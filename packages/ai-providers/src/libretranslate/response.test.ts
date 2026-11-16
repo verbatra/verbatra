@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProviderError } from "../errors.js";
+import { isRetryableProviderError } from "../retryability.js";
 import {
   AUTH_FAILED_MESSAGE,
   INVALID_REQUEST_MESSAGE,
@@ -98,5 +99,23 @@ describe("parseLibreTranslateHttpResult: errors", () => {
   it("never echoes the server's own error text", () => {
     const error = failure(500, { error: "Cannot translate text: secret-value-123" });
     expect(error.message).not.toContain("secret-value-123");
+  });
+});
+
+describe("parseLibreTranslateHttpResult: status", () => {
+  it.each([400, 401, 403, 404, 418, 429, 503])("carries HTTP %i on the error", (status) => {
+    expect(failure(status, { error: "x" }).status).toBe(status);
+  });
+
+  it("leaves status absent on a malformed success body", () => {
+    expect(() => parseLibreTranslateHttpResult(200, {}, false)).toThrow(
+      expect.not.objectContaining({ status: expect.anything() }),
+    );
+  });
+
+  it("makes a 404 non-retryable", () => {
+    const error = failure(404, {});
+    expect(error.code).toBe("PROVIDER_ERROR");
+    expect(isRetryableProviderError(error)).toBe(false);
   });
 });

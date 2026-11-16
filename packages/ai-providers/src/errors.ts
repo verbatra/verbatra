@@ -50,18 +50,31 @@ export class ProviderError extends Error {
   readonly envVar?: string;
 
   /**
+   * The HTTP status of the provider response behind this failure, when the failure came from one.
+   * Absent for a failure without an HTTP response, such as a network error or a timeout.
+   */
+  readonly status?: number;
+
+  /**
    * @param code - The failure code.
    * @param message - A description of the failure; key shapes and configured key values in it are
    * replaced by `[REDACTED]`.
    * @param details - `envVar` names the API key environment variable a `MISSING_API_KEY` failure
-   * is about.
+   * is about; `status` is the HTTP status of the provider response behind the failure.
    */
-  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string }) {
+  constructor(
+    code: ProviderErrorCode,
+    message: string,
+    details?: { readonly envVar?: string; readonly status?: number },
+  ) {
     super(redactKeys(message));
     this.name = "ProviderError";
     this.code = code;
     if (details?.envVar !== undefined) {
       this.envVar = details.envVar;
+    }
+    if (details?.status !== undefined) {
+      this.status = details.status;
     }
   }
 }

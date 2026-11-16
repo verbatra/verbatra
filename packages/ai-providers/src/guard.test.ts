@@ -316,39 +316,39 @@ describe("guardProviderCall: network policy", () => {
   });
 });
 
-describe("isRetryableProviderError", () => {
-  async function failureOf(status: number): Promise<ProviderError> {
-    const error = await guardProviderCall(() => Promise.reject(new StatusError(status))).catch(
-      (caught: unknown) => caught,
+describe("guardProviderCall: status", () => {
+  async function failureOf(error: unknown): Promise<ProviderError> {
+    const caught = await guardProviderCall(() => Promise.reject(error)).catch(
+      (rejection: unknown) => rejection,
     );
-    return error as ProviderError;
+    return caught as ProviderError;
   }
 
-  it.each([400, 404, 405, 409, 413, 422])(
-    "is false for a %i raised as PROVIDER_ERROR",
-    async (status) => {
-      const error = await failureOf(status);
-      expect(error.code).toBe("PROVIDER_ERROR");
-      expect(isRetryableProviderError(error)).toBe(false);
-    },
-  );
-
-  it.each([408, 429, 500, 503])("is true for a %i", async (status) => {
-    expect(isRetryableProviderError(await failureOf(status))).toBe(true);
+  it.each([400, 401, 404, 429, 503])("carries the raw status %i", async (status) => {
+    expect((await failureOf(new StatusError(status))).status).toBe(status);
   });
 
-  it.each([401, 403])("is false for a %i", async (status) => {
-    expect(isRetryableProviderError(await failureOf(status))).toBe(false);
+  it("carries the DeepL httpStatusCode when there is no status", async () => {
+    const raw = Object.assign(new Error("quota"), { httpStatusCode: 456 });
+    const error = await failureOf(raw);
+    expect(error.code).toBe("PROVIDER_ERROR");
+    expect(error.status).toBe(456);
+    expect(isRetryableProviderError(error)).toBe(false);
   });
 
-  it("is true for a network failure without a status", async () => {
-    const error = await guardProviderCall(() => Promise.reject(new Error("socket hang up"))).catch(
-      (caught: unknown) => caught,
-    );
-    expect(isRetryableProviderError(error as ProviderError)).toBe(true);
+  it("leaves status absent for a network failure", async () => {
+    const error = await failureOf(new Error("socket hang up"));
+    expect(error.status).toBeUndefined();
+    expect(isRetryableProviderError(error)).toBe(true);
   });
 
-  it("is true for a PROVIDER_ERROR constructed outside the guard", () => {
-    expect(isRetryableProviderError(new ProviderError("PROVIDER_ERROR", "x"))).toBe(true);
+  it.each([400, 404, 405, 409, 413, 422])("is not retryable for a %i", async (status) => {
+    const error = await failureOf(new StatusError(status));
+    expect(error.code).toBe("PROVIDER_ERROR");
+    expect(isRetryableProviderError(error)).toBe(false);
+  });
+
+  it.each([408, 429, 500, 503])("is retryable for a %i", async (status) => {
+    expect(isRetryableProviderError(await failureOf(new StatusError(status)))).toBe(true);
   });
 });
