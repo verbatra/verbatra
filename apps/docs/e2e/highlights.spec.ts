@@ -66,7 +66,7 @@ async function paneSlack(page: Page): Promise<number[]> {
 const SLACK_LIMIT = 48;
 
 const HEIGHT_CEILINGS: ReadonlyArray<readonly [number, number]> = [
-  [1440, 1050],
+  [1440, 1160],
   [768, 1120],
   [391, 1360],
 ];
@@ -212,10 +212,45 @@ for (const width of [320, 375, 391, 768, 1024, 1440]) {
   });
 }
 
+const ZIG_ZAG_OFFSET = 104;
+
+for (const locale of LOCALES) {
+  for (const width of [1440, 1024]) {
+    test.describe(`highlights zig-zag ${homeUrl(locale)} at ${width}px`, () => {
+      test.use({ viewport: { width, height: 900 } });
+
+      test("offsets the right pane of each row by 104px, in reading order, with no overlap", async ({
+        page,
+      }) => {
+        await page.goto(homeUrl(locale));
+        const boxes = await page.$$eval(PANES, (nodes) =>
+          nodes.map((node) => {
+            const rect = node.getBoundingClientRect();
+            return { top: rect.top + scrollY, bottom: rect.bottom + scrollY, left: rect.left };
+          }),
+        );
+        expect(boxes).toHaveLength(4);
+        const [first, second, third, fourth] = boxes;
+        expect((second?.top ?? 0) - (first?.top ?? 0)).toBeCloseTo(ZIG_ZAG_OFFSET, 0);
+        expect((fourth?.top ?? 0) - (third?.top ?? 0)).toBeCloseTo(ZIG_ZAG_OFFSET, 0);
+        expect(first?.top).toBeLessThan(second?.top ?? 0);
+        expect(second?.top).toBeLessThan(third?.top ?? 0);
+        expect(third?.top).toBeLessThan(fourth?.top ?? 0);
+        expect(third?.top ?? 0).toBeGreaterThanOrEqual((first?.bottom ?? 0) + 8);
+        expect(fourth?.top ?? 0).toBeGreaterThanOrEqual((second?.bottom ?? 0) + 8);
+        expect(first?.left).toBe(third?.left);
+        expect(second?.left).toBe(fourth?.left);
+      });
+    });
+  }
+}
+
 test.describe("highlights rows at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("keeps the rail slim and the panes of a row within 8px of each other", async ({ page }) => {
+  test("keeps the rail slim and the two panes of a row within 8px of each other in height", async ({
+    page,
+  }) => {
     await page.goto("/");
     const rail = await page
       .locator(`${SECTION} .vk-hl-rail`)
@@ -228,7 +263,6 @@ test.describe("highlights rows at 1440px", () => {
       [boxes[2], boxes[3]],
     ] as const) {
       expect(Math.abs((first?.height ?? 0) - (second?.height ?? 0))).toBeLessThanOrEqual(8);
-      expect(first?.top).toBe(second?.top);
     }
     expect(boxes[2]?.top).toBeGreaterThan(boxes[0]?.top ?? 0);
   });
@@ -255,6 +289,27 @@ test.describe("highlights rows at 1440px", () => {
 test.describe("highlights on a phone", () => {
   test.use({ viewport: { width: 391, height: 844 } });
 
+  test("draws the gutter line without adding height, and no zig-zag", async ({ page }) => {
+    await page.goto("/");
+    const layout = await page.locator(`${SECTION} .vk-hl-panes`).evaluate((panes) => {
+      const line = getComputedStyle(panes, "::before");
+      const cards = Array.from(panes.querySelectorAll(".vk-hl-pane"));
+      const first = cards[0]?.getBoundingClientRect();
+      const last = cards.at(-1)?.getBoundingClientRect();
+      return {
+        position: line.position,
+        display: line.display,
+        stacked: cards.map((card) => card.getBoundingClientRect().left),
+        extent: (last?.bottom ?? 0) - (first?.top ?? 0),
+        height: panes.getBoundingClientRect().height,
+      };
+    });
+    expect(layout.position).toBe("absolute");
+    expect(layout.display).toBe("block");
+    expect(new Set(layout.stacked).size).toBe(1);
+    expect(layout.height).toBeCloseTo(layout.extent, 0);
+  });
+
   test("shows at most 6 lines in the SDK and MCP panes", async ({ page }) => {
     await page.goto("/");
     for (const index of [2, 3]) {
@@ -271,6 +326,25 @@ test.describe("highlights on a phone", () => {
         );
       expect(lines).toBeLessThanOrEqual(6);
     }
+  });
+});
+
+test.describe("highlights at 768px", () => {
+  test.use({ viewport: { width: 768, height: 900 } });
+
+  test("keeps the plain two by two grid with no guide line", async ({ page }) => {
+    await page.goto("/");
+    const boxes = await paneBoxes(page);
+    expect(boxes[0]?.top).toBe(boxes[1]?.top);
+    expect(boxes[2]?.top).toBe(boxes[3]?.top);
+    const display = await page
+      .locator(`${SECTION} .vk-hl-panes`)
+      .evaluate((node) => [
+        getComputedStyle(node, "::before").display,
+        getComputedStyle(node, "::after").content,
+        getComputedStyle(node.querySelector(".vk-hl-pane") as Element, "::after").display,
+      ]);
+    expect(display).toEqual(["none", "none", "none"]);
   });
 });
 
@@ -296,6 +370,24 @@ test.describe("highlights cross-highlight", () => {
     const lit = await staleBackgrounds(page);
     expect(new Set(lit).size).toBe(1);
     expect(lit[0]).not.toBe(rest[0]);
+  });
+
+  test("lights every stale field and marked line from the hovered rail", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(SECTION).scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    const rest = await staleBackgrounds(page);
+    const lines = () =>
+      page.$$eval(`${SECTION} .vk-lock-line[data-mark]`, (nodes) =>
+        nodes.map((node) => getComputedStyle(node).backgroundColor),
+      );
+    const restLines = await lines();
+    expect(restLines.length).toBeGreaterThan(0);
+    await page.locator(`${SECTION} .vk-hl-rail`).hover();
+    await expect.poll(() => staleBackgrounds(page)).not.toEqual(rest);
+    expect(new Set(await staleBackgrounds(page)).size).toBe(1);
+    await expect.poll(lines).not.toEqual(restLines);
+    expect(new Set(await lines()).size).toBe(1);
   });
 
   test("lights the fields when focus is inside any pane", async ({ page }) => {
@@ -353,6 +445,258 @@ test.describe("highlights cross-highlight", () => {
       for (const { rail, ratio } of ratios) expect(ratio).toBeGreaterThanOrEqual(rail ? 6 : 4.5);
     });
   }
+});
+
+async function cardState(page: Page, index: number) {
+  return page
+    .locator(PANES)
+    .nth(index)
+    .evaluate((pane) => {
+      const card = pane.querySelector(".vk-lock-card") as HTMLElement;
+      const style = getComputedStyle(card);
+      return {
+        lift: new DOMMatrixReadOnly(style.transform === "none" ? undefined : style.transform).m42,
+        border: style.borderTopColor,
+        article: Math.round((pane.getBoundingClientRect().top + scrollY) * 100) / 100,
+      };
+    });
+}
+
+test.describe("highlights lit pane", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+  test("lifts only the hovered card 4px and moves neither the article nor its siblings, with no layout shift", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const holder = window as unknown as { __shift: number };
+      holder.__shift = 0;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as unknown as Array<{
+          value: number;
+          hadRecentInput: boolean;
+        }>)
+          if (!entry.hadRecentInput) holder.__shift += entry.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto("/");
+    await page.locator(SECTION).scrollIntoViewIfNeeded();
+    await expect(page.locator(`${PANES}[data-revealed]`)).toHaveCount(4);
+    for (const pane of await page.locator(PANES).all())
+      await expect(pane).toHaveCSS("translate", "none");
+    await page.mouse.move(0, 0);
+    const before = await Promise.all([0, 1, 2, 3].map((index) => cardState(page, index)));
+    await page.locator(PANES).nth(1).hover();
+    await expect.poll(async () => (await cardState(page, 1)).lift).toBeCloseTo(-4, 1);
+    const after = await Promise.all([0, 1, 2, 3].map((index) => cardState(page, index)));
+    for (const index of [0, 1, 2, 3]) {
+      expect(after[index]?.article).toBe(before[index]?.article);
+      if (index !== 1) expect(after[index]?.lift).toBe(before[index]?.lift);
+    }
+    expect(after[1]?.border).not.toBe(before[1]?.border);
+    expect(await page.evaluate(() => (window as unknown as { __shift: number }).__shift)).toBe(0);
+  });
+
+  test("gives focus inside a pane the same lift and border", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(SECTION).scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    const rest = await cardState(page, 2);
+    await page.locator(PANES).nth(2).locator("a").focus();
+    await expect.poll(async () => (await cardState(page, 2)).lift).toBeCloseTo(-4, 1);
+    expect((await cardState(page, 2)).border).not.toBe(rest.border);
+  });
+});
+
+test.describe("highlights lit pane under reduced motion", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+
+  test("changes the border and lifts nothing", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(SECTION).scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    const rest = await cardState(page, 0);
+    await page.locator(PANES).nth(0).hover();
+    await expect.poll(async () => (await cardState(page, 0)).border).not.toBe(rest.border);
+    expect((await cardState(page, 0)).lift).toBe(0);
+  });
+});
+
+test.describe("highlights lit pane on a touch device", () => {
+  test.use({
+    viewport: { width: 1024, height: 768 },
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: "no-preference",
+  });
+
+  test("never lifts a card, whatever is tapped", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(PANES).nth(0).scrollIntoViewIfNeeded();
+    await page.locator(PANES).nth(0).locator(".vk-lock-head").tap();
+    expect((await cardState(page, 0)).lift).toBe(0);
+  });
+});
+
+test.describe("highlights lit pane under forced colors", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, forcedColors: "active" });
+
+  test("outlines the hovered card with the Highlight system colour", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(SECTION).scrollIntoViewIfNeeded();
+    await page.locator(PANES).nth(0).hover();
+    await expect(page.locator(`${PANES} .vk-lock-card`).nth(0)).toHaveCSS("outline-style", "solid");
+    await expect(page.locator(`${PANES} .vk-lock-card`).nth(0)).toHaveCSS("outline-width", "2px");
+  });
+});
+
+type GuideLine = { fill: number; stubs: number[]; nodes: number[]; opacities: number[] };
+
+async function guideLine(page: Page): Promise<GuideLine> {
+  return page.locator(`${SECTION} .vk-hl-panes`).evaluate((panes) => {
+    const scale = (node: Element, pseudo: string, axis: "a" | "d"): number => {
+      const value = getComputedStyle(node, pseudo).transform;
+      return value === "none" ? 1 : new DOMMatrixReadOnly(value)[axis];
+    };
+    const cards = Array.from(panes.querySelectorAll(".vk-hl-pane"));
+    return {
+      fill: scale(panes, "::after", "d"),
+      stubs: cards.map((card) => scale(card, "::before", "a")),
+      nodes: cards.map((card) => scale(card, "::after", "a")),
+      opacities: cards.map((card) => Number(getComputedStyle(card, "::after").opacity)),
+    };
+  });
+}
+
+async function scrollThroughPanes(page: Page, fraction: number, settle = true): Promise<void> {
+  await page.locator(`${SECTION} .vk-hl-panes`).evaluate((panes, at) => {
+    const rect = panes.getBoundingClientRect();
+    const top = rect.top + scrollY;
+    window.scrollTo({
+      top: top - innerHeight + at * (innerHeight + rect.height),
+      behavior: "instant",
+    });
+  }, fraction);
+  if (!settle) return;
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+}
+
+test.describe("highlights guide line", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+  test("fills the spine from nothing to whole as the panes scroll through, never backwards", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const samples: number[] = [];
+    for (const fraction of [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9]) {
+      await scrollThroughPanes(page, fraction);
+      samples.push((await guideLine(page)).fill);
+    }
+    expect(samples[0]).toBe(0);
+    expect(samples.at(-1)).toBe(1);
+    for (let index = 1; index < samples.length; index += 1)
+      expect(samples[index] ?? 0).toBeGreaterThanOrEqual(samples[index - 1] ?? 0);
+    expect(samples.some((value) => value > 0.05 && value < 0.95)).toBe(true);
+  });
+
+  test("lights the four nodes in order, each stub drawn before its node", async ({ page }) => {
+    await page.goto("/");
+    await scrollThroughPanes(page, 0);
+    const start = await guideLine(page);
+    expect(start.stubs).toEqual([0, 0, 0, 0]);
+    expect(start.opacities).toEqual([0.35, 0.35, 0.35, 0.35]);
+    const firstLit: number[] = [];
+    for (let step = 0; step <= 20; step += 1) {
+      const fraction = step / 20;
+      await scrollThroughPanes(page, fraction);
+      const line = await guideLine(page);
+      line.opacities.forEach((opacity, index) => {
+        if (opacity === 1 && firstLit[index] === undefined) firstLit[index] = fraction;
+        if (line.nodes[index] === 1) expect(line.stubs[index]).toBe(1);
+      });
+    }
+    expect(firstLit).toHaveLength(4);
+    for (let index = 1; index < firstLit.length; index += 1)
+      expect(firstLit[index] ?? 0).toBeGreaterThan(firstLit[index - 1] ?? 1);
+  });
+
+  test("shows the whole line at rest with no motion allowed", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await scrollThroughPanes(page, 0);
+    expect(await guideLine(page)).toEqual({
+      fill: 1,
+      stubs: [1, 1, 1, 1],
+      nodes: [1, 1, 1, 1],
+      opacities: [1, 1, 1, 1],
+    });
+    await context.close();
+  });
+
+  test("shows the whole line with scripting off", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: "no-preference",
+      javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await scrollThroughPanes(page, 0, false);
+    expect(await guideLine(page)).toEqual({
+      fill: 1,
+      stubs: [1, 1, 1, 1],
+      nodes: [1, 1, 1, 1],
+      opacities: [1, 1, 1, 1],
+    });
+    await context.close();
+  });
+
+  test("scrubs nothing and shifts no layout while the panes scroll through", async ({ page }) => {
+    await page.addInitScript(() => {
+      const holder = window as unknown as { __shift: number };
+      holder.__shift = 0;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as unknown as Array<{
+          value: number;
+          hadRecentInput: boolean;
+        }>)
+          if (!entry.hadRecentInput) holder.__shift += entry.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto("/");
+    const before = await sectionHeight(page);
+    for (const fraction of [0, 0.3, 0.6, 1]) await scrollThroughPanes(page, fraction);
+    expect(await sectionHeight(page)).toBe(before);
+    expect(await page.evaluate(() => (window as unknown as { __shift: number }).__shift)).toBe(0);
+  });
+});
+
+test.describe("highlights guide line under forced colors", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, forcedColors: "active" });
+
+  test("draws the spine in CanvasText", async ({ page }) => {
+    await page.goto("/");
+    const colour = await page
+      .locator(`${SECTION} .vk-hl-panes`)
+      .evaluate((node) => getComputedStyle(node, "::after").backgroundColor);
+    expect(colour).toBe(
+      await page.evaluate(() => {
+        const probe = document.createElement("i");
+        probe.style.color = "CanvasText";
+        document.body.append(probe);
+        const value = getComputedStyle(probe).color;
+        probe.remove();
+        return value;
+      }),
+    );
+  });
 });
 
 test.describe("highlights reveal", () => {
