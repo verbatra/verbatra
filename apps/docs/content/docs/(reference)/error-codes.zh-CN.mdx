@@ -821,7 +821,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`check --require-reviewed`
 - **退出码**：`1`
-- **下一步**：Approve or correct the listed keys in [Studio's Review queue](/zh-CN/docs/review-in-studio) or with the MCP tools `review.approve` and `review.reject`, then commit `verbatra.provenance.json`.
+- **下一步**：在 [Studio 的审校队列](/zh-CN/docs/review-in-studio)中，或用 MCP 工具 `review.approve` 和 `review.reject`，批准或修正列出的键，然后提交 `verbatra.provenance.json`。
 
 ### REVIEW_STATE_UNREADABLE
 
@@ -829,7 +829,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`check --require-reviewed`
 - **退出码**：`1`
-- **下一步**：Restore `verbatra.provenance.json` from version control, or upgrade verbatra if a newer version wrote it.
+- **下一步**：从版本控制中恢复 `verbatra.provenance.json`；如果它是由更新版本的 verbatra 写入的，请升级 verbatra。
 
 ## 完整性拒绝原因 [#integrity-refusal-reasons]
 
@@ -839,13 +839,13 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 候选值的占位符与它的源不同，按多重集合比较：数量有影响，顺序没有。什么算占位符，按[格式](/zh-CN/docs/formats)各自定义。对 i18next、ngx-translate 和 YAML，候选值新增而源中从未有过的形如 `{name}` 的记号，同样会被拒绝，尽管在这些格式中单个花括号是字面文本。详情用 `-` 标出每个被丢弃的占位符，用 `+` 标出每个新增的占位符，例如 `-{{name}}` 或 `+{{nom}}`。
 
-- **下一步**：Put the source's placeholders back into the translation, or let the next run translate it again.
+- **下一步**：把源值中的占位符放回译文，或让下次运行重新翻译它。
 
 ### markup
 
 候选值中的 HTML 或 XML 内联标记与它的源不同，或格式不良。详情列出拒绝所涉及的每个标签，源中有而候选值丢弃的标签前缀为 `-`，候选值臆造的标签前缀为 `+`。
 
-- **下一步**：Keep the source's tags, attribute names and protected attribute values in the translation.
+- **下一步**：在译文中保留源值的标签、属性名和受保护的属性值。
 
 #### 如何比较标记
 
@@ -882,19 +882,19 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 对 next-intl 和 ARB，候选值不再能解析为 ICU 消息（包括没有 `other` 分支的 `plural`），或它的 `plural` 或 `selectordinal` 分支不符合目标语言的 CLDR 类别，或它的 `select` 分支与源不同。详情会列出每个有误的分支。规则见[各目标语言的复数分支](/zh-CN/docs/translation-safety#各目标语言的复数分支)。
 
-- **下一步**：Fix the message so it parses and carries exactly the arms the target language needs.
+- **下一步**：修正该消息，使它能够解析，并且恰好带有目标语言所需的分支。
 
 ### degenerate
 
 候选值在结构上已退化：出现重复循环，或长度与其源相比失控，这是模型陷入重复某个片段时的样子，即使每个占位符都保留了下来。
 
-- **下一步**：Let the next run translate the key again, or write the translation by hand.
+- **下一步**：让下次运行重新翻译该键，或手写译文。
 
 ### empty
 
 候选值为空或只有空白，而它的源并非如此。清空译文是有意的操作：工作簿的 `[[CLEAR]]` 特殊标记值可以做到。
 
-- **下一步**：Write a translation, or clear the value on purpose with `[[CLEAR]]` in a workbook import.
+- **下一步**：写一条译文，或在工作簿导入中用 `[[CLEAR]]` 有意清空该值。
 
 ## 审校原因 [#review-reason-codes]
 
@@ -908,7 +908,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Read the translation against its source, then keep or correct it.
+- **下一步**：对照源值阅读译文，然后保留或修正它。
 
 ### MAX_LENGTH_EXCEEDED
 
@@ -918,7 +918,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Shorten the translation, or raise the key's `maxLength` budget.
+- **下一步**：缩短译文，或提高该键的 `maxLength` 预算。
 
 ### EQUALS_SOURCE
 
@@ -928,7 +928,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Translate the value, or keep it if the text really stays the same in that language.
+- **下一步**：翻译该值；如果这段文本在该语言中确实保持不变，则保留它。
 
 ### GLOSSARY_TERM_MISSED
 
@@ -938,7 +938,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Use the glossary's translation of the term, or keep the term unchanged.
+- **下一步**：使用术语表中该术语的译法，或保持该术语不变。
 
 ### GLOSSARY_FORBIDDEN_TERM
 
@@ -948,7 +948,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Replace the forbidden rendering with the approved one.
+- **下一步**：用获准的译法替换被禁用的译法。
 
 ### INTEGRITY_REORDERED
 
@@ -956,7 +956,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Check that the new order reads correctly in the target language.
+- **下一步**：检查新的顺序在目标语言中读起来是否正确。
 
 ### PROVIDER_DEGRADED
 
@@ -966,7 +966,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）
 - **退出码**：无
-- **下一步**：Check the tone and the glossary terms of the value.
+- **下一步**：检查该值的语气和术语表中的术语。
 
 ### FUZZY_CACHE_REUSE
 
@@ -974,7 +974,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）
 - **退出码**：无
-- **下一步**：Check that the reused value still matches the edited source.
+- **下一步**：检查复用的值是否仍与修改后的源值相符。
 
 ### FOREIGN_PLACEHOLDER_CHANGED
 
@@ -984,7 +984,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告，在 `details` 中列出每个缺失的记号，例如 `-{name}`）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Restore the token in the translation if your library interpolates it.
+- **下一步**：如果你的库会对该记号做插值，请在译文中恢复它。
 
 ### BIDI_CONTROLS_CHANGED
 
@@ -994,7 +994,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`（在 `needsReview` 上）；`retranslateEntry`（在 `reviewReasons` 中）；`export`（在审校列中）；`check --qa`（作为警告）
 - **退出码**：`translate` 无；`check --qa --strict` 为 `1`
-- **下一步**：Close or remove the direction controls in the translation.
+- **下一步**：在译文中闭合或移除方向控制字符。
 
 ## 运行通知 [#sdk-notice-codes]
 
@@ -1006,7 +1006,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`；`check` 把它与复数一起列出，`doctor` 把它列在 Plural completeness 之下
 - **退出码**：它本身无；`check --qa --strict` 为 `1`
-- **下一步**：Add the missing plural forms by hand.
+- **下一步**：手动补上缺少的复数形式。
 
 ### SUB_BATCH_FAILED
 
@@ -1014,7 +1014,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：`1`：该语言环境以 `partial` 或 `failed` 结束
-- **下一步**：Look up the code it names under [Provider error codes](#provider-error-codes). The keys are translated again on the next run.
+- **下一步**：在[提供商错误码](#provider-error-codes)中查找它给出的错误码。这些键会在下次运行时重新翻译。
 
 ### BLANK_ROW_BASELINE_RETAINED
 
@@ -1022,7 +1022,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`import`
 - **退出码**：它本身无
-- **下一步**：Translate the key in a fresh export, or run `verbatra translate`.
+- **下一步**：在新的导出文件中翻译该键，或运行 `verbatra translate`。
 
 ### HANDOFF_REVIEWS_RECORDED
 
@@ -1030,7 +1030,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`import`
 - **退出码**：无
-- **下一步**：Nothing to fix; commit `verbatra.provenance.json`.
+- **下一步**：无需处理；提交 `verbatra.provenance.json` 即可。
 
 ### BUDGET_TOKENS_EXCEEDED
 
@@ -1038,7 +1038,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：`budgetBehavior: "warn"` 下无；`"stop"` 下一旦有键被搁置则为 `1`
-- **下一步**：Raise the budget, or run again: withheld keys are translated on the next run.
+- **下一步**：提高预算，或再运行一次：被搁置的键会在下次运行时翻译。
 
 ### CACHE_VERSION_UNRECOGNIZED
 
@@ -1046,7 +1046,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：无
-- **下一步**：Upgrade verbatra, or delete the file to rebuild it.
+- **下一步**：升级 verbatra，或删除该文件让它重建。
 
 ### PROVENANCE_VERSION_UNRECOGNIZED
 
@@ -1054,7 +1054,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`、`import`
 - **退出码**：无
-- **下一步**：Upgrade verbatra to keep the record current.
+- **下一步**：升级 verbatra，让记录保持最新。
 
 ### PROVENANCE_FILE_TOO_LARGE
 
@@ -1062,7 +1062,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`、`import`
 - **退出码**：无
-- **下一步**：The values stay written; only their record is missing. Check why the file grew so large before the next run.
+- **下一步**：这些值仍已写入；只是它们的记录缺失。在下次运行之前，先查明该文件为何变得这么大。
 
 ### LIMITS_FILE_IGNORED
 
@@ -1070,7 +1070,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`；由 `check --qa` 和 `check --file` 作为 `qa.limitsNotice` 返回，由 `export`、`retranslateEntry`、`keyContext` 以及 MCP 工具 `key.context` 和 `translation.retranslateEntry` 作为 `limitsNotice` 返回；`doctor` 把该文件列在 Length limits 之下
 - **退出码**：无
-- **下一步**：Fix or delete `verbatra.limits.json`; `verbatra doctor` names what is wrong with it.
+- **下一步**：修正或删除 `verbatra.limits.json`；`verbatra doctor` 会指出它有什么问题。
 
 ### LOCALE_STATE_CARRIED_OVER
 
@@ -1078,7 +1078,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`、`import`
 - **退出码**：无
-- **下一步**：Nothing to fix; commit the lock and provenance files.
+- **下一步**：无需处理；提交锁文件和来源记录文件即可。
 
 ### LOCALE_STATE_CARRY_OVER_SKIPPED
 
@@ -1086,7 +1086,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`、`import`
 - **退出码**：语言环境以 `LOCALE_STATE_NOT_CARRIED_OVER` 失败时为 `1`
-- **下一步**：Wait for other verbatra processes to finish, then run again.
+- **下一步**：等其他 verbatra 进程结束，然后再运行一次。
 
 ### LOCALE_UNVERIFIED_BY_PROVIDER
 
@@ -1094,7 +1094,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
 - **退出码**：无
-- **下一步**：Run `verbatra doctor --locales` to see the code sent, and map the locale in `provider.options.localeMap` if it is wrong.
+- **下一步**：运行 `verbatra doctor --locales` 查看发送的代码；如果有误，在 `provider.options.localeMap` 中映射该语言环境。
 
 ### LOCALE_NOT_WELL_TESTED
 
@@ -1102,7 +1102,7 @@ LLM 提供商翻译的语言不在经过充分测试的语言列表中。
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
 - **退出码**：无
-- **下一步**：Have a person review the translations for this locale.
+- **下一步**：请人工审校该语言环境的译文。
 
 ### GLOSSARY_UNSUPPORTED_BY_PROVIDER
 
@@ -1110,7 +1110,7 @@ LLM 提供商翻译的语言不在经过充分测试的语言列表中。
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
 - **退出码**：无
-- **下一步**：Check the glossary terms in review, or choose a provider that applies a glossary for the locale.
+- **下一步**：在审校中检查术语表中的术语，或选择对该语言环境应用术语表的提供商。
 
 ### FORMALITY_UNSUPPORTED_BY_PROVIDER
 
@@ -1118,7 +1118,7 @@ LLM 提供商翻译的语言不在经过充分测试的语言列表中。
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`；`doctor --locales` 会报告它
 - **退出码**：无
-- **下一步**：Check the tone in review, or choose a provider that applies formality for the locale.
+- **下一步**：在审校中检查语气，或选择对该语言环境应用正式程度的提供商。
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
@@ -1128,7 +1128,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：无
-- **下一步**：Review the translations of the named keys, or switch the syntax if your library does not interpolate these tokens.
+- **下一步**：审校所列键的译文；如果你的库不对这些记号做插值，请改用其他语法。
 
 ### SOURCE_VALUE_EMPTY
 
@@ -1136,7 +1136,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：无
-- **下一步**：Write the source text of the named keys, then run `verbatra translate` again.
+- **下一步**：写出所列键的源文本，然后再次运行 `verbatra translate`。
 
 ### SENSITIVE_CONTENT_SENT
 
@@ -1144,7 +1144,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：无
-- **下一步**：Remove the content, allow it in `sensitiveData.allow`, or switch to `redact` or `block`.
+- **下一步**：移除这些内容，在 `sensitiveData.allow` 中允许它，或改用 `redact` 或 `block`。
 
 ### SENSITIVE_CONTENT_REDACTED
 
@@ -1152,7 +1152,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：无
-- **下一步**：None needed.
+- **下一步**：无需处理。
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
@@ -1160,7 +1160,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：`1`，因为被搁置的键会让语言环境处于 `partial` 或 `failed`；只有术语表条目被排除时为 `0`，因为语言环境仍然成功
-- **下一步**：Remove the content, or allow it in `sensitiveData.allow`; the keys are retried on the next run.
+- **下一步**：移除这些内容，或在 `sensitiveData.allow` 中允许它；这些键会在下次运行时重试。
 
 ### RUN_CANCELLED [#notice-run_cancelled]
 
@@ -1168,7 +1168,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：SDK，调用方传入 `signal` 时；MCP 工具 `translation.translatePending` 会传入客户端的取消信号
 - **退出码**：无：没有任何 CLI 命令会触发它
-- **下一步**：Run `translate` again to send the pending keys.
+- **下一步**：再次运行 `translate`，发送待处理的键。
 
 ## 提供商通知 [#provider-notice-codes]
 
@@ -1180,7 +1180,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：无
-- **下一步**：Check the tone in review, or use a provider or plan that supports formality.
+- **下一步**：在审校中检查语气，或使用支持正式程度的提供商或套餐。
 
 ### GLOSSARY_IGNORED
 
@@ -1188,7 +1188,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：无
-- **下一步**：Check the glossary terms in review, or use an LLM provider for glossary-bound text.
+- **下一步**：在审校中检查术语表中的术语，或对受术语表约束的文本使用 LLM 提供商。
 
 ### PLACEHOLDER_UNSUPPORTED
 
@@ -1196,4 +1196,4 @@ DeepL、Google Cloud Translation 或 LibreTranslate 至少有一个值没有翻�
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：`1`：这些键列在 `providerFailures` 之下，语言环境以 `partial` 或 `failed` 结束
-- **下一步**：Translate those values by hand, or use an LLM provider for them.
+- **下一步**：手动翻译这些值，或对它们使用 LLM 提供商。
