@@ -200,7 +200,7 @@ function rejectEntry(
 
 入力は `approveEntry` と同じように検査されます。ただし、ソースが古くなっていても、却下は妨げられません。`{ locale, key, provenance }` を返します。渡されなかったキーを保持するフォーマット（XLIFF）では、ファイルを復元した後に `REVIEW_REJECT_UNSUPPORTED` をスローします。
 
-どちらの呼び出しも、`editEntry` と同様に、`lockAcquireTimeoutMs` と `onLockWait` を使ってロケールの書き込みロックを取得します。`LOCK_TIMEOUT_INVALID` は、指定された上限が 0 以上のミリ秒の整数ではないことを意味します。タイムアウトは、判断を記録するために取得するロックファイルの書き込みロックには適用されません。こちらは常にデフォルトの 10 分まで待ちます。
+どちらの呼び出しも、`editEntry` と同様に、`lockAcquireTimeoutMs` と `onLockWait` を使ってロケールの書き込みロックを取得します。`LOCK_TIMEOUT_INVALID` は、指定された上限が 0 以上のミリ秒の整数ではないことを意味します。タイムアウトは、判断を記録するために取得するロックファイルのガードには適用されません。こちらは常にデフォルトの 10 分まで待ちます。
 
 どちらも、保存できなかった判断を報告しません。より新しい verbatra の来歴ファイルがある場合や、判断によって verbatra が読み戻せるサイズを超えてしまう場合は、何かが書き込まれる前に `PROVENANCE_FILE_UNWRITABLE` をスローします。
 

@@ -6,7 +6,7 @@ type: reference
 ---
 ## RunSummary の構造
 
-`translate`、`importWorkbook`、および `watch` の成功した各回の実行は、`RunSummary` で resolve されます。
+`translate` と `importWorkbook` は `RunSummary` で resolve されます。`watch` では、成功した各回の実行が `RunSummary` で resolve されます。
 
 ```ts
 interface RunSummary {

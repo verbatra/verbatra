@@ -171,7 +171,7 @@ interface InitResult {
 
 同じ回答で `init` をもう一度実行しても、何も変わらず、成功します。内容が異なる `verbatra.config.ts` は、`--force` を渡さない限り `CONFIG_EXISTS` で拒否され、この拒否は質問やほかのエラーより先に起きます。ディレクトリにある別の verbatra 設定ファイル（`.verbatrarc.json`、または `package.json` の `verbatra` プロパティ）は、先に読み込まれてしまうため、`--force` を付けても拒否されます。`init` が拒否した場合、何も書き込まれません。親ディレクトリの設定ファイルがこのディレクトリを対象にしている場合は、stderr に警告が出ます（ドライランでも同様）。ここでは新しい `verbatra.config.ts` がそれを置き換えます。
 
-`init` が書き込めないディレクトリは、ファイルと、すでに書き込まれたファイルを示して `INIT_UNWRITABLE` で拒否されます。プロジェクトの外、または存在しない場所を指すシンボリックリンクになっている `verbatra.config.ts`、`.env.example`、`.gitignore` は、何も書き込まれる前に `INIT_UNWRITABLE` で拒否されます。既存の `.env.example` は残されます。そこにAPI キーの変数の名前がまだない場合は、その 1 行だけが追加され、`--force` の下では、`init` 自身が書いたヘッダー行が新しいプロバイダー用に書き直されます。`.gitignore` には、足りないエントリだけが追加されます。
+`init` が書き込めないディレクトリは、ファイルと、すでに書き込まれたファイルを示して `INIT_UNWRITABLE` で拒否されます。プロジェクトの外、または存在しない場所を指すシンボリックリンクになっている `verbatra.config.ts`、`.env.example`、`.gitignore` は、何も書き込まれる前に `INIT_UNWRITABLE` で拒否されます。既存の `.env.example` は残されます。そこに API キー変数の名前がまだない場合は、その 1 行だけが追加され、`--force` の下では、`init` 自身が書いたヘッダー行が新しいプロバイダー用に書き直されます。`.gitignore` には、足りないエントリだけが追加されます。
 
 ### ドライラン
 

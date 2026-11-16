@@ -113,7 +113,7 @@
         },
         "ci": {
           "question": "翻訳が欠けているとき、Verbatra は pull request を失敗させられますか？",
-          "answer": "はい。ロケールに欠落しているキーや古くなったキーがある間、<code>verbatra check</code> は API キーなしで終了コード 1 で終了します。<link>GitHub Action</link> は、これを pull request で実行します。"
+          "answer": "はい。<code>verbatra check</code> は API キー不要で、ロケールに欠落しているキーや古くなったキーがある間は終了コード 1 で終了します。<link>GitHub Action</link> は、これを pull request で実行します。"
         },
         "compare": {
           "question": "Verbatra はほかの i18n ツールと何が違いますか？",

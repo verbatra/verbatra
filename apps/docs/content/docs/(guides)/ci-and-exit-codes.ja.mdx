@@ -71,7 +71,7 @@ verbatra check --require-reviewed
 
 ## プッシュ時に翻訳する
 
-[`verbatra translate`](/ja/docs/cli/translate) を実行し、シークレットストアのプロバイダーの API キーを、その手順の環境変数に割り当てます。CLI は API キーを引数で受け取らず、設定ファイルからも読み込みません。各プロバイダーが読み込むAPI キーの変数は、[プロバイダー](/ja/docs/providers#api-キーは環境変数から読み込む)にあります。
+[`verbatra translate`](/ja/docs/cli/translate) を実行し、シークレットストアのプロバイダーの API キーを、その手順の環境変数に割り当てます。CLI は API キーを引数で受け取らず、設定ファイルからも読み込みません。各プロバイダーが読み込む API キーの変数は、[プロバイダー](/ja/docs/providers#api-キーは環境変数から読み込む)にあります。
 
 ```yaml
       - run: pnpm exec verbatra translate --json
