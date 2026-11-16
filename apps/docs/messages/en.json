@@ -119,7 +119,8 @@
           "question": "How is Verbatra different from other i18n tools?",
           "answer": "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison table</link> checks it against other tools, including where they are stronger."
         }
-      }
+      },
+      "label": "The questions"
     },
     "footer": {
       "tagline": "An open source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
@@ -284,10 +285,11 @@
       },
       "sdk": {
         "copyAria": "Copy the SDK install command"
-      }
+      },
+      "label": "The result"
     },
     "features": {
-      "label": "Features",
+      "label": "The commands",
       "heading": "Built for the whole translation workflow",
       "lead": "From the first string in your source code to the reviewed translation in production.",
       "items": {
@@ -351,7 +353,8 @@
         "no": "No"
       },
       "lastChecked": "Last checked {date}",
-      "sources": "Sources"
+      "sources": "Sources",
+      "label": "The alternatives"
     },
     "steps": {
       "items": {

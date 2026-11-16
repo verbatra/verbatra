@@ -6,6 +6,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { renderToStaticMarkup, renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { LANDING_SECTIONS } from "@/lib/landing-sections";
+import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { Section } from "./section";
 import { SectionAside, SectionHead } from "./section-head";
@@ -165,6 +166,20 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
   });
 
+  it("puts an aside eyebrow first in the side column, above the heading, and none when not asked", () => {
+    const side = (eyebrow?: string) =>
+      render(
+        <SectionAside id="h" title="Title" lead="Lead" {...(eyebrow ? { eyebrow } : {})}>
+          <p>content</p>
+        </SectionAside>,
+      ).querySelector(".vk-section-aside-side");
+    const labelled = side("Label");
+    expect(labelled?.firstElementChild?.className).toBe("vk-eyebrow");
+    expect(labelled?.firstElementChild?.textContent).toBe("Label");
+    expect(labelled?.querySelector("h2")?.textContent).toBe("Title");
+    expect(side()?.querySelector(".vk-eyebrow")).toBeNull();
+  });
+
   it("opens every section's content one --head-gap under its head, never an ad hoc margin", () => {
     expect(css).toMatch(/:root \{[^}]*--head-gap: 2\.5rem;/);
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
@@ -220,10 +235,61 @@ describe("the section head on the 12-column grid", () => {
       marquee: "heading",
       "lock-demo": "heading",
       gate: "split",
-      highlights: "split",
+      highlights: "stacked",
       features: "split",
       compare: "split",
       faq: "aside",
     });
+  });
+
+  it("labels every content section with one unnumbered eyebrow above its heading, and the band with none", async () => {
+    await preloadRegisteredIslands();
+    const { Faq, faqContent } = await import("./faq");
+    const { Features } = await import("./features");
+    const { Comparison } = await import("./comparison");
+    const { Highlights } = await import("./highlights");
+    const { LockDemo } = await import("./lock-demo");
+    const { StatementBand } = await import("./statement-band");
+    const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>, string | null]> = [
+      ["lock-demo", LockDemo, en.landing.lockDemo.label],
+      ["features", Features, en.landing.features.label],
+      ["highlights", Highlights, en.landing.highlights.label],
+      ["compare", Comparison, en.landing.comparison.label],
+      [
+        "faq",
+        async () => Faq({ locale: "en", items: await faqContent("en") }),
+        en.landing.faq.label,
+      ],
+      ["statement", StatementBand, null],
+    ];
+    for (const [id, section, label] of sections) {
+      const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
+      const eyebrows = Array.from(doc.querySelectorAll(`section#${id} .vk-eyebrow`));
+      if (label === null) {
+        expect(eyebrows, id).toHaveLength(0);
+        continue;
+      }
+      expect(
+        eyebrows.map((node) => node.textContent),
+        id,
+      ).toEqual([label]);
+      const heading = doc.querySelector(`section#${id} h2`);
+      expect(eyebrows[0]?.compareDocumentPosition(heading as Node) ?? 0, id).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      expect(heading?.textContent, id).not.toBe(label);
+    }
+  });
+
+  it("opens the FAQ eyebrow one eyebrow gap above the heading, like the stacked heads, by cancelling the aside's row gap", () => {
+    expect(css).toMatch(
+      /\.vk-section-aside-side > \.vk-eyebrow \{\s+margin-block-end: calc\(1\.25rem - var\(--head-gap\)\);/,
+    );
+  });
+
+  it("lets the highlights title run the full measure of its stacked head", () => {
+    expect(css).toMatch(
+      /\.vk-home #highlights \.vk-section-head-title \.vk-h2 \{\s+max-width: none;/,
+    );
   });
 });

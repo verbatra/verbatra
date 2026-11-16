@@ -196,8 +196,10 @@ export async function Highlights(): Promise<ReactNode> {
   const locale = toLocale(await getLocale());
   return (
     <Section id="highlights" labelledBy={HIGHLIGHTS_HEADING_ID}>
+      <p className="vk-eyebrow">{t("label")}</p>
       <SectionHead
         id={HIGHLIGHTS_HEADING_ID}
+        layout="stacked"
         title={t("heading")}
         lead={keepCompoundsWhole(
           t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),

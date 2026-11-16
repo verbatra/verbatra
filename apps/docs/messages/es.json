@@ -119,7 +119,8 @@
           "question": "¿En qué se diferencia Verbatra de otras herramientas de i18n?",
           "answer": "Es una CLI que se ejecuta sobre tus propios archivos versionados, no una plataforma alojada. La <link>tabla de comparación</link> la contrasta con otras herramientas, incluso donde son más fuertes."
         }
-      }
+      },
+      "label": "Las preguntas"
     },
     "footer": {
       "tagline": "Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale de i18n a través del proveedor que elijas.",
@@ -284,10 +285,11 @@
       },
       "sdk": {
         "copyAria": "Copiar el comando de instalación del SDK"
-      }
+      },
+      "label": "El resultado"
     },
     "features": {
-      "label": "Características",
+      "label": "Los comandos",
       "heading": "Diseñado para todo el flujo de trabajo de traducción",
       "lead": "Desde la primera cadena en tu código fuente hasta la traducción revisada en producción.",
       "items": {
@@ -389,7 +391,8 @@
         "no": "No"
       },
       "lastChecked": "Última revisión: {date}",
-      "sources": "Fuentes"
+      "sources": "Fuentes",
+      "label": "Las alternativas"
     },
     "statement": {
       "text": "Un archivo de bloqueo. Cada comando lo lee."

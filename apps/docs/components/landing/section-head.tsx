@@ -89,8 +89,10 @@ export function SectionAside({
   id,
   trailing,
   className,
+  eyebrow,
   children,
 }: SectionHeadProps & {
+  eyebrow?: string;
   trailing?: (placement: AsideTrailingPlacement) => ReactNode;
   className?: string;
   children: ReactNode;
@@ -98,6 +100,7 @@ export function SectionAside({
   return (
     <div className={cn("vk-section-aside vk-grid-12", className)}>
       <div className="vk-section-aside-side">
+        {eyebrow ? <p className="vk-eyebrow">{eyebrow}</p> : null}
         <HeadBlock title={title} lead={lead} id={id} shape="aside" />
         {trailing?.("side")}
       </div>

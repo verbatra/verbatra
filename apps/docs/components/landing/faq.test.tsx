@@ -203,8 +203,10 @@ describe("the landing faq markup", () => {
     const container = await render("en");
     const side = container.querySelector(".vk-section-aside-side");
     const nav = side?.querySelector("nav[data-placement='side']");
-    expect(side?.firstElementChild?.className).toContain("vk-section-head-aside");
-    expect(nav?.previousElementSibling).toBe(side?.firstElementChild);
+    const head = side?.querySelector(".vk-section-head-aside");
+    expect(side?.firstElementChild?.className).toBe("vk-eyebrow");
+    expect(side?.firstElementChild?.nextElementSibling).toBe(head);
+    expect(nav?.previousElementSibling).toBe(head);
     const after = container.querySelector("nav[data-placement='after']");
     const hrefs = (root: Element | null | undefined) =>
       [...(root?.querySelectorAll("a") ?? [])].map((link) => link.getAttribute("href"));

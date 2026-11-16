@@ -161,7 +161,7 @@ async function faq({ locale }: Context): Promise<string> {
     ),
   );
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead"),
     ...items,
     `${t("docs.label")}:`,
@@ -256,7 +256,7 @@ async function highlights({ locale }: Context): Promise<string> {
     link(SURFACE_DOCS_PATHS[id].slice(1), localizedPath(locale, SURFACE_DOCS_PATHS[id])),
   ];
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
     `**${LOCK_FILE_NAME}** ${RAIL_BADGE}`,
     fencedMarkdown(
@@ -361,7 +361,7 @@ async function comparison({ locale }: Context): Promise<string> {
     ].join("\n");
   }).join("\n");
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead"),
     t("caption"),
     table,

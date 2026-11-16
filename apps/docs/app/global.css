@@ -459,6 +459,10 @@ html.light {
   align-content: start;
 }
 
+.vk-section-aside-side > .vk-eyebrow {
+  margin-block-end: calc(1.25rem - var(--head-gap));
+}
+
 .vk-faq-docs-label {
   margin: 0;
   font-size: var(--text-sm);
@@ -3871,6 +3875,10 @@ html:has(.vk-home) {
 
 .vk-eyebrow::after {
   content: "\00a0}" / "";
+}
+
+.vk-home #highlights .vk-section-head-title .vk-h2 {
+  max-width: none;
 }
 
 .vk-statement-text {

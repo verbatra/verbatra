@@ -140,6 +140,7 @@ export async function Comparison(): Promise<ReactNode> {
   const locale = toLocale(await getLocale());
   return (
     <Section id={COMPARISON_ANCHOR} labelledBy={HEADING_ID} className="vk-comparison">
+      <p className="vk-eyebrow">{t("label")}</p>
       <SectionHead id={HEADING_ID} title={t("heading")} lead={t("lead")} align="start" />
       <div className="vk-comparison-card" data-reveal={0}>
         <div className="vk-comparison-frame">

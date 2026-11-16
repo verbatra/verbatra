@@ -145,7 +145,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
 
   it("opens the highlights on the four surfaces and the one lock file, in the order of the panes", async () => {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## Ask any surface, get the same answer");
+    const at = body.indexOf("## The result: Ask any surface, get the same answer");
     expect(at).toBeGreaterThan(0);
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain(
@@ -190,7 +190,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
 describe("the English landing markdown comparison section", () => {
   async function section(): Promise<string> {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## How Verbatra compares");
+    const at = body.indexOf("## The alternatives: How Verbatra compares");
     expect(at).toBeGreaterThan(0);
     return body.slice(at, body.indexOf("\n## ", at + 3));
   }
