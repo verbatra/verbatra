@@ -1,5 +1,18 @@
 # @verbatra/sdk
 
+## 0.13.7
+
+### Patch Changes
+
+- [#406](https://github.com/verbatra/verbatra/pull/406) [`902a330`](https://github.com/verbatra/verbatra/commit/902a330801131d1d7d72afa0136f9aad8bb14fba) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Refuse a single-key edit or retranslation before writing when the lock-file went bad after the call started.
+  
+  - **editEntry and retranslateEntry:** the lock-file is checked again inside the write lock, just before the locale file is written. A merge conflict that lands in `verbatra.lock.json` while a retranslation waits on the provider now fails with `LOCK_FILE_INVALID` and leaves the locale file as it was, instead of saving the value without recording its baseline.
+  - **Upgrade:** in that situation the call used to throw after the new value was already written; it now throws with nothing written (the provider call is still spent). Restore `verbatra.lock.json` from version control and run the call again.
+
+- [#406](https://github.com/verbatra/verbatra/pull/406) [`902a330`](https://github.com/verbatra/verbatra/commit/902a330801131d1d7d72afa0136f9aad8bb14fba) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Leave an absolute path outside the project untouched when `projectRelativeMessage` rewrites a message.
+  
+  - **Error messages:** a path such as `/usr/lib/app/config.json` is no longer shortened to `/usr/libconfig.json` when the project root is `/app`, and a URL such as `https://host/work/proj/x` is no longer cut when the project root is `/work/proj`. This reaches `RunSummary` error messages, the CLI, `verbatra mcp` and Studio.
+
 ## 0.13.6
 
 ### Patch Changes
