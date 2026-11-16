@@ -12,7 +12,7 @@ export function DocsPageActions({
 }): ReactNode {
   return (
     <div className="vk-page-actions not-prose flex flex-wrap items-center gap-2 max-md:*:min-h-11">
-      <MarkdownCopyButton markdownUrl={markdownUrl} />
+      <MarkdownCopyButton markdownUrl={markdownUrl} data-copy-surface="page-markdown" />
       <ViewOptionsPopover markdownUrl={markdownUrl} {...(githubUrl ? { githubUrl } : {})} />
     </div>
   );

@@ -2,6 +2,7 @@ import "../global.css";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { AnalyticsClickEvents } from "@/components/analytics-click-events";
 import { AnalyticsLoader } from "@/components/analytics-loader";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
@@ -88,6 +89,7 @@ export default async function Layout({
         <JsonLd data={organizationLd()} />
         {children}
         <AnalyticsLoader />
+        <AnalyticsClickEvents />
       </body>
     </html>
   );
