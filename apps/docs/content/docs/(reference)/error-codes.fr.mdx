@@ -358,7 +358,7 @@ La configuration fixe `provider: { id: "none" }`, donc une action dépensant aup
 
 ### NETWORK_POLICY_VIOLATION
 
-La [politique réseau](/fr/docs/network-policy) effective n'autorise pas le point de terminaison du fournisseur ni son proxy ; levée par `translate` hors exécution à blanc, par `watch` au démarrage et par `retranslateEntry`, avant de construire le fournisseur ou de lire une clé d'API.
+La [politique réseau](/fr/docs/network-policy) effective n'autorise pas le point de terminaison du fournisseur ni son proxy ; levée par `translate` hors exécution à blanc, `watch` au démarrage et `retranslateEntry`, avant de construire le fournisseur ou de lire une clé d'API.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP
 - **Étape suivante** : Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
@@ -404,14 +404,14 @@ Une décision de relecture n'a pas pu être enregistrée parce que le fichier de
 
 ### REVIEW_VALUE_CHANGED
 
-La clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue, ou `expectedValue` n'est pas une chaîne (`approveEntry`, `rejectEntry`). Il est aussi levé quand `expectedValueHash` n'est pas une chaîne ou arrive sans le marqueur de valeur qui l'a produit, quand il ne correspond pas au hash de la valeur actuelle, ou quand `expectedValue` et `expectedValueHash` sont tous deux passés.
+La clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue, ou `expectedValue` n'est pas une chaîne (`approveEntry`, `rejectEntry`). Aussi levé quand `expectedValueHash` n'est pas une chaîne ou arrive sans le marqueur de valeur qui l'a produit, quand il ne correspond pas au hash de la valeur actuelle, ou quand `expectedValue` et `expectedValueHash` sont tous deux passés.
 
 - **Levé par** : Studio et le serveur MCP
 - **Étape suivante** : Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-La source a changé depuis l'écriture de la valeur, ou le fichier de verrouillage n'a pas d'entrée pour la clé dans cette locale, si bien que verbatra ne peut pas savoir pour quel texte source la valeur a été écrite, et elle ne peut donc pas être approuvée telle quelle (`approveEntry`).
+La source a changé depuis l'écriture de la valeur, ou le fichier de verrouillage n'a pas d'entrée pour la clé dans cette locale, si bien que verbatra ne peut pas savoir pour quel texte source la valeur a été écrite, et elle ne peut donc pas être approuvée (`approveEntry`).
 
 - **Levé par** : Studio et le serveur MCP
 - **Étape suivante** : Edit or retranslate the key first, then review its new value.
@@ -439,7 +439,7 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 
 ### LOCK_CONTENDED
 
-Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai, ou un autre processus l'a repris avant une écriture qu'il protège, et cette écriture n'est pas faite, tandis qu'une écriture antérieure de la même opération reste sur le disque ; le message nomme le chemin du fichier de verrouillage.
+Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai, ou un autre processus l'a repris avant une écriture qu'il protège, donc cette écriture n'est pas faite ; une écriture antérieure de la même opération reste sur le disque. Le message nomme le chemin du fichier de verrouillage.
 
 - **Levé par** : `translate`, `watch`, `import` ; Studio et le serveur MCP
 - **Étape suivante** : Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -460,7 +460,7 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 
 ### LENGTH_LIMIT_INVALID
 
-`setKeyLengthLimit` a refusé son entrée : la limite n'est pas un entier de 1 à 9007199254740991 (ni `null`), la clé est vide ou dépasse 1024 caractères, ou la limite est un nombre et le `maxLength` de la config fixe déjà la clé et l'emporte sur [`verbatra.limits.json`](/fr/docs/config-file#maxlength), ou l'écriture ferait dépasser au fichier 10 000 entrées ou 1 Mio. Rien n'est écrit.
+`setKeyLengthLimit` a refusé son entrée : la limite n'est pas un entier de 1 à 9007199254740991 (ni `null`), la clé est vide ou dépasse 1024 caractères, ou la limite est un nombre et le `maxLength` de la config fixe déjà la clé et l'emporte sur [`verbatra.limits.json`](/fr/docs/config-file#maxlength), ou l'écriture ferait dépasser au fichier 10 000 entrées ou 1 Mio.
 
 - **Levé par** : `setKeyLengthLimit` (SDK)
 - **Étape suivante** : Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.

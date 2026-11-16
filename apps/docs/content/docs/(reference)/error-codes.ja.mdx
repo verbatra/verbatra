@@ -412,7 +412,7 @@ CLI 自身がこれらのコードを報告します。同じ一覧は、`@verba
 
 ### REVIEW_SOURCE_CHANGED
 
-値が書き込まれた後にソースが変更されたか、そのロケールのキーに対するロックファイルのエントリがありません。そのため、どのソーステキストに対して書かれた値なのかを verbatra が判断できず、そのままでは承認できません（`approveEntry`）。
+値が書き込まれた後にソースが変更されたか、そのロケールのキーに対するロックファイルのエントリがありません。そのため、どのソーステキストに対して書かれた値なのかを verbatra が判断できず、承認できません（`approveEntry`）。
 
 - **発生元**：Studio、MCP サーバー
 - **次の手順**：Edit or retranslate the key first, then review its new value.
@@ -440,7 +440,7 @@ CLI 自身がこれらのコードを報告します。同じ一覧は、`@verba
 
 ### LOCK_CONTENDED
 
-ロケールの書き込みロック、または `updateGlossaryTerm` が取得する用語集の書き込みロックを、タイムアウトまでに取得できませんでした。または、それが保護する書き込みの前に別のプロセスがその書き込みロックを回収しました。この場合、その書き込みは行われず、同じ操作がそれより前に行った書き込みはディスクに残ります。メッセージには、書き込みロックのファイルのパスが示されます。
+ロケールの書き込みロック、または `updateGlossaryTerm` が取得する用語集の書き込みロックを、タイムアウトまでに取得できませんでした。または、それが保護する書き込みの前に別のプロセスがその書き込みロックを回収しました。そのため、その書き込みは行われません。同じ操作がそれより前に行った書き込みは、ディスクに残ります。メッセージには、書き込みロックのファイルのパスが示されます。
 
 - **発生元**：`translate`、`watch`、`import`、Studio、MCP サーバー
 - **次の手順**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -461,7 +461,7 @@ CLI 自身がこれらのコードを報告します。同じ一覧は、`@verba
 
 ### LENGTH_LIMIT_INVALID
 
-`setKeyLengthLimit` が入力を拒否しました。上限が 1〜9007199254740991 の整数（または `null`）ではない、キーが空または 1024 文字を超えている、上限が数値で、かつ設定の `maxLength` がすでにそのキーを設定している（これは [`verbatra.limits.json`](/ja/docs/config-file#maxlength) より優先されます）、または書き込みによってファイルが 10,000 件のエントリまたは 1 MiB を超えてしまう場合です。何も書き込まれません。
+`setKeyLengthLimit` が入力を拒否しました。上限が 1〜9007199254740991 の整数（または `null`）ではない、キーが空または 1024 文字を超えている、上限が数値で、かつ設定の `maxLength` がすでにそのキーを設定している（これは [`verbatra.limits.json`](/ja/docs/config-file#maxlength) より優先されます）、または書き込みによってファイルが 10,000 件のエントリまたは 1 MiB を超えてしまう場合です。
 
 - **発生元**：`setKeyLengthLimit`（SDK）
 - **次の手順**：Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.

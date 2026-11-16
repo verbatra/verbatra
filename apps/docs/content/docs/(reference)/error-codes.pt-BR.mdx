@@ -358,7 +358,7 @@ A configuração define `provider: { id: "none" }`, então uma ação que gastar
 
 ### NETWORK_POLICY_VIOLATION
 
-A política de rede em vigor (veja [Restringir o acesso à rede](/pt-BR/docs/network-policy)) não permite o endpoint do provedor nem o seu proxy; lançado por um `translate` que não é simulação, pelo `watch` na inicialização e por `retranslateEntry`, antes de o provedor ser instanciado ou de qualquer chave de API ser lida.
+A política de rede em vigor (veja [Restringir o acesso à rede](/pt-BR/docs/network-policy)) não permite o endpoint do provedor nem o seu proxy; lançado por um `translate` que não é simulação, pelo `watch` na inicialização e `retranslateEntry`, antes de o provedor ser instanciado ou de qualquer chave de API ser lida.
 
 - **Gerado por**: `translate`, `watch`; o Studio e o servidor MCP
 - **Próximo passo**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
@@ -404,14 +404,14 @@ Uma decisão de revisão não pôde ser salva porque o arquivo de procedência �
 
 ### REVIEW_VALUE_CHANGED
 
-A chave não tem valor, ou seu valor não é o `expectedValue` que o revisor viu, ou `expectedValue` não é uma string (`approveEntry`, `rejectEntry`). Também é lançado quando `expectedValueHash` não é uma string ou vem sem o marcador de valor que o produziu, quando não corresponde ao hash do valor atual, ou quando `expectedValue` e `expectedValueHash` são passados juntos.
+A chave não tem valor, ou seu valor não é o `expectedValue` que o revisor viu, ou `expectedValue` não é uma string (`approveEntry`, `rejectEntry`). Também quando `expectedValueHash` não é uma string ou vem sem o marcador de valor que o produziu, quando não corresponde ao hash do valor atual, ou quando `expectedValue` e `expectedValueHash` são passados juntos.
 
 - **Gerado por**: o Studio e o servidor MCP
 - **Próximo passo**: Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-A origem mudou desde que o valor foi gravado, ou o arquivo de lock não tem entrada para a chave nesse locale; assim, o verbatra não sabe para qual texto de origem o valor foi gravado e ele não pode ser aprovado como está (`approveEntry`).
+A origem mudou desde que o valor foi gravado, ou o arquivo de lock não tem entrada para a chave nesse locale; assim, o verbatra não sabe para qual texto de origem o valor foi gravado e ele não pode ser aprovado (`approveEntry`).
 
 - **Gerado por**: o Studio e o servidor MCP
 - **Próximo passo**: Edit or retranslate the key first, then review its new value.
@@ -439,7 +439,7 @@ O `reviewer` está vazio, tem mais de 64 caracteres ou contém um caractere de c
 
 ### LOCK_CONTENDED
 
-A trava de escrita de um locale, ou a trava de glossário que `updateGlossaryTerm` obtém, não pôde ser adquirida antes do tempo limite, ou outro processo a assumiu antes de uma gravação que ela protege; nesse caso, essa gravação não é feita, e uma gravação anterior da mesma operação permanece no disco. A mensagem indica o caminho do arquivo da trava.
+A trava de escrita de um locale, ou a trava de glossário que `updateGlossaryTerm` obtém, não pôde ser adquirida antes do tempo limite, ou outro processo a assumiu antes de uma gravação que ela protege; assim, essa gravação não é feita; uma gravação anterior da mesma operação permanece no disco. A mensagem indica o caminho do arquivo da trava.
 
 - **Gerado por**: `translate`, `watch`, `import`; o Studio e o servidor MCP
 - **Próximo passo**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -460,7 +460,7 @@ O arquivo de glossário não pôde ser gravado, ou a trava de escrita do glossá
 
 ### LENGTH_LIMIT_INVALID
 
-O `setKeyLengthLimit` recusou sua entrada: o limite não é um número inteiro de 1 a 9007199254740991 (nem `null`), a chave está vazia ou tem mais de 1024 caracteres, ou o limite é um número e o `maxLength` da configuração já define a chave, o que prevalece sobre [`verbatra.limits.json`](/pt-BR/docs/config-file#maxlength), ou a gravação levaria o arquivo além de 10.000 entradas ou 1 MiB. Nada é gravado.
+O `setKeyLengthLimit` recusou sua entrada: o limite não é um número inteiro de 1 a 9007199254740991 (nem `null`), a chave está vazia ou tem mais de 1024 caracteres, ou o limite é um número e o `maxLength` da configuração já define a chave, o que prevalece sobre [`verbatra.limits.json`](/pt-BR/docs/config-file#maxlength), ou a gravação levaria o arquivo além de 10.000 entradas ou 1 MiB.
 
 - **Gerado por**: `setKeyLengthLimit` (SDK)
 - **Próximo passo**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.

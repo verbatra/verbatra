@@ -358,7 +358,7 @@ The config sets `provider: { id: "none" }`, so a provider-spending action was re
 
 ### NETWORK_POLICY_VIOLATION
 
-The effective [network policy](/docs/network-policy) does not permit the provider's endpoint or its proxy; thrown by a non-dry-run `translate`, by `watch` at startup, and by `retranslateEntry`, before the provider is built or any API key read.
+The effective [network policy](/docs/network-policy) does not permit the provider's endpoint or its proxy; thrown by a non-dry-run `translate`, `watch` at startup, and `retranslateEntry`, before the provider is built or any API key read.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server
 - **Next step**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
@@ -404,14 +404,14 @@ A review decision could not be saved because the provenance file is from a newer
 
 ### REVIEW_VALUE_CHANGED
 
-The key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`). It is also thrown when `expectedValueHash` is not a string or comes without the value marker that produced it, when it does not hash to the current value, or when both `expectedValue` and `expectedValueHash` are passed.
+The key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`). Also thrown when `expectedValueHash` is not a string or comes without the value marker that produced it, when it does not hash to the current value, or when both `expectedValue` and `expectedValueHash` are passed.
 
 - **Raised by**: Studio and the MCP server
 - **Next step**: Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-The source changed since the value was written, or the lock file has no entry for the key in that locale, so verbatra cannot tell which source text it was written for, and it cannot be approved as it stands (`approveEntry`).
+The source changed since the value was written, or the lock file has no entry for the key in that locale, so verbatra cannot tell which source text it was written for, and it cannot be approved (`approveEntry`).
 
 - **Raised by**: Studio and the MCP server
 - **Next step**: Edit or retranslate the key first, then review its new value.
@@ -439,7 +439,7 @@ The `reviewer` is empty, longer than 64 characters, or contains a control charac
 
 ### LOCK_CONTENDED
 
-A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case that write is not made and a write the same operation made before it stays on disk; the message names the lock file's path.
+A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, so that write is not made; an earlier write of the same operation stays on disk. The message names the lock file's path.
 
 - **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
 - **Next step**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -460,7 +460,7 @@ The glossary file could not be written, or the glossary write lock could not be 
 
 ### LENGTH_LIMIT_INVALID
 
-`setKeyLengthLimit` refused its input: the limit is not a whole number from 1 to 9007199254740991 (or `null`), the key is empty or longer than 1024 characters, or the limit is a number and the config's `maxLength` already sets the key, which wins over [`verbatra.limits.json`](/docs/config-file#maxlength), or the write would take the file past 10,000 entries or 1 MiB. Nothing is written.
+`setKeyLengthLimit` refused its input: the limit is not a whole number from 1 to 9007199254740991 (or `null`), the key is empty or longer than 1024 characters, or the limit is a number and the config's `maxLength` already sets the key, which wins over [`verbatra.limits.json`](/docs/config-file#maxlength), or the write would take the file past 10,000 entries or 1 MiB.
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
 - **Next step**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.

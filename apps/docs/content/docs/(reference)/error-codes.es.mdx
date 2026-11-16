@@ -404,14 +404,14 @@ Una decisión de revisión no se pudo guardar porque el archivo de procedencia e
 
 ### REVIEW_VALUE_CHANGED
 
-La clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`). También se lanza cuando `expectedValueHash` no es un string o llega sin el marcador de valor que lo produjo, cuando no es el hash del valor actual, o cuando se pasan `expectedValue` y `expectedValueHash` a la vez.
+La clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`). También cuando `expectedValueHash` no es un string o llega sin el marcador de valor que lo produjo, cuando no es el hash del valor actual, o cuando se pasan `expectedValue` y `expectedValueHash` a la vez.
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-El origen cambió desde que se escribió el valor, o el archivo de bloqueo no tiene entrada para la clave en ese locale, así que verbatra no puede saber para qué texto de origen se escribió, y no se puede aprobar tal cual (`approveEntry`).
+El origen cambió desde que se escribió el valor, o el archivo de bloqueo no tiene entrada para la clave en ese locale, así que verbatra no puede saber para qué texto de origen se escribió, y no se puede aprobar (`approveEntry`).
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Edit or retranslate the key first, then review its new value.
@@ -439,7 +439,7 @@ El formato conserva el valor de una clave cuando el archivo se escribe sin ella,
 
 ### LOCK_CONTENDED
 
-El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y esa escritura no se realiza, mientras que una escritura anterior de la misma operación permanece en disco; el mensaje nombra la ruta del archivo de bloqueo.
+El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, por lo que esa escritura no se realiza; una escritura anterior de la misma operación permanece en disco. El mensaje nombra la ruta del archivo de bloqueo.
 
 - **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
 - **Siguiente paso**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -460,7 +460,7 @@ El archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de esc
 
 ### LENGTH_LIMIT_INVALID
 
-`setKeyLengthLimit` rechazó su entrada: el límite no es un número entero de 1 a 9007199254740991 (ni `null`), la clave está vacía o tiene más de 1024 caracteres, o el límite es un número y el `maxLength` de la config ya fija la clave y tiene prioridad sobre [`verbatra.limits.json`](/es/docs/config-file#maxlength), o la escritura haría crecer el archivo por encima de 10.000 entradas o 1 MiB. No se escribe nada.
+`setKeyLengthLimit` rechazó su entrada: el límite no es un número entero de 1 a 9007199254740991 (ni `null`), la clave está vacía o tiene más de 1024 caracteres, o el límite es un número y el `maxLength` de la config ya fija la clave y tiene prioridad sobre [`verbatra.limits.json`](/es/docs/config-file#maxlength), o la escritura haría crecer el archivo por encima de 10.000 entradas o 1 MiB.
 
 - **Lo lanza**: `setKeyLengthLimit` (SDK)
 - **Siguiente paso**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.

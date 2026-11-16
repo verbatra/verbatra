@@ -411,7 +411,7 @@ verbatra 报告的每个失败都带有稳定的错误码：出现在 stderr 的
 
 ### REVIEW_SOURCE_CHANGED
 
-写入该值之后，源有更改，或锁文件中没有该键在这个语言环境中的条目，所以 verbatra 无法判断该值是为哪段源文本写的，因而它不能按现状批准（`approveEntry`）。
+写入该值之后，源有更改，或锁文件中没有该键在这个语言环境中的条目，所以 verbatra 无法判断该值是为哪段源文本写的，因而它不能批准（`approveEntry`）。
 
 - **触发来源**：Studio 和 MCP 服务器
 - **下一步**：Edit or retranslate the key first, then review its new value.
@@ -439,7 +439,7 @@ verbatra 报告的每个失败都带有稳定的错误码：出现在 stderr 的
 
 ### LOCK_CONTENDED
 
-语言环境的写锁，或 `updateGlossaryTerm` 获取的术语表锁，在超时之前无法获取，或另一个进程在它所保护的写入之前接管了它，此时这次写入不会进行，而同一操作在此之前所做的写入会保留在磁盘上；信息会给出锁文件的路径。
+语言环境的写锁，或 `updateGlossaryTerm` 获取的术语表锁，在超时之前无法获取，或另一个进程在它所保护的写入之前接管了它，因此这次写入不会进行；同一操作更早的写入会保留在磁盘上。信息会给出锁文件的路径。
 
 - **触发来源**：`translate`、`watch`、`import`；Studio 和 MCP 服务器
 - **下一步**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
@@ -460,7 +460,7 @@ verbatra 报告的每个失败都带有稳定的错误码：出现在 stderr 的
 
 ### LENGTH_LIMIT_INVALID
 
-`setKeyLengthLimit` 拒绝了它的输入：上限不是 1 到 9007199254740991 之间的整数（也不是 `null`），键为空或超过 1024 个字符，或上限是数字而配置的 `maxLength` 已经设置了该键（它优先于 [`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength)），或这次写入会让文件超过 10,000 个条目或 1 MiB。没有写入任何内容。
+`setKeyLengthLimit` 拒绝了它的输入：上限不是 1 到 9007199254740991 之间的整数（也不是 `null`），键为空或超过 1024 个字符，或上限是数字而配置的 `maxLength` 已经设置了该键（它优先于 [`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength)），或这次写入会让文件超过 10,000 个条目或 1 MiB。
 
 - **触发来源**：`setKeyLengthLimit`（SDK）
 - **下一步**：Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
