@@ -3898,6 +3898,25 @@ html:has(.vk-home) {
   .vk-statement-text {
     font-size: 4rem;
   }
+
+  .vk-home {
+    --text-h2: 3.5rem;
+    --text-lead: 22px;
+    --vk-code-size: 14px;
+    --vk-code-size-pane: 13px;
+  }
+}
+
+@media (min-width: 64rem) {
+  .vk-faq-aside .vk-h2 {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 48rem) and (max-width: 1365.98px) {
+  .vk-home #features {
+    --vk-code-size: var(--vk-code-size-pane);
+  }
 }
 
 .vk-deck {
@@ -4351,7 +4370,7 @@ html.light .vk-deck-shot-light {
   margin: 0;
   padding: 0.75rem 0;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--vk-code-size, var(--text-xs));
   line-height: 1.65;
   color: var(--text-muted);
 }
@@ -4774,6 +4793,11 @@ html.light .vk-deck-shot-light {
 .vk-hl-pane > .vk-lock-card {
   flex: 1;
   border-color: var(--border-accent);
+}
+
+.vk-hl-pane .vk-lock-code,
+.vk-hl-rail .vk-lock-code {
+  font-size: var(--vk-code-size-pane, var(--text-xs));
 }
 
 .vk-hl-pane .vk-lock-code {
