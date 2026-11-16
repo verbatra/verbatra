@@ -12,6 +12,7 @@ import { providerConfigSchema } from "./provider-config.js";
 import { findUnknownLocaleMapKeys } from "./provider-locale-map.js";
 import { rateCardSchema } from "./rate-card.js";
 import { sensitiveDataSchema } from "./sensitive-config.js";
+import { findToneMapIssues, toneConfigSchema } from "./tone.js";
 
 export const DEFAULT_MAX_BATCH_SIZE = 50;
 
@@ -113,7 +114,7 @@ export const verbatraConfigSchema = z
     glossary: z
       .union([z.string().min(1), glossaryDefinitionSchema, z.record(z.string(), z.string())])
       .optional(),
-    tone: z.enum(["formal", "informal", "neutral"]).optional(),
+    tone: toneConfigSchema.optional(),
     prune: z.boolean().optional(),
     generatePlurals: z.boolean().optional(),
     fuzzyCache: fuzzyCacheSchema.optional(),
@@ -150,6 +151,9 @@ export const verbatraConfigSchema = z
   .superRefine((config, ctx) => {
     for (const { key, message } of findUnknownLocaleMapKeys(config)) {
       ctx.addIssue({ code: "custom", message, path: ["provider", "options", "localeMap", key] });
+    }
+    for (const { path, message } of findToneMapIssues(config)) {
+      ctx.addIssue({ code: "custom", message, path: ["tone", ...path] });
     }
   });
 

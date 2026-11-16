@@ -33,6 +33,7 @@ import {
 } from "../config/provider-data-flow.js";
 import { kindOf } from "../config/provider-kind.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { toneForLocale } from "../config/tone.js";
 import { errorMessage } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
@@ -251,9 +252,14 @@ function glossaryTermCount(config: VerbatraConfig, locale: string): number {
 function appliesToConfig(field: DataFlowField, config: VerbatraConfig): boolean {
   switch (field) {
     case "tone":
-      return config.tone !== undefined;
+      return config.targetLocales.some(
+        (locale) => toneForLocale(config.tone, locale) !== undefined,
+      );
     case "formality":
-      return config.tone === "formal" || config.tone === "informal";
+      return config.targetLocales.some((locale) => {
+        const tone = toneForLocale(config.tone, locale);
+        return tone === "formal" || tone === "informal";
+      });
     case "glossary-terms":
       return config.targetLocales.some((locale) => glossaryTermCount(config, locale) > 0);
     case "glossary-id":

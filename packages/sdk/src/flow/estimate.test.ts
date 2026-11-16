@@ -3,6 +3,7 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
+import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig, localeGlossaryOf } from "../test-support.js";
 import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
@@ -605,6 +606,22 @@ describe("estimateForRun", () => {
     });
 
     expect(withTone.inputTokens ?? 0).toBeGreaterThan(plain.inputTokens ?? 0);
+  });
+
+  it("counts each locale's own tone, so a map prices only the locales it names", () => {
+    const run = (tone: VerbatraConfig["tone"]) =>
+      estimateForRun({
+        summaries: [summary("de", ["greeting"]), summary("fr", ["greeting"])],
+        source: source([GREETING]),
+        config: baseConfig({ provider: ANTHROPIC, targetLocales: ["de", "fr"], tone }),
+        maxBatchSize: 50,
+      });
+    const plain = run(undefined);
+    const mapped = run({ de: "informal" });
+    const scalar = run("informal");
+
+    expect(mapped.locales[0]?.inputTokens).toBe(scalar.locales[0]?.inputTokens);
+    expect(mapped.locales[1]?.inputTokens).toBe(plain.locales[1]?.inputTokens);
   });
 
   it("uses the config's source locale, which is part of every request payload", () => {

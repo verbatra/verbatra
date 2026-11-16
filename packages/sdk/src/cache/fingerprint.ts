@@ -3,6 +3,7 @@ import { stableStringHash } from "@verbatra/core";
 import { glossaryForLocale } from "../config/glossary.js";
 import type { MachineProviderConfig, ProviderConfig } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { toneForLocale } from "../config/tone.js";
 import { sortRecordKeys } from "../record-utils.js";
 import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
 
@@ -85,7 +86,7 @@ export function computeFingerprint(
   const canonical = JSON.stringify({
     provider: config.provider.id,
     model: fingerprintModel(config.provider),
-    tone: config.tone ?? null,
+    tone: toneForLocale(config.tone, locale) ?? null,
     glossary: canonicalGlossary(sentGlossary(config, locale, guard)),
     ...(localeMap !== undefined ? { localeMap } : {}),
   });
