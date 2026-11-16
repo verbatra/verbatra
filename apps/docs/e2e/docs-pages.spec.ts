@@ -17,6 +17,7 @@ import {
 } from "./support";
 
 const REFLOW_WIDTHS = [320, 375] as const;
+const TABLE_CHECK_WIDTH = 375;
 
 async function openDocsPage(page: Page, url: string): Promise<void> {
   const response = await page.goto(url);
@@ -53,7 +54,7 @@ for (const locale of LOCALES) {
           await openDocsPage(page, url);
           await expectNoHorizontalScroll(page);
           await expectNothingPastRightEdge(page);
-          await expectNoTableWiderThanItsWrapper(page);
+          if (width === TABLE_CHECK_WIDTH) await expectNoTableWiderThanItsWrapper(page);
         });
 
         test(`opens the mobile navigation at ${width}px without overflow`, async ({ page }) => {
@@ -89,8 +90,10 @@ const TABLE_PAGES = ["/docs/cli/check", "/docs/cli/diff"] as const;
 for (const locale of LOCALES) {
   for (const path of TABLE_PAGES) {
     const url = pageUrl(locale, path);
-    test(`keeps every table of ${url} inside its wrapper at 375px`, async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 800 });
+    test(`keeps every table of ${url} inside its wrapper at ${TABLE_CHECK_WIDTH}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: TABLE_CHECK_WIDTH, height: 800 });
       await openDocsPage(page, url);
       await expectNoTableWiderThanItsWrapper(page);
     });

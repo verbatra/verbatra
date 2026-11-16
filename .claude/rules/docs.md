@@ -397,7 +397,12 @@ has one owner:
   (`Intl.Segmenter`). Do not count with a whitespace split for a locale-dependent limit.
 - Title and description length: `displayWidth`, `snippetLength` and `SPACELESS_SNIPPET_WIDTH` in
   `apps/docs/lib/display-width.ts`; a wide character counts as two.
-- Line breaking: `keepCompoundsWhole` and `breakBetweenWords` in `apps/docs/lib/word-breaks.tsx`.
+- Line breaking: `keepCompoundsWhole` in `apps/docs/lib/word-breaks.tsx`; `breakBetweenWords` in
+  `apps/docs/lib/word-segments.tsx`, the only module besides `lib/word-count.ts` that may use
+  `Intl.Segmenter` (built lazily, and never reachable from a `"use client"` file:
+  `lib/no-segmenter-in-client.test.ts`). `rehypeCjkCodeBreaks` (`lib/cjk-code-breaks.ts`) adds a
+  `<wbr>` after a CJK clause mark before inline code, which Unicode line breaking forbids when the
+  code starts with `.` or `%`.
   The compare table keeps a cell's trailing arrow with its last word through `tailCut` in
   `apps/docs/components/landing/compare-table.tsx`.
 - Typography: one `:lang(zh-CN)` / `:lang(ja)` block in `apps/docs/app/global.css`: system font
