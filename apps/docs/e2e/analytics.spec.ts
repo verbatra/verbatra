@@ -1,7 +1,14 @@
 import { expect, type Page, test } from "playwright/test";
 import { UMAMI_ORIGIN } from "../lib/umami-config.mjs";
 import { stubUmami } from "../scripts/umami-stub.mjs";
-import { expectNoAxeViolations, openInTheme, THEMES } from "./support";
+import {
+  expectNoAxeViolations,
+  expectNoHorizontalScroll,
+  LOCALES,
+  openInTheme,
+  pageUrl,
+  THEMES,
+} from "./support";
 
 const NO_CHOICE = { cookies: [], origins: [] };
 const FULL_CHOICE = {
@@ -98,10 +105,10 @@ test.describe("analytics after the full choice", () => {
     await expect(page).toHaveURL(/\/docs/);
     await expect.poll(() => sentPayloads(requests).length).toBeGreaterThan(before);
     await page.goto("/");
-    await page.locator("[data-copy-surface='command-row']").first().click();
-    await expect
-      .poll(() => sentPayloads(requests).map((payload) => payload.name))
-      .toContain("copy_code");
+    await expect(async () => {
+      await page.locator("[data-copy-surface='command-row']").first().click();
+      expect(sentPayloads(requests).map((payload) => payload.name)).toContain("copy_code");
+    }).toPass();
     const copy = sentPayloads(requests).find((payload) => payload.name === "copy_code");
     expect(copy?.data).toEqual({ surface: "command-row" });
   });
@@ -207,31 +214,52 @@ test.describe("analytics choice without JavaScript", () => {
 test.describe("analytics surfaces", () => {
   test.use({ storageState: NO_CHOICE });
 
-  for (const theme of THEMES) {
-    test(`the prompt has no axe violations in the ${theme} theme`, async ({ page }) => {
-      await openInTheme(page, "/", theme);
-      await expect(prompt(page)).toBeVisible();
-      await expectNoAxeViolations(page);
-    });
+  for (const locale of LOCALES) {
+    for (const theme of THEMES) {
+      test(`the ${locale} prompt has no axe violations in the ${theme} theme`, async ({ page }) => {
+        await openInTheme(page, pageUrl(locale, "/") || "/", theme);
+        await expect(page.locator("section.rr-block[aria-label]")).toHaveCount(1);
+        await expectNoAxeViolations(page);
+      });
 
-    test(`the privacy switch has no axe violations in the ${theme} theme`, async ({ page }) => {
-      await openInTheme(page, "/privacy", theme);
-      await expectNoAxeViolations(page, "#analytics");
+      test(`the ${locale} privacy switch has no axe violations in the ${theme} theme`, async ({
+        page,
+      }) => {
+        await openInTheme(page, pageUrl(locale, "/privacy"), theme);
+        await expectNoAxeViolations(page, "#analytics");
+      });
+    }
+
+    test(`the ${locale} prompt and switch reflow at 320px`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 640 });
+      await page.goto(pageUrl(locale, "/privacy"));
+      await expect(page.locator("section.rr-block[aria-label]")).toHaveCount(1);
+      await expectNoHorizontalScroll(page);
+      const box = await page.locator("section.rr-block[aria-label]").boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
     });
   }
+});
 
-  test("the prompt reflows at 320px without covering the page into horizontal scroll", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 320, height: 640 });
-    await page.goto("/");
-    await expect(prompt(page)).toBeVisible();
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
-    const box = await prompt(page).boundingBox();
-    expect(box?.x).toBeGreaterThanOrEqual(0);
-    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
-  });
+test.describe("analytics click markers on the real docs components", () => {
+  test.use({ storageState: FULL_CHOICE });
+
+  for (const surface of ["code-block", "page-markdown"]) {
+    test(`a click on the ${surface} copy control reports copy_code`, async ({ page, context }) => {
+      const requests = await stubUmami(context);
+      await page.goto("/docs/config-file");
+      await expect.poll(() => sentPayloads(requests).length).toBeGreaterThanOrEqual(1);
+      await expect(async () => {
+        await page
+          .locator(
+            `[data-copy-surface="${surface}"] button, button[data-copy-surface="${surface}"]`,
+          )
+          .first()
+          .click();
+        const copy = sentPayloads(requests).find((payload) => payload.name === "copy_code");
+        expect(copy?.data).toEqual({ surface });
+      }).toPass();
+    });
+  }
 });
