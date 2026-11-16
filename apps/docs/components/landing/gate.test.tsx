@@ -20,6 +20,12 @@ import {
   GATE_TARGET_EXCERPT,
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
+import { docsGlobalCss, docsStylesheetRules, uiTokensCss } from "@/lib/stylesheet-rules";
+import de from "@/messages/de.json";
+import en from "@/messages/en.json";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
+import { cssBlock, literalColours } from "@/test-support/css-block";
 import {
   GATE_ACCENT_MS,
   GATE_CUT_LEAD_SVH,
@@ -46,13 +52,7 @@ import {
   gatePercent,
   gateStateAt,
   gateStateRange,
-} from "@/lib/gate-timeline";
-import { docsGlobalCss, docsStylesheetRules, uiTokensCss } from "@/lib/stylesheet-rules";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
-import { cssBlock, literalColours } from "@/test-support/css-block";
+} from "@/test-support/gate-schedule";
 
 const rendering = vi.hoisted(() => ({ locale: "en" }));
 
