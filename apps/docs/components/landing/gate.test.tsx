@@ -190,20 +190,27 @@ describe("Gate", () => {
     },
   );
 
-  it.each([
-    ["en", en, 92, /retried/i],
-    ["de", MESSAGE_CATALOGS.de, 114, /(erneut|wieder)/i],
-    ["es", MESSAGE_CATALOGS.es, 109, /reintent/i],
-    ["fr", MESSAGE_CATALOGS.fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
-    ["zh-CN", MESSAGE_CATALOGS["zh-CN"], 76, /重试/],
-    ["pt-BR", MESSAGE_CATALOGS["pt-BR"], 103, /(tentad|nova tentativa|de novo)/i],
-    ["ja", MESSAGE_CATALOGS.ja, 72, /再試行/],
-  ] as const)(
-    "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
-    (locale, catalog, previousLength, retry) => {
+  const STALE_FOOT: Record<Locale, { ceiling: number; retry: RegExp }> = {
+    en: { ceiling: 92, retry: /retried/i },
+    de: { ceiling: 114, retry: /(erneut|wieder)/i },
+    es: { ceiling: 109, retry: /reintent/i },
+    fr: { ceiling: 118, retry: /(r\u00e9essay|relanc|nouveau)/i },
+    "zh-CN": { ceiling: 57, retry: /重试/ },
+    "pt-BR": { ceiling: 103, retry: /(tentad|nova tentativa|de novo)/i },
+    ja: { ceiling: 72, retry: /再試行/ },
+  };
+
+  it("bounds the stale foot of every locale", () => {
+    expect(Object.keys(STALE_FOOT).sort()).toEqual(Object.keys(MESSAGE_CATALOGS).sort());
+  });
+
+  it.each(CATALOG_ENTRIES)(
+    "names the retry in the %s stale foot, within its ceiling, and never promises the retry succeeds",
+    (locale, catalog) => {
       const { foot } = catalog.landing.gate.stale;
+      const { ceiling, retry } = STALE_FOOT[locale];
       expect(foot).toMatch(retry);
-      expect(snippetLength(locale, foot)).toBeLessThanOrEqual(previousLength);
+      expect(snippetLength(locale, foot)).toBeLessThanOrEqual(ceiling);
       expect(foot).not.toMatch(
         /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig|成功|修复|修復|修正|解決|解消|sucesso|resolv)/i,
       );
