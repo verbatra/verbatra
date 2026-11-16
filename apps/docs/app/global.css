@@ -3898,6 +3898,11 @@ html:has(.vk-home) {
     min-height: 44px;
   }
 
+  #nd-page .group\/heading > a[data-card] .vk-code-short {
+    white-space: normal;
+    overflow-wrap: normal;
+  }
+
   #nd-page .group\/heading > a[data-card]:has(.vk-available-from) {
     display: inline-flex;
     align-items: center;

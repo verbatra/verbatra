@@ -19,6 +19,7 @@ export const DOCS_PAGES = [
   "/docs/sdk/run",
   "/docs/sdk/extend",
   "/docs/error-codes",
+  "/docs/troubleshooting",
 ] as const;
 
 function varyTokens(response: APIResponse): ReadonlyArray<string> {
@@ -98,6 +99,28 @@ export async function expectNoTableWiderThanItsWrapper(
   });
   if (options.requireTable === true) expect(count, "tables on the page").toBeGreaterThan(0);
   expect(wide).toEqual([]);
+}
+
+export async function expectHeadingControlsInsideViewport(page: Page): Promise<void> {
+  const outside = await page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    const controls = [
+      ...document.querySelectorAll(
+        "#nd-page .group\\/heading > a[data-card], #nd-page .group\\/heading > button",
+      ),
+    ];
+    return controls
+      .map((node) => ({
+        heading: node.parentElement?.textContent?.slice(0, 40) ?? "",
+        tag: node.tagName.toLowerCase(),
+        right: Math.round(node.getBoundingClientRect().right * 10) / 10,
+      }))
+      .filter((control) => control.right > viewport + 0.5)
+      .map(
+        (control) => `${control.tag} of "${control.heading}" right=${control.right} > ${viewport}`,
+      );
+  });
+  expect(outside).toEqual([]);
 }
 
 export async function expectNothingPastRightEdge(page: Page): Promise<void> {

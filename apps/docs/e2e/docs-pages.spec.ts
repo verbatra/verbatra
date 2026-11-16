@@ -5,6 +5,7 @@ import { NewPill } from "@/components/new-pill";
 import {
   brokenWords,
   DOCS_PAGES,
+  expectHeadingControlsInsideViewport,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   expectNoTableWiderThanItsWrapper,
@@ -60,6 +61,7 @@ for (const locale of LOCALES) {
           await openDocsPage(page, url);
           await expectNoHorizontalScroll(page);
           await expectNothingPastRightEdge(page);
+          await expectHeadingControlsInsideViewport(page);
         });
 
         test(`opens the mobile navigation at ${width}px without overflow`, async ({ page }) => {

@@ -1437,7 +1437,7 @@ subsets each configured face to the characters of that locale's OG text (`lib/og
   two-column table fits a phone. Short code (`.vk-code-short`) in a cell, at every width, breaks
   only at the points `breakInlineCode` offers. The header row stays in the DOM for assistive
   technology. Short inline code (up to `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`)
-  gets `.vk-code-short` from the MDX `code` mapping and never wraps elsewhere; longer inline code
+  gets `.vk-code-short` from the MDX `code` mapping and never wraps elsewhere (a heading anchor under 768px is the one other place it may wrap, only at those break points, so a long identifier in a heading never widens the page); longer inline code
   wraps, in cells and in prose alike, and the mapping runs it through `breakInlineCode`
   (`lib/word-breaks.tsx`): a `<wbr>` after every underscore, so `verbatra_project_snapshot` wraps at
   `_` before anywhere else, a `.vk-code-break` (a zero-width space drawn by CSS, never copied) after
