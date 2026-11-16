@@ -7,7 +7,7 @@ import {
   GATE_REVERSAL_SETTLE_MS,
   GATE_SLIDE_SCALE,
   gateStateMiddle,
-} from "@/lib/gate-timeline";
+} from "@/test-support/gate-schedule";
 import {
   type GateFlip,
   type GateHandoff,

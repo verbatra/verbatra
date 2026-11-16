@@ -13,10 +13,21 @@ export const GATE_PLACEHOLDER = "{name}";
 
 export const GATE_SOURCE = "Good to see you, {name}!";
 
-export const GATE_SOURCE_BEFORE: string =
-  HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value ?? "";
+export function fixtureValueOf(key: string): string {
+  const entry = HERO_TERMINAL_SOURCE.find((candidate) => candidate.key === key);
+  if (entry === undefined) throw new Error(`the hero fixture has no key ${key}`);
+  return entry.value;
+}
 
-export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
+export function firstTargetLocale(locales: ReadonlyArray<{ readonly locale: string }>): string {
+  const first = locales[0];
+  if (first === undefined) throw new Error("the hero fixture lists no target locale");
+  return first.locale;
+}
+
+export const GATE_SOURCE_BEFORE: string = fixtureValueOf(GATE_KEY);
+
+export const GATE_LOCALE: string = firstTargetLocale(HERO_TERMINAL_LOCALES);
 
 export const GATE_DE_OLD = "Willkommen, {name}!";
 
