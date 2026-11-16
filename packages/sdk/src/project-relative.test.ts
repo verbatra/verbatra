@@ -26,6 +26,39 @@ describe("projectRelativeMessage", () => {
     expect(projectRelativeMessage(message, ROOT)).toBe(message);
   });
 
+  it("leaves an outside path that embeds the project root as a later segment unchanged", () => {
+    const root = `${sep}app`;
+    const outside = `${sep}usr${sep}lib${sep}app${sep}config.json`;
+
+    expect(projectRelativeMessage(`ENOENT ${outside} (cwd ${root}${sep}a.json)`, root)).toBe(
+      `ENOENT ${outside} (cwd a.json)`,
+    );
+  });
+
+  it("leaves an outside path whose directory name is the project root unchanged", () => {
+    const root = `${sep}src`;
+    const outside = `${sep}usr${sep}src${sep}linux${sep}x.json`;
+
+    expect(projectRelativeMessage(`Cannot read ${outside} from ${root}${sep}y.json`, root)).toBe(
+      `Cannot read ${outside} from y.json`,
+    );
+  });
+
+  it("leaves a URL whose path contains the project root unchanged", () => {
+    const message = "fetched https://host/work/proj/x failed";
+
+    expect(projectRelativeMessage(message, "/work/proj")).toBe(message);
+  });
+
+  it("rewrites every inside occurrence and keeps every outside one in one message", () => {
+    const root = `${sep}home${sep}u${sep}proj`;
+    const backup = `${sep}backup${root}${sep}locales${sep}de.json`;
+
+    expect(
+      projectRelativeMessage(`bad ${root}${sep}locales${sep}de.json, also ${backup}`, root),
+    ).toBe(`bad locales${sep}de.json, also ${backup}`);
+  });
+
   it("accepts a project root given with a trailing separator", () => {
     expect(projectRelativeMessage(`at ${ROOT}${sep}a.json`, `${ROOT}${sep}`)).toBe("at a.json");
   });
