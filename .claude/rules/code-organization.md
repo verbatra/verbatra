@@ -44,6 +44,20 @@ configuration in each consumer (a bundler, a test runner, `ts-node`/`tsx`), and 
 those configurations is a well-documented source of monorepo friction. Do not add a `paths` map to
 a package's `tsconfig.json` to shorten an import; import the workspace package by its real name.
 
+One exception, for tests only: a test file under `apps/docs` (a `*.test.ts` or `*.test.tsx`, or a
+helper under `apps/docs/test-support/` that only tests import) may import another workspace
+package's source by relative path (`../../../packages/<name>/src/...`) when the test pins text the
+docs site shows to the code that really produces it, such as a CLI renderer, an MCP tool or a
+Studio helper, and that package exports no such entry. `.claude/rules/architecture.md` lists the
+files and the dependency edges that keep the install and build closure correct. No module that
+ships may do this: `apps/docs/lib/no-package-source-import.test.ts` fails when any non-test file
+under the app root, `app/`, `components/`, `lib/` or `i18n/` imports a `packages/<name>/src` path
+or anything under `test-support/`. An import whose symbol a package already exports from its root
+entry uses the package name instead.
+Do not answer this by adding a test or internal subpath to a published package's `exports`.
+Reading another package's source as text, as the `scripts/verify-*.test.mjs` parity tests do, is
+not an import and needs no exception.
+
 ## Types placement: a type lives in the file that owns its concept
 
 A type or interface lives in the file that owns the concept it describes: a config type in
