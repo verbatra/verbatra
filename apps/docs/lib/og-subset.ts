@@ -59,17 +59,20 @@ export async function buildOgFontSubsets(options: {
   sources?: Readonly<Record<string, OgFontSource>>;
 }): Promise<string[]> {
   const table = options.table ?? OG_LOCALE_FONTS;
-  const written: string[] = [];
-  for (const locale of localesWithOgFonts(table)) {
-    const characters = ogCharacters(ogTexts(locale, options.root));
-    for (const font of table[locale]) {
+  const plan = localesWithOgFonts(table).flatMap((locale) =>
+    table[locale].map((font) => {
       const source = readFileSync(join(options.sourceDir, font.sourceFile));
       verifyOgFontSource(source, font.sourceFile, options.sources);
-      const target = join(options.root, "assets/og-fonts", font.file);
-      mkdirSync(join(options.root, "assets/og-fonts"), { recursive: true });
-      writeFileSync(target, await subsetOgFont(source, characters, font));
-      written.push(target);
-    }
+      return { locale, font, source };
+    }),
+  );
+  const written: string[] = [];
+  for (const { locale, font, source } of plan) {
+    const characters = ogCharacters(ogTexts(locale, options.root));
+    const target = join(options.root, "assets/og-fonts", font.file);
+    mkdirSync(join(options.root, "assets/og-fonts"), { recursive: true });
+    writeFileSync(target, await subsetOgFont(source, characters, font));
+    written.push(target);
   }
   return written;
 }

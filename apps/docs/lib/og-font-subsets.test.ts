@@ -275,5 +275,34 @@ describe("OG font subsets", () => {
         rmSync(root, { recursive: true, force: true });
       }
     });
+    it("verifies every source before it writes the first subset", async () => {
+      const root = mkdtempSync(join(tmpdir(), "og-refuse-second-"));
+      try {
+        mkdirSync(join(root, "messages"));
+        mkdirSync(join(root, "content/docs"), { recursive: true });
+        writeFileSync(
+          join(root, "messages/en.json"),
+          JSON.stringify({
+            landing: { banner: { headline: "Ship" } },
+            compare: { heading: "Compare" },
+          }),
+        );
+        const table = {
+          ...OG_LOCALE_FONTS,
+          "zh-CN": [],
+          ja: [],
+          en: [
+            fixtureFont("First.ttf"),
+            { ...fixtureFont("Second.ttf"), sourceFile: "Geist-Medium.ttf" },
+          ],
+        };
+        await expect(
+          buildOgFontSubsets({ root, sourceDir: FONT_ROOT, table, sources: FIXTURE_SOURCES }),
+        ).rejects.toThrow(/No SHA-256/);
+        expect(existsSync(join(root, OG_FONT_DIR, "First.ttf"))).toBe(false);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });
