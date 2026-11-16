@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cpSync, existsSync } from "node:fs";
+import { cpSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 const appDir = join(import.meta.dirname, "..");
@@ -11,6 +11,8 @@ if (!existsSync(serverFile)) {
   console.error(`No standalone build at ${serverFile}; run the docs build first.`);
   process.exit(1);
 }
+
+rmSync(join(standaloneAppDir, ".next", "server", "route-cache"), { recursive: true, force: true });
 
 cpSync(join(appDir, ".next", "static"), join(standaloneAppDir, ".next", "static"), {
   recursive: true,

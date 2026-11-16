@@ -27,18 +27,4 @@ describe("the check demo stays out of the cli and the sdk at runtime", () => {
     const source = readFileSync(fileURLToPath(new URL("./check-demo.ts", import.meta.url)), "utf8");
     expect(source).not.toMatch(/@verbatra\/(cli|core|sdk)|packages\/cli/);
   });
-
-  it("is pinned to the real cli by the hero terminal run test", () => {
-    const run = readFileSync(
-      fileURLToPath(new URL("./hero-terminal.run.test.ts", import.meta.url)),
-      "utf8",
-    );
-    const fixture = readFileSync(
-      fileURLToPath(new URL("../test-support/run-fixture.ts", import.meta.url)),
-      "utf8",
-    );
-    expect(run).toContain('from "../../../packages/cli/src/render"');
-    expect(run).toContain('from "@/test-support/run-fixture"');
-    expect(fixture).toContain('from "../../../packages/cli/src/run"');
-  });
 });

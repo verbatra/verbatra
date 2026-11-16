@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "playwright/test";
+import { GATE_DE_CANDIDATE, GATE_DE_OLD } from "@/lib/gate-demo";
 import {
   GATE_CUTS,
   GATE_MARKER_MIN_PX,
@@ -9,7 +10,7 @@ import {
   gateStateAt,
   gateStateMiddle,
   gateStateRange,
-} from "@/lib/gate-timeline";
+} from "@/test-support/gate-schedule";
 import {
   cross,
   expectPageKeysNeverSkip,
@@ -144,6 +145,19 @@ async function freeSpace(page: Page): Promise<Free[]> {
   return frees;
 }
 
+async function haloedCards(page: Page): Promise<{ painted: number; haloed: number }> {
+  return page.evaluate(() => {
+    const cards = [...document.querySelectorAll(".vk-gate-frame")].map((frame) => ({
+      shown: Number(getComputedStyle(frame).opacity) > 0.01,
+      halo: getComputedStyle(frame.querySelector(".vk-gate-card") as Element).boxShadow !== "none",
+    }));
+    return {
+      painted: cards.filter((card) => card.shown).length,
+      haloed: cards.filter((card) => card.shown && card.halo).length,
+    };
+  });
+}
+
 async function staticCardHeights(page: Page): Promise<number[]> {
   return page
     .locator(`${FRAMES} .vk-gate-card`)
@@ -179,6 +193,14 @@ for (const [width, height] of VIEWPORTS) {
         expect(sample.scrollX, `scrollX at ${sample.at}`).toBe(0);
       }
       expect(await layoutShift(page)).toBe(0);
+    });
+
+    test("paints the halo on the one card that shows, at every rest", async ({ page }) => {
+      await openStaged(page);
+      for (const index of STATES.keys()) {
+        await scrollToSvh(page, gateStateMiddle(index));
+        expect(await haloedCards(page), `state ${index}`).toEqual({ painted: 1, haloed: 1 });
+      }
     });
 
     test("returns the current frame from the middle of its card at every rest", async ({
@@ -563,6 +585,13 @@ test.describe("gate below 64rem", () => {
 test.describe("gate with reduced motion", () => {
   test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
 
+  test("paints no halo on the stacked cards, so at most one card ever carries it", async ({
+    page,
+  }) => {
+    await openStaged(page);
+    expect(await haloedCards(page)).toEqual({ painted: 3, haloed: 0 });
+  });
+
   test("shows the three end states stacked, each value once but the old German value in the two frames that show the file, as a caption and card row each", async ({
     page,
     browser,
@@ -579,8 +608,8 @@ test.describe("gate with reduced motion", () => {
       await expect(moves).toHaveCSS("transform", "none");
     }
     const text = (await page.locator(SECTION).textContent()) ?? "";
-    expect(text.split("Willkommen zurück!")).toHaveLength(2);
-    expect(text.split("Willkommen, {name}!")).toHaveLength(3);
+    expect(text.split(GATE_DE_CANDIDATE)).toHaveLength(2);
+    expect(text.split(GATE_DE_OLD)).toHaveLength(3);
     await expect(page.locator(`${SECTION} .vk-gate-pin`)).not.toHaveCSS("position", "sticky");
 
     for (const frame of frames) {
@@ -604,7 +633,7 @@ test.describe("gate with reduced motion", () => {
       await expect(frame).toHaveCSS("opacity", "1");
     }
     expect(
-      ((await bare.locator(SECTION).textContent()) ?? "").split("Willkommen zurück!"),
+      ((await bare.locator(SECTION).textContent()) ?? "").split(GATE_DE_CANDIDATE),
     ).toHaveLength(2);
     await noScript.close();
   });
