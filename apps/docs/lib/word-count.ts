@@ -64,7 +64,7 @@ function joinLoneRuns(segments: Iterable<WordSegment>, japanese: boolean): Run[]
     if (
       previous?.lone === true &&
       lone &&
-      (!japanese || sameScript(previous.group.text, segment.segment))
+      (!japanese || bothHanOrBothKana(previous.group.text, segment.segment))
     )
       runs[runs.length - 1] = {
         lone,
@@ -80,7 +80,7 @@ function joinLoneRuns(segments: Iterable<WordSegment>, japanese: boolean): Run[]
   return runs;
 }
 
-function sameScript(previous: string, next: string): boolean {
+function bothHanOrBothKana(previous: string, next: string): boolean {
   return HAN_CHARACTER.test(previous.slice(-1)) === HAN_CHARACTER.test(next);
 }
 
@@ -88,10 +88,17 @@ function mergeGroups(first: WordGroup, second: WordGroup): WordGroup {
   return { text: first.text + second.text, index: first.index, isWordLike: true };
 }
 
-function attachRun(groups: WordGroup[], previous: WordGroup, run: WordGroup): void {
+function attachRun(
+  groups: WordGroup[],
+  previous: WordGroup,
+  run: WordGroup,
+  japanese: boolean,
+): boolean {
   const characters = [...run.text];
   const attached = characters.length <= MAX_WHOLE_RUN_ATTACHED ? characters.length : 1;
   const head = characters.slice(0, attached).join("");
+  const overflows = !fitsWord(previous.text, head) && !continuesKatakana(previous.text, head);
+  if (japanese && overflows) return false;
   groups[groups.length - 1] = mergeGroups(previous, { ...run, text: head });
   if (attached < characters.length)
     groups.push({
@@ -99,6 +106,7 @@ function attachRun(groups: WordGroup[], previous: WordGroup, run: WordGroup): vo
       index: run.index + head.length,
       isWordLike: true,
     });
+  return true;
 }
 
 function placeRun(
@@ -106,13 +114,12 @@ function placeRun(
   run: WordGroup,
   lone: boolean,
   forward: boolean,
+  japanese: boolean,
 ): WordGroup | null {
   const previous = groups.at(-1);
   if (lone && forward) return run;
-  if (lone && previous?.isWordLike === true) {
-    attachRun(groups, previous, run);
+  if (lone && previous?.isWordLike === true && attachRun(groups, previous, run, japanese))
     return null;
-  }
   if (lone && characterCount(run.text) < MIN_GROUP_CHARACTERS) return run;
   groups.push(run);
   return null;
@@ -122,7 +129,10 @@ function absorbSingleCharacters(runs: Run[], japanese: boolean): WordGroup[] {
   const groups: WordGroup[] = [];
   let carried: WordGroup | null = null;
   for (const [position, { group, lone }] of runs.entries()) {
-    if (carried !== null && group.isWordLike) {
+    const joinsCarried =
+      !japanese ||
+      (!(lone && PREFIX_KANJI.test(group.text)) && fitsWord(carried?.text ?? "", group.text));
+    if (carried !== null && group.isWordLike && joinsCarried) {
       groups.push(mergeGroups(carried, group));
       carried = null;
       continue;
@@ -133,7 +143,10 @@ function absorbSingleCharacters(runs: Run[], japanese: boolean): WordGroup[] {
       groups,
       group,
       lone,
-      japanese && next?.isWordLike === true && leadsInto(group.text, next.text),
+      japanese &&
+        next?.isWordLike === true &&
+        leadsInto(group.text, next.text, groups.at(-1)?.text ?? ""),
+      japanese,
     );
   }
   if (carried !== null) groups.push(carried);
@@ -146,13 +159,26 @@ const HIRAGANA_START = /^\p{Script=Hiragana}/u;
 const PARTICLE_START = /^[はがをにでとのもへやかねよ]/u;
 const KATAKANA = /\p{Script=Katakana}/u;
 const KATAKANA_OR_MARK = /[\p{Script=Katakana}\u30FC]/u;
-const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+export const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const PREFIX_KANJI = /^[各他要新旧非未全]$/u;
+const SUFFIX_HOST =
+  /(?:[\p{Script=Han}\p{Script=Katakana}\u30FC]|\p{Script=Han}[きぎしじちびみりめけげせてねべれえ])$/u;
+const MAX_PARTICLE_TAIL = 6;
+const LEADING_PARTICLE = /^[はがをにでとのもへやかねよ](?=.)/u;
+const KATAKANA_BEFORE_HIRAGANA = /^[\p{Script=Katakana}\u30FC]+(?=\p{Script=Hiragana})/u;
+const FRAGMENT_START = /^(?:ま[すせし]|せ|し[たて]|さい|たい|れ[るたて]|られ|ない|てい|いま|でし)/u;
 const MAX_KATAKANA_FRAGMENT = 3;
 const MAX_FRAGMENT_PAIR = 2;
 const MAX_WORD_CHARACTERS = 8;
 
-function leadsInto(character: string, next: string): boolean {
+function fitsWord(first: string, second: string): boolean {
+  return characterCount(first) + characterCount(second) <= MAX_WORD_CHARACTERS;
+}
+
+function leadsInto(character: string, next: string, previous: string): boolean {
   if (!HAN_CHARACTER.test(character)) return false;
+  if (PREFIX_KANJI.test(character)) return !HIRAGANA_START.test(next);
+  if (SUFFIX_HOST.test(previous)) return false;
   const starts = HAN_START.test(next) || (HIRAGANA_START.test(next) && !PARTICLE_START.test(next));
   return starts && characterCount(next) < MAX_WORD_CHARACTERS;
 }
@@ -178,20 +204,79 @@ function continuesKatakana(previous: string, next: string): boolean {
 function mergeWhile(
   groups: WordGroup[],
   joins: (previous: string, next: string) => boolean,
+  finishesWord = false,
 ): WordGroup[] {
   const merged: WordGroup[] = [];
+  let pieces = 1;
   for (const group of groups) {
     const previous = merged.at(-1);
+    const finishing =
+      finishesWord &&
+      pieces > 1 &&
+      previous !== undefined &&
+      /ー$/u.test(previous.text) &&
+      characterCount(previous.text) <= MAX_WORD_CHARACTERS &&
+      characterCount(group.text) <= MAX_KATAKANA_FRAGMENT;
     if (
       previous?.isWordLike === true &&
       group.isWordLike &&
-      characterCount(previous.text) + characterCount(group.text) <= MAX_WORD_CHARACTERS &&
+      (finishing || fitsWord(previous.text, group.text)) &&
       joins(previous.text, group.text)
-    )
+    ) {
       merged[merged.length - 1] = mergeGroups(previous, group);
-    else merged.push(group);
+      pieces += 1;
+    } else {
+      merged.push(group);
+      pieces = 1;
+    }
   }
   return merged;
+}
+
+function stemCut(previous: string, fragment: string): number {
+  const particle =
+    LEADING_PARTICLE.test(previous) && !FRAGMENT_START.test(previous.slice(1)) ? 1 : 0;
+  const run = KATAKANA_BEFORE_HIRAGANA.exec(previous.slice(particle))?.[0].length ?? 0;
+  const rest = previous.slice(particle + run);
+  const cleanTail = run > 0 && !FRAGMENT_START.test(rest + fragment) && fitsWord(rest, fragment);
+  return cleanTail ? particle + run : particle;
+}
+
+function splitBeforeStem(previous: WordGroup, fragment: WordGroup): WordGroup[] {
+  const cut = stemCut(previous.text, fragment.text);
+  const stem = {
+    text: previous.text.slice(cut),
+    index: previous.index + cut,
+    isWordLike: true,
+  };
+  const joined = mergeGroups(stem, fragment);
+  return cut === 0 ? [joined] : [{ ...previous, text: previous.text.slice(0, cut) }, joined];
+}
+
+function placeFragment(units: WordGroup[][], open: WordGroup[], fragment: WordGroup): void {
+  let cut = open.length - 1;
+  while (cut > 0 && FRAGMENT_START.test(open[cut]?.text ?? "")) cut -= 1;
+  if (cut > 0) units.splice(-1, 1, open.slice(0, cut), [...open.slice(cut), fragment]);
+  else
+    units.splice(
+      -1,
+      1,
+      ...splitBeforeStem(open.reduce(mergeGroups), fragment).map((group) => [group]),
+    );
+}
+
+function mergeEndings(groups: WordGroup[]): WordGroup[] {
+  const units: WordGroup[][] = [];
+  for (const group of groups) {
+    const open = units.at(-1);
+    const continues =
+      open?.at(-1)?.isWordLike === true && group.isWordLike && HIRAGANA_START.test(group.text);
+    if (!continues || open === undefined) units.push([group]);
+    else if (fitsWord(open.map((unit) => unit.text).join(""), group.text)) open.push(group);
+    else if (FRAGMENT_START.test(group.text)) placeFragment(units, open, group);
+    else units.push([group]);
+  }
+  return units.map((unit) => unit.reduce(mergeGroups));
 }
 
 function toGroups(segments: readonly WordSegment[]): WordGroup[] {
@@ -209,20 +294,30 @@ export function groupWordSegments(
 ): WordGroup[] {
   const list = [...segments];
   const japanese = list.some((segment) => KANA.test(segment.segment));
-  const words = mergeWhile(mergeWhile(toGroups(list), bothShortKatakana), continuesKatakana);
+  const words = mergeWhile(mergeWhile(toGroups(list), bothShortKatakana), continuesKatakana, true);
   const runs = joinLoneRuns(
     words.map((word) => ({ segment: word.text, isWordLike: word.isWordLike })),
     japanese,
   );
   const groups = absorbSingleCharacters(runs, japanese);
-  return keepEndings ? mergeWhile(groups, (_previous, next) => HIRAGANA_START.test(next)) : groups;
+  return keepEndings ? mergeEndings(groups) : groups;
 }
 
 export function lastWordStart(text: string, locale: string): number {
+  let previous: WordGroup | undefined;
   let start = 0;
+  let head = 0;
   for (const group of groupWordSegments(wordSegmenter(locale).segment(text), {
     keepEndings: false,
-  }))
-    if (group.isWordLike) start = group.index;
-  return start;
+  })) {
+    if (group.isWordLike) {
+      const abuts = previous?.isWordLike === true;
+      head = abuts ? (previous?.index ?? start) : group.index;
+      start = group.index;
+    }
+    previous = group;
+  }
+  const widened =
+    PARTICLE_START.test(text.slice(start)) && characterCount(text.slice(head)) <= MAX_PARTICLE_TAIL;
+  return widened ? head : start;
 }

@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { groupWordSegments, SPACELESS_SCRIPT } from "@/lib/word-count";
+import { groupWordSegments, KANA, SPACELESS_SCRIPT } from "@/lib/word-count";
 
 export function breakAfterUnderscores(text: ReactNode): ReactNode {
   if (typeof text !== "string" || !text.includes("_")) return text;
@@ -150,8 +150,6 @@ export function keepLinkLabelWhole(text: string): ReactNode {
   if (text.trim().split(/\s+/).length > LINK_LABEL_WHOLE_MAX_WORDS) return keepCompoundsWhole(text);
   return <span className="whitespace-nowrap">{text}</span>;
 }
-
-const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
 
 const WORD_SEGMENTERS = {
   zh: new Intl.Segmenter("zh", { granularity: "word" }),

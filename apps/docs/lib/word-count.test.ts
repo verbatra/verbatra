@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   countWords,
@@ -189,6 +190,39 @@ describe("groupWordSegments", () => {
   });
 });
 
+const ENDING_START = /^(?:ます|ません|ました|した|さい|せん|たい|れる)/u;
+const KATAKANA_ENDING_START = /^(?:ター|ション)/u;
+
+describe("groupWordSegments with kana pieces", () => {
+  it("keeps text and offsets for every list up to six kana pieces and never opens a group on an ending after a word", () => {
+    const alphabet: WordSegment[] = [
+      wordLike("の"),
+      wordLike("ます"),
+      wordLike("書き"),
+      wordLike("込"),
+      wordLike("コン"),
+      wordLike("ション"),
+      other("、"),
+    ];
+    const lists: WordSegment[][] = [[]];
+    for (let length = 1; length <= 6; length += 1)
+      for (const list of lists.filter((entry) => entry.length === length - 1))
+        for (const piece of alphabet) lists.push([...list, piece]);
+    for (const list of lists) {
+      const groups = groupWordSegments(list);
+      expect(groups.map((group) => group.text).join("")).toBe(list.map((s) => s.segment).join(""));
+      let offset = 0;
+      groups.forEach((group, position) => {
+        expect(group.index).toBe(offset);
+        expect(group.text).not.toBe("");
+        offset += group.text.length;
+        if (position > 0 && groups[position - 1]?.isWordLike === true && group.isWordLike)
+          expect(group.text).not.toMatch(ENDING_START);
+      });
+    }
+  });
+});
+
 describe("groupWordSegments groups Japanese text", () => {
   const japanese = new Intl.Segmenter("ja", { granularity: "word" });
   const shown = (text: string): string =>
@@ -213,10 +247,10 @@ describe("groupWordSegments groups Japanese text", () => {
     expect(shown(text)).toBe(expected);
   });
 
-  it("never chains katakana pieces past eight characters", () => {
-    const text = "サーバーサイドレンダリングコントリビューションガイド";
-    for (const group of groupWordSegments(japanese.segment(text)))
-      expect([...group.text].length).toBeLessThanOrEqual(8);
+  it("does not chain separate katakana words past eight characters", () => {
+    expect(shown("サーバーサイドレンダリングコントリビューションガイド")).toBe(
+      "サーバーサイド¦レンダリング¦コントリビューション¦ガイド",
+    );
   });
 
   it("does not treat a long vowel mark alone as katakana", () => {
@@ -232,15 +266,53 @@ describe("groupWordSegments groups Japanese text", () => {
     expect(shown("プライベートクラウドは非対応")).toContain("非対応");
   });
 
-  it("keeps a lone kanji suffix with the word before it when a particle follows", () => {
+  it("keeps a lone kanji suffix with the word before it", () => {
     expect(shown("翻訳者が確認します")).toBe("翻訳者が¦確認します");
+    expect(shown("翻訳者向けの")).toBe("翻訳者¦向けの");
+    expect(shown("ホスト型なし")).toBe("ホスト型なし");
+    expect(shown("単語数課金")).toBe("単語数¦課金");
+    expect(shown("ライセンス欄なし")).toBe("ライセンス欄なし");
+    expect(shown("書き込まれません")).toBe("書き込まれません");
+    expect(shown("運営者情報")).toBe("運営者¦情報");
   });
 
-  it("keeps an ending whole only while the group stays within eight characters", () => {
-    expect(shown("対応していますか")).toBe("対応していますか");
-    expect(shown("翻訳が欠けているとき、Verbatra は pull request を失敗させられますか？")).toBe(
-      "翻訳が¦欠けているとき¦Verbatra¦は¦pull¦request¦を失敗させられ¦ますか",
+  it("sends a lone prefix kanji forward to the word it opens", () => {
+    expect(shown("Verbatra と他ツールの比較")).toBe("Verbatra¦と¦他ツールの¦比較");
+    expect(shown("高度機能は要ライセンス")).toBe("高度¦機能は¦要ライセンス");
+    expect(shown("管理者が各サービスの認証情報")).toBe("管理者が¦各サービスの¦認証¦情報");
+    expect(shown("機能は非対応")).toBe("機能は¦非対応");
+  });
+
+  it("caps every group at eight characters unless it keeps one word whole", () => {
+    expect(shown("メールアドレスとは別の電子的な連絡手段")).toBe(
+      "メールアドレス¦とは別の¦電子的な¦連絡¦手段",
     );
+    expect(shown("フォーマットの数は各ベンダー")).toBe("フォーマットの数¦は¦各ベンダー");
+    expect(shown("現行の CLI とプラットフォーム")).toBe("現行の¦CLI¦と¦プラットフォーム");
+  });
+
+  it("breaks before the stem of a word, never inside it", () => {
+    expect(shown("翻訳が欠けているとき、Verbatra は pull request を失敗させられますか？")).toBe(
+      "翻訳が¦欠けているとき¦Verbatra¦は¦pull¦request¦を¦失敗させられますか",
+    );
+    expect(shown("プロンプトを選択し、手でコピーしてください")).toBe(
+      "プロンプトを¦選択し¦手で¦コピーして¦ください",
+    );
+    expect(shown("コピーしました")).toBe("コピーしました");
+    expect(shown("一致しなくなりました")).toBe("一致しなく¦なりました");
+    expect(shown("意味ではありません")).toBe("意味では¦ありません");
+    expect(shown("送信できませんでした")).toBe("送信¦できませんでした");
+    expect(shown("以上にしてください")).toBe("以上にして¦ください");
+    expect(shown("をインストールしたら")).toBe("を¦インストールしたら");
+  });
+
+  it("keeps a katakana word whole when its last piece would pass eight characters", () => {
+    expect(shown("コントリビューター")).toBe("コントリビューター");
+    expect(shown("コントリビューションガイド")).toBe("コントリビューション¦ガイド");
+  });
+
+  it("keeps an ending whole while the group stays within eight characters", () => {
+    expect(shown("対応していますか")).toBe("対応していますか");
   });
 
   it("leaves Simplified Chinese grouping alone", () => {
@@ -268,5 +340,83 @@ describe("lastWordStart keeps a Japanese tail short", () => {
   it("keeps a katakana word whole at the end", () => {
     const note = "ホスト型、リポジトリ";
     expect(note.slice(lastWordStart(note, "ja"))).toBe("リポジトリ");
+  });
+});
+
+describe("lastWordStart keeps a particle with the word before it", () => {
+  it.each([
+    ["ローカルのみ", "ローカルのみ"],
+    ["製品なし、選ぶサービスによる", "による"],
+    ["企業向けレビューキューのみ", "のみ"],
+    ["Baidu（セルフホストのみ）", "のみ）"],
+    ["旧 CLI はローカルの Ollama で動作", "で動作"],
+  ])("cuts %s so its tail is %s", (note, tail) => {
+    expect(note.slice(lastWordStart(note, "ja"))).toBe(tail);
+  });
+});
+
+describe("Japanese grouping over every message", () => {
+  const japanese = new Intl.Segmenter("ja", { granularity: "word" });
+  const flatten = (node: unknown): string[] =>
+    typeof node === "string"
+      ? [node]
+      : Object.values(node as Record<string, unknown>).flatMap(flatten);
+  const values = flatten(
+    JSON.parse(readFileSync(new URL("../messages/ja.json", import.meta.url), "utf8")),
+  ).filter((value) => SPACELESS_SCRIPT.test(value));
+  const characters = (text: string): number => [...text].length;
+  const KEPT_WHOLE = new Set([
+    "ページナビゲーション",
+    "アップグレードして",
+    "インストールしたら",
+    "コントリビューション",
+    "コントリビューター",
+    "インポートした値は",
+    "同期していない間は",
+    "オプトアウトしています",
+    "修正したりしています",
+    "失敗させられますか",
+  ]);
+
+  it("rebuilds every value from its groups", () => {
+    for (const value of values)
+      expect(
+        groupWordSegments(japanese.segment(value))
+          .map((group) => group.text)
+          .join(""),
+      ).toBe(value);
+  });
+
+  it("exceeds eight characters only for one ICU token or a word kept whole", () => {
+    for (const value of values) {
+      const tokens = new Set([...japanese.segment(value)].map((part) => part.segment));
+      for (const group of groupWordSegments(japanese.segment(value)))
+        if (group.isWordLike && characters(group.text) > 8)
+          expect(tokens.has(group.text) || KEPT_WHOLE.has(group.text)).toBe(true);
+    }
+  });
+
+  it("never opens a group on a small kana, a long vowel mark or an ending", () => {
+    for (const value of values) {
+      const groups = groupWordSegments(japanese.segment(value));
+      groups.forEach((group, position) => {
+        if (!group.isWordLike || groups[position - 1]?.isWordLike !== true) return;
+        expect(group.text).not.toMatch(/^[ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮー]/u);
+        expect(group.text).not.toMatch(ENDING_START);
+        expect(group.text).not.toMatch(KATAKANA_ENDING_START);
+      });
+    }
+  });
+
+  it("leaves a lone particle only after a Latin word or a full eight-character group", () => {
+    for (const value of values) {
+      const groups = groupWordSegments(japanese.segment(value));
+      groups.forEach((group, position) => {
+        const previous = groups[position - 1];
+        if (!group.isWordLike || previous?.isWordLike !== true) return;
+        if (!/^[はがをにでとのもへやかねよ]$/u.test(group.text)) return;
+        expect(!SPACELESS_SCRIPT.test(previous.text) || characters(previous.text) === 8).toBe(true);
+      });
+    }
   });
 });
