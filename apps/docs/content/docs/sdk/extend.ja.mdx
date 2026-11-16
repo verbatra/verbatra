@@ -190,3 +190,19 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderNetwork` は、ネットワークポリシーがプロバイダーの接続先を制限しているときに、`CreateProviderContext.network` が持つものです。実効の `policy`、エンドポイントの解決に使った `env`、オプションのテスト用 `deps` で構成されます。カスタムプロバイダーはこれを無視できますが、その場合、プロバイダーのリクエストに適用されるのは、SDK がファクトリ関数を呼び出す前に行うチェックだけです。
 
 **例**：[API キーなしで統合をテストする](/ja/docs/programmatic-api#api-キーなしで統合をテストする)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+実行時と同じ方法で、1 つのターゲットロケールに適用されるトーンを解決します。単一のトーンはすべてのロケールに適用され、マップはそのロケール自身のエントリ、次に `default`、最後に `undefined` を返します。カスタムプロバイダーが受け取る `TranslateRequest.tone` は、すでにこの方法で解決されています。
+
+```ts title="シグネチャ"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**戻り値**：`Tone | undefined`

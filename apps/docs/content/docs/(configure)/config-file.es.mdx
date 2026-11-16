@@ -60,7 +60,7 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema` y los m
 | `provider.id` | id de proveedor | obligatoria | 0.1.0 | El proveedor de traducción, o `none` para no usar traducción automática. |
 | `provider.options` | objeto | obligatoria, salvo con `none` | 0.1.0 | Las [opciones propias](/es/docs/providers) del proveedor. |
 | `glossary` | objeto o ruta de archivo | ninguno | 0.1.0 | Traducciones fijas, traducciones prohibidas y términos que no se traducen. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | ninguno | 0.1.0 | El registro en el que traducir, aplicado [por proveedor](/es/docs/providers#tono-y-glosario-entre-proveedores). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` o un mapa | ninguno | 0.1.0 | El registro en el que traducir, aplicado [por proveedor](/es/docs/providers#tono-y-glosario-entre-proveedores). Un mapa da a un locale de destino su propio tono, con `default` para el resto. <AvailableFrom version="0.14.0" /> |
 | `prune` | boolean | `false` | 0.3.0 | Elimina las claves huérfanas de los archivos de destino y del bloqueo; `translate --prune` tiene prioridad. |
 | `generatePlurals` | boolean | `false` | 0.3.0 | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
 | `fuzzyCache.enabled` | boolean | obligatoria en el bloque | 0.11.0 | Reutiliza la traducción de un origen poco cambiado. |

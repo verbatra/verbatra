@@ -60,7 +60,7 @@ export default defineConfig({
 | `provider.id` | 提供商 ID | 必填 | 0.1.0 | 翻译提供商，设为 `none` 表示不用机器翻译。 |
 | `provider.options` | 对象 | 必填，`none` 除外 | 0.1.0 | 提供商的专有选项（见[提供商](/zh-CN/docs/providers)）。 |
 | `glossary` | 对象或文件路径 | 无 | 0.1.0 | 固定译法、禁用译法和不翻译的术语。 |
-| `tone` | `"formal"`、`"informal"`、`"neutral"` | 无 | 0.1.0 | 翻译所用的语气，[按提供商](/zh-CN/docs/providers#各提供商的语气与术语表)应用。 |
+| `tone` | `"formal"`、`"informal"`、`"neutral"`，或一个映射 | 无 | 0.1.0 | 翻译所用的语气，[按提供商](/zh-CN/docs/providers#各提供商的语气与术语表)应用。映射可为某个目标语言环境指定自己的语气，其余使用 `default`。<AvailableFrom version="0.14.0" /> |
 | `prune` | 布尔值 | `false` | 0.3.0 | 从目标文件和锁文件中移除孤立的键；`translate --prune` 会覆盖它。 |
 | `generatePlurals` | 布尔值 | `false` | 0.3.0 | 为目标语言补全它所需的 CLDR 复数形式。 |
 | `fuzzyCache.enabled` | 布尔值 | 该块中必填 | 0.11.0 | 复用略有更改的源文本的译文。 |

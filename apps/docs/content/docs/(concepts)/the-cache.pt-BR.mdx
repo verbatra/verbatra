@@ -31,7 +31,7 @@ o arquivo de procedência guarda um hash do texto recusado, e uma execução ign
 ## A impressão digital
 
 Toda entrada é vinculada ao contexto em que foi produzida: uma impressão digital calculada sobre o provedor, o
-modelo, o tom, os termos do glossário daquele locale e o
+modelo, o tom daquele locale, os termos do glossário daquele locale e o
 [`localeMap`](/pt-BR/docs/providers#códigos-de-locale-enviados-ao-provedor) do provedor, quando ele tem entradas. Mude qualquer um
 deles e as entradas anteriores deixam de corresponder, então um novo tom ou um glossário editado retraduz em vez de
 servir um resultado obsoleto. A parte do glossário são os termos que o verbatra enviaria ao provedor, depois de qualquer configuração `sensitiveData` que retenha ou oculte um termo, quer o provedor configurado use termos de glossário ou não (DeepL, Google Cloud Translation e LibreTranslate os ignoram), então um termo editado ainda retraduz. O indicador `caseSensitive` de um termo não faz parte dela. Cada locale tem a própria impressão digital, então editar apenas a tradução para o alemão

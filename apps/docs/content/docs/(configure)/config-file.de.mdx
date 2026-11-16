@@ -60,7 +60,7 @@ Unbekannte Keys werden auf jeder Ebene außer `$schema` und Maps, deren Keys du 
 | `provider.id` | Provider-ID | erforderlich | 0.1.0 | Der Übersetzungs-Provider, oder `none` für keine maschinelle Übersetzung. |
 | `provider.options` | Objekt | erforderlich, außer bei `none` | 0.1.0 | Die [eigenen Optionen](/de/docs/providers) des Providers. |
 | `glossary` | Objekt oder Dateipfad | keines | 0.1.0 | Feste Übersetzungen, verbotene Wiedergaben und Begriffe, die unübersetzt bleiben. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | keiner | 0.1.0 | Das Register, in dem übersetzt wird, angewendet [pro Provider](/de/docs/providers#tonfall-und-glossar-über-die-provider-hinweg). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` oder eine Map | keiner | 0.1.0 | Das Register, in dem übersetzt wird, angewendet [pro Provider](/de/docs/providers#tonfall-und-glossar-über-die-provider-hinweg). Eine Map gibt einer Ziel-Locale einen eigenen Tonfall, `default` gilt für die übrigen. <AvailableFrom version="0.14.0" /> |
 | `prune` | Boolean | `false` | 0.3.0 | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei; `translate --prune` überschreibt es. |
 | `generatePlurals` | Boolean | `false` | 0.3.0 | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
 | `fuzzyCache.enabled` | Boolean | im Block erforderlich | 0.11.0 | Übersetzung einer leicht geänderten Quelle wiederverwenden. |

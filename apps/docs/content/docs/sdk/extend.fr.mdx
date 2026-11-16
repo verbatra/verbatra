@@ -247,3 +247,19 @@ const summary = await translate({ config }, { createProvider });
   alors à ses requêtes.
 
 **Exemple :** [Tester ton intégration sans clé](/fr/docs/programmatic-api#tester-ton-intégration-sans-clé)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+Résout le ton qui s'applique à une locale cible, comme le fait une exécution : un ton unique s'applique à toutes les locales, et une table répond avec l'entrée de cette locale, puis son `default`, puis `undefined`. Le `TranslateRequest.tone` que reçoit un fournisseur personnalisé est déjà résolu ainsi.
+
+```ts title="Signature"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**Renvoie :** `Tone | undefined`

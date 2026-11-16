@@ -33,7 +33,7 @@ la ejecución no conoce ningún rechazo.
 ## La huella
 
 Cada entrada queda acotada al contexto en el que se produjo: una huella sobre el proveedor, el
-modelo, el tono, los términos del glosario de ese locale y el
+modelo, el tono de ese locale, los términos del glosario de ese locale y el
 [`localeMap`](/es/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor cuando tiene
 entradas. Cambia cualquiera de ellos y las entradas anteriores dejan de coincidir, así que un tono
 nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. La parte del glosario son los términos que verbatra enviaría al proveedor, tras aplicar un ajuste de `sensitiveData` que retiene o redacta un término, y da igual que el proveedor configurado use los términos del glosario (DeepL, Google Cloud Translation y LibreTranslate los ignoran), así que un término editado sigue retraduciéndose. La marca `caseSensitive` de un término no forma parte de ella. Cada locale

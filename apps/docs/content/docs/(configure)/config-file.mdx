@@ -60,7 +60,7 @@ Unknown keys are rejected at every level except `$schema` and maps whose keys yo
 | `provider.id` | provider id | required | 0.1.0 | The translation provider, or `none` for no machine translation. |
 | `provider.options` | object | required, except for `none` | 0.1.0 | The provider's [own options](/docs/providers). |
 | `glossary` | object or file path | none | 0.1.0 | Fixed translations, forbidden renderings and do-not-translate terms. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | none | 0.1.0 | The register to translate in, applied [per provider](/docs/providers#tone-and-glossary-across-providers). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"`, or a map | none | 0.1.0 | The register to translate in, applied [per provider](/docs/providers#tone-and-glossary-across-providers). A map gives a target locale its own tone, with `default` for the rest. <AvailableFrom version="0.14.0" /> |
 | `prune` | boolean | `false` | 0.3.0 | Remove orphaned keys from target files and the lock; `translate --prune` overrides it. |
 | `generatePlurals` | boolean | `false` | 0.3.0 | Synthesize the CLDR plural forms a target language needs. |
 | `fuzzyCache.enabled` | boolean | required in the block | 0.11.0 | Reuse a slightly changed source's translation. |

@@ -257,3 +257,19 @@ const summary = await translate({ config }, { createProvider });
   fábrica.
 
 **Ejemplo:** [Prueba tu integración sin clave](/es/docs/programmatic-api#prueba-tu-integración-sin-clave)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+Resuelve el tono que se aplica a un locale de destino, como lo hace una ejecución: un tono único se aplica a todos los locales, y un mapa responde con la entrada de ese locale, luego con su `default` y por último con `undefined`. El `TranslateRequest.tone` que recibe un proveedor propio ya viene resuelto así.
+
+```ts title="Firma"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**Devuelve:** `Tone | undefined`

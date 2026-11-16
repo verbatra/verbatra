@@ -259,3 +259,19 @@ const summary = await translate({ config }, { createProvider });
   dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Factory macht.
 
 **Beispiel:** [Deine Integration ohne API-Key testen](/de/docs/programmatic-api#deine-integration-ohne-api-key-testen)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+Löst den Tonfall auf, der für eine Ziel-Locale gilt, so wie ein Lauf es tut: Ein einzelner Tonfall gilt für jede Locale, und eine Map antwortet mit dem Eintrag genau dieser Locale, dann mit ihrem `default`, dann mit `undefined`. Das `TranslateRequest.tone`, das ein eigener Provider erhält, ist auf diese Weise bereits aufgelöst.
+
+```ts title="Signatur"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**Rückgabe:** `Tone | undefined`

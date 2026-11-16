@@ -122,7 +122,7 @@ provider: {
 读取 `DEEPL_API_KEY`；`options` 可以是 `{}`。DeepL 没有模型，也没有输出 token 上限，出现问题时以通知降级，而不是失败：
 
 - **占位符**以编号标记的形式放在被忽略的标签中传输（`Hello {{name}}` 变为 `Hello <x>{0}</x>`），随后还原。当值含标签、占位符不是字面量，或占位符之外的文本含 `<`、`>`、`{` 或 `}` 时，`PLACEHOLDER_UNSUPPORTED` 会整条搁置该值；标记丢失、重复、被更改或单独出现、出现未知实体或多余的标签的结果则整条丢弃。只有内联标记、没有占位符的值按纯文本发送。<AvailableFrom version="0.12.0" />
-- **语气**映射为正式程度（`formal` 对应更正式，`informal` 对应更不正式，`neutral` 不发送）。免费套餐的密钥不发送正式程度，并报告 `FORMALITY_DOWNGRADED`。付费密钥会请求 `prefer_more` 或 `prefer_less`，所以不支持正式程度的语言（如瑞典语）会带着同样的通知回退。[术语表](#各提供商的语气与术语表)不适用。
+- **语气**映射为正式程度（`formal` 对应更正式，`informal` 对应更不正式，`neutral` 不发送）。免费套餐的密钥不发送正式程度，并报告 `FORMALITY_DOWNGRADED`。付费密钥会请求 `prefer_more` 或 `prefer_less`，所以不支持正式程度的语言（如瑞典语）会带着同样的通知回退。[术语表](#各提供商的语气与术语表)不适用。日语中 `informal` 会发送 `prefer_less`，请改用 `ja: "neutral"`。
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ provider: { id: "none" }
 
 | 提供商 | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 发送并遵循 | 译文、禁用的译法、不翻译的术语和备注，作为有约束力的数据发送 |
+| Anthropic、OpenAI、Gemini、OpenCode、openai-compatible | 按语言环境发送，每种语气有固定的语体（日语除 `formal` 外为礼貌的 です/ます） | 译文、禁用的译法、不翻译的术语和备注，作为有约束力的数据发送 |
 | DeepL | 映射为正式程度 | `GLOSSARY_IGNORED`；只有 `glossaryId` 生效 |
 | Google Cloud Translation、LibreTranslate | `formal` 或 `informal` 时为 `FORMALITY_DOWNGRADED` | `GLOSSARY_IGNORED` |
 

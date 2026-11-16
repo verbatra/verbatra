@@ -247,3 +247,19 @@ const summary = await translate({ config }, { createProvider });
   antes de chamar a função de fábrica se aplica às requisições dele.
 
 **Exemplo:** [Testar sua integração sem chave de API](/pt-BR/docs/programmatic-api#testar-sua-integração-sem-chave-de-api)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+Resolve o tom que vale para um locale de destino, como faz uma execução: um tom único vale para todos os locales, e um mapa responde com a entrada daquele locale, depois com o `default` e, por fim, com `undefined`. O `TranslateRequest.tone` que um provedor personalizado recebe já vem resolvido assim.
+
+```ts title="Assinatura"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**Retorna:** `Tone | undefined`

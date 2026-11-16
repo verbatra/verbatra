@@ -60,7 +60,7 @@ Les clés inconnues sont rejetées à chaque niveau sauf `$schema` et les tables
 | `provider.id` | id de fournisseur | requis | 0.1.0 | Le fournisseur de traduction, ou `none` pour aucune traduction automatique. |
 | `provider.options` | objet | requis, sauf pour `none` | 0.1.0 | Les [options propres](/fr/docs/providers) au fournisseur. |
 | `glossary` | objet ou chemin de fichier | aucun | 0.1.0 | Traductions fixes, traductions interdites et termes à ne pas traduire. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | aucun | 0.1.0 | Le registre des traductions, appliqué [selon le fournisseur](/fr/docs/providers#ton-et-glossaire-selon-les-fournisseurs). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` ou une table | aucun | 0.1.0 | Le registre des traductions, appliqué [selon le fournisseur](/fr/docs/providers#ton-et-glossaire-selon-les-fournisseurs). Une table donne à une locale cible son propre ton, avec `default` pour les autres. <AvailableFrom version="0.14.0" /> |
 | `prune` | booléen | `false` | 0.3.0 | Supprime les clés orphelines des fichiers cibles et du fichier de verrouillage ; `translate --prune` prime. |
 | `generatePlurals` | booléen | `false` | 0.3.0 | Synthétise les formes plurielles CLDR dont une langue cible a besoin. |
 | `fuzzyCache.enabled` | booléen | requis dans le bloc | 0.11.0 | Réutilise la traduction d'une source peu modifiée. |

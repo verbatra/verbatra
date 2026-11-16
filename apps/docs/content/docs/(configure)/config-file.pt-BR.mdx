@@ -60,7 +60,7 @@ Opções desconhecidas são rejeitadas em todos os níveis, exceto `$schema` e m
 | `provider.id` | id de provedor | obrigatório | 0.1.0 | O provedor de tradução, ou `none` para nenhuma tradução automática. |
 | `provider.options` | objeto | obrigatório, exceto para `none` | 0.1.0 | As opções próprias do provedor (veja [Provedores](/pt-BR/docs/providers)). |
 | `glossary` | objeto ou caminho de arquivo | nenhum | 0.1.0 | Traduções fixas, traduções proibidas e termos que não devem ser traduzidos. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | nenhum | 0.1.0 | O tom a usar na tradução, aplicado por provedor (veja [Tom e glossário entre provedores](/pt-BR/docs/providers#tom-e-glossário-entre-provedores)). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` ou um mapa | nenhum | 0.1.0 | O tom a usar na tradução, aplicado por provedor (veja [Tom e glossário entre provedores](/pt-BR/docs/providers#tom-e-glossário-entre-provedores)). Um mapa dá a cada locale de destino o próprio tom, com `default` para os demais. <AvailableFrom version="0.14.0" /> |
 | `prune` | booleano | `false` | 0.3.0 | Remove as chaves órfãs dos arquivos de destino e do arquivo de lock; `translate --prune` a sobrepõe. |
 | `generatePlurals` | booleano | `false` | 0.3.0 | Sintetiza as formas de plural do CLDR de que um idioma de destino precisa. |
 | `fuzzyCache.enabled` | booleano | obrigatório no bloco | 0.11.0 | Reutiliza a tradução de uma origem ligeiramente alterada. |

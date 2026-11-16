@@ -251,3 +251,19 @@ const summary = await translate({ config }, { createProvider });
   before calling the factory applies to its requests.
 
 **Example:** [Test your integration without a key](/docs/programmatic-api#test-your-integration-without-a-key)
+
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+Resolves the tone that applies to one target locale, the way a run does: a single tone applies to every locale, and a map answers with that locale's own entry, then its `default`, then `undefined`. The `TranslateRequest.tone` a custom provider receives is already resolved this way.
+
+```ts title="Signature"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**Returns:** `Tone | undefined`
