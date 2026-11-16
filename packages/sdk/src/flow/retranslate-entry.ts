@@ -26,7 +26,7 @@ import {
   writeLockKeyFor,
   writeLockOptions,
 } from "../lock/locale-write-lock.js";
-import { updateLockFileLocale } from "../lock/lock-file.js";
+import { assertLockFileReadable, updateLockFileLocale } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
 import { type PendingProvenance, settleProvenance } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
@@ -282,6 +282,7 @@ async function saveAccepted(
   const merged = new Map(target.entries);
   merged.set(key, { ...sourceEntry, value, namespace: target.namespace });
   const resolver = createLocalePathResolver(cwd, config);
+  await assertLockFileReadable(cwd, fs);
   await writeTargetResource(
     adapter,
     { locale, namespace: target.namespace, format: config.format, entries: merged },
@@ -409,10 +410,11 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * `lockAcquireTimeoutMs` elapsed, the lock-file guard could not be acquired within its ten-minute
- * default, a lock could not be reclaimed from an abandoned holder, or a lock was taken over by
- * another process before a write (nothing was written) or before it was released (the writes were
- * made and are on disk).
+ * `lockAcquireTimeoutMs` elapsed, or the lock-file guard taken to record the value could not be
+ * acquired within its ten-minute default. Before the first write nothing was written; before a
+ * later one the locale file is already saved and its baseline or record is not. A lock that could
+ * not be reclaimed from an abandoned holder is refused the same way, and a lock taken over by
+ * another process before it was released leaves every write on disk.
  * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
  * before the write lock was taken, while waiting for it, or during the provider request. Nothing
  * was written. It is also thrown when {@link releaseHeldLocks} was running when the call went to
@@ -425,8 +427,11 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version. It is read only after the target locale file has been written, so the new
- * value is already saved when this is thrown and its baseline is not recorded.
+ * unsupported version. Checked before the provider is called and again inside the write lock just
+ * before the locale file is written, so nothing is written; when only the second check fails, the
+ * provider has already been called and its answer is discarded. A lock-file that becomes invalid
+ * in the milliseconds after that second check is thrown once the baseline is recorded, when the new
+ * value is already saved without one.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before the provider is called or anything is written. A file from a
  * newer verbatra is left untouched and the value is written without a record, and so is a value
