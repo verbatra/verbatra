@@ -20,6 +20,7 @@ function shown(width: number): ReadonlyArray<string> {
 }
 
 const LOCK_CARDS = ".vk-lock .vk-lock-card";
+const WORDS = ".vk-word";
 
 const MAX_DISTANCE_PX = 16;
 const MAX_DURATION_S = 0.56;
@@ -171,7 +172,7 @@ test.describe("lower third with reduced motion", () => {
 
   test("shows every artifact in place at once", async ({ page }) => {
     await page.goto("/");
-    for (const selector of [...ARTIFACTS, LOCK_CARDS]) {
+    for (const selector of [...ARTIFACTS, LOCK_CARDS, WORDS]) {
       for (const state of await states(page, selector)) {
         expect(state.opacity, selector).toBe(1);
         expect(state.offset, selector).toBe(0);
@@ -189,7 +190,7 @@ test.describe("lower third without JavaScript", () => {
     });
     const page = await context.newPage();
     await page.goto("/");
-    for (const selector of [...ARTIFACTS, LOCK_CARDS]) {
+    for (const selector of [...ARTIFACTS, LOCK_CARDS, WORDS]) {
       for (const state of await states(page, selector)) {
         expect(state.opacity, selector).toBe(1);
         expect(state.offset, selector).toBe(0);
