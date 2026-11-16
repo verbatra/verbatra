@@ -8,8 +8,9 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   marquee: "marquee.tsx",
   lockDemo: "lock-demo.tsx",
   gate: "gate.tsx",
-  highlights: "highlights.tsx",
+  statement: "statement-band.tsx",
   features: "features.tsx",
+  highlights: "highlights.tsx",
   compare: "comparison.tsx",
   faq: "faq.tsx",
   finalCta: "final-cta.tsx",
@@ -19,7 +20,7 @@ function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
 }
 
-const STILL_SECTIONS: ReadonlyArray<LandingSectionId> = ["hero", "marquee"];
+const STILL_SECTIONS: ReadonlyArray<LandingSectionId> = ["hero", "marquee", "statement"];
 
 const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = LANDING_SECTIONS.filter(
   (id) => !STILL_SECTIONS.includes(id),
@@ -41,8 +42,8 @@ describe("landing reveal marks", () => {
     expect(REVEALING_SECTIONS).toEqual([
       "lockDemo",
       "gate",
-      "highlights",
       "features",
+      "highlights",
       "compare",
       "faq",
       "finalCta",

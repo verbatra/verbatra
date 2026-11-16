@@ -71,8 +71,9 @@ describe("landing surface bands", () => {
       "marquee",
       "lockDemo",
       "gate",
-      "highlights",
+      "statement",
       "features",
+      "highlights",
       "compare",
       "faq",
       "finalCta",
@@ -83,13 +84,14 @@ describe("landing surface bands", () => {
         "marquee.tsx",
         "lock-demo.tsx",
         "gate.tsx",
-        "highlights.tsx",
+        "statement-band.tsx",
         "features.tsx",
+        "highlights.tsx",
         "comparison.tsx",
         "faq.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, false, false, false, false, false, false, false, false]);
+    ).toEqual([false, false, false, false, false, false, false, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {

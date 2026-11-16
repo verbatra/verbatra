@@ -390,6 +390,9 @@
       },
       "lastChecked": "最后核查于 {date}",
       "sources": "来源"
+    },
+    "statement": {
+      "text": "一个锁文件，每条命令都读取它。"
     }
   },
   "legal": {

@@ -390,6 +390,9 @@
       },
       "lastChecked": "Zuletzt geprüft am {date}",
       "sources": "Quellen"
+    },
+    "statement": {
+      "text": "Eine Lock-Datei. Jeder Befehl liest sie."
     }
   },
   "legal": {

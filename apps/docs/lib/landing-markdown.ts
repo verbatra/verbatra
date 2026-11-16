@@ -242,6 +242,11 @@ async function gate({ locale }: Context): Promise<string> {
   );
 }
 
+async function statement({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.statement" });
+  return t("text");
+}
+
 async function highlights({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.highlights" });
   const surface = (id: Surface, ...body: ReadonlyArray<string>): ReadonlyArray<string> => [
@@ -386,8 +391,9 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     marquee,
     lockDemo,
     gate,
-    highlights,
+    statement,
     features,
+    highlights,
     compare: comparison,
     faq,
     finalCta,

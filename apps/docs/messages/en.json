@@ -390,6 +390,9 @@
     },
     "fab": {
       "label": "Back to top"
+    },
+    "statement": {
+      "text": "One lock file. Every command reads it."
     }
   },
   "legal": {

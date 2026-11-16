@@ -390,6 +390,9 @@
       },
       "lastChecked": "最終確認日 {date}",
       "sources": "出典"
+    },
+    "statement": {
+      "text": "ロックファイルは一つ。すべてのコマンドがそれを読みます。"
     }
   },
   "legal": {

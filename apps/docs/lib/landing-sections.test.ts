@@ -8,14 +8,15 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("opens on the hero and the marquee, then the lock-file demo, the gate, the highlights, the features, the comparison, the FAQ and the call to action", () => {
+  it("opens on the hero and the marquee, then the lock-file demo, the gate, the statement band, the features, the highlights, the comparison, the FAQ and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
       "lockDemo",
       "gate",
-      "highlights",
+      "statement",
       "features",
+      "highlights",
       "compare",
       "faq",
       "finalCta",

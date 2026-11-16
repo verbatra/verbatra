@@ -44,8 +44,9 @@ for (const locale of LOCALES) {
         "marquee",
         "lock-demo",
         "gate",
-        "highlights",
+        "statement",
         "features",
+        "highlights",
         "compare",
         "faq",
         "closing-heading",
@@ -138,8 +139,8 @@ test.describe("landing length on a phone", () => {
   const PHONE = { width: 391, height: 844 };
 
   for (const { motion, screens } of [
-    { motion: "no-preference", screens: 13 },
-    { motion: "reduce", screens: 13 },
+    { motion: "no-preference", screens: 13.5 },
+    { motion: "reduce", screens: 13.5 },
   ] as const) {
     test(`stays under ${screens} screens with motion ${motion}`, async ({ page }) => {
       await page.setViewportSize(PHONE);

@@ -390,6 +390,9 @@
       },
       "lastChecked": "Última verificação em {date}",
       "sources": "Fontes"
+    },
+    "statement": {
+      "text": "Um arquivo de lock. Todo comando o lê."
     }
   },
   "legal": {

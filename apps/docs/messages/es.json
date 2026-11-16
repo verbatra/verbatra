@@ -390,6 +390,9 @@
       },
       "lastChecked": "Última revisión: {date}",
       "sources": "Fuentes"
+    },
+    "statement": {
+      "text": "Un archivo de bloqueo. Cada comando lo lee."
     }
   },
   "legal": {

@@ -30,8 +30,8 @@ const SECTION_HEADINGS = [
   "marquee.heading",
   "lockDemo.label",
   "gate.heading",
-  "highlights.heading",
   "features.heading",
+  "highlights.heading",
   "comparison.heading",
   "faq.heading",
   "closing.heading",
@@ -87,6 +87,26 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
     );
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
+
+  it("sets the statement as a plain paragraph between the gate and the features", async () => {
+    const body = await landingMarkdown(locale);
+    const statement = message(messages, "statement.text");
+    const [gate, features] = [
+      message(messages, "gate.heading"),
+      message(messages, "features.heading"),
+    ];
+    const lines = body.split("\n");
+    const at = lines.indexOf(statement);
+    expect(at).toBeGreaterThan(-1);
+    expect(lines[at - 1]).toBe("");
+    expect(lines[at + 1]).toBe("");
+    expect(lines.findIndex((line) => line.startsWith("## ") && line.includes(gate))).toBeLessThan(
+      at,
+    );
+    expect(
+      lines.findIndex((line) => line.startsWith("## ") && line.includes(features)),
+    ).toBeGreaterThan(at);
   });
 
   it("states every provider and format by name and gives no raw message keys", async () => {

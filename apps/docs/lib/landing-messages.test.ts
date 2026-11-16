@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SPACELESS_SNIPPET_WIDTH, snippetLength } from "@/lib/display-width";
 import { i18n, type Locale } from "@/lib/i18n";
+import { countWords } from "@/lib/word-count";
 
 type MessageTree = { [key: string]: string | MessageTree };
 
@@ -70,6 +71,16 @@ const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
   "zh-CN": CJK_DESCRIPTION_WINDOW,
   "pt-BR": SEARCH_DESCRIPTION_WINDOW,
   ja: CJK_DESCRIPTION_WINDOW,
+};
+
+const STATEMENT_WORD_CAP: Readonly<Record<Locale, number>> = {
+  en: 8,
+  de: 8,
+  es: 8,
+  fr: 8,
+  "zh-CN": 10,
+  "pt-BR": 8,
+  ja: 12,
 };
 
 describe("landing message parity", () => {
@@ -154,6 +165,14 @@ describe("landing message parity", () => {
       expect(landingKeys(locale)).toEqual(source);
     });
   }
+
+  it("keeps the statement band to its word cap and to one sentence per beat, in every locale", () => {
+    for (const locale of i18n.languages) {
+      const text = landingText(locale, "statement.text");
+      expect(countWords(text, locale), locale).toBeLessThanOrEqual(STATEMENT_WORD_CAP[locale]);
+      expect(text, locale).not.toMatch(/\n/);
+    }
+  });
 
   it("gives the hero a lead that says something the headline does not", () => {
     for (const locale of i18n.languages) {

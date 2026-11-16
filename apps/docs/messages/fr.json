@@ -390,6 +390,9 @@
       },
       "lastChecked": "Dernière vérification le {date}",
       "sources": "Sources"
+    },
+    "statement": {
+      "text": "Un fichier de verrouillage. Chaque commande le lit."
     }
   },
   "legal": {
