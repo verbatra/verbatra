@@ -43,3 +43,10 @@ export function appTextFiles(): string[] {
     ),
   ];
 }
+
+const IMPORT_SPECIFIER =
+  /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*|\brequire\.resolve\s*\(\s*|\bexport\s+\*\s+from\s*)["'`]([^"'`]+)["'`]/g;
+
+export function importSpecifiers(source: string): string[] {
+  return [...source.matchAll(IMPORT_SPECIFIER)].map(([, specifier]) => specifier ?? "");
+}
