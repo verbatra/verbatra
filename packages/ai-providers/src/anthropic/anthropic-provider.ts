@@ -8,7 +8,7 @@ import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-ti
 import { createDefaultClient } from "./client.js";
 import { type AnthropicConfig, anthropicConfigSchema } from "./config.js";
 import { type BuiltRequest, buildRequest } from "./request.js";
-import { requireToolInput } from "./response.js";
+import { readStructuredOutput } from "./response.js";
 import type { AnthropicMessage, MessagesClient } from "./types.js";
 
 const PROVIDER_ID = "anthropic";
@@ -42,7 +42,7 @@ function createMechanism(client: MessagesClient, config: AnthropicConfig): LlmMe
       const body = buildRequest(config, payloadJson);
       const message = await callClient(client, body, timeoutMs, signal);
       assertNotTruncated(message.stop_reason === "max_tokens");
-      const raw = requireToolInput(message.content);
+      const raw = readStructuredOutput(message.content);
       const usage = toUsage(message.usage);
       return usage === undefined ? { raw } : { raw, usage };
     },

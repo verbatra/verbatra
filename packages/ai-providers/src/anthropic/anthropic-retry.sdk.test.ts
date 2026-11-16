@@ -3,22 +3,16 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProviderRetry } from "../provider-retry.js";
 import { createAnthropicProvider } from "./anthropic-provider.js";
-import { SUBMIT_TOOL_NAME } from "./request.js";
 
 const MESSAGE = {
   id: "msg_1",
   type: "message",
   role: "assistant",
   model: "m",
-  stop_reason: "tool_use",
+  stop_reason: "end_turn",
   stop_sequence: null,
   content: [
-    {
-      type: "tool_use",
-      id: "toolu_1",
-      name: SUBMIT_TOOL_NAME,
-      input: { translations: [{ key: "greeting", value: "Hallo" }] },
-    },
+    { type: "text", text: JSON.stringify({ translations: [{ key: "greeting", value: "Hallo" }] }) },
   ],
   usage: { input_tokens: 3, output_tokens: 2 },
 };

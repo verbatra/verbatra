@@ -79,9 +79,10 @@ describe("SHARED_SYSTEM_RULES", () => {
     expect(openaiLast).toBe(geminiLast);
   });
 
-  it("gives Anthropic a distinct forced tool-call response line", () => {
+  it("gives Anthropic the JSON-object-only response line and no tool reference", () => {
     const anthropicLast = ANTHROPIC_SYSTEM_RULES.split("\n").at(-1);
-    expect(anthropicLast).toContain("submit_translations");
+    expect(anthropicLast).toContain("JSON object");
+    expect(ANTHROPIC_SYSTEM_RULES).not.toContain("submit_translations");
   });
 });
 

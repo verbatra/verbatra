@@ -31,20 +31,18 @@ export function entry(
 export const regexExtractor: PlaceholderExtractor = (value) =>
   value.match(/\{\{[^{}]+\}\}|\{[^{}]+\}/g) ?? [];
 
-export function toolMessage(
+export function textMessage(
   translations: ReadonlyArray<{ key: string; value: string }>,
   usage?: { input_tokens?: number; output_tokens?: number },
 ): AnthropicMessage {
-  const content = [
-    { type: "tool_use", id: "tool-1", name: "submit_translations", input: { translations } },
-  ];
+  const content = [{ type: "text", text: JSON.stringify({ translations }) }];
   return usage === undefined ? { content } : { content, usage };
 }
 
-export function truncatedToolMessage(
+export function truncatedTextMessage(
   translations: ReadonlyArray<{ key: string; value: string }>,
 ): AnthropicMessage {
-  return { ...toolMessage(translations), stop_reason: "max_tokens" };
+  return { ...textMessage(translations), stop_reason: "max_tokens" };
 }
 
 export function stubClient(message: AnthropicMessage): {
