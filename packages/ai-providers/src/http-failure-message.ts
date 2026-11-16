@@ -13,8 +13,10 @@ export const REJECTED_REQUEST_REMEDY =
   "The server rejected the request: check the model name and whether the server supports Chat " +
   "Completions with strict JSON schema output.";
 export const ANTHROPIC_REJECTED_REQUEST_REMEDY =
-  "The Anthropic API rejected the request: check that the model id exists and that this model " +
-  "supports the parameters verbatra sends.";
+  "The Anthropic API rejected the request: this model may not support the parameters verbatra " +
+  "sends.";
+export const ANTHROPIC_UNKNOWN_MODEL_REMEDY =
+  "The Anthropic API does not know this model: check that the model id exists.";
 export const ZEN_MODEL_REMEDY =
   "The model must be one that OpenCode Zen serves over the Chat Completions endpoint.";
 export const REFUSED_REQUEST_REMEDY =
@@ -45,6 +47,7 @@ const ZEN_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
 
 const ANTHROPIC_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
   400: ANTHROPIC_REJECTED_REQUEST_REMEDY,
+  404: ANTHROPIC_UNKNOWN_MODEL_REMEDY,
 };
 
 const REMEDY_TABLES: Readonly<Record<EndpointRemedies, Readonly<Record<number, string>>>> = {
