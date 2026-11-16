@@ -108,9 +108,11 @@ test.describe("the landing on a phone", () => {
   });
 });
 
+const FAQ_HEADING_SIZES = { 1024: "40px", 1440: "48px" } as const;
+
 for (const locale of LOCALES) {
   for (const width of [1024, 1440] as const) {
-    test(`heads the FAQ aside at 3rem in at most three lines in ${locale} at ${width}px`, async ({
+    test(`heads the FAQ aside at ${FAQ_HEADING_SIZES[width]} in at most three lines in ${locale} at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -124,7 +126,7 @@ for (const locale of LOCALES) {
           ),
         };
       });
-      expect(heading.size).toBe("48px");
+      expect(heading.size).toBe(FAQ_HEADING_SIZES[width]);
       expect(heading.lines).toBeLessThanOrEqual(3);
     });
   }

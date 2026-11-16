@@ -3909,6 +3909,12 @@ html:has(.vk-home) {
 
 @media (min-width: 64rem) {
   .vk-faq-aside .vk-h2 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  .vk-faq-aside .vk-h2 {
     font-size: 3rem;
   }
 }

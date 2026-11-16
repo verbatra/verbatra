@@ -94,8 +94,11 @@ describe("the landing scale", () => {
     );
   });
 
-  it("holds the FAQ aside heading at the old 3rem cap where it sits in a third of the row", () => {
+  it("sets the FAQ aside heading at 2.5rem from 64rem and 3rem from 80rem, where the sticky unit has to fit a 672px window", () => {
     expect(override("@media (min-width: 64rem)", ".vk-faq-aside .vk-h2")?.["font-size"]).toBe(
+      "2.5rem",
+    );
+    expect(override("@media (min-width: 80rem)", ".vk-faq-aside .vk-h2")?.["font-size"]).toBe(
       "3rem",
     );
   });
