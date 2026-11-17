@@ -14,6 +14,7 @@ export function McpInstallLink({ client }: { client: McpInstallClient }): ReactN
     <p className="not-prose my-4">
       <a
         href={mcpInstallLink(AGENT_CLIENT_CONFIGS, client)}
+        data-mcp-install=""
         className={buttonClasses({ variant: "secondary", size: "sm", className: "min-h-11" })}
       >
         {t("label", { client: mcpInstallClientName(AGENT_CLIENT_CONFIGS, client) })}

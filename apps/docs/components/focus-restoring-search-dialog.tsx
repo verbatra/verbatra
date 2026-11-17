@@ -2,6 +2,7 @@
 
 import type { DefaultSearchDialogProps } from "fumadocs-ui/components/dialog/search-default";
 import { lazy, type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
+import { report } from "@/lib/analytics-report";
 
 const DefaultSearchDialog = lazy(() => import("fumadocs-ui/components/dialog/search-default"));
 
@@ -23,6 +24,10 @@ export function FocusRestoringSearchDialog(props: DefaultSearchDialogProps): Rea
     const target = opener.current;
     opener.current = null;
     if (target?.isConnected) target.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (open) report("search_open");
   }, [open]);
 
   return <DefaultSearchDialog {...props} />;

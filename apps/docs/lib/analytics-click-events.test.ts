@@ -2,10 +2,11 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { eventForClick, reportClick } from "./analytics-click-events";
+import { report } from "./analytics-report";
 
-function dom(html: string, path = "/"): Element {
-  window.history.replaceState(null, "", path);
-  document.documentElement.lang = "de";
+vi.mock("./analytics-report", () => ({ report: vi.fn() }));
+
+function dom(html: string): Element {
   document.body.innerHTML = html;
   const target = document.querySelector("[data-target]");
   if (!target) throw new Error("no target");
@@ -14,20 +15,19 @@ function dom(html: string, path = "/"): Element {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  vi.mocked(report).mockClear();
 });
 
 describe("eventForClick: copy_code", () => {
-  it.each([
-    ["command-row", "command-row"],
-    ["ai-prompt", "ai-prompt"],
-    ["page-markdown", "page-markdown"],
-    ["code-block", "code-block"],
-  ])("reports a click on a copy button of the %s surface", (surface, expected) => {
-    const target = dom(
-      `<button data-copy-surface="${surface}"><span data-target>Copy</span></button>`,
-    );
-    expect(eventForClick(target)).toEqual(["copy_code", { surface: expected }]);
-  });
+  it.each(["command-row", "ai-prompt", "page-markdown", "code-block"])(
+    "reports a click on a copy button of the %s surface",
+    (surface) => {
+      const target = dom(
+        `<button data-copy-surface="${surface}"><span data-target>Copy</span></button>`,
+      );
+      expect(eventForClick(target)).toEqual(["copy_code", { surface }]);
+    },
+  );
 
   it("reports a button inside a marked copy region", () => {
     const target = dom(
@@ -50,11 +50,11 @@ describe("eventForClick: copy_code", () => {
 });
 
 describe("eventForClick: cta_click", () => {
-  it("reports the stable cta id with the page language, never the link text", () => {
+  it("reports the stable cta id, never the link text", () => {
     const target = dom(
       `<a href="/docs/quickstart" data-cta="hero-quickstart" data-target>Start</a>`,
     );
-    expect(eventForClick(target)).toEqual(["cta_click", { id: "hero-quickstart", locale: "de" }]);
+    expect(eventForClick(target)).toEqual(["cta_click", { id: "hero-quickstart" }]);
   });
 
   it("ignores a cta id outside the allowlist", () => {
@@ -68,39 +68,9 @@ describe("eventForClick: outbound_click", () => {
     ["https://www.npmjs.com/package/@verbatra/cli", "npm"],
     ["https://registry.modelcontextprotocol.io/x", "mcp-registry"],
     ["https://example.org/", "other"],
-  ])("classifies %s as %s", (href, target) => {
+  ])("classifies %s as %s", (href, dest) => {
     const link = dom(`<a href="${href}" target="_blank" data-target>go</a>`);
-    expect(eventForClick(link)).toEqual(["outbound_click", { target, from: "landing" }]);
-  });
-
-  it.each([
-    [
-      "header",
-      `<header><a href="https://github.com/x" target="_blank" data-target>go</a></header>`,
-      "/",
-    ],
-    [
-      "footer",
-      `<footer><a href="https://github.com/x" target="_blank" data-target>go</a></footer>`,
-      "/docs",
-    ],
-    [
-      "docs",
-      `<main><a href="https://github.com/x" target="_blank" data-target>go</a></main>`,
-      "/de/docs/cli",
-    ],
-    [
-      "legal",
-      `<main><a href="https://github.com/x" target="_blank" data-target>go</a></main>`,
-      "/de/imprint",
-    ],
-    [
-      "landing",
-      `<main><a href="https://github.com/x" target="_blank" data-target>go</a></main>`,
-      "/de",
-    ],
-  ])("reports where the link sits: %s", (from, html, path) => {
-    expect(eventForClick(dom(html, path))?.[1]).toMatchObject({ from });
+    expect(eventForClick(link)).toEqual(["outbound_click", { dest }]);
   });
 
   it("finds the link from a nested element", () => {
@@ -121,38 +91,46 @@ describe("eventForClick: outbound_click", () => {
   });
 });
 
-describe("reportClick", () => {
-  afterEach(() => {
-    Reflect.deleteProperty(window, "umami");
+describe("eventForClick: mcp_install_click", () => {
+  it("reports a click on a marked install link without any property", () => {
+    const target = dom(`<a href="cursor://x" data-mcp-install><span data-target>Add</span></a>`);
+    expect(eventForClick(target)).toEqual(["mcp_install_click"]);
+  });
+});
+
+describe("eventForClick: locale_switch", () => {
+  it("reports the chosen locale code", () => {
+    const target = dom(`<button data-locale-switch="zh-CN"><i data-target></i></button>`);
+    expect(eventForClick(target)).toEqual(["locale_switch", { to: "zh-CN" }]);
   });
 
+  it("ignores a locale outside the supported set", () => {
+    expect(
+      eventForClick(dom(`<button data-locale-switch="xx" data-target>x</button>`)),
+    ).toBeUndefined();
+  });
+});
+
+describe("reportClick", () => {
   it.each([
     [
       `<button data-copy-surface="ai-prompt" data-target>Copy</button>`,
-      "copy_code",
-      { surface: "ai-prompt" },
+      ["copy_code", { surface: "ai-prompt" }],
     ],
-    [
-      `<a data-cta="hero-compare" data-target>x</a>`,
-      "cta_click",
-      { id: "hero-compare", locale: "de" },
-    ],
+    [`<a data-cta="hero-compare" data-target>x</a>`, ["cta_click", { id: "hero-compare" }]],
     [
       `<a href="https://github.com/x" target="_blank" data-target>x</a>`,
-      "outbound_click",
-      { target: "github", from: "landing" },
+      ["outbound_click", { dest: "github" }],
     ],
-  ])("hands the event of %s to the tracker", (html, name, data) => {
-    const track = vi.fn();
-    Reflect.set(window, "umami", { track });
+    [`<a data-mcp-install data-target>x</a>`, ["mcp_install_click"]],
+    [`<button data-locale-switch="de" data-target>x</button>`, ["locale_switch", { to: "de" }]],
+  ])("hands the event of %s to report", (html, args) => {
     reportClick(dom(html));
-    expect(track).toHaveBeenCalledExactlyOnceWith(name, data);
+    expect(report).toHaveBeenCalledExactlyOnceWith(...(args as [string, object?]));
   });
 
-  it("hands nothing to the tracker for an unrelated click", () => {
-    const track = vi.fn();
-    Reflect.set(window, "umami", { track });
+  it("reports nothing for an unrelated click", () => {
     reportClick(dom(`<p data-target>x</p>`));
-    expect(track).not.toHaveBeenCalled();
+    expect(report).not.toHaveBeenCalled();
   });
 });

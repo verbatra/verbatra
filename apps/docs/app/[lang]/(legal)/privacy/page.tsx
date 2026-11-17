@@ -2,7 +2,6 @@ import { CalloutContainer } from "fumadocs-ui/components/callout";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
-import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
 import { CALLOUT_CLASS } from "@/components/docs-callout";
 import { LegalPage, LegalPageHead } from "@/components/legal-page";
 import { type Locale, toLocale } from "@/lib/i18n";
@@ -59,16 +58,6 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
   const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
   const linkTags = linkTagsFor(locale);
-  const optOutLabels: AnalyticsOptOutLabels = {
-    optIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optIn`),
-    defaultOnly: t(`${PRIVACY_ANALYTICS_KEY}.optOut.defaultOnly`),
-    optOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optOut`),
-    statusOptedIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedIn`),
-    statusDefault: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusDefault`),
-    statusOptedOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedOut`),
-    signals: t(`${PRIVACY_ANALYTICS_KEY}.optOut.signals`),
-  };
-
   const lastUpdatedText = (
     <em>{t.rich("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks) => <>{chunks}</> })}</em>
   );
@@ -100,9 +89,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
             <p>{t.rich(`${key}.body`, linkTags)}</p>
             {key === PRIVACY_ANALYTICS_KEY && (
               <>
-                <p>{t.rich(`${key}.extended`, linkTags)}</p>
                 <p>{t.rich(`${key}.retention`, linkTags)}</p>
-                <AnalyticsOptOut locale={locale} labels={optOutLabels} />
               </>
             )}
           </section>

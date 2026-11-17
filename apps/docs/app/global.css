@@ -5887,19 +5887,3 @@ article.vk-hl-pane:is(:hover, :focus-within) > .vk-hl-glow {
     }
   }
 }
-
-html:root {
-  --analytics-prompt-clearance: 0px;
-}
-
-html:root[data-analytics-prompt] {
-  scroll-padding-bottom: var(--analytics-prompt-clearance);
-}
-
-html:root[data-analytics-prompt] body {
-  padding-block-end: var(--analytics-prompt-clearance);
-}
-
-html:root[data-analytics-prompt] .vk-scroll-top {
-  display: none;
-}

@@ -3,6 +3,7 @@
 import { act, type ReactNode, Suspense, useEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { report } from "@/lib/analytics-report";
 
 vi.mock("fumadocs-ui/components/dialog/search-default", () => ({
   default: function FakeDialog({ open }: { open: boolean }): ReactNode {
@@ -14,6 +15,8 @@ vi.mock("fumadocs-ui/components/dialog/search-default", () => ({
   },
 }));
 
+vi.mock("@/lib/analytics-report", () => ({ report: vi.fn() }));
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { FocusRestoringSearchDialog } = await import("./focus-restoring-search-dialog");
@@ -21,6 +24,7 @@ const { FocusRestoringSearchDialog } = await import("./focus-restoring-search-di
 let root: Root | undefined;
 
 afterEach(() => {
+  vi.mocked(report).mockClear();
   act(() => root?.unmount());
   root = undefined;
   document.body.innerHTML = "";
@@ -73,5 +77,16 @@ describe("FocusRestoringSearchDialog", () => {
     opener.remove();
     await renderDialog(false);
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it("reports search_open once per opening and nothing on close or while closed", async () => {
+    setup();
+    await renderDialog(false);
+    expect(report).not.toHaveBeenCalled();
+    await renderDialog(true);
+    expect(report).toHaveBeenCalledExactlyOnceWith("search_open");
+    await renderDialog(false);
+    await renderDialog(true);
+    expect(report).toHaveBeenCalledTimes(2);
   });
 });

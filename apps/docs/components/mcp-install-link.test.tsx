@@ -25,6 +25,10 @@ describe("McpInstallLink", () => {
     expect(anchor?.getAttribute("target")).toBeNull();
   });
 
+  it("is marked for the delegated install click report", () => {
+    expect(link()?.hasAttribute("data-mcp-install")).toBe(true);
+  });
+
   it("names the client in its label", () => {
     expect(link()?.textContent).toBe("label:VS Code");
   });
