@@ -215,14 +215,24 @@ for (const [width, height] of VIEWPORTS) {
         await expect
           .poll(async () =>
             page.locator(`${SECTION} .vk-gate-steps li`).evaluateAll((nodes) => {
-              const colours = nodes.map((node) => getComputedStyle(node).color);
-              const counts = colours.map(
-                (colour) => colours.filter((other) => other === colour).length,
-              );
-              return counts.findIndex((count) => count === 1);
+              const resolved = (strongShare: number) => {
+                const probe = document.createElement("span");
+                probe.style.color = `color-mix(in srgb, var(--text-strong) ${strongShare}%, var(--text-muted))`;
+                document.body.append(probe);
+                const colour = getComputedStyle(probe).color;
+                probe.remove();
+                return colour;
+              };
+              const strong = resolved(100);
+              const muted = resolved(0);
+              return nodes
+                .map((node) => getComputedStyle(node).color)
+                .map((colour) =>
+                  colour === strong ? "strong" : colour === muted ? "muted" : colour,
+                );
             }),
           )
-          .toBe(index);
+          .toEqual(STATES.map((_, step) => (step === index ? "strong" : "muted")));
       }
       const columns = await page.locator(`${SECTION} .vk-gate-steps`).evaluate((node) => {
         const stage = node.parentElement?.getBoundingClientRect();

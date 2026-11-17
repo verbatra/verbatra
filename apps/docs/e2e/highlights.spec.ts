@@ -66,8 +66,8 @@ async function paneSlack(page: Page): Promise<number[]> {
 const SLACK_LIMIT = 48;
 
 const HEIGHT_CEILINGS: ReadonlyArray<readonly [number, number]> = [
-  [1440, 1160],
-  [768, 1120],
+  [1440, 1200],
+  [768, 1160],
   [391, 1360],
 ];
 

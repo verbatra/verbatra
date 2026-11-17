@@ -69,9 +69,9 @@ function move(target: Element, x: number, y: number, pointerType = "mouse"): voi
   target.dispatchEvent(event);
 }
 
-function leave(target: Element, pointerType = "mouse"): void {
+function leave(target: Element, pointerType = "mouse", relatedTarget: Element | null = null): void {
   const event = new Event("pointerout", { bubbles: true });
-  Object.assign(event, { pointerType });
+  Object.assign(event, { pointerType, relatedTarget });
   target.dispatchEvent(event);
 }
 
@@ -110,6 +110,17 @@ describe("DeckHover", () => {
     leave(row("b"));
     vi.advanceTimersByTime(DECK_HOVER_DWELL_MS);
     expect(radio("b").checked).toBe(false);
+    unmount();
+  });
+
+  it("keeps the dwell when the pointer crosses descendants of the same row", () => {
+    stubMedia({ [FINE]: true, [WIDE]: true });
+    const { unmount } = mount();
+    move(row("b"), 10, 10);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS - 20);
+    leave(document.querySelector('label[for="r-b"]') as Element, "mouse", radio("b"));
+    vi.advanceTimersByTime(20);
+    expect(radio("b").checked).toBe(true);
     unmount();
   });
 
