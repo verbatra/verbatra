@@ -507,14 +507,12 @@ test.describe("highlights lit pane", () => {
       if (index !== 1) expect(after[index]?.lift).toBe(before[index]?.lift);
     }
     expect(after[1]?.border).not.toBe(before[1]?.border);
-    const glow = await page
-      .locator(PANES)
-      .nth(1)
-      .locator(".vk-hl-glow")
-      .evaluate((node) => {
-        const style = getComputedStyle(node);
-        return { opacity: style.opacity, property: style.transitionProperty };
-      });
+    const glowLocator = page.locator(PANES).nth(1).locator(".vk-hl-glow");
+    await expect(glowLocator).toHaveCSS("opacity", "1");
+    const glow = await glowLocator.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { opacity: style.opacity, property: style.transitionProperty };
+    });
     expect(glow.opacity).toBe("1");
     expect(glow.property).toBe("opacity");
     expect(await page.evaluate(() => (window as unknown as { __shift: number }).__shift)).toBe(0);

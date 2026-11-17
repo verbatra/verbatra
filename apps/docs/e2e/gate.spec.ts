@@ -629,7 +629,8 @@ test.describe("gate with reduced motion", () => {
           display: style.display,
           visibility: style.visibility,
           width: head.getBoundingClientRect().width,
-          pinnedHidden: pinned.getAttribute("aria-hidden"),
+          pinnedHidden: pinned.closest('[aria-hidden="true"]') !== null,
+          headHidden: head.closest('[aria-hidden="true"], [inert], [hidden]') !== null,
           text: head.textContent,
         };
       }, SECTION);
@@ -637,7 +638,8 @@ test.describe("gate with reduced motion", () => {
       expect(state?.display).not.toBe("none");
       expect(state?.visibility).toBe("visible");
       expect(state?.width).toBeLessThanOrEqual(1);
-      expect(state?.pinnedHidden).toBe("true");
+      expect(state?.headHidden).toBe(false);
+      expect(state?.pinnedHidden).toBe(true);
       expect(state?.text?.trim()).not.toBe("");
     });
   });
