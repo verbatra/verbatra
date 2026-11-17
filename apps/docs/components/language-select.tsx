@@ -85,6 +85,7 @@ export function LocaleAwareLanguageSelect({
             <button
               key={item.locale}
               type="button"
+              data-locale-switch={item.locale}
               title={isMachineTranslated ? t("machineTranslatedLabel") : undefined}
               aria-describedby={isMachineTranslated ? descriptionId : undefined}
               aria-current={item.locale === currentLocale ? "true" : undefined}

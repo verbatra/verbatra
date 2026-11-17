@@ -24,9 +24,10 @@ const DOCUMENT_NAVIGATION: Record<string, string> = {
   "sec-fetch-dest": "document",
   "sec-fetch-mode": "navigate",
   "user-agent": SAFARI,
+  "x-forwarded-for": "84.132.10.7",
 };
 
-const fetchMock = vi.fn(async () => new Response("{}"));
+const fetchMock = vi.fn(async (..._args: unknown[]) => new Response("{}"));
 
 function eventSpy() {
   const waitUntil = vi.fn();
@@ -65,10 +66,6 @@ describe("proxy: server-side pageview", () => {
       { ...DOCUMENT_NAVIGATION, "sec-fetch-dest": "empty", "sec-fetch-mode": "cors" },
     ],
     ["a prefetch", { ...DOCUMENT_NAVIGATION, "sec-purpose": "prefetch" }],
-    [
-      "a visitor whose client tracker counts",
-      { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=full" },
-    ],
     ["a visitor who chose off", { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=off" }],
     [
       "a visitor with the legacy opt-out",
@@ -90,19 +87,25 @@ describe("proxy: server-side pageview", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("never calls waitUntil for a redirect, a markdown page or a route that is not a page", async () => {
+  async function pageviewsSentFor(path: string, headers?: Record<string, string>) {
+    const waitUntil = await visit(path, headers);
+    await Promise.all(waitUntil.mock.calls.map(([task]) => task));
+    return fetchMock.mock.calls
+      .map(([, init]) => JSON.parse(String((init as unknown as RequestInit).body)))
+      .filter((body) => body.payload.name === undefined);
+  }
+
+  it("never counts a pageview for a redirect, a markdown page or a route that is not a page", async () => {
     expect(await visit("/en/docs")).not.toHaveBeenCalled();
-    expect(await visit("/docs.md")).not.toHaveBeenCalled();
-    expect(await visit("/does-not-exist")).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await pageviewsSentFor("/docs.md")).toEqual([]);
+    expect(await pageviewsSentFor("/does-not-exist")).toEqual([]);
   });
 
-  it("never counts the privacy page served as markdown", async () => {
-    expect(await visit("/privacy.md")).not.toHaveBeenCalled();
+  it("never counts a pageview for the privacy page served as markdown", async () => {
+    expect(await pageviewsSentFor("/privacy.md")).toEqual([]);
     expect(
-      await visit("/privacy", { ...DOCUMENT_NAVIGATION, accept: "text/markdown" }),
-    ).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+      await pageviewsSentFor("/privacy", { ...DOCUMENT_NAVIGATION, accept: "text/markdown" }),
+    ).toEqual([]);
   });
 
   it("never calls waitUntil for a server action probe", async () => {
@@ -116,5 +119,71 @@ describe("proxy: server-side pageview", () => {
       event,
     )) as Response;
     expect(response.headers.get("set-cookie")).toBeNull();
+  });
+});
+
+describe("proxy: server-emitted events", () => {
+  async function sentBodies(path: string, headers?: Record<string, string>) {
+    const waitUntil = await visit(path, headers);
+    await Promise.all(waitUntil.mock.calls.map(([task]) => task));
+    return fetchMock.mock.calls.map(([, init]) =>
+      JSON.parse(String((init as unknown as RequestInit).body)),
+    );
+  }
+
+  it("emits not_found with the docs area for an unknown docs page", async () => {
+    const bodies = await sentBodies("/docs/nope");
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].payload).toMatchObject({
+      url: "/docs",
+      name: "not_found",
+      data: { area: "docs" },
+    });
+  });
+
+  it("emits not_found with the other area for an unknown page", async () => {
+    const bodies = await sentBodies("/nope");
+    expect(bodies[0].payload).toMatchObject({ name: "not_found", data: { area: "other" } });
+  });
+
+  it("emits only the pageview, with no name, for a known page", async () => {
+    const bodies = await sentBodies("/docs");
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].payload).not.toHaveProperty("name");
+  });
+
+  it("emits markdown_view and no pageview for a .md request", async () => {
+    const bodies = await sentBodies("/privacy.md", {
+      "user-agent": SAFARI,
+      host: DOCUMENT_NAVIGATION.host as string,
+      "x-forwarded-for": "84.132.10.7",
+    });
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].payload).toMatchObject({ name: "markdown_view", data: { via: "suffix" } });
+  });
+
+  it("emits markdown_view via accept for a negotiated page", async () => {
+    const bodies = await sentBodies("/privacy", {
+      "user-agent": SAFARI,
+      host: DOCUMENT_NAVIGATION.host as string,
+      "x-forwarded-for": "84.132.10.7",
+      accept: "text/markdown",
+    });
+    expect(bodies[0].payload).toMatchObject({ name: "markdown_view", data: { via: "accept" } });
+  });
+
+  it.each([
+    ["Global Privacy Control", { ...DOCUMENT_NAVIGATION, "sec-gpc": "1" }],
+    ["Do Not Track", { ...DOCUMENT_NAVIGATION, dnt: "1" }],
+    ["the off choice", { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=off" }],
+    ["a local run", { ...DOCUMENT_NAVIGATION, host: "localhost:3480" }],
+    ["curl", { ...DOCUMENT_NAVIGATION, "user-agent": "curl/8.7.1" }],
+  ])("emits nothing for an unknown page from %s", async (_case, headers) => {
+    expect(await sentBodies("/docs/nope", headers)).toEqual([]);
+  });
+
+  it("emits nothing for an RSC request to an unknown page", async () => {
+    const headers = { ...DOCUMENT_NAVIGATION, "sec-fetch-dest": "empty", "sec-fetch-mode": "cors" };
+    expect(await sentBodies("/docs/nope", headers)).toEqual([]);
   });
 });

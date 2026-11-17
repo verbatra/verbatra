@@ -1,26 +1,19 @@
-import { LEGAL_PAGE_LINKS } from "@/components/landing/links";
 import {
   COPY_SURFACES,
   CTA_IDS,
-  type EventName,
-  type EventProperties,
   type OUTBOUND_TARGETS,
-  trackEvent,
+  type ReportedEvent,
 } from "@/lib/analytics-events";
+import { report } from "@/lib/analytics-report";
+import { LOCALES } from "@/lib/locales";
 
-export type ClickEvent = {
-  [Name in EventName]: readonly [Name, EventProperties[Name]];
-}[EventName];
+type ClickEvent = ReportedEvent;
 
 const HOST_TARGETS: ReadonlyArray<readonly [RegExp, (typeof OUTBOUND_TARGETS)[number]]> = [
   [/(^|\.)github\.com$/, "github"],
   [/(^|\.)npmjs\.com$/, "npm"],
   [/(^|\.)modelcontextprotocol\.io$/, "mcp-registry"],
 ];
-
-const LEGAL_SEGMENTS: readonly string[] = LEGAL_PAGE_LINKS.map(
-  ({ path }) => path.replace(/^\//, "").split("#")[0] ?? "",
-);
 
 function oneOf<T extends string>(
   allowed: readonly T[],
@@ -40,9 +33,7 @@ function copyEvent(target: Element): ClickEvent | undefined {
 
 function ctaEvent(target: Element): ClickEvent | undefined {
   const id = oneOf(CTA_IDS, target.closest("[data-cta]")?.getAttribute("data-cta"));
-  return id === undefined
-    ? undefined
-    : ["cta_click", { id, locale: document.documentElement.lang }];
+  return id === undefined ? undefined : ["cta_click", { id }];
 }
 
 function outboundUrl(link: Element): URL | undefined {
@@ -54,31 +45,38 @@ function outboundUrl(link: Element): URL | undefined {
   }
 }
 
-function outboundOrigin(link: Element): EventProperties["outbound_click"]["from"] {
-  if (link.closest("footer")) return "footer";
-  if (link.closest("header")) return "header";
-  const segments = window.location.pathname.split("/").filter(Boolean);
-  const section = segments.find(
-    (segment) => segment === "docs" || LEGAL_SEGMENTS.includes(segment),
-  );
-  if (section === undefined) return "landing";
-  return section === "docs" ? "docs" : "legal";
-}
-
 function outboundEvent(target: Element): ClickEvent | undefined {
   const link = target.closest('a[target="_blank"]');
   const url = link === null ? undefined : outboundUrl(link);
-  if (link === null || url === undefined) return undefined;
+  if (url === undefined) return undefined;
   const matched = HOST_TARGETS.find(([pattern]) => pattern.test(url.hostname));
-  return ["outbound_click", { target: matched?.[1] ?? "other", from: outboundOrigin(link) }];
+  return ["outbound_click", { dest: matched?.[1] ?? "other" }];
+}
+
+function mcpInstallEvent(target: Element): ClickEvent | undefined {
+  return target.closest("[data-mcp-install]") === null ? undefined : ["mcp_install_click"];
+}
+
+function localeEvent(target: Element): ClickEvent | undefined {
+  const to = oneOf(
+    LOCALES,
+    target.closest("[data-locale-switch]")?.getAttribute("data-locale-switch"),
+  );
+  return to === undefined ? undefined : ["locale_switch", { to }];
 }
 
 export function eventForClick(target: Element): ClickEvent | undefined {
-  return copyEvent(target) ?? ctaEvent(target) ?? outboundEvent(target);
+  return (
+    copyEvent(target) ??
+    ctaEvent(target) ??
+    mcpInstallEvent(target) ??
+    localeEvent(target) ??
+    outboundEvent(target)
+  );
 }
 
 export function reportClick(target: Element): void {
   const event = eventForClick(target);
   if (event === undefined) return;
-  trackEvent(event[0], event[1]);
+  report(...event);
 }

@@ -30,6 +30,7 @@ const NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-dest": "document",
   "sec-fetch-mode": "navigate",
   "user-agent": SAFARI,
+  "x-forwarded-for": "84.132.10.7",
 };
 
 function navigation(
@@ -76,12 +77,7 @@ describe("countedPageview", () => {
     ["a missing user agent", { "user-agent": null }],
     ["Global Privacy Control", { "sec-gpc": "1" }],
     ["Do Not Track", { dnt: "1" }],
-    ["the choice cookie full, the client tracker counts", { cookie: "verbatra_analytics=full" }],
     ["the choice cookie off", { cookie: "verbatra_analytics=off" }],
-    [
-      "Global Privacy Control beating the choice cookie full",
-      { cookie: "verbatra_analytics=full", "sec-gpc": "1" },
-    ],
     ["the opt-out cookie", { cookie: `theme=x; ${LEGACY_OPT_OUT_COOKIE}=1` }],
     ["a local host", { host: "localhost:3480" }],
     ["a forwarded foreign host", { host: null, "x-forwarded-host": "preview.example.com" }],
@@ -94,6 +90,14 @@ describe("countedPageview", () => {
       { host: null, "x-forwarded-host": "verbatra.kreitz-webdev.de, localhost" },
     ],
   ])("skips %s", (_case, headers) => {
+    expect(counted(navigation("/", headers))).toBeUndefined();
+  });
+
+  it.each([
+    ["no forwarding header", { "x-forwarded-for": null }],
+    ["only private forwarded addresses", { "x-forwarded-for": "10.1.2.3, 172.17.0.1" }],
+    ["an unparsable forwarded address", { "x-forwarded-for": "unknown" }],
+  ])("drops the count when there is no public client ip: %s", (_case, headers) => {
     expect(counted(navigation("/", headers))).toBeUndefined();
   });
 
@@ -136,9 +140,12 @@ describe("countedPageview", () => {
     expect(counted(request)).toBeDefined();
   });
 
-  it.each(["default", ""])("keeps counting for the choice cookie value %j", (value) => {
-    expect(counted(navigation("/", { cookie: `verbatra_analytics=${value}` }))).toBeDefined();
-  });
+  it.each(["full", "default", ""])(
+    "keeps counting for the inert choice cookie value %j",
+    (value) => {
+      expect(counted(navigation("/", { cookie: `verbatra_analytics=${value}` }))).toBeDefined();
+    },
+  );
 
   it("does not count GPC or DNT values other than 1, or a cleared cookie", () => {
     expect(counted(navigation("/", { "sec-gpc": "0", dnt: "0" }))).toBeDefined();
@@ -298,7 +305,9 @@ describe("pageviewFor", () => {
   });
 
   it("leaves out a referrer, language and address it does not have", () => {
-    const pageview = pageviewFor(navigation("/", { referer: "not a url", "accept-language": "*" }));
+    const pageview = pageviewFor(
+      navigation("/", { referer: "not a url", "accept-language": "*", "x-forwarded-for": null }),
+    );
 
     expect(Object.keys(pageview?.payload ?? {}).sort()).toEqual([
       "hostname",

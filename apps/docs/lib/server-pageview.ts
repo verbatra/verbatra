@@ -1,6 +1,6 @@
 import "server-only";
 import { isIPv4, isIPv6 } from "node:net";
-import { hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
+import { hasObjectionCookie } from "@/lib/analytics-choice";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { MARKDOWN_SUFFIX } from "@/lib/markdown-route";
 import { pageviewUrl } from "@/lib/pageview-url";
@@ -8,15 +8,16 @@ import { requestHost } from "@/lib/request-host";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { SITE_HOST } from "@/lib/site";
 import { UMAMI_ORIGIN, UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
+import { sendToUmami, UMAMI_SEND_TIMEOUT_MS, type UmamiMessage } from "@/lib/umami-send";
 
 export { FORWARDED_UTM_PARAMETERS, MAX_UTM_LENGTH, pageviewUrl } from "@/lib/pageview-url";
 export { UMAMI_ORIGIN, UMAMI_WEBSITE_ID };
 
-export const PAGEVIEW_TIMEOUT_MS = 1500;
+export const PAGEVIEW_TIMEOUT_MS = UMAMI_SEND_TIMEOUT_MS;
 
 const UNCOUNTED_ROUTES: ReadonlySet<string> = new Set(["/_not-found", "/_global-error"]);
 
-const AUTOMATED_AGENT =
+export const AUTOMATED_AGENT =
   /bot\/|bot;|crawler|spider|headlesschrome|lighthouse|uptime|curl\/|wget\/|python-requests|go-http-client|^node$|^undici/i;
 
 const MARKDOWN_ROUTE = /\.mdx?(\/|$)/;
@@ -53,20 +54,7 @@ export const MAX_LANGUAGE_LENGTH = 35;
 
 export const MAX_REFERRER_LENGTH = 500;
 
-interface PageviewPayload {
-  readonly website: string;
-  readonly hostname: string;
-  readonly url: string;
-  readonly userAgent: string;
-  readonly referrer?: string;
-  readonly language?: string;
-  readonly ip?: string;
-}
-
-export interface Pageview {
-  readonly type: "event";
-  readonly payload: PageviewPayload;
-}
+export type Pageview = UmamiMessage;
 
 function ipv4Number(address: string): number {
   return address.split(".").reduce((total, octet) => total * 256 + Number(octet), 0);
@@ -85,7 +73,7 @@ function ipv4FromNumber(value: number): string {
   return [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join(".");
 }
 
-function ipv6Hextets(address: string): number[] {
+export function ipv6Hextets(address: string): number[] {
   const hexOnly = address.replace(/(\d{1,3}(?:\.\d{1,3}){3})$/, (ipv4) => {
     const value = ipv4Number(ipv4);
     return `${(value >>> 16).toString(16)}:${(value & 0xffff).toString(16)}`;
@@ -137,7 +125,7 @@ function announcesPrefetch(headers: Headers): boolean {
   );
 }
 
-function isRedirect(response: Response): boolean {
+export function isRedirect(response: Response): boolean {
   return response.status !== 200 || response.headers.has("location");
 }
 
@@ -147,8 +135,19 @@ function isMarkdown(request: Request, servedPathname: string): boolean {
   );
 }
 
-function isPageRoute(servedPathname: string, routes: ScriptHashesByRoute): boolean {
+export function isPageRoute(servedPathname: string, routes: ScriptHashesByRoute): boolean {
   return !UNCOUNTED_ROUTES.has(servedPathname) && Object.hasOwn(routes, servedPathname);
+}
+
+export function isDocumentNavigation(request: Request, response: Response): boolean {
+  const { headers } = request;
+  return (
+    request.method === "GET" &&
+    headers.get("sec-fetch-dest") === "document" &&
+    headers.get("sec-fetch-mode") === "navigate" &&
+    !announcesPrefetch(headers) &&
+    !isRedirect(response)
+  );
 }
 
 export function isCountableNavigation(
@@ -157,13 +156,8 @@ export function isCountableNavigation(
   servedPathname: string,
   routes: ScriptHashesByRoute = loadBuiltScriptHashes(),
 ): boolean {
-  const { headers } = request;
   return (
-    request.method === "GET" &&
-    headers.get("sec-fetch-dest") === "document" &&
-    headers.get("sec-fetch-mode") === "navigate" &&
-    !announcesPrefetch(headers) &&
-    !isRedirect(response) &&
+    isDocumentNavigation(request, response) &&
     !isMarkdown(request, servedPathname) &&
     isPageRoute(servedPathname, routes)
   );
@@ -173,13 +167,8 @@ export function isTrackingRefused(headers: Headers): boolean {
   return (
     headers.get("sec-gpc") === "1" ||
     headers.get("dnt") === "1" ||
-    hasLegacyOptOut(headers.get("cookie")) ||
-    readChoiceCookie(headers.get("cookie")) === "off"
+    hasObjectionCookie(headers.get("cookie"))
   );
-}
-
-function clientTrackerCounts(headers: Headers): boolean {
-  return readChoiceCookie(headers.get("cookie")) === "full";
 }
 
 function referrerWithoutQuery(headers: Headers): string | undefined {
@@ -199,23 +188,37 @@ function primaryLanguage(headers: Headers): string | undefined {
   return tag && tag !== "*" && tag.length <= MAX_LANGUAGE_LENGTH ? tag : undefined;
 }
 
-export function pageviewFor(request: Request): Pageview | undefined {
-  const { headers } = request;
+export interface Visitor {
+  readonly userAgent: string;
+  readonly language?: string;
+  readonly ip?: string;
+}
+
+export function visitorOf(headers: Headers): Visitor | undefined {
   const userAgent = headers.get("user-agent")?.trim() ?? "";
   if (userAgent === "" || AUTOMATED_AGENT.test(userAgent)) return undefined;
-  const referrer = referrerWithoutQuery(headers);
   const language = primaryLanguage(headers);
   const ip = clientIp(headers);
+  return {
+    userAgent,
+    ...(language === undefined ? {} : { language }),
+    ...(ip === undefined ? {} : { ip }),
+  };
+}
+
+export function pageviewFor(request: Request): Pageview | undefined {
+  const { headers } = request;
+  const visitor = visitorOf(headers);
+  if (visitor === undefined) return undefined;
+  const referrer = referrerWithoutQuery(headers);
   return {
     type: "event",
     payload: {
       website: UMAMI_WEBSITE_ID,
       hostname: SITE_HOST,
       url: pageviewUrl(request.url),
-      userAgent,
+      ...visitor,
       ...(referrer === undefined ? {} : { referrer }),
-      ...(language === undefined ? {} : { language }),
-      ...(ip === undefined ? {} : { ip }),
     },
   };
 }
@@ -228,22 +231,11 @@ export function countedPageview(
 ): Pageview | undefined {
   if (requestHost(request.headers, new URL(request.url).host) !== SITE_HOST) return undefined;
   if (isTrackingRefused(request.headers)) return undefined;
-  if (clientTrackerCounts(request.headers)) return undefined;
   if (!isCountableNavigation(request, response, servedPathname, routes)) return undefined;
+  if (clientIp(request.headers) === undefined) return undefined;
   return pageviewFor(request);
 }
 
-export async function sendPageview(pageview: Pageview, send: typeof fetch = fetch): Promise<void> {
-  try {
-    const response = await send(`${UMAMI_ORIGIN}/api/send`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "user-agent": pageview.payload.userAgent },
-      body: JSON.stringify(pageview),
-      cache: "no-store",
-      signal: AbortSignal.timeout(PAGEVIEW_TIMEOUT_MS),
-    });
-    await response.body?.cancel();
-  } catch {
-    return;
-  }
+export function sendPageview(pageview: Pageview, send: typeof fetch = fetch): Promise<void> {
+  return sendToUmami(pageview, send);
 }

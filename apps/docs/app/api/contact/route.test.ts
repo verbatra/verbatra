@@ -3,6 +3,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const checkArcjetMock = vi.fn();
 const sendContactEmailMock = vi.fn();
 
+const emitUmamiEventMock = vi.fn();
+
+vi.mock("@/lib/umami-event", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/umami-event")>()),
+  emitUmamiEvent: emitUmamiEventMock,
+}));
+vi.mock("@/lib/csp-script-hashes", () => ({
+  loadBuiltScriptHashes: () => ({ "/en": [], "/de/contact": [] }),
+}));
 vi.mock("./arcjet", () => ({ checkArcjet: checkArcjetMock }));
 vi.mock("./email", () => ({ sendContactEmail: sendContactEmailMock }));
 
@@ -29,6 +38,7 @@ function validBody(overrides: Record<string, unknown> = {}) {
 afterEach(() => {
   checkArcjetMock.mockReset();
   sendContactEmailMock.mockReset();
+  emitUmamiEventMock.mockReset();
 });
 
 describe("POST /api/contact", () => {
@@ -139,5 +149,70 @@ describe("POST /api/contact", () => {
     const routeModule = (await import("./route")) as unknown as Record<string, unknown>;
     expect(routeModule.GET).toBeUndefined();
     expect(typeof routeModule.POST).toBe("function");
+  });
+});
+
+describe("POST /api/contact analytics", () => {
+  function emitted(): Array<{ url: string; name: string; data: Record<string, string> }> {
+    return emitUmamiEventMock.mock.calls.map(([, spec]) => spec);
+  }
+
+  it("emits contact_submit ok after a delivered message, never with field values", async () => {
+    checkArcjetMock.mockResolvedValue(undefined);
+    sendContactEmailMock.mockResolvedValue({ ok: true });
+    await POST(request(validBody()));
+    expect(emitted()).toEqual([
+      { url: "/contact", name: "contact_submit", data: { result: "ok" } },
+    ]);
+    expect(JSON.stringify(emitUmamiEventMock.mock.calls)).not.toContain("ada@example.com");
+    expect(JSON.stringify(emitUmamiEventMock.mock.calls)).not.toContain("Lovelace");
+  });
+
+  it("takes the page from a same-site referer", async () => {
+    checkArcjetMock.mockResolvedValue(undefined);
+    sendContactEmailMock.mockResolvedValue({ ok: true });
+    await POST(request(validBody(), { referer: "https://verbatra.kreitz-webdev.de/de/contact" }));
+    expect(emitted()[0]?.url).toBe("/de/contact");
+  });
+
+  it("emits invalid for a rejected payload", async () => {
+    checkArcjetMock.mockResolvedValue(undefined);
+    await POST(request(validBody({ name: "" })));
+    expect(emitted().map((spec) => spec.data.result)).toEqual(["invalid"]);
+  });
+
+  it("emits rate_limited when arcjet answers 429", async () => {
+    checkArcjetMock.mockResolvedValue(new Response("{}", { status: 429 }));
+    await POST(request(validBody()));
+    expect(emitted().map((spec) => spec.data.result)).toEqual(["rate_limited"]);
+  });
+
+  it("emits error when the email could not be sent", async () => {
+    checkArcjetMock.mockResolvedValue(undefined);
+    sendContactEmailMock.mockResolvedValue({ ok: false });
+    await POST(request(validBody()));
+    expect(emitted().map((spec) => spec.data.result)).toEqual(["error"]);
+  });
+
+  it.each([["a blocked non-rate-limit request", new Response("{}", { status: 403 })]])(
+    "emits nothing for %s",
+    async (_case, blocked) => {
+      checkArcjetMock.mockResolvedValue(blocked);
+      await POST(request(validBody()));
+      expect(emitUmamiEventMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("emits nothing for a filled honeypot", async () => {
+    checkArcjetMock.mockResolvedValue(undefined);
+    await POST(request(validBody({ [HONEYPOT_FIELD]: "spam" })));
+    expect(emitUmamiEventMock).not.toHaveBeenCalled();
+    expect(sendContactEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("emits nothing for an unacceptable request", async () => {
+    const response = await POST(request(validBody(), { "Content-Type": "text/plain" }));
+    expect(response.status).toBe(415);
+    expect(emitUmamiEventMock).not.toHaveBeenCalled();
   });
 });

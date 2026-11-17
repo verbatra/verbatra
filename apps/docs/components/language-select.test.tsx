@@ -68,6 +68,14 @@ describe("LocaleAwareLanguageSelect", () => {
     );
   });
 
+  it("marks every option with its locale for the delegated switch report", () => {
+    const dialog = openPopover();
+    const marks = Array.from(dialog.querySelectorAll("button")).map((button) =>
+      button.getAttribute("data-locale-switch"),
+    );
+    expect(marks).toEqual(["en", "de"]);
+  });
+
   it("hands the chosen locale to the provider", () => {
     const dialog = openPopover();
     const german = Array.from(dialog.querySelectorAll("button")).find(

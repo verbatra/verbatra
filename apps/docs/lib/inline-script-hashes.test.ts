@@ -47,16 +47,8 @@ describe("inlineScriptHashes", () => {
   it("skips external scripts and data blocks, which script-src hashes do not govern", () => {
     const html = [
       `<script src="/_next/static/chunks/main.js" async=""></script>`,
-      `<script async src="https://umami.kreitz-webdev.de/script.js"></script>`,
+      `<script async src="https://example.com/external.js"></script>`,
       `<script type="application/ld+json">{"@context":"https://schema.org"}</script>`,
-    ].join("");
-    expect(inlineScriptHashes(html)).toEqual([]);
-  });
-
-  it("adds no hash for the deferred tracker and recorder tags the analytics loader injects", () => {
-    const html = [
-      `<script id="verbatra-umami-tracker" src="https://umami.kreitz-webdev.de/script.js" defer="" data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d" data-before-send="verbatraUmamiBeforeSend"></script>`,
-      `<script id="verbatra-umami-recorder" src="https://umami.kreitz-webdev.de/recorder.js" defer="" data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"></script>`,
     ].join("");
     expect(inlineScriptHashes(html)).toEqual([]);
   });

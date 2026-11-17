@@ -41,13 +41,16 @@ describe("Layout: no third-party script", () => {
   });
 });
 
-describe("Layout: analytics loader", () => {
-  it("mounts the loader, which renders no markup and so adds no script tag to the page", async () => {
+describe("Layout: analytics reporter", () => {
+  it("mounts the reporter, which renders no markup, and no consent prompt", async () => {
     const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
-    const { AnalyticsLoader } = await import("@/components/analytics-loader");
-    expect(
-      JSON.stringify(tree, (_key, value) => (typeof value === "function" ? value.name : value)),
-    ).toContain(AnalyticsLoader.name);
+    const { AnalyticsReporter } = await import("@/components/analytics-reporter");
+    const serialized = JSON.stringify(tree, (_key, value) =>
+      typeof value === "function" ? value.name : value,
+    );
+    expect(serialized).toContain(AnalyticsReporter.name);
+    expect(serialized).not.toMatch(/AnalyticsPrompt|AnalyticsLoader/);
+    expect(renderToStaticMarkup(tree)).not.toMatch(/data-analytics-prompt|role="region"/);
   });
 });
 

@@ -1,12 +1,6 @@
 import { createI18nMiddleware } from "fumadocs-core/i18n/middleware";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import {
-  choiceCookie,
-  expiredLegacyOptOutCookie,
-  hasLegacyOptOut,
-  readChoiceCookie,
-} from "@/lib/analytics-choice";
 import { isBuiltDocsPage, scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import {
@@ -21,7 +15,9 @@ import {
   contentSecurityPolicy,
   upgradesInsecureRequests,
 } from "@/lib/security-headers.mjs";
+import { proxyEventFor } from "@/lib/server-events";
 import { countedPageview, sendPageview } from "@/lib/server-pageview";
+import { emitUmamiEvent } from "@/lib/umami-event";
 
 const NEXT_ACTION_HEADER = "next-action";
 const REWRITE_HEADER = "x-middleware-rewrite";
@@ -58,16 +54,6 @@ function withContentSecurityPolicy(request: NextRequest, response: Response): Re
   return response;
 }
 
-function withChoiceMigration(request: NextRequest, response: Response): Response {
-  const cookie = request.headers.get("cookie");
-  if (!hasLegacyOptOut(cookie)) return response;
-  if (readChoiceCookie(cookie) === undefined) {
-    response.headers.append("set-cookie", choiceCookie("off"));
-  }
-  response.headers.append("set-cookie", expiredLegacyOptOutCookie());
-  return response;
-}
-
 async function route(request: NextRequest, event: NextFetchEvent) {
   if (request.headers.has(NEXT_ACTION_HEADER)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -91,11 +77,18 @@ function countPageview(request: NextRequest, response: Response, event: NextFetc
   if (pageview !== undefined) event.waitUntil(sendPageview(pageview));
 }
 
+function emitServerEvent(request: NextRequest, response: Response, event: NextFetchEvent): void {
+  const spec = proxyEventFor(request, response, servedPathname(request, response));
+  if (spec === undefined) return;
+  emitUmamiEvent(request, spec, { schedule: (task) => event.waitUntil(task()) });
+}
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const response = await route(request, event);
   if (!(response instanceof Response)) return response;
   countPageview(request, response, event);
-  return withContentSecurityPolicy(request, withChoiceMigration(request, response));
+  emitServerEvent(request, response, event);
+  return withContentSecurityPolicy(request, response);
 }
 
 export const config = {

@@ -102,11 +102,10 @@ but **no test that drives it in a real browser**. Concretely, as of this writing
   the `docs-e2e` job of `.github/workflows/ci.yml`, split into three Playwright shards (`--shard=N/3`) so each fits its 30-minute job limit (`timeout-minutes: 30`), which the `gate` job requires. Playwright cuts the shards as contiguous ranges of equal test count, in project order and then file order, so a heavy spec stays in one shard unless it is placed on purpose: the per-locale rest sweeps of `gate.spec.ts` live in `gate-rests-early.spec.ts` and `gate-rests-late.spec.ts`, which `playwright.config.ts` runs as the first and the last project, so they land in shards 1 and 3 and the rest of the gate spec stays in shard 2. A new heavy spec is balanced the same way; check each shard with `playwright test --list --shard=N/3`. Nothing in
   `packages/studio` is covered by it.
 
-  Every docs spec runs with the default `storageState` of `apps/docs/playwright.config.ts`, a
-  `verbatra_analytics=default` cookie, so the analytics consent prompt never covers the page;
-  `apps/docs/e2e/analytics.spec.ts` overrides it per describe block and answers the Umami origin
-  with the stubs in `apps/docs/scripts/umami-stub.mjs` (never the real host). `E2E_PORT` moves the
-  suite off port 3107.
+  No docs spec carries a `storageState`: the site sets no cookie and shows no consent prompt.
+  `apps/docs/e2e/analytics.spec.ts` intercepts the browser's posts to `/api/e` with `page.route`,
+  so the relay never forwards anything to the real Umami host, and asserts that no request leaves
+  the site origin. `E2E_PORT` moves the suite off port 3107.
 
   The docs unit tests are Vitest too, co-located under `apps/docs`; a per-locale table in them is a
   `Record<Locale, ...>` so a locale without an entry fails to typecheck, and the locale-parity and

@@ -12,15 +12,13 @@ const SCRIPT_HASHES = [
   "'sha256-U9enSfdMGNYMKuQiy+D/nx8SR+dwM4pFuk2q1aglmg0='",
 ];
 
-const UMAMI = "https://umami.kreitz-webdev.de";
-
 const BASE_DIRECTIVES = [
   "default-src 'self'",
-  `script-src 'self' ${UMAMI}`,
+  "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  `connect-src 'self' ${UMAMI}`,
+  "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -78,14 +76,14 @@ describe("contentSecurityPolicy", () => {
     const policy = directives(
       contentSecurityPolicy({ enforce: true, isDev: false, scriptHashes: SCRIPT_HASHES }).value,
     );
-    expect(policy.get("script-src")).toBe(`'self' ${SCRIPT_HASHES.join(" ")} ${UMAMI}`);
+    expect(policy.get("script-src")).toBe(`'self' ${SCRIPT_HASHES.join(" ")}`);
   });
 
   it("allows inline and eval scripts only in development, where nothing is prerendered", () => {
     const dev = directives(
       contentSecurityPolicy({ enforce: true, isDev: true, scriptHashes: SCRIPT_HASHES }).value,
     );
-    expect(dev.get("script-src")).toBe(`'self' 'unsafe-inline' 'unsafe-eval' ${UMAMI}`);
+    expect(dev.get("script-src")).toBe("'self' 'unsafe-inline' 'unsafe-eval'");
   });
 
   it("keeps inline styles allowed, since React renders style attributes", () => {
@@ -93,20 +91,17 @@ describe("contentSecurityPolicy", () => {
     expect(policy.get("style-src")).toBe("'self' 'unsafe-inline'");
   });
 
-  it("allows no origin but the site itself and the Umami origin for scripts and connections", () => {
+  it("allows no origin but the site itself in any directive, analytics included", () => {
     const { value } = contentSecurityPolicy({ enforce: true, isDev: false });
     const policy = directives(value);
-    expect(policy.get("connect-src")).toBe(`'self' ${UMAMI}`);
-    expect(policy.get("script-src")).toBe(`'self' ${UMAMI}`);
-    expect(value.match(/umami/g)).toHaveLength(2);
+    expect(policy.get("connect-src")).toBe("'self'");
+    expect(policy.get("script-src")).toBe("'self'");
+    expect(value).not.toMatch(/https?:/);
+    expect(value).not.toMatch(/umami/i);
   });
 
-  it("names the Umami origin in no other directive, so frames and images stay closed", () => {
+  it("keeps frames and images closed", () => {
     const policy = directives(contentSecurityPolicy({ enforce: true, isDev: false }).value);
-    const withUmami = [...policy].filter(([, sources]) =>
-      sources.split(" ").some((token) => token === UMAMI),
-    );
-    expect(withUmami.map(([name]) => name)).toEqual(["script-src", "connect-src"]);
     expect(policy.get("frame-ancestors")).toBe("'none'");
     expect(policy.get("img-src")).toBe("'self' data:");
   });

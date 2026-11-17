@@ -86,7 +86,7 @@ export async function privacyMarkdown(locale: Locale): Promise<string> {
     const body = t.markup(`${key}.body`, tags);
     const extras =
       key === PRIVACY_ANALYTICS_KEY
-        ? [t.markup(`${key}.extended`, tags), t.markup(`${key}.retention`, tags)]
+        ? [t.markup(`${key}.events`, tags), t.markup(`${key}.retention`, tags)]
         : [];
     return blocks(
       `## ${t(`${key}.heading`)}`,
