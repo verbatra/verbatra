@@ -153,13 +153,16 @@ for (const [width, height] of VIEWPORTS) {
       await installShiftCounter(page);
       await page.goto("/");
       await ready(page);
-      await page.evaluate(async () => {
-        const step = Math.round(innerHeight * 0.5);
-        for (let y = 0; y <= document.documentElement.scrollHeight; y += step) {
-          window.scrollTo(0, y);
-          await new Promise((resolve) => setTimeout(resolve, 60));
-        }
-      });
+      const stops = await page.evaluate(() =>
+        Math.ceil(document.documentElement.scrollHeight / Math.round(innerHeight * 0.5)),
+      );
+      for (let stop = 0; stop <= stops; stop += 1) {
+        await page.evaluate(
+          (step) => window.scrollTo(0, step * Math.round(innerHeight * 0.5)),
+          stop,
+        );
+        await frames(page);
+      }
       expect(await layoutShift(page)).toBe(0);
     });
 
@@ -207,14 +210,13 @@ test.describe("word reveal in every locale", () => {
         .evaluateAll((hosts) => hosts.map((host) => host.querySelectorAll(".vk-word").length));
       const longest = counts.indexOf(Math.max(...counts));
       const lead = await words(page, longest);
-      if (!lead.done) {
-        await placeBottom(page, longest, 3);
-        const near = await words(page, longest);
-        for (const opacity of near.opacities)
-          expect(opacity, `${locale} host ${longest}`).toBeGreaterThan(0.8);
-        await placeBottom(page, longest, 0);
-        await expect.poll(async () => (await words(page, longest)).done).toBe(true);
-      }
+      expect(lead.done, `${locale} host ${longest}`).toBe(false);
+      await placeBottom(page, longest, 3);
+      const near = await words(page, longest);
+      for (const opacity of near.opacities)
+        expect(opacity, `${locale} host ${longest}`).toBeGreaterThan(0.8);
+      await placeBottom(page, longest, 0);
+      await expect.poll(async () => (await words(page, longest)).done).toBe(true);
       for (const opacity of (await words(page, longest)).opacities) expect(opacity).toBe(1);
     });
   }
@@ -228,6 +230,7 @@ test.describe("word reveal in every locale", () => {
       const split = await page.locator(HOSTS).evaluateAll((hosts) =>
         hosts.map((host) => ({
           text: host.textContent ?? "",
+          waiting: !host.hasAttribute("data-words-done"),
           spans: [...host.querySelectorAll(".vk-word")].map((span) => span.textContent ?? ""),
         })),
       );
@@ -236,7 +239,10 @@ test.describe("word reveal in every locale", () => {
         for (const span of spans) expect(/^\p{Script=Han}$/u.test(span)).toBe(false);
       }
       expect(split.some(({ spans }) => spans.length > 1)).toBe(true);
-      const index = split.findIndex(({ spans }) => spans.length > 1);
+      const index = 3;
+      expect(split[index]?.spans.length).toBeGreaterThan(1);
+      const start = await words(page, index);
+      expect(start.done, `${locale} host ${index}`).toBe(false);
       await placeBottom(page, index, 320);
       const dim = await words(page, index);
       if (!dim.done) expect(dim.opacities[0]).toBeLessThan(1);
@@ -281,6 +287,37 @@ test.describe("word reveal after a reload in the middle of the page", () => {
     const state = await words(page, 3);
     expect(state.done).toBe(false);
     expect(state.opacities[0]).toBeCloseTo(DIMMED, 2);
+  });
+
+  test("shows a heading parked in the lower 30 percent of the screen at load sharp from the first frame", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await ready(page);
+    await page
+      .locator(HOSTS)
+      .nth(3)
+      .evaluate((host) => {
+        const top = host.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: top - innerHeight * 0.85, behavior: "instant" });
+      });
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(2000);
+    await page.reload();
+    await ready(page);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(2000);
+    const parked = await page
+      .locator(HOSTS)
+      .nth(3)
+      .evaluate((host) => {
+        const box = host.getBoundingClientRect();
+        return { top: box.top / innerHeight, bottom: box.bottom / innerHeight };
+      });
+    expect(parked.top).toBeGreaterThan(LINE);
+    expect(parked.top).toBeLessThan(1);
+    const state = await words(page, 3);
+    expect(state.done).toBe(true);
+    for (const opacity of state.opacities) expect(opacity).toBe(1);
+    expect(state.blur).toBe(0);
   });
 
   test("keeps the headings above the fold sharp and still reveals the ones below it", async ({

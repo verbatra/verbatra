@@ -248,6 +248,19 @@ for (const locale of LOCALES) {
 test.describe("highlights rows at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
+  test("spans the stale rail row, its tint and tag, across the full width of the card", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const widths = await page.locator(`${SECTION} .vk-hl-rail`).evaluate((rail) => {
+      const code = rail.querySelector("pre")?.getBoundingClientRect();
+      const line = rail.querySelector(".vk-lock-line")?.getBoundingClientRect();
+      return { code: code?.width ?? 0, line: line?.width ?? 0 };
+    });
+    expect(widths.code).toBeGreaterThan(0);
+    expect(widths.line).toBeGreaterThanOrEqual(widths.code - 1);
+  });
+
   test("keeps the rail slim and the two panes of a row within 8px of each other in height", async ({
     page,
   }) => {
@@ -494,6 +507,14 @@ test.describe("highlights lit pane", () => {
       if (index !== 1) expect(after[index]?.lift).toBe(before[index]?.lift);
     }
     expect(after[1]?.border).not.toBe(before[1]?.border);
+    const glowLocator = page.locator(PANES).nth(1).locator(".vk-hl-glow");
+    await expect(glowLocator).toHaveCSS("opacity", "1");
+    const glow = await glowLocator.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { opacity: style.opacity, property: style.transitionProperty };
+    });
+    expect(glow.opacity).toBe("1");
+    expect(glow.property).toBe("opacity");
     expect(await page.evaluate(() => (window as unknown as { __shift: number }).__shift)).toBe(0);
   });
 

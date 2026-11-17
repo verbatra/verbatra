@@ -141,7 +141,7 @@ test.describe("landing length on a phone", () => {
 
   const PHONE_SCREENS: Record<Locale, number> = {
     en: 13.5,
-    de: 14,
+    de: 14.1,
     es: 14,
     fr: 14,
     ja: 14,

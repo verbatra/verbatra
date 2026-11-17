@@ -63,10 +63,20 @@ function radio(id: string): HTMLInputElement {
   return document.getElementById(`r-${id}`) as HTMLInputElement;
 }
 
-function move(target: Element, x: number, y: number, pointerType = "mouse"): void {
+function move(
+  target: Element,
+  x: number,
+  y: number,
+  pointerType = "mouse",
+  movement: { movementX: number; movementY: number } = { movementX: 3, movementY: 2 },
+): void {
   const event = new Event("pointermove", { bubbles: true });
-  Object.assign(event, { clientX: x, clientY: y, pointerType });
+  Object.assign(event, { clientX: x, clientY: y, pointerType, ...movement });
   target.dispatchEvent(event);
+}
+
+function moveWithoutMovement(target: Element, x: number, y: number): void {
+  move(target, x, y, "mouse", { movementX: 0, movementY: 0 });
 }
 
 function leave(target: Element, pointerType = "mouse", relatedTarget: Element | null = null): void {
@@ -163,13 +173,51 @@ describe("DeckHover", () => {
     unmount();
   });
 
-  it("ignores a move whose coordinates did not change, such as a scroll under the cursor", () => {
+  it("ignores a move that carries no movement, such as a scroll under the cursor", () => {
     stubMedia({ [FINE]: true, [WIDE]: true });
     const { unmount } = mount();
     move(row("a"), 10, 10);
     vi.advanceTimersByTime(DECK_HOVER_DWELL_MS);
-    move(row("b"), 10, 10);
+    moveWithoutMovement(row("b"), 10, 10);
     vi.advanceTimersByTime(DECK_HOVER_DWELL_MS * 2);
+    expect(radio("b").checked).toBe(false);
+    unmount();
+  });
+
+  it("ignores the first move over the deck when the pointer started outside it and the page scrolled", () => {
+    stubMedia({ [FINE]: true, [WIDE]: true });
+    const { unmount } = mount();
+    moveWithoutMovement(row("c"), 400, 300);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS * 2);
+    expect(radio("c").checked).toBe(false);
+    move(row("c"), 401, 300);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS);
+    expect(radio("c").checked).toBe(true);
+    unmount();
+  });
+
+  it("keeps the dwell running while the pointer crosses from one child of the row to another", () => {
+    stubMedia({ [FINE]: true, [WIDE]: true });
+    const { unmount } = mount();
+    move(row("b"), 10, 10);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS - 20);
+    leave(
+      document.querySelector('label[for="r-b"]') as Element,
+      "mouse",
+      document.getElementById("r-b"),
+    );
+    vi.advanceTimersByTime(20);
+    expect(radio("b").checked).toBe(true);
+    unmount();
+  });
+
+  it("cancels when the pointer moves from the row to a sibling row", () => {
+    stubMedia({ [FINE]: true, [WIDE]: true });
+    const { unmount } = mount();
+    move(row("b"), 10, 10);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS - 20);
+    leave(row("b"), "mouse", row("c"));
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS);
     expect(radio("b").checked).toBe(false);
     unmount();
   });

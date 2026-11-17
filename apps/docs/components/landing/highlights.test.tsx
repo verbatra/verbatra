@@ -152,6 +152,10 @@ describe("Highlights", () => {
       const title = pane.querySelector("h3");
       expect(pane.getAttribute("aria-labelledby")).toBe(title?.id);
       expect(pane.querySelector(".vk-lock-card .vk-lock-head")).not.toBeNull();
+      const glow = pane.querySelectorAll(":scope > .vk-hl-glow");
+      expect(glow).toHaveLength(1);
+      expect(glow[0]?.getAttribute("aria-hidden")).toBe("true");
+      expect(glow[0]?.textContent).toBe("");
     }
   });
 
@@ -398,19 +402,38 @@ describe("Highlights lit pane (D17)", () => {
     expect(rulesFor(rules, ".vk-hl-pane")[0]?.declarations.transform).toBeUndefined();
   });
 
-  it("sets the lit border to --accent and fades a neutral shadow by opacity", () => {
+  it("sets the lit border to --accent and fades a neutral shadow layer by opacity alone", () => {
     expect(exact(LIT)[0]?.declarations["border-color"]).toBe("var(--accent)");
-    const shadow = rulesFor(rules, ".vk-hl-pane::before")[0];
+    const shadow = rulesFor(rules, ".vk-hl-glow")[0];
     expect(shadow?.declarations["box-shadow"]).toBe("var(--shadow-panel)");
     expect(shadow?.declarations.opacity).toBe("0");
     expect(
-      exact("article.vk-hl-pane:is(:hover, :focus-within)::before")[0]?.declarations.opacity,
+      exact("article.vk-hl-pane:is(:hover, :focus-within) > .vk-hl-glow")[0]?.declarations.opacity,
     ).toBe("1");
   });
 
-  it("transitions only transform and opacity, plus the paint of the border and shadow, under no-preference and a hover device", () => {
+  it("never animates a box-shadow: the lit card's own shadow is the same at rest and lit", () => {
+    for (const rule of rules.filter((r) => "transition" in r.declarations)) {
+      if (!/\.vk-hl-(pane|glow)/.test(rule.selector)) continue;
+      expect(rule.declarations.transition, rule.selector).not.toContain("box-shadow");
+    }
+    expect(
+      rules.filter((rule) => rule.selector.includes(LIT) && "box-shadow" in rule.declarations),
+    ).toEqual([]);
+  });
+
+  it("keeps the shadow layer out of the guide line pseudos and paints no shadow on the stub", () => {
+    for (const rule of rules.filter((r) =>
+      /\.vk-hl-pane(:nth-child\([a-z0-9]+\))?::before/.test(r.selector),
+    ))
+      expect(rule.declarations.opacity === "0" || "box-shadow" in rule.declarations).toBe(false);
+  });
+
+  it("transitions only transform, opacity and the border colour, under no-preference and a hover device", () => {
     const transitions = rules
-      .filter((rule) => rule.selector.includes(".vk-hl-pane") && "transition" in rule.declarations)
+      .filter(
+        (rule) => /\.vk-hl-(pane|glow)/.test(rule.selector) && "transition" in rule.declarations,
+      )
       .filter((rule) => rule.declarations.transition !== "none");
     expect(transitions.map((rule) => rule.media)).toEqual([LIFT_MEDIA, LIFT_MEDIA]);
     for (const rule of transitions) {
@@ -418,11 +441,16 @@ describe("Highlights lit pane (D17)", () => {
         .split(/,\s*/)
         .map((part) => part.split(" ")[0]);
       expect(
-        properties.every((p) =>
-          ["transform", "opacity", "border-color", "box-shadow"].includes(p ?? ""),
-        ),
+        properties.every((p) => ["transform", "opacity", "border-color"].includes(p ?? "")),
       ).toBe(true);
     }
+  });
+
+  it("prints the shadow layer empty and at full opacity", () => {
+    const print = rulesFor(rules, ".vk-hl-glow").find((rule) => rule.media === "@media print");
+    expect(print?.declarations["box-shadow"]).toBe("none");
+    expect(print?.declarations.opacity).toBe("1");
+    expect(print?.declarations.transition).toBe("none");
   });
 
   it("outlines the lit card with Highlight under forced colors", () => {

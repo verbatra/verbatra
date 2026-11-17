@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
+import { createTranslator } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LOCALES } from "./locales";
+import { LOCK_DEMO_COUNTS } from "./lock-demo";
 import { breakBetweenWords, splitWords } from "./word-segments";
 
 function markup(text: ReactNode): string {
@@ -219,4 +221,40 @@ describe("splitWords on every landing heading of every locale", () => {
       }
     },
   );
+});
+
+describe("splitWords on the lock demo heading of every locale", () => {
+  const NO_BREAK_SPACE = "\u00a0";
+
+  it.each([...LOCALES])(
+    "keeps %s whole and never splits a no-break pair into two words",
+    async (locale) => {
+      const messages = (await import(`@/messages/${locale}.json`)).default;
+      const text = createTranslator({ locale, messages, namespace: "landing.lockDemo" })(
+        "heading",
+        { count: LOCK_DEMO_COUNTS.changed },
+      );
+      const doc = new DOMParser().parseFromString(
+        renderToStaticMarkup(<h2>{splitWords(text)}</h2>),
+        "text/html",
+      );
+      const heading = doc.querySelector("h2") as Element;
+      expect(heading.textContent, locale).toBe(text);
+      const spans = [...heading.querySelectorAll(".vk-word")].map((span) => span.textContent ?? "");
+      for (const span of spans) {
+        expect(span.startsWith(NO_BREAK_SPACE), `${locale} ${span}`).toBe(false);
+        expect(span.endsWith(NO_BREAK_SPACE), `${locale} ${span}`).toBe(false);
+      }
+      if (text.includes(NO_BREAK_SPACE))
+        expect(
+          spans.some((span) => span.includes(NO_BREAK_SPACE)),
+          locale,
+        ).toBe(true);
+    },
+  );
+
+  it("keeps the German no-break pair inside one span", () => {
+    const html = markup(splitWords("zwei\u00a0Schlüssel gesendet"));
+    expect(html).toContain(">zwei\u00a0Schlüssel</span>");
+  });
 });
