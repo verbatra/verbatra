@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { report, reportPageview } from "@/lib/analytics-report";
-import { AnalyticsReporter } from "./analytics-reporter";
+import { AnalyticsReporter, forgetReportedPath } from "./analytics-reporter";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -51,6 +51,7 @@ async function navigateTo(pathname: string, strict = false): Promise<void> {
 
 beforeEach(() => {
   navigation.pathname = "/docs";
+  forgetReportedPath();
 });
 
 afterEach(() => {
@@ -131,5 +132,22 @@ describe("AnalyticsReporter: soft navigation", () => {
     await navigateTo("/docs/cli");
     await navigateTo("/docs/sdk");
     expect(vi.mocked(reportPageview).mock.calls).toEqual([["/docs/cli"], ["/docs/sdk"]]);
+  });
+
+  it("reports the new path when a locale switch remounts the reporter", async () => {
+    await mount();
+    act(() => mounted?.root.unmount());
+    mounted?.container.remove();
+    navigation.pathname = "/de/docs";
+    await mount();
+    expect(reportPageview).toHaveBeenCalledExactlyOnceWith("/de/docs");
+  });
+
+  it("does not report a remount on the same path", async () => {
+    await mount();
+    act(() => mounted?.root.unmount());
+    mounted?.container.remove();
+    await mount();
+    expect(reportPageview).not.toHaveBeenCalled();
   });
 });

@@ -74,8 +74,10 @@ the reporter, the objection handling, or the privacy wording about them.
   `fetch` with `keepalive` and `credentials: "same-origin"` (so the objection cookies reach the relay on either transport); they never throw. The body carries the event
   name, allowlisted properties and the bare path only. components/analytics-reporter.tsx (renders
   null, mounted in the locale layout) owns one delegated click listener and a `usePathname` effect:
-  the first render and a re-render on the same path report nothing (the document load is the
-  server's), each later pathname change reports one bare `pageview`. Hash and query changes keep
+  the first render of the document and a re-render on the same path report nothing (the document
+  load is the server's), each later pathname change reports one bare `pageview`, including the one a
+  locale switch causes, which remounts the layout and so keeps the last path in module state, not in a
+  ref. Hash and query changes keep
   the pathname, so they report nothing; a bfcache restore remounts nothing and reports nothing.
 - **Never read in the browser** - cookies, storage, `screen`, `navigator.language`, user agent,
   `document.referrer`, `document.title`, GPC, DNT. lib/analytics-report.test.ts fails if the

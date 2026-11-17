@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { reportClick } from "@/lib/analytics-click-events";
 import { reportPageview } from "@/lib/analytics-report";
 
@@ -9,13 +9,19 @@ function onClick(event: MouseEvent): void {
   if (event.target instanceof Element) reportClick(event.target);
 }
 
+let lastPathname: string | undefined;
+
+export function forgetReportedPath(): void {
+  lastPathname = undefined;
+}
+
 export function AnalyticsReporter(): null {
   const pathname = usePathname();
-  const reported = useRef(pathname);
 
   useEffect(() => {
-    if (reported.current === pathname) return;
-    reported.current = pathname;
+    const previous = lastPathname;
+    lastPathname = pathname;
+    if (previous === undefined || previous === pathname) return;
     reportPageview(pathname);
   }, [pathname]);
 

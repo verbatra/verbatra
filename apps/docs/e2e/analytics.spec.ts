@@ -252,4 +252,29 @@ test.describe("each marked control reports its own event", () => {
     await expect.poll(() => reports.some(({ e }) => e === "locale_switch")).toBe(true);
     expect(reports).toContainEqual({ e: "locale_switch", p: { to: "de" }, u: "/docs" });
   });
+
+  test("a locale switch is counted as exactly one page view, by the proxy or by the reporter", async ({
+    page,
+  }) => {
+    const reports = await captureRelay(page);
+    const documentLoads: string[] = [];
+    page.on("request", (request) => {
+      if (request.isNavigationRequest() && request.resourceType() === "document") {
+        documentLoads.push(new URL(request.url()).pathname);
+      }
+    });
+    await open(page, "/docs");
+    documentLoads.length = 0;
+    await page
+      .getByRole("button", { name: /choose a language/i })
+      .first()
+      .click();
+    await page.locator("[data-locale-switch='de']").click();
+    await expect(page).toHaveURL(/\/de\/docs$/);
+    await page.waitForLoadState("networkidle");
+    const countedByReporter = reports.filter(({ e, u }) => e === "pageview" && u === "/de/docs");
+    const countedByProxy = documentLoads.filter((path) => path === "/de/docs");
+    expect(countedByReporter.length + countedByProxy.length).toBe(1);
+    expect(reports.filter(({ e }) => e === "pageview")).toHaveLength(countedByReporter.length);
+  });
 });
