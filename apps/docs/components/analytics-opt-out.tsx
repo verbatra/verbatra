@@ -15,15 +15,13 @@ export interface AnalyticsOptOutLabels {
   readonly signals: string;
 }
 
-type Choice = AnalyticsChoice;
-
 function ChoiceForm({
   locale,
   choice,
   label,
 }: {
   locale: Locale;
-  choice: Choice;
+  choice: AnalyticsChoice;
   label: string;
 }): ReactNode {
   return (
@@ -44,7 +42,7 @@ function ChoiceForm({
   );
 }
 
-function ChoiceStatus({ choice, label }: { choice: Choice; label: string }): ReactNode {
+function ChoiceStatus({ choice, label }: { choice: AnalyticsChoice; label: string }): ReactNode {
   return (
     <p
       id={`analytics-${choice}`}

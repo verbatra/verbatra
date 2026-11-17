@@ -46,11 +46,12 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   means undecided; anything else is undecided. Secure, SameSite=Lax, Path=/, one year, NOT
   HttpOnly (the loader and the prompt read it in the browser; page HTML is prerendered, so the
   server cannot decide). `default` is "No thanks" and keeps the Tier 0 count. Parsing and the
-  `Set-Cookie` string live in lib/analytics-choice.ts (`readChoiceCookie`, `parseChoice`,
-  `choiceCookie`, `hasPrivacySignal`).
+  `Set-Cookie` string live in lib/analytics-choice.ts (`readChoiceCookie`, `hasLegacyOptOut`,
+  `choiceCookie`, `expiredLegacyOptOutCookie`, `hasPrivacySignal`).
 - **Legacy cookie** - `verbatra_analytics_optout=1` is HttpOnly, so only the server sees it. The
   proxy still honours it for counting and, when it is present without the choice cookie,
-  appends `Set-Cookie: verbatra_analytics=off` (`withChoiceMigration`). An explicit choice on
+  appends `Set-Cookie: verbatra_analytics=off` and always expires the legacy cookie
+  (`withChoiceMigration`). An explicit choice on
   /api/analytics clears it.
 - **Server count rules** - `countedPageview` (lib/server-pageview.ts) returns an event only for a
   GET with `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in

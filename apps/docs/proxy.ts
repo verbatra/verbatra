@@ -1,7 +1,12 @@
 import { createI18nMiddleware } from "fumadocs-core/i18n/middleware";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { choiceCookie, hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
+import {
+  choiceCookie,
+  expiredLegacyOptOutCookie,
+  hasLegacyOptOut,
+  readChoiceCookie,
+} from "@/lib/analytics-choice";
 import { isBuiltDocsPage, scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import {
@@ -55,9 +60,11 @@ function withContentSecurityPolicy(request: NextRequest, response: Response): Re
 
 function withChoiceMigration(request: NextRequest, response: Response): Response {
   const cookie = request.headers.get("cookie");
-  if (hasLegacyOptOut(cookie) && readChoiceCookie(cookie) === undefined) {
+  if (!hasLegacyOptOut(cookie)) return response;
+  if (readChoiceCookie(cookie) === undefined) {
     response.headers.append("set-cookie", choiceCookie("off"));
   }
+  response.headers.append("set-cookie", expiredLegacyOptOutCookie());
   return response;
 }
 
