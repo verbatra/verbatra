@@ -1,5 +1,45 @@
 # @verbatra/sdk
 
+## 0.14.0
+
+### Minor Changes
+
+- [#413](https://github.com/verbatra/verbatra/pull/413) [`d03634d`](https://github.com/verbatra/verbatra/commit/d03634d51bd2c029a5dff57be7bf634da6284cdd) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Set the tone per target locale, and the LLM providers now state what each tone means.
+  
+  **Added**
+  - `tone` accepts a map from a target locale to its own tone, with `default` for every locale the map does not name, for example `tone: { default: "informal", ja: "neutral" }`. A key must be one of `targetLocales`, spelled exactly as configured: an empty map, an unknown key and two keys that differ only in case are refused when the config loads.
+  - `toneForLocale(tone, locale)` resolves the tone that applies to one locale, so code that reads `config.tone` keeps working with both shapes.
+  - Changing the tone of one locale stops cached translations from being reused for that locale only. A config with a single tone keeps its cache.
+  
+  **Changed**
+  - The LLM providers (Anthropic, OpenAI, Gemini, OpenCode and openai-compatible) now send one fixed rule that names the register of each tone: `informal` is the familiar second person, `formal` the polite one, and `neutral` avoids direct address in every language. No tone writes slang or a casual style. In Japanese, `informal` and `neutral` write polite です/ます, never casual endings such as よ, ね or だよ, and `formal` writes keigo. The fixed rules grow, so a pre-run estimate counts about 150 more input tokens per request.
+  - With DeepL, `informal` still sends `prefer_less`. Use `ja: "neutral"` for Japanese.
+  
+  **Upgrade:**
+  - Japanese output from an LLM provider changes: new and retranslated values use polite です/ます instead of casual endings such as よ, ね or だよ. Japanese values already written stay as they are, and the cache keeps serving them, because it does not see the new rule. To refresh them, retranslate the Japanese keys with `retranslateEntries` from the SDK, which leaves values a person wrote and pinned keys alone (one provider request per key). If every Japanese value is machine output, deleting the Japanese locale file and running `verbatra translate --locales ja --no-cache` refreshes them in one run, but it also drops any Japanese value a person wrote or imported.
+  - Under `budgetBehavior: "stop"`, each request now reserves about 150 more tokens for every provider, so a `maxTokens` just above one batch may now withhold it. Raise `maxTokens` or lower `maxBatchSize`.
+  - `VerbatraConfig["tone"]` may now be an object. Read it per locale with `toneForLocale(config.tone, locale)` instead of comparing it to a string.
+
+### Patch Changes
+
+- [#412](https://github.com/verbatra/verbatra/pull/412) [`884e023`](https://github.com/verbatra/verbatra/commit/884e02371661b6aba38996946b6f179d779411f8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - The Anthropic provider works with Claude Sonnet 5.5, Opus 5.5 and Fable 5.2.
+  
+  **Fixed**
+  - Requests to these models no longer fail with `HTTP 400, invalid_request_error`.
+  - Older Claude models keep working unchanged.
+
+- [#412](https://github.com/verbatra/verbatra/pull/412) [`1a0eea5`](https://github.com/verbatra/verbatra/commit/1a0eea57d0c7397bbde893131d9465d3aebfec37) Thanks [@mariokreitz](https://github.com/mariokreitz)! - A rejected Anthropic request now says what to check, and a failed request no longer promises a retry that cannot help.
+  
+  **Fixed**
+  - An Anthropic `HTTP 404` now adds a check that the model id exists, and an `HTTP 400` adds that the model may not support the parameters verbatra sends. The API's own message is still never printed.
+  - The `SUB_BATCH_FAILED` notice says `it will be retried next run` after a `RATE_LIMITED`, `TIMEOUT`, `PROVIDER_UNAVAILABLE`, `INVALID_RESPONSE` or `OUTPUT_TRUNCATED` failure, after a `PROVIDER_ERROR` without a 4xx status, or with 408 or 429 (a network failure, a timeout or a rate limit), and after a failure that is not a `ProviderError`.
+  - It says `running again will fail the same way until the cause is fixed` after `AUTH_FAILED`, `MISSING_API_KEY`, `INVALID_REQUEST`, `PROVIDER_REFUSED`, `PROVIDER_BLOCKED` or `NETWORK_POLICY_VIOLATION`, and after a `PROVIDER_ERROR` with a 4xx status other than 408 and 429.
+  
+  **Added**
+  - `ProviderError` gains an optional `status` field holding the HTTP status of the provider response behind the failure. It is absent when there was no response.
+  
+  - **Upgrade:** the notice used to end with `and was withheld; it will be retried next run.` for every failure. For the codes and 4xx statuses above it now ends with `and was withheld; running again will fail the same way until the cause is fixed.` Code that matches the whole text should match the `SUB_BATCH_FAILED` code, its `causeCode` and the error's `status` instead.
+
 ## 0.13.7
 
 ### Patch Changes
