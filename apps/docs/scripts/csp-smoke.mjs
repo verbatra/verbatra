@@ -55,11 +55,25 @@ async function searchWorks(page) {
   return searched;
 }
 
+function isPageviewPayload(body) {
+  try {
+    return JSON.parse(body ?? "").e === "pageview";
+  } catch {
+    return false;
+  }
+}
+
 async function softNavigationReported(page) {
   const reported = page
     .waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === "/api/e" && response.request().method() === "POST",
+      (response) => {
+        const request = response.request();
+        return (
+          new URL(response.url()).pathname === "/api/e" &&
+          request.method() === "POST" &&
+          isPageviewPayload(request.postData())
+        );
+      },
       { timeout: STEP_TIMEOUT_MS },
     )
     .then((response) => response.status() === 204)

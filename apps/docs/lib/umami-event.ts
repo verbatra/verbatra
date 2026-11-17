@@ -25,7 +25,7 @@ export function isCountableVisitor(request: Request): boolean {
   return (
     requestHost(headers, new URL(request.url).host) === SITE_HOST &&
     !isTrackingRefused(headers) &&
-    visitorOf(headers) !== undefined
+    visitorOf(headers)?.ip !== undefined
   );
 }
 

@@ -42,12 +42,16 @@ describe("umamiEventFor", () => {
     expect(message?.payload.url).toBe("/de/docs");
   });
 
-  it("omits ip and language when the request carries none", () => {
+  it("omits language when the request carries none", () => {
     const message = umamiEventFor(
-      request({ host: HEADERS.host as string, "user-agent": SAFARI }),
+      request({
+        host: HEADERS.host as string,
+        "user-agent": SAFARI,
+        "x-forwarded-for": "84.132.10.7",
+      }),
       SPEC,
     );
-    expect(message?.payload).not.toHaveProperty("ip");
+    expect(message?.payload.ip).toBe("84.132.10.7");
     expect(message?.payload).not.toHaveProperty("language");
   });
 
@@ -59,6 +63,8 @@ describe("umamiEventFor", () => {
     ["a missing user agent", { ...HEADERS, "user-agent": " " }],
     ["a bot user agent", { ...HEADERS, "user-agent": "Googlebot/2.1; bot;" }],
     ["curl", { ...HEADERS, "user-agent": "curl/8.7.1" }],
+    ["no public client ip", { host: HEADERS.host as string, "user-agent": SAFARI }],
+    ["a private client ip", { ...HEADERS, "x-forwarded-for": "10.0.0.4" }],
     ["a local host", { ...HEADERS, host: "localhost:3000" }],
     [
       "a spoofed forwarded host behind a local host",

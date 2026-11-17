@@ -9,6 +9,9 @@ vi.mock("@/lib/umami-event", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/umami-event")>()),
   emitUmamiEvent: emitUmamiEventMock,
 }));
+vi.mock("@/lib/csp-script-hashes", () => ({
+  loadBuiltScriptHashes: () => ({ "/en": [], "/de/contact": [] }),
+}));
 vi.mock("./arcjet", () => ({ checkArcjet: checkArcjetMock }));
 vi.mock("./email", () => ({ sendContactEmail: sendContactEmailMock }));
 

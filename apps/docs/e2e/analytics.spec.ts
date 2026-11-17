@@ -253,7 +253,7 @@ test.describe("each marked control reports its own event", () => {
     expect(reports).toContainEqual({ e: "locale_switch", p: { to: "de" }, u: "/docs" });
   });
 
-  test("a locale switch is counted as exactly one page view, by the proxy or by the reporter", async ({
+  test("a locale switch never double counts: a /de/docs document load and a reporter page view are mutually exclusive", async ({
     page,
   }) => {
     const reports = await captureRelay(page);
@@ -273,8 +273,8 @@ test.describe("each marked control reports its own event", () => {
     await expect(page).toHaveURL(/\/de\/docs$/);
     await page.waitForLoadState("networkidle");
     const countedByReporter = reports.filter(({ e, u }) => e === "pageview" && u === "/de/docs");
-    const countedByProxy = documentLoads.filter((path) => path === "/de/docs");
-    expect(countedByReporter.length + countedByProxy.length).toBe(1);
+    const documentLoadsOfDe = documentLoads.filter((path) => path === "/de/docs");
+    expect(countedByReporter.length + documentLoadsOfDe.length).toBe(1);
     expect(reports.filter(({ e }) => e === "pageview")).toHaveLength(countedByReporter.length);
   });
 });
