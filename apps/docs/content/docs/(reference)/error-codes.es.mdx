@@ -740,7 +740,7 @@ La [política de red](/es/docs/network-policy) rechazó la petición justo antes
 
 ### PROVIDER_ERROR
 
-Cualquier cosa inclasificable. Con los proveedores LLM, un fallo HTTP nombra su estado, como `HTTP 404`, y el tipo de error del servidor cuando es un token corto de letras, dígitos y guiones bajos, como `MissingSessionID`; el mensaje propio del servidor, el cuerpo de la respuesta y la ruta de la URL nunca aparecen. Con una `baseUrl` de `openai-compatible`, un 404 o 405 añade comprobar que `baseUrl` sea la raíz de la API, y un 400 o 422 comprobar el nombre del modelo y el soporte de Chat Completions con salida de JSON schema estricto; con `opencode`, un 400, 404 o 422 añade que el modelo debe ser uno que OpenCode Zen sirva por el endpoint de Chat Completions. Reintentar no ayudará con un estado 4xx. Un problema de transporte reconocible (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) se nombra junto con qué comprobar; todo lo demás recibe un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
+Cualquier cosa inclasificable. Con los proveedores LLM, un fallo HTTP nombra su estado, como `HTTP 404`, y el tipo de error del servidor cuando es un token corto de letras, dígitos y guiones bajos, como `MissingSessionID`; el mensaje propio del servidor, el cuerpo de la respuesta y la ruta de la URL nunca aparecen. Con una `baseUrl` de `openai-compatible`, un 404 o 405 añade comprobar que `baseUrl` sea la raíz de la API, y un 400 o 422 comprobar el nombre del modelo y el soporte de Chat Completions con salida de JSON schema estricto; con `opencode`, un 400, 404 o 422 añade que el modelo debe ser uno que OpenCode Zen sirva por el endpoint de Chat Completions; con `anthropic`, un 404 añade comprobar que el id del modelo exista, y un 400 añade que quizá el modelo no admita los parámetros que verbatra envía. Reintentar no ayudará con un estado 4xx. Un problema de transporte reconocible (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) se nombra junto con qué comprobar; todo lo demás recibe un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
 
 - **Siguiente paso**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
@@ -1132,7 +1132,7 @@ Una petición al proveedor falló. El aviso nombra el código de error del prove
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: `1`: el locale termina `partial` o `failed`
-- **Siguiente paso**: Busca el código que nombra en [Códigos de error del proveedor](#provider-error-codes). Las claves se vuelven a traducir en la siguiente ejecución.
+- **Siguiente paso**: Busca el código que nombra en [Códigos de error del proveedor](#provider-error-codes). Las claves se vuelven a traducir en la siguiente ejecución tras un límite de frecuencia, un tiempo de espera agotado, un fallo del servidor o de la red, o una respuesta no válida o truncada; tras una petición rechazada (estado 4xx o `INVALID_REQUEST`), una negativa, un bloqueo, una llamada de red bloqueada o un fallo de clave o de credenciales, volver a ejecutar falla igual hasta que se corrija la causa.
 
 ### BLANK_ROW_BASELINE_RETAINED
 

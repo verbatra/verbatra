@@ -181,6 +181,7 @@ export { REVIEW_REASON_CODES } from "./provider.js";
 export type { ProviderRetry, ProviderRetryListener } from "./provider-retry.js";
 export { findKeyShapes, matchSpans, redactKeys, type TextSpan } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
+export { isRetryableProviderError } from "./retryability.js";
 export {
   computeReviewFlags,
   LENGTH_REVIEW_REASONS,

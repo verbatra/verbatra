@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ProviderError } from "../errors.js";
 import { parseGoogleTranslateHttpResult } from "./response.js";
 
 describe("parseGoogleTranslateHttpResult: success", () => {
@@ -89,5 +90,28 @@ describe("parseGoogleTranslateHttpResult: error classification", () => {
       expect(message).not.toContain("AIza");
       expect(message).not.toContain("key=");
     }
+  });
+});
+
+describe("parseGoogleTranslateHttpResult: status", () => {
+  it.each([400, 401, 403, 404, 418, 429, 503])(
+    "carries HTTP %i on the error and retries only the retryable ones",
+    (status) => {
+      const error = (() => {
+        try {
+          parseGoogleTranslateHttpResult(status, { error: { errors: [] } });
+        } catch (caught) {
+          return caught as ProviderError;
+        }
+        throw new Error("expected a ProviderError");
+      })();
+      expect(error.status).toBe(status);
+    },
+  );
+
+  it("makes a 404 non-retryable", () => {
+    expect(() => parseGoogleTranslateHttpResult(404, {})).toThrow(
+      expect.objectContaining({ code: "PROVIDER_ERROR", status: 404 }),
+    );
   });
 });

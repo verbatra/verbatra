@@ -740,7 +740,7 @@ The [network policy](/docs/network-policy) refused the request right before it w
 
 ### PROVIDER_ERROR
 
-Anything unclassifiable. From the LLM providers, an HTTP failure names its status, such as `HTTP 404`, and the server's error type when it is a short token of letters, digits and underscores, such as `MissingSessionID`; the server's own message, the response body and the URL path never appear. For an `openai-compatible` `baseUrl`, a 404 or 405 adds a check that `baseUrl` is the API root, and a 400 or 422 a check of the model name and of Chat Completions support with strict JSON schema output; for `opencode`, a 400, 404 or 422 adds that the model must be one OpenCode Zen serves over the Chat Completions endpoint. Retrying will not help a 4xx status. A recognizable transport problem (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) is named with what to check; anything else gets a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
+Anything unclassifiable. From the LLM providers, an HTTP failure names its status, such as `HTTP 404`, and the server's error type when it is a short token of letters, digits and underscores, such as `MissingSessionID`; the server's own message, the response body and the URL path never appear. For an `openai-compatible` `baseUrl`, a 404 or 405 adds a check that `baseUrl` is the API root, and a 400 or 422 a check of the model name and of Chat Completions support with strict JSON schema output; for `opencode`, a 400, 404 or 422 adds that the model must be one OpenCode Zen serves over the Chat Completions endpoint; for `anthropic`, a 404 adds a check that the model id exists, and a 400 adds that the model may not support the parameters verbatra sends. Retrying will not help a 4xx status. A recognizable transport problem (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) is named with what to check; anything else gets a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
 
 - **Next step**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
@@ -1117,7 +1117,7 @@ A provider request failed. The notice names the provider's error code, or `PROVI
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the locale ends `partial` or `failed`
-- **Next step**: Look up the code it names under [Provider error codes](#provider-error-codes). The keys are translated again on the next run.
+- **Next step**: Look up the code it names under [Provider error codes](#provider-error-codes). The keys are translated again on the next run after a rate limit, timeout, server or network failure, or an invalid or truncated response; after a rejected request (a 4xx status or `INVALID_REQUEST`), a refusal, a block, a blocked network call or a key or credentials failure, running again fails the same way until the cause is fixed.
 
 ### BLANK_ROW_BASELINE_RETAINED
 

@@ -34,6 +34,14 @@ export function getErrorStatus(error: unknown): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
+export function getDeepLStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("httpStatusCode" in error)) {
+    return undefined;
+  }
+  const status = (error as { readonly httpStatusCode?: unknown }).httpStatusCode;
+  return typeof status === "number" ? status : undefined;
+}
+
 function isServerOutageStatus(status: number | undefined): boolean {
   return (
     status !== undefined && status >= SERVER_OUTAGE_MIN_STATUS && status <= SERVER_OUTAGE_MAX_STATUS

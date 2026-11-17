@@ -16,9 +16,11 @@ describe("canonical schema single source of truth", () => {
     if (openai.response_format.type !== "json_schema") {
       throw new Error("expected the default strict-schema response_format");
     }
-    expect(anthropic.tools[0].input_schema).toEqual(canonical);
+    expect(anthropic.output_config.format.schema).toEqual(canonical);
     expect(openai.response_format.json_schema.schema).toEqual(canonical);
-    expect(anthropic.tools[0].input_schema).toEqual(openai.response_format.json_schema.schema);
+    expect(anthropic.output_config.format.schema).toEqual(
+      openai.response_format.json_schema.schema,
+    );
 
     expect(gemini.config.responseSchema).toEqual(toGeminiSchema(canonical));
   });
@@ -32,7 +34,7 @@ describe("canonical schema single source of truth", () => {
     expect(schema).not.toHaveProperty("$schema");
   });
 
-  it("carries the object type keyword Anthropic's tool input_schema requires", () => {
+  it("carries the object type keyword Anthropic's output_config schema requires", () => {
     const schema = deriveJsonSchema(translationsResultSchema);
 
     expect(schema.type).toBe("object");

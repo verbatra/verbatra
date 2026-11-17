@@ -3,10 +3,7 @@ import { SHARED_SYSTEM_RULES } from "../llm/system-rules.js";
 import type { GeminiConfig } from "./config.js";
 import { toGeminiSchema } from "./schema.js";
 
-export const GEMINI_SYSTEM_RULES = [
-  ...SHARED_SYSTEM_RULES,
-  "Respond only with the structured object: exactly one entry per requested key, no commentary, no extra keys, and no key that was not requested.",
-].join("\n");
+export const GEMINI_SYSTEM_RULES = SHARED_SYSTEM_RULES.join("\n");
 
 export interface GeminiRequest {
   readonly model: string;

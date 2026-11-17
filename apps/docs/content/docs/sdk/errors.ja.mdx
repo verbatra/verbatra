@@ -43,13 +43,18 @@ class SdkError extends Error {
 
 <AvailableFrom version="0.12.0" />
 
-翻訳プロバイダーが失敗時にスローする構造化されたエラーで、生の SDK や HTTP のエラーの代わりに使われます。`name` は `"ProviderError"`、`code` は `ProviderErrorCode` で、メッセージは固定され、秘匿化されています。`MISSING_API_KEY` の失敗では、`envVar` に、プロバイダーが API キーを読み取る変数の名前が入り、値は入りません。`retranslateEntry` がこれを再スローし、カスタムプロバイダーは `translateBatch` からスローします。すべてのコードは、[プロバイダーのエラーコード](/ja/docs/error-codes#provider-error-codes)に一覧があります。`error instanceof ProviderError` で判定します。このクラスをエクスポートしていない古いバージョンでは、`error.name === "ProviderError"` を確認して、`code` を読み取ります。
+翻訳プロバイダーが失敗時にスローする構造化されたエラーで、生の SDK や HTTP のエラーの代わりに使われます。`name` は `"ProviderError"`、`code` は `ProviderErrorCode` で、メッセージは固定され、秘匿化されています。`MISSING_API_KEY` の失敗では、`envVar` に、プロバイダーが API キーを読み取る変数の名前が入り、値は入りません。`status` には、失敗の元になったプロバイダーのレスポンスの HTTP ステータスが入り、レスポンスがなかった場合は入りません。`retranslateEntry` がこれを再スローし、カスタムプロバイダーは `translateBatch` からスローします。すべてのコードは、[プロバイダーのエラーコード](/ja/docs/error-codes#provider-error-codes)に一覧があります。`error instanceof ProviderError` で判定します。このクラスをエクスポートしていない古いバージョンでは、`error.name === "ProviderError"` を確認して、`code` を読み取ります。
 
 ```ts title="シグネチャ"
 class ProviderError extends Error {
   readonly code: ProviderErrorCode;
   readonly envVar?: string;
-  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+  readonly status?: number;
+  constructor(
+    code: ProviderErrorCode,
+    message: string,
+    details?: { readonly envVar?: string; readonly status?: number },
+  );
 }
 ```
 

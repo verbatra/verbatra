@@ -7,6 +7,7 @@ import {
   REJECTED_REQUEST_REMEDY,
 } from "./http-failure-message.js";
 import { NetworkPolicyViolation } from "./network/guarded-fetch.js";
+import { isRetryableProviderError } from "./retryability.js";
 
 class StatusError extends Error {
   readonly status: number;
@@ -312,5 +313,42 @@ describe("guardProviderCall: network policy", () => {
       code: "NETWORK_POLICY_VIOLATION",
       message: "The request was blocked.",
     });
+  });
+});
+
+describe("guardProviderCall: status", () => {
+  async function failureOf(error: unknown): Promise<ProviderError> {
+    const caught = await guardProviderCall(() => Promise.reject(error)).catch(
+      (rejection: unknown) => rejection,
+    );
+    return caught as ProviderError;
+  }
+
+  it.each([400, 401, 404, 429, 503])("carries the raw status %i", async (status) => {
+    expect((await failureOf(new StatusError(status))).status).toBe(status);
+  });
+
+  it("carries the DeepL httpStatusCode when there is no status", async () => {
+    const raw = Object.assign(new Error("quota"), { httpStatusCode: 456 });
+    const error = await failureOf(raw);
+    expect(error.code).toBe("PROVIDER_ERROR");
+    expect(error.status).toBe(456);
+    expect(isRetryableProviderError(error)).toBe(false);
+  });
+
+  it("leaves status absent for a network failure", async () => {
+    const error = await failureOf(new Error("socket hang up"));
+    expect(error.status).toBeUndefined();
+    expect(isRetryableProviderError(error)).toBe(true);
+  });
+
+  it.each([400, 404, 405, 409, 413, 422])("is not retryable for a %i", async (status) => {
+    const error = await failureOf(new StatusError(status));
+    expect(error.code).toBe("PROVIDER_ERROR");
+    expect(isRetryableProviderError(error)).toBe(false);
+  });
+
+  it.each([408, 429, 500, 503])("is retryable for a %i", async (status) => {
+    expect(isRetryableProviderError(await failureOf(new StatusError(status)))).toBe(true);
   });
 });

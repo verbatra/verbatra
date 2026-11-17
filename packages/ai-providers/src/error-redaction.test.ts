@@ -10,7 +10,7 @@ import {
   resetDeclaredKeyEnvVars,
   stubClient,
   termGlossary,
-  toolMessage,
+  textMessage,
 } from "./test-support.js";
 
 const SK_PROJ = ["sk", "proj", ""].join("-");
@@ -78,7 +78,7 @@ describe("ProviderError messages never carry variable input across every error p
   });
 
   it("INVALID_REQUEST (missing extractor)", async () => {
-    const { client } = stubClient(toolMessage([]));
+    const { client } = stubClient(textMessage([]));
     const broken = {
       ...contentRequest(),
       extractPlaceholders: undefined,
@@ -91,7 +91,7 @@ describe("ProviderError messages never carry variable input across every error p
   });
 
   it("INVALID_REQUEST (malformed data)", async () => {
-    const { client } = stubClient(toolMessage([]));
+    const { client } = stubClient(textMessage([]));
     const error = await captureRejection(() =>
       createAnthropicProvider(config, { client }).translateBatch(
         contentRequest({ sourceLocale: "" }),
@@ -103,7 +103,7 @@ describe("ProviderError messages never carry variable input across every error p
 
   it("INVALID_RESPONSE", async () => {
     const { client } = stubClient(
-      toolMessage([
+      textMessage([
         { key: CONTENT, value: CONTENT },
         { key: "unexpected", value: FAKE_KEY },
       ]),

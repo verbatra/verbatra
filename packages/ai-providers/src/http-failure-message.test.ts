@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANTHROPIC_REJECTED_REQUEST_REMEDY,
+  ANTHROPIC_UNKNOWN_MODEL_REMEDY,
   BASE_URL_REMEDY,
   httpFailureMessage,
   REFUSED_REQUEST_REMEDY,
@@ -84,6 +86,40 @@ describe("httpFailureMessage", () => {
       "The translation provider request to localhost:1234 failed (HTTP 400, MissingSessionID). " +
         REJECTED_REQUEST_REMEDY,
     );
+  });
+
+  it("adds the Anthropic rejected-request remedy to a 400 and no vendor text", () => {
+    expect(
+      httpFailureMessage(
+        "PROVIDER_ERROR",
+        { status: 400, vendorType: "invalid_request_error" },
+        { host: undefined, remedies: "anthropic" },
+      ),
+    ).toBe(
+      `The translation provider request failed (HTTP 400, invalid_request_error). ${ANTHROPIC_REJECTED_REQUEST_REMEDY}`,
+    );
+  });
+
+  it("adds the Anthropic unknown-model remedy to a 404", () => {
+    expect(
+      httpFailureMessage(
+        "PROVIDER_ERROR",
+        { status: 404, vendorType: "not_found_error" },
+        { host: undefined, remedies: "anthropic" },
+      ),
+    ).toBe(
+      `The translation provider request failed (HTTP 404, not_found_error). ${ANTHROPIC_UNKNOWN_MODEL_REMEDY}`,
+    );
+  });
+
+  it.each([422, 500])("adds no Anthropic remedy to a %i", (status) => {
+    expect(
+      httpFailureMessage(
+        "PROVIDER_ERROR",
+        { status, vendorType: undefined },
+        { host: undefined, remedies: "anthropic" },
+      ),
+    ).toBe(`The translation provider request failed (HTTP ${status}).`);
   });
 
   it("adds no endpoint remedy without Chat Completions remedies", () => {

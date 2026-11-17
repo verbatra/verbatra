@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { ANTHROPIC_REJECTED_REQUEST_REMEDY } from "../http-failure-message.js";
 import { createAnthropicProvider } from "./anthropic-provider.js";
 
 let server: Server | undefined;
@@ -60,5 +61,15 @@ describe("anthropic error mapping through the real SDK client", () => {
     expect(error.code).toBe(code);
     expect(error.message).toContain(`HTTP ${status}`);
     expect(error.message).not.toContain("test-key");
+  });
+});
+
+describe("anthropic rejected request", () => {
+  it("tells the user what to check on a 400 without relaying the vendor message", async () => {
+    const error = await failureFor(400, "invalid_request_error");
+
+    expect(error.message).toContain("failed (HTTP 400, invalid_request_error).");
+    expect(error.message).toContain(ANTHROPIC_REJECTED_REQUEST_REMEDY);
+    expect(error.message).not.toContain("upstream detail");
   });
 });
