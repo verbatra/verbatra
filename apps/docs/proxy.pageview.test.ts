@@ -134,7 +134,7 @@ describe("proxy: server-emitted events", () => {
     const bodies = await sentBodies("/docs/nope");
     expect(bodies).toHaveLength(1);
     expect(bodies[0].payload).toMatchObject({
-      url: "/docs/nope",
+      url: "/docs",
       name: "not_found",
       data: { area: "docs" },
     });
