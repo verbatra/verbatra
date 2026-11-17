@@ -5070,6 +5070,14 @@ article.vk-hl-pane:is(:hover, :focus-within) > .vk-hl-glow {
   }
 }
 
+@media print {
+  .vk-hl-glow {
+    box-shadow: none;
+    opacity: 1;
+    transition: none;
+  }
+}
+
 @media (forced-colors: active) {
   article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
     outline: 2px solid Highlight;

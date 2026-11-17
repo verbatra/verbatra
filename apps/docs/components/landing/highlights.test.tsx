@@ -446,6 +446,13 @@ describe("Highlights lit pane (D17)", () => {
     }
   });
 
+  it("prints the shadow layer empty and at full opacity", () => {
+    const print = rulesFor(rules, ".vk-hl-glow").find((rule) => rule.media === "@media print");
+    expect(print?.declarations["box-shadow"]).toBe("none");
+    expect(print?.declarations.opacity).toBe("1");
+    expect(print?.declarations.transition).toBe("none");
+  });
+
   it("outlines the lit card with Highlight under forced colors", () => {
     const outline = exact(LIT).find((rule) => rule.media === "@media (forced-colors: active)");
     expect(outline?.declarations.outline).toBe("2px solid Highlight");
