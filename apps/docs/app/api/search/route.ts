@@ -2,6 +2,8 @@ import { createFromSource } from "fumadocs-core/search/server";
 import { source } from "@/lib/source";
 import { emitUmamiEvent, refererPage } from "@/lib/umami-event";
 
+const MIN_QUERY_LENGTH = 3;
+
 const { GET: search } = createFromSource(source);
 
 async function hasResults(response: Response): Promise<boolean | undefined> {
@@ -16,7 +18,8 @@ async function hasResults(response: Response): Promise<boolean | undefined> {
 
 export async function GET(request: Request): Promise<Response> {
   const response = await search(request);
-  if (new URL(request.url).searchParams.get("query")) {
+  const query = new URL(request.url).searchParams.get("query")?.trim() ?? "";
+  if (query.length >= MIN_QUERY_LENGTH) {
     const found = await hasResults(response);
     if (found !== undefined) {
       emitUmamiEvent(request, {

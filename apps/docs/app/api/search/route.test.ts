@@ -7,6 +7,9 @@ vi.mock("fumadocs-core/search/server", () => ({
   createFromSource: () => ({ GET: searchGetMock }),
 }));
 vi.mock("@/lib/source", () => ({ source: {} }));
+vi.mock("@/lib/csp-script-hashes", () => ({
+  loadBuiltScriptHashes: () => ({ "/en": [], "/de/docs": [] }),
+}));
 vi.mock("@/lib/umami-event", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/umami-event")>()),
   emitUmamiEvent: emitUmamiEventMock,
@@ -53,8 +56,20 @@ describe("GET /api/search", () => {
 
   it("takes the page from a same-site referer", async () => {
     searchGetMock.mockResolvedValue(results([]));
-    await GET(request("?query=x", { referer: "https://verbatra.kreitz-webdev.de/de/docs" }));
+    await GET(request("?query=docs", { referer: "https://verbatra.kreitz-webdev.de/de/docs" }));
     expect(emitUmamiEventMock.mock.calls[0]?.[1]).toMatchObject({ url: "/de/docs" });
+  });
+
+  it.each(["a", "ab", "  "])("emits nothing for the short query %j", async (query) => {
+    searchGetMock.mockResolvedValue(results([{ id: "a" }]));
+    await GET(request(`?query=${encodeURIComponent(query)}`));
+    expect(emitUmamiEventMock).not.toHaveBeenCalled();
+  });
+
+  it("emits for a query of exactly three characters", async () => {
+    searchGetMock.mockResolvedValue(results([{ id: "a" }]));
+    await GET(request("?query=cli"));
+    expect(emitUmamiEventMock).toHaveBeenCalledTimes(1);
   });
 
   it("never puts the query text into the event", async () => {
@@ -71,14 +86,14 @@ describe("GET /api/search", () => {
 
   it("emits nothing when the search failed", async () => {
     searchGetMock.mockResolvedValue(results([], { status: 500 }));
-    const response = await GET(request("?query=x"));
+    const response = await GET(request("?query=docs"));
     expect(response.status).toBe(500);
     expect(emitUmamiEventMock).not.toHaveBeenCalled();
   });
 
   it("emits nothing when the body is not a result list", async () => {
     searchGetMock.mockResolvedValue(new Response("nope", { status: 200 }));
-    const response = await GET(request("?query=x"));
+    const response = await GET(request("?query=docs"));
     expect(await response.text()).toBe("nope");
     expect(emitUmamiEventMock).not.toHaveBeenCalled();
   });
