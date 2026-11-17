@@ -125,7 +125,7 @@ function announcesPrefetch(headers: Headers): boolean {
   );
 }
 
-function isRedirect(response: Response): boolean {
+export function isRedirect(response: Response): boolean {
   return response.status !== 200 || response.headers.has("location");
 }
 
@@ -139,19 +139,25 @@ export function isPageRoute(servedPathname: string, routes: ScriptHashesByRoute)
   return !UNCOUNTED_ROUTES.has(servedPathname) && Object.hasOwn(routes, servedPathname);
 }
 
-export function isCountableNavigation(
-  request: Request,
-  response: Response,
-  servedPathname: string,
-  routes: ScriptHashesByRoute = loadBuiltScriptHashes(),
-): boolean {
+export function isDocumentNavigation(request: Request, response: Response): boolean {
   const { headers } = request;
   return (
     request.method === "GET" &&
     headers.get("sec-fetch-dest") === "document" &&
     headers.get("sec-fetch-mode") === "navigate" &&
     !announcesPrefetch(headers) &&
-    !isRedirect(response) &&
+    !isRedirect(response)
+  );
+}
+
+export function isCountableNavigation(
+  request: Request,
+  response: Response,
+  servedPathname: string,
+  routes: ScriptHashesByRoute = loadBuiltScriptHashes(),
+): boolean {
+  return (
+    isDocumentNavigation(request, response) &&
     !isMarkdown(request, servedPathname) &&
     isPageRoute(servedPathname, routes)
   );

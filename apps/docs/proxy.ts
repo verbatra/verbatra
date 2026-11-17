@@ -21,7 +21,9 @@ import {
   contentSecurityPolicy,
   upgradesInsecureRequests,
 } from "@/lib/security-headers.mjs";
+import { proxyEventFor } from "@/lib/server-events";
 import { countedPageview, sendPageview } from "@/lib/server-pageview";
+import { emitUmamiEvent } from "@/lib/umami-event";
 
 const NEXT_ACTION_HEADER = "next-action";
 const REWRITE_HEADER = "x-middleware-rewrite";
@@ -91,10 +93,17 @@ function countPageview(request: NextRequest, response: Response, event: NextFetc
   if (pageview !== undefined) event.waitUntil(sendPageview(pageview));
 }
 
+function emitServerEvent(request: NextRequest, response: Response, event: NextFetchEvent): void {
+  const spec = proxyEventFor(request, response, servedPathname(request, response));
+  if (spec === undefined) return;
+  emitUmamiEvent(request, spec, { schedule: (task) => event.waitUntil(task()) });
+}
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const response = await route(request, event);
   if (!(response instanceof Response)) return response;
   countPageview(request, response, event);
+  emitServerEvent(request, response, event);
   return withContentSecurityPolicy(request, withChoiceMigration(request, response));
 }
 
