@@ -178,6 +178,65 @@ describe("AnalyticsLoader", () => {
     expect(document.querySelectorAll("script")).toHaveLength(0);
   });
 
+  it("reloads when a restored page finds the choice withdrawn in the meantime", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a pageshow that is not a restore from the back-forward cache", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: false }));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("reloads when the tab becomes visible after the choice was withdrawn elsewhere", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload on becoming visible while the choice still stands", async () => {
+    setChoice("full");
+    await mount();
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("does not reload on a resume when nothing was injected", async () => {
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("stops listening for resumes when it unmounts", async () => {
+    setChoice("full");
+    await mount();
+    act(() => mounted?.root.unmount());
+    setChoice("off");
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
   it("stops listening when it unmounts", async () => {
     await mount();
     act(() => mounted?.root.unmount());

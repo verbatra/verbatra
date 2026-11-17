@@ -76,7 +76,9 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   hostname, so a local run counts nothing), then `recorder.js` with only `data-website-id`. Both
   carry ids and are injected once. It listens for the same-tab event `verbatra:analytics-choice`:
   `full` injects without a reload, anything else reloads when the scripts are present (scripts
-  cannot be unloaded). It reads and writes no storage. There is no `next/script`, no inline
+  cannot be unloaded). It re-checks the same rule on `pageshow` (back-forward cache
+  restore) and when the tab becomes visible, so a withdrawal made in another tab or before a restore
+  also reloads. It reads and writes no storage. There is no `next/script`, no inline
   code and no manifest hash change; external scripts are never hashed.
 - **Sanitiser** - lib/analytics-sanitize.ts, exposed as `window.verbatraUmamiBeforeSend`: drops
   `screen`, rebuilds `url` as path plus the five UTM parameters (255 cap), strips query and hash
