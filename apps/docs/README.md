@@ -53,12 +53,10 @@ pnpm csp:smoke http://localhost:3000
 ```
 
 `csp:smoke` loads the key pages in Chromium and fails on any CSP violation, any failed
-`/_next/static` asset, a page that did not hydrate, any request to another origin (the Umami
-server included, since a visitor without a choice never loads the tracker), a search that did not
-answer, or an HTML response without exactly one hashed policy header. A second run holds the
-cookie `verbatra_analytics=full` and answers the Umami origin with the stubs in
-`scripts/umami-stub.mjs`: it fails unless the tracker, the recorder and a pageview reach them, and
-it allows no origin besides Umami. It needs `pnpm exec playwright install chromium` once.
+`/_next/static` asset, a page that did not hydrate, any request to another origin (analytics
+included, since the browser only ever talks to the site itself), a search that did not answer, a
+soft navigation whose pageview post does not reach `/api/e` with a 204, or an HTML response without
+exactly one hashed policy header. It needs `pnpm exec playwright install chromium` once.
 
 `E2E_PORT` moves the e2e server and its base URL off port 3107.
 
@@ -67,6 +65,17 @@ copies the static assets and `public` into `.next/standalone` and starts the ser
 (`scripts/serve-standalone.mjs`). It fails while anything else holds that port, so it never tests a
 `next dev` server by accident; set `PW_REUSE_SERVER=1` to run against a standalone server you
 started there yourself. Build first.
+
+## Analytics
+
+The site counts visits with a self-hosted Umami, without cookies, consent prompts or any analytics
+script in the browser. The proxy counts document loads from request headers, route handlers emit
+a few server events (contact result, whether a search found results, 404s, Markdown reads), and a
+tiny first-party reporter posts soft navigations and a short closed list of own-control events to
+`/api/e`, which validates them and forwards them to Umami from the server. `Sec-GPC`, `DNT` and the
+earlier opt-out cookies stop all of it on the server. The browser reads nothing from the device
+except the current page path. See `.claude/skills/umami-analytics/SKILL.md` for the taxonomy, how
+to add an event and the privacy wording that must change with it.
 
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
 the interface strings with `pnpm i18n` (see below).
