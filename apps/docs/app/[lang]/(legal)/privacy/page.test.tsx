@@ -181,14 +181,15 @@ const UMAMI_GEOLITE: Record<Locale, RegExp> = {
 };
 
 const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
-  en: /no consent under § 25 TDDDG .* is required for it\. The legal basis for the processing is Art\. 6\(1\)\(f\) GDPR/,
-  de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
-  es: /no se necesita para ello ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
-  fr: /aucun consentement au titre du § 25 TDDDG .* n’est nécessaire pour cela\. La base légale du traitement est l’art\. 6, paragraphe 1, point f\) du RGPD/,
-  "zh-CN": /依据 § 25 TDDDG（.*）无需征得同意。处理的法律依据是 GDPR 第 6\(1\)\(f\) 条/,
+  en: /\(§ 25\(2\) no\. 2 TDDDG\), no consent under § 25 TDDDG is required for it\. The legal basis for the processing is Art\. 6\(1\)\(f\) GDPR/,
+  de: /\(§ 25 Abs\. 2 Nr\. 2 TDDDG\), ist dafür keine Einwilligung nach § 25 TDDDG erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
+  es: /\(§ 25, apartado 2, n\.º 2 de la TDDDG\), no se necesita para ello ningún consentimiento según el § 25 de la TDDDG\. La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
+  fr: /\(§ 25, alinéa 2, point 2 du TDDDG\), aucun consentement au titre du § 25 TDDDG n’est nécessaire pour cela\. La base légale du traitement est l’art\. 6, paragraphe 1, point f\) du RGPD/,
+  "zh-CN":
+    /（§ 25 第 2 款第 2 项 TDDDG），因此依据 § 25 TDDDG 无需征得同意。处理的法律依据是 GDPR 第 6\(1\)\(f\) 条/,
   "pt-BR":
-    /não é necessário consentimento nos termos do § 25 da TDDDG .* para isso\. A base legal do tratamento é o art\. 6\(1\)\(f\) do GDPR/,
-  ja: /§ 25 TDDDG（.*）に基づく同意は不要です。処理の法的根拠は GDPR 第 6\(1\)\(f\) 条/,
+    /\(§ 25, parágrafo 2, nº 2 da TDDDG\), não é necessário consentimento nos termos do § 25 da TDDDG para isso\. A base legal do tratamento é o art\. 6\(1\)\(f\) do GDPR/,
+  ja: /（§ 25 第 2 項第 2 号 TDDDG）、§ 25 TDDDG に基づく同意は不要です。処理の法的根拠は GDPR 第 6\(1\)\(f\) 条/,
 };
 
 const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
@@ -215,25 +216,27 @@ const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
 };
 
 const NO_COOKIES_NO_SCRIPTS: Record<Locale, string> = {
-  en: "loads no third-party or analytics scripts in your browser, runs no cross-site tracking, sets no cookies",
-  de: "lädt keine Skripte von Dritten und kein Analyseskript in deinen Browser, betreibt kein seitenübergreifendes Tracking, setzt keine Cookies",
-  es: "No carga scripts de terceros ni de analítica en tu navegador, no realiza seguimiento entre sitios, no establece cookies",
-  fr: "ne charge aucun script tiers ni script de statistiques dans ton navigateur, ne fait aucun suivi intersites, ne dépose aucun cookie",
-  "zh-CN": "不会在你的浏览器中加载任何第三方脚本或分析脚本，不做跨站跟踪，不设置任何 Cookie",
+  en: "loads no third-party script and no Umami script in your browser, runs no cross-site tracking, sets no cookies",
+  de: "lädt kein Skript von Dritten und kein Umami-Skript in deinen Browser, betreibt kein seitenübergreifendes Tracking, setzt keine Cookies",
+  es: "No carga ningún script de terceros ni ningún script de Umami en tu navegador, no realiza seguimiento entre sitios, no establece cookies",
+  fr: "ne charge aucun script tiers et aucun script Umami dans ton navigateur, ne fait aucun suivi intersites, ne dépose aucun cookie",
+  "zh-CN":
+    "不会在你的浏览器中加载任何第三方脚本，也不加载 Umami 脚本，不做跨站跟踪，不设置任何 Cookie",
   "pt-BR":
-    "não carrega scripts de terceiros nem de análise no seu navegador, não faz rastreamento entre sites, não define cookies",
-  ja: "ブラウザーにサードパーティのスクリプトや分析スクリプトは読み込まず、サイトをまたぐトラッキングは行わず、Cookie も設定せず",
+    "não carrega nenhum script de terceiros nem nenhum script do Umami no seu navegador, não faz rastreamento entre sites, não define cookies",
+  ja: "ブラウザーにサードパーティのスクリプトも Umami のスクリプトも読み込まず、サイトをまたぐトラッキングは行わず、Cookie も設定せず",
 };
 
 const COUNT_READS_AND_SETS_NOTHING: Record<Locale, string> = {
-  en: "Nothing is read from your device for this count, and no cookie is set for it (section 5)",
-  de: "Für dieses Zählen wird nichts von deinem Gerät ausgelesen, und es wird dafür kein Cookie gesetzt (Abschnitt 5)",
-  es: "Para este recuento no se lee nada de tu dispositivo y no se establece ninguna cookie (sección 5)",
-  fr: "Pour ce comptage, rien n’est lu sur ton appareil et aucun cookie n’est déposé (section 5)",
-  "zh-CN": "就这种统计而言，不会读取你设备上的任何内容，也不会为此设置 Cookie（见第 5 节）",
+  en: "No cookie is set for it (section 5). Apart from the request details listed below, our server reads only the two cookies named in section 5, solely to honour an objection, which § 25(2) no. 2 TDDDG (German Telecommunications Digital Services Data Protection Act) permits without consent",
+  de: "Dafür wird kein Cookie gesetzt (Abschnitt 5). Abgesehen von den unten aufgeführten Angaben aus der Anfrage liest unser Server nur die beiden in Abschnitt 5 genannten Cookies, und zwar ausschließlich, um einen Widerspruch zu beachten, was § 25 Abs. 2 Nr. 2 TDDDG (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz) ohne Einwilligung erlaubt",
+  es: "Para ello no se establece ninguna cookie (sección 5). Aparte de los datos de la solicitud que se enumeran más abajo, nuestro servidor solo lee las dos cookies mencionadas en la sección 5, únicamente para respetar una oposición, lo que el § 25, apartado 2, n.º 2 de la TDDDG (ley alemana de protección de datos en telecomunicaciones y servicios digitales) permite sin consentimiento",
+  fr: "Aucun cookie n’est déposé pour cela (section 5). Hormis les informations de la requête énumérées ci-dessous, notre serveur ne lit que les deux cookies nommés à la section 5, uniquement pour respecter une opposition, ce que le § 25, alinéa 2, point 2 du TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) autorise sans consentement",
+  "zh-CN":
+    "不会为此设置 Cookie（见第 5 节）。除下文列出的请求信息外，我们的服务器只读取第 5 节中提到的两个 Cookie，且仅用于遵从反对，依据 § 25 第 2 款第 2 项 TDDDG（德国《电信数字服务数据保护法》），这无需征得同意",
   "pt-BR":
-    "Para essa contagem, nada é lido do seu dispositivo e nenhum cookie é definido (seção 5)",
-  ja: "この集計のためにデバイスから何も読み取らず、Cookie も設定しません（第 5 節を参照）",
+    "Nenhum cookie é definido para isso (seção 5). Além dos detalhes da requisição listados abaixo, nosso servidor lê apenas os dois cookies citados na seção 5, somente para respeitar uma oposição, o que o § 25, parágrafo 2, nº 2 da TDDDG (Lei alemã de Proteção de Dados em Telecomunicações e Serviços Digitais) permite sem consentimento",
+  ja: "この集計のために Cookie は設定しません（第 5 節を参照）。以下に挙げるリクエストの情報を除き、当方のサーバーが読み取るのは第 5 節の 2 つの Cookie だけで、異議を尊重するためにのみ読み取ります。これは § 25 第 2 項第 2 号 TDDDG（ドイツ電気通信デジタルサービスデータ保護法）により、同意なしに認められています",
 };
 
 const SIGNAL_IS_AN_OBJECTION: Record<Locale, string> = {
@@ -260,15 +263,15 @@ const EVENTS_CLOSED_LIST: Record<Locale, string> = {
 };
 
 const EVENTS_READ_ONLY_THE_PATH: Record<Locale, string> = {
-  en: "Nothing is read from your device for these reports except the path of the page you are on: no cookie, no local storage, no screen size, no language setting, no referrer and no page title",
-  de: "Für diese Meldungen wird von deinem Gerät nichts ausgelesen außer dem Pfad der Seite, auf der du dich befindest: kein Cookie, kein lokaler Speicher, keine Bildschirmgröße, keine Spracheinstellung, kein Referrer und kein Seitentitel",
-  es: "Para estos informes no se lee nada de tu dispositivo salvo la ruta de la página en la que estás: ninguna cookie, ningún almacenamiento local, ningún tamaño de pantalla, ningún ajuste de idioma, ningún referente y ningún título de página",
-  fr: "Pour ces signalements, rien n’est lu sur ton appareil hormis le chemin de la page où tu te trouves : ni cookie, ni stockage local, ni taille d’écran, ni réglage de langue, ni référent, ni titre de page",
+  en: "Our script reads only the path of the page you are on, and no local storage, no screen size, no referrer and no page title; our server reads from the request only the two cookies named in section 5, solely to honour an objection",
+  de: "Unser Skript liest nur den Pfad der Seite, auf der du dich befindest, und keinen lokalen Speicher, keine Bildschirmgröße, keinen Referrer und keinen Seitentitel; unser Server liest aus der Anfrage nur die beiden in Abschnitt 5 genannten Cookies, und zwar ausschließlich, um einen Widerspruch zu beachten",
+  es: "Nuestro script solo lee la ruta de la página en la que estás, y ningún almacenamiento local, ningún tamaño de pantalla, ningún referente y ningún título de página; nuestro servidor solo lee de la solicitud las dos cookies mencionadas en la sección 5, únicamente para respetar una oposición",
+  fr: "Notre script ne lit que le chemin de la page où tu te trouves, et ni stockage local, ni taille d’écran, ni référent, ni titre de page ; notre serveur ne lit dans la requête que les deux cookies nommés à la section 5, uniquement pour respecter une opposition",
   "zh-CN":
-    "为这些报告，除你所在页面的路径外，不会从你的设备读取任何内容：没有 Cookie，没有本地存储，没有屏幕尺寸，没有语言设置，没有来源页面，也没有页面标题",
+    "我们的脚本只读取你所在页面的路径，不读取本地存储、屏幕尺寸、来源页面或页面标题；我们的服务器只从请求中读取第 5 节中提到的两个 Cookie，且仅用于遵从反对",
   "pt-BR":
-    "Para essas informações, nada é lido do seu dispositivo além do caminho da página em que você está: nenhum cookie, nenhum armazenamento local, nenhum tamanho de tela, nenhuma configuração de idioma, nenhum referenciador e nenhum título de página",
-  ja: "これらの報告のためにデバイスから読み取るのは、今いるページのパスだけです。Cookie、ローカルストレージ、画面サイズ、言語設定、リファラー、ページタイトルは使いません",
+    "Nosso script lê apenas o caminho da página em que você está, e nenhum armazenamento local, nenhum tamanho de tela, nenhum referenciador e nenhum título de página; nosso servidor lê da requisição apenas os dois cookies citados na seção 5, somente para respeitar uma oposição",
+  ja: "当方のスクリプトが読み取るのは、今いるページのパスだけです。ローカルストレージ、画面サイズ、リファラー、ページタイトルは使いません。当方のサーバーがリクエストから読み取るのは、第 5 節の 2 つの Cookie だけで、異議を尊重するためにのみ読み取ります",
 };
 
 const NO_REPLAY_HEATMAPS_PERFORMANCE: Record<Locale, string> = {
@@ -283,27 +286,27 @@ const NO_REPLAY_HEATMAPS_PERFORMANCE: Record<Locale, string> = {
 };
 
 const EVENTS_FORWARDED_LIKE_PAGE_VIEWS: Record<Locale, string> = {
-  en: "Both kinds are forwarded to our Umami server in the same way as page views, with your IP address and user-agent string from that request",
-  de: "Beide Arten werden auf dieselbe Weise wie Seitenaufrufe an unseren Umami-Server weitergeleitet, mit deiner IP-Adresse und deiner User-Agent-Zeichenkette aus dieser Anfrage",
-  es: "Ambos tipos se reenvían a nuestro servidor de Umami igual que las visitas a páginas, con tu dirección IP y tu cadena de user-agent de esa petición",
-  fr: "Les deux types sont transmis à notre serveur Umami de la même manière que les pages vues, avec ton adresse IP et ta chaîne user-agent issues de cette requête",
+  en: "Both kinds are forwarded to our Umami server in the same way as page views, with your IP address, your user-agent string and the first language tag of your browser's Accept-Language header from that request",
+  de: "Beide Arten werden auf dieselbe Weise wie Seitenaufrufe an unseren Umami-Server weitergeleitet, mit deiner IP-Adresse, deiner User-Agent-Zeichenkette und dem ersten Sprachkürzel aus dem Accept-Language-Header deines Browsers aus dieser Anfrage",
+  es: "Ambos tipos se reenvían a nuestro servidor de Umami igual que las visitas a páginas, con tu dirección IP, tu cadena de user-agent y la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador de esa petición",
+  fr: "Les deux types sont transmis à notre serveur Umami de la même manière que les pages vues, avec ton adresse IP, ta chaîne user-agent et la première balise de langue de l’en-tête Accept-Language de ton navigateur issues de cette requête",
   "zh-CN":
-    "这两类事件都与页面浏览一样转发给我们的 Umami 服务器，并附上该请求中的你的 IP 地址和 user-agent 字符串",
+    "这两类事件都与页面浏览一样转发给我们的 Umami 服务器，并附上该请求中的你的 IP 地址、user-agent 字符串和浏览器 Accept-Language 请求头中的第一个语言标签",
   "pt-BR":
-    "Os dois tipos são encaminhados ao nosso servidor Umami da mesma forma que as visualizações de página, com seu endereço IP e sua string de user-agent dessa requisição",
-  ja: "どちらもページビューと同じ方法で当方の Umami サーバーに転送され、そのリクエストの IP アドレスと user-agent 文字列が付く",
+    "Os dois tipos são encaminhados ao nosso servidor Umami da mesma forma que as visualizações de página, com seu endereço IP, sua string de user-agent e a primeira etiqueta de idioma do cabeçalho Accept-Language do seu navegador dessa requisição",
+  ja: "どちらもページビューと同じ方法で当方の Umami サーバーに転送され、そのリクエストの IP アドレス、user-agent 文字列、ブラウザーの Accept-Language ヘッダーの最初の言語タグが付く",
 };
 
 const EVENTS_LEGAL_BASIS: Record<Locale, string> = {
-  en: "The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used), and no consent under § 25 TDDDG is required because nothing is stored on your device and only the page path is read from it",
-  de: "Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird); eine Einwilligung nach § 25 TDDDG ist nicht erforderlich, weil nichts auf deinem Gerät gespeichert und nur der Seitenpfad von dort ausgelesen wird",
-  es: "La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio), y no se necesita consentimiento según el § 25 de la TDDDG porque no se almacena nada en tu dispositivo y de él solo se lee la ruta de la página",
-  fr: "La base légale est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé), et aucun consentement au titre du § 25 TDDDG n’est nécessaire, car rien n’est stocké sur ton appareil et seul le chemin de la page y est lu",
+  en: "The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used), and no consent under § 25 TDDDG is required because nothing is stored on your device, our script reads only the page path, and the two cookies are read solely to honour an objection (§ 25(2) no. 2 TDDDG)",
+  de: "Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird); eine Einwilligung nach § 25 TDDDG ist nicht erforderlich, weil nichts auf deinem Gerät gespeichert wird, unser Skript nur den Seitenpfad ausliest und die beiden Cookies ausschließlich gelesen werden, um einen Widerspruch zu beachten (§ 25 Abs. 2 Nr. 2 TDDDG)",
+  es: "La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio), y no se necesita consentimiento según el § 25 de la TDDDG porque no se almacena nada en tu dispositivo, nuestro script solo lee la ruta de la página y las dos cookies se leen únicamente para respetar una oposición (§ 25, apartado 2, n.º 2 de la TDDDG)",
+  fr: "La base légale est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé), et aucun consentement au titre du § 25 TDDDG n’est nécessaire, car rien n’est stocké sur ton appareil, notre script ne lit que le chemin de la page et les deux cookies ne sont lus que pour respecter une opposition (§ 25, alinéa 2, point 2 du TDDDG)",
   "zh-CN":
-    "法律依据是 GDPR 第 6(1)(f) 条（我们了解本站使用情况的合法利益）；无需依据 § 25 TDDDG 征得同意，因为没有向你的设备存储任何内容，也只从中读取页面路径",
+    "法律依据是 GDPR 第 6(1)(f) 条（我们了解本站使用情况的合法利益）；无需依据 § 25 TDDDG 征得同意，因为没有向你的设备存储任何内容，我们的脚本只读取页面路径，而那两个 Cookie 仅用于遵从反对（§ 25 第 2 款第 2 项 TDDDG）",
   "pt-BR":
-    "A base legal é o art. 6(1)(f) do GDPR (nosso interesse legítimo em entender como o site é usado), e não é necessário consentimento nos termos do § 25 da TDDDG, porque nada é armazenado no seu dispositivo e dele só se lê o caminho da página",
-  ja: "法的根拠は GDPR 第 6(1)(f) 条（サイトの利用状況を把握するという正当な利益）です。デバイスには何も保存せず、そこから読み取るのもページのパスだけなので、§ 25 TDDDG に基づく同意は不要です",
+    "A base legal é o art. 6(1)(f) do GDPR (nosso interesse legítimo em entender como o site é usado), e não é necessário consentimento nos termos do § 25 da TDDDG, porque nada é armazenado no seu dispositivo, nosso script lê apenas o caminho da página e os dois cookies são lidos somente para respeitar uma oposição (§ 25, parágrafo 2, nº 2 da TDDDG)",
+  ja: "法的根拠は GDPR 第 6(1)(f) 条（サイトの利用状況を把握するという正当な利益）です。デバイスには何も保存せず、当方のスクリプトが読み取るのはページのパスだけで、2 つの Cookie は異議を尊重するためにのみ読み取るため（§ 25 第 2 項第 2 号 TDDDG）、§ 25 TDDDG に基づく同意は不要です",
 };
 
 const SETS_NO_COOKIES: Record<Locale, string> = {
@@ -328,14 +331,27 @@ const LEGACY_COOKIES_HONOURED: Record<Locale, string> = {
   ja: "異議を尊重するためにだけ読み取ります。ブラウザーが値 off の verbatra_analytics または値 1 の verbatra_analytics_optout をまだ送っている場合、集計も転送も行いません。値 full と default には効力がありません",
 };
 
+const OWN_SCRIPT_REPORTS_IN_OVERVIEW: Record<Locale, string> = {
+  en: "A small script of the site's own reports page changes and clicks on a few controls to the site's own server (section 4)",
+  de: "Ein kleines Skript der Seite selbst meldet Seitenwechsel und Klicks auf einige Bedienelemente an den eigenen Server der Seite (Abschnitt 4)",
+  es: "Un pequeño script del propio sitio informa de los cambios de página y de los clics en algunos controles al propio servidor del sitio (sección 4)",
+  fr: "Un petit script du site lui-même signale les changements de page et les clics sur quelques contrôles au propre serveur du site (section 4)",
+  "zh-CN": "本站自己的一个小脚本会把页面切换和对少数控件的点击报告给本站自己的服务器（见第 4 节）",
+  "pt-BR":
+    "Um pequeno script do próprio site informa mudanças de página e cliques em alguns controles ao servidor do próprio site (seção 4)",
+  ja: "サイト自身の小さなスクリプトが、ページの切り替えといくつかの操作部品へのクリックを、サイト自身のサーバーに報告します（第 4 節を参照）",
+};
+
 const NO_ANALYTICS_SCRIPT: Record<Locale, string> = {
-  en: "No analytics script runs in your browser (section 4).",
-  de: "Im Browser läuft kein Analyseskript (Abschnitt 4).",
-  es: "En tu navegador no se ejecuta ningún script de analítica (sección 4).",
-  fr: "Aucun script de statistiques ne s’exécute dans ton navigateur (section 4).",
-  "zh-CN": "你的浏览器中不运行任何分析脚本（见第 4 节）。",
-  "pt-BR": "Nenhum script de análise é executado no seu navegador (seção 4).",
-  ja: "ブラウザーで分析スクリプトは動作しません（第 4 節を参照）。",
+  en: "no Umami script loads in your browser. A small script of this site's own reports page changes and clicks to this site's own server (section 4).",
+  de: "Im Browser wird kein Umami-Skript geladen. Ein kleines Skript dieser Website meldet Seitenwechsel und Klicks an den eigenen Server dieser Website (Abschnitt 4).",
+  es: "En tu navegador no se carga ningún script de Umami. Un pequeño script de este sitio informa de los cambios de página y de los clics al propio servidor de este sitio (sección 4).",
+  fr: "Aucun script Umami ne se charge dans ton navigateur. Un petit script de ce site signale les changements de page et les clics au propre serveur de ce site (section 4).",
+  "zh-CN":
+    "你的浏览器中不加载 Umami 脚本。本站自己的一个小脚本会把页面切换和点击报告给本站自己的服务器（见第 4 节）。",
+  "pt-BR":
+    "Nenhum script do Umami é carregado no seu navegador. Um pequeno script deste site informa mudanças de página e cliques ao servidor deste próprio site (seção 4).",
+  ja: "ブラウザーに Umami のスクリプトは読み込まれません。このサイト自身の小さなスクリプトが、ページの切り替えやクリックを、このサイト自身のサーバーに報告します（第 4 節を参照）。",
 };
 
 const OBJECTION_SIGNAL: Record<Locale, string> = {
@@ -698,6 +714,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const doc = await renderPrivacy(locale);
 
     expect(sectionText(doc, /^2\. /)).toContain(NO_COOKIES_NO_SCRIPTS[locale]);
+    expect(sectionText(doc, /^2\. /)).toContain(OWN_SCRIPT_REPORTS_IN_OVERVIEW[locale]);
     expect(sectionText(doc, /^6\. /)).toContain(NO_ANALYTICS_SCRIPT[locale]);
   });
 

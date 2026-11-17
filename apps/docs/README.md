@@ -68,13 +68,13 @@ started there yourself. Build first.
 
 ## Analytics
 
-The site counts visits with a self-hosted Umami, without cookies, consent prompts or any analytics
-script in the browser. The proxy counts document loads from request headers, route handlers emit
+The site counts visits with a self-hosted Umami, without cookies or consent prompts, and without any
+third-party or Umami script in the browser. The proxy counts document loads from request headers, route handlers emit
 a few server events (contact result, whether a search found results, 404s, Markdown reads), and a
 tiny first-party reporter posts soft navigations and a short closed list of own-control events to
 `/api/e`, which validates them and forwards them to Umami from the server. `Sec-GPC`, `DNT` and the
-earlier opt-out cookies stop all of it on the server. The browser reads nothing from the device
-except the current page path. See `.claude/skills/umami-analytics/SKILL.md` for the taxonomy, how
+earlier opt-out cookies stop all of it on the server. The reporter reads nothing from the device
+except the current page path; the server reads the two objection cookies only to honour an objection. See `.claude/skills/umami-analytics/SKILL.md` for the taxonomy, how
 to add an event and the privacy wording that must change with it.
 
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate

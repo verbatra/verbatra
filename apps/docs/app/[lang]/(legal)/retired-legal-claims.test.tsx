@@ -230,6 +230,28 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     japaneseSample: "一部のセッションを記録します。リプレイとヒートマップは 30 日間保持されます。",
   },
   {
+    claim: "no analytics script of any kind runs in the browser",
+    pattern:
+      /third-party or analytics scripts|No analytics script runs in your browser|Skripte von Dritten und kein Analyseskript|Im Browser läuft kein Analyseskript|scripts de terceros ni de analítica|En tu navegador no se ejecuta ningún script de analítica|script tiers ni script de statistiques|Aucun script de statistiques ne s’exécute dans ton navigateur|第三方脚本或分析脚本|你的浏览器中不运行任何分析脚本（见第 4 节）|scripts de terceiros nem de análise|Nenhum script de análise é executado no seu navegador|サードパーティのスクリプトや分析スクリプト|ブラウザーで分析スクリプトは動作しません/,
+    sample:
+      "It loads no third-party or analytics scripts in your browser. No analytics script runs in your browser (section 4).",
+    portugueseSample:
+      "Ele não carrega scripts de terceiros nem de análise no seu navegador. Nenhum script de análise é executado no seu navegador (seção 4).",
+    japaneseSample:
+      "ブラウザーにサードパーティのスクリプトや分析スクリプトは読み込まず、ブラウザーで分析スクリプトは動作しません（第 4 節を参照）。",
+  },
+  {
+    claim: "nothing is read from the device",
+    pattern:
+      /Nothing is read from your device|stored on or read from your device|nichts von deinem Gerät ausgelesen|von deinem Gerät nichts ausgelesen|gespeichert oder von dort ausgelesen|no se lee nada de tu dispositivo|ni se lee nada de él|rien n’est lu sur ton appareil|ni lu depuis celui-ci|不会读取你设备上的任何内容|不会从你的设备读取任何内容|也没有从中读取任何内容|nada é lido do seu dispositivo|nem lido dele|デバイスから何も読み取らず|デバイスから読み取るのは、今いるページのパスだけです/,
+    sample:
+      "Nothing is read from your device for this count. Nothing is stored on or read from your device for counting.",
+    portugueseSample:
+      "Para essa contagem, nada é lido do seu dispositivo. Nada é armazenado no seu dispositivo nem lido dele para contar.",
+    japaneseSample:
+      "この集計のためにデバイスから何も読み取らず、Cookie も設定しません。これらの報告のためにデバイスから読み取るのは、今いるページのパスだけです。",
+  },
+  {
     claim: "opt-out switch buttons in the analytics section",
     pattern:
       /Count page views only|Opt out of analytics|Seitenaufrufe nur zählen|Contar solo las visitas|Compter seulement les pages vues|仅统计页面浏览量|Contar apenas as visualizações|ページビューだけを集計/,
@@ -268,8 +290,8 @@ describe("legal pages: retired claim patterns", () => {
 
   const PORTUGUESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.portugueseSample !== undefined);
 
-  it("covers the sixteen claims with a per-language pattern in Portuguese", () => {
-    expect(PORTUGUESE_CLAIMS).toHaveLength(16);
+  it("covers the eighteen claims with a per-language pattern in Portuguese", () => {
+    expect(PORTUGUESE_CLAIMS).toHaveLength(18);
   });
 
   it.each(PORTUGUESE_CLAIMS)(
@@ -281,7 +303,7 @@ describe("legal pages: retired claim patterns", () => {
 
   const JAPANESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.japaneseSample !== undefined);
 
-  it("covers the same sixteen claims with a Japanese pattern", () => {
+  it("covers the same eighteen claims with a Japanese pattern", () => {
     expect(JAPANESE_CLAIMS.map(({ claim }) => claim)).toEqual(
       PORTUGUESE_CLAIMS.map(({ claim }) => claim),
     );
