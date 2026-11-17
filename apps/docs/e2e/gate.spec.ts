@@ -20,7 +20,6 @@ import {
   MIN_CONTRAST,
   openStaged,
   pinStart,
-  restNow,
   reversalSweep,
   STATES,
   scrollToSvh,
@@ -219,7 +218,7 @@ for (const [width, height] of VIEWPORTS) {
               const counts = colours.map(
                 (colour) => colours.filter((other) => other === colour).length,
               );
-              return counts.findIndex((count) => count === 1);
+              return counts.indexOf(1);
             }),
           )
           .toBe(index);

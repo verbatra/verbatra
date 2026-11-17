@@ -24,8 +24,6 @@ function select(row: Element): void {
 function attach(deck: HTMLElement): () => void {
   let timer: number | undefined;
   let armedRow: Element | null = null;
-  let lastX = Number.NaN;
-  let lastY = Number.NaN;
 
   const cancel = () => {
     window.clearTimeout(timer);
@@ -40,10 +38,7 @@ function attach(deck: HTMLElement): () => void {
 
   const onMove = (event: PointerEvent) => {
     if (event.pointerType !== "mouse") return;
-    const moved = event.clientX !== lastX || event.clientY !== lastY;
-    lastX = event.clientX;
-    lastY = event.clientY;
-    if (!moved) return;
+    if (event.movementX === 0 && event.movementY === 0) return;
     const row = rowOf(event.target);
     if (row === null) {
       cancel();
@@ -62,7 +57,9 @@ function attach(deck: HTMLElement): () => void {
   const onOut = (event: PointerEvent) => {
     if (event.pointerType !== "mouse") return;
     const row = rowOf(event.target);
-    if (row !== null && row === armedRow) cancel();
+    if (row === null || row !== armedRow) return;
+    if (rowOf(event.relatedTarget) === row) return;
+    cancel();
   };
 
   deck.addEventListener("pointermove", onMove);
