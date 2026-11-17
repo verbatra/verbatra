@@ -1,6 +1,6 @@
 import "server-only";
 import { isIPv4, isIPv6 } from "node:net";
-import { hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
+import { hasObjectionCookie } from "@/lib/analytics-choice";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { MARKDOWN_SUFFIX } from "@/lib/markdown-route";
 import { pageviewUrl } from "@/lib/pageview-url";
@@ -167,13 +167,8 @@ export function isTrackingRefused(headers: Headers): boolean {
   return (
     headers.get("sec-gpc") === "1" ||
     headers.get("dnt") === "1" ||
-    hasLegacyOptOut(headers.get("cookie")) ||
-    readChoiceCookie(headers.get("cookie")) === "off"
+    hasObjectionCookie(headers.get("cookie"))
   );
-}
-
-function clientTrackerCounts(headers: Headers): boolean {
-  return readChoiceCookie(headers.get("cookie")) === "full";
 }
 
 function referrerWithoutQuery(headers: Headers): string | undefined {
@@ -236,7 +231,6 @@ export function countedPageview(
 ): Pageview | undefined {
   if (requestHost(request.headers, new URL(request.url).host) !== SITE_HOST) return undefined;
   if (isTrackingRefused(request.headers)) return undefined;
-  if (clientTrackerCounts(request.headers)) return undefined;
   if (!isCountableNavigation(request, response, servedPathname, routes)) return undefined;
   return pageviewFor(request);
 }

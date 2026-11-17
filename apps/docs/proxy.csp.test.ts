@@ -60,14 +60,12 @@ describe("proxy: content security policy", () => {
   );
 
   it.each(["/", "/docs/providers", "/privacy"])(
-    "allows exactly the Umami origin for scripts and connections on %s",
+    "allows no origin but the site itself for scripts and connections on %s",
     async (path) => {
       const policy = (await run(path)).headers.get("content-security-policy") ?? "";
       const directives = new Map(policy.split("; ").map((d) => [d.split(" ")[0], d] as const));
-      expect(directives.get("script-src")).toMatch(/ https:\/\/umami\.kreitz-webdev\.de$/);
-      expect(directives.get("connect-src")).toBe(
-        "connect-src 'self' https://umami.kreitz-webdev.de",
-      );
+      expect(directives.get("script-src")).not.toMatch(/https?:/);
+      expect(directives.get("connect-src")).toBe("connect-src 'self'");
       expect(directives.get("frame-ancestors")).toBe("frame-ancestors 'none'");
     },
   );

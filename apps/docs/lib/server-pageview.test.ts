@@ -76,12 +76,7 @@ describe("countedPageview", () => {
     ["a missing user agent", { "user-agent": null }],
     ["Global Privacy Control", { "sec-gpc": "1" }],
     ["Do Not Track", { dnt: "1" }],
-    ["the choice cookie full, the client tracker counts", { cookie: "verbatra_analytics=full" }],
     ["the choice cookie off", { cookie: "verbatra_analytics=off" }],
-    [
-      "Global Privacy Control beating the choice cookie full",
-      { cookie: "verbatra_analytics=full", "sec-gpc": "1" },
-    ],
     ["the opt-out cookie", { cookie: `theme=x; ${LEGACY_OPT_OUT_COOKIE}=1` }],
     ["a local host", { host: "localhost:3480" }],
     ["a forwarded foreign host", { host: null, "x-forwarded-host": "preview.example.com" }],
@@ -136,9 +131,12 @@ describe("countedPageview", () => {
     expect(counted(request)).toBeDefined();
   });
 
-  it.each(["default", ""])("keeps counting for the choice cookie value %j", (value) => {
-    expect(counted(navigation("/", { cookie: `verbatra_analytics=${value}` }))).toBeDefined();
-  });
+  it.each(["full", "default", ""])(
+    "keeps counting for the inert choice cookie value %j",
+    (value) => {
+      expect(counted(navigation("/", { cookie: `verbatra_analytics=${value}` }))).toBeDefined();
+    },
+  );
 
   it("does not count GPC or DNT values other than 1, or a cleared cookie", () => {
     expect(counted(navigation("/", { "sec-gpc": "0", dnt: "0" }))).toBeDefined();

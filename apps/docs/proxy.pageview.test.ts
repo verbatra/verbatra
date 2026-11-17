@@ -65,10 +65,6 @@ describe("proxy: server-side pageview", () => {
       { ...DOCUMENT_NAVIGATION, "sec-fetch-dest": "empty", "sec-fetch-mode": "cors" },
     ],
     ["a prefetch", { ...DOCUMENT_NAVIGATION, "sec-purpose": "prefetch" }],
-    [
-      "a visitor whose client tracker counts",
-      { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=full" },
-    ],
     ["a visitor who chose off", { ...DOCUMENT_NAVIGATION, cookie: "verbatra_analytics=off" }],
     [
       "a visitor with the legacy opt-out",

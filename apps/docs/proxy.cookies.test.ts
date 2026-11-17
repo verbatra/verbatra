@@ -44,34 +44,21 @@ describe("proxy: locale cookie", () => {
   });
 });
 
-describe("proxy: legacy analytics opt-out migration", () => {
-  const OFF = "verbatra_analytics=off; Secure; SameSite=Lax; Path=/; Max-Age=31536000";
-  const EXPIRE_LEGACY =
-    "verbatra_analytics_optout=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0";
-
-  it("answers a request with the legacy cookie with the off choice cookie", async () => {
-    const response = await run("/privacy", { cookie: "verbatra_analytics_optout=1" });
-    expect(response.headers.getSetCookie()).toEqual([OFF, EXPIRE_LEGACY]);
+describe("proxy: analytics choice cookies", () => {
+  it.each([
+    "verbatra_analytics_optout=1",
+    "verbatra_analytics=off",
+    "verbatra_analytics=full",
+    "verbatra_analytics=default",
+    "theme=dark",
+  ])("sets no cookie for the request cookie %s", async (cookie) => {
+    const response = await run("/privacy", { cookie });
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("migrates on a redirect as well", async () => {
+  it("sets no cookie on a redirect for a legacy opt-out either", async () => {
     const response = await run("/en/privacy", { cookie: "verbatra_analytics_optout=1" });
     expect(response.status).toBe(307);
-    expect(response.headers.getSetCookie()).toEqual([OFF, EXPIRE_LEGACY]);
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
-
-  it("only expires the legacy cookie when a choice cookie already exists", async () => {
-    const response = await run("/privacy", {
-      cookie: "verbatra_analytics_optout=1; verbatra_analytics=full",
-    });
-    expect(response.headers.getSetCookie()).toEqual([EXPIRE_LEGACY]);
-  });
-
-  it.each(["verbatra_analytics_optout=0", "verbatra_analytics=off", "theme=dark"])(
-    "sets nothing for the cookie header %s",
-    async (cookie) => {
-      const response = await run("/privacy", { cookie });
-      expect(response.headers.get("set-cookie")).toBeNull();
-    },
-  );
 });
