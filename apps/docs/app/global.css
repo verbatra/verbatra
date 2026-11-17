@@ -3014,6 +3014,12 @@ html:has(.vk-home) {
   }
 }
 
+@media (max-width: 19.99rem) {
+  .vk-comparison-table thead :where(th) {
+    font-size: 0.625rem;
+  }
+}
+
 @media (min-width: 30rem) {
   .vk-comparison-frame {
     --comparison-label-col: 36%;
