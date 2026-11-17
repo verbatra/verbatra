@@ -537,7 +537,7 @@
   "analyticsPrompt": {
     "label": "Choix d’analyse",
     "title": "Tu veux nous aider à améliorer la doc ?",
-    "body": "Si tu l’autorises, nous chargeons notre propre outil d’analyse : les commandes que tu utilises et, pour un échantillon de visites, un enregistrement et une carte de chaleur des mouvements de souris, des clics et du défilement. Les champs de saisie sont toujours masqués.",
+    "body": "Si tu l’autorises, nous chargeons notre propre outil d’analyse : les commandes que tu utilises et, pour certaines visites, un enregistrement et une carte de chaleur de la souris, des clics et du défilement. Les saisies sont toujours masquées.",
     "allow": "Autoriser",
     "decline": "Non merci",
     "privacy": "Confidentialité et réglages",

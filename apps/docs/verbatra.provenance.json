@@ -407,7 +407,7 @@
     },
     "fr": {
       "analyticsPrompt.allow": {"origin":"import","valueHash":"4a3457447af14573"},
-      "analyticsPrompt.body": {"origin":"import","valueHash":"1a34990be5eb03ca"},
+      "analyticsPrompt.body": {"origin":"import","valueHash":"3211b657224e6510"},
       "analyticsPrompt.decline": {"origin":"import","valueHash":"5e77b142ba239c78"},
       "analyticsPrompt.error": {"origin":"import","valueHash":"60867e162d32fcec"},
       "analyticsPrompt.label": {"origin":"import","valueHash":"cdd343c4009e3f36"},
