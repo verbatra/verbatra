@@ -156,6 +156,7 @@ describe("proxy: server-emitted events", () => {
     const bodies = await sentBodies("/privacy.md", {
       "user-agent": SAFARI,
       host: DOCUMENT_NAVIGATION.host as string,
+      "x-forwarded-for": "84.132.10.7",
     });
     expect(bodies).toHaveLength(1);
     expect(bodies[0].payload).toMatchObject({ name: "markdown_view", data: { via: "suffix" } });
@@ -165,6 +166,7 @@ describe("proxy: server-emitted events", () => {
     const bodies = await sentBodies("/privacy", {
       "user-agent": SAFARI,
       host: DOCUMENT_NAVIGATION.host as string,
+      "x-forwarded-for": "84.132.10.7",
       accept: "text/markdown",
     });
     expect(bodies[0].payload).toMatchObject({ name: "markdown_view", data: { via: "accept" } });
