@@ -3,7 +3,7 @@ import { parseRelayEvent } from "@/lib/relay-events";
 import { MAX_RELAY_BODY_BYTES, servedPathOf } from "@/lib/relay-path";
 import { createRelayRateLimit } from "@/lib/relay-rate-limit";
 import { clientIp, isPageRoute } from "@/lib/server-pageview";
-import { emitUmamiEvent } from "@/lib/umami-event";
+import { emitUmamiEvent, isCountableVisitor } from "@/lib/umami-event";
 import { hasForeignOrigin, readBodyWithinLimit } from "../contact/request-guard";
 
 const allowRelay = createRelayRateLimit();
@@ -19,7 +19,8 @@ function provesSameOrigin(request: Request): boolean {
 export async function relayRequest(request: Request): Promise<void> {
   if (!provesSameOrigin(request)) return;
   const ip = clientIp(request.headers);
-  if (ip === undefined || !allowRelay(ip)) return;
+  if (ip === undefined || !isCountableVisitor(request)) return;
+  if (!allowRelay(ip)) return;
   const text = await readBodyWithinLimit(request, MAX_RELAY_BODY_BYTES);
   if (text === undefined) return;
   const event = parseRelayEvent(text);

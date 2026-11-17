@@ -99,23 +99,37 @@ describe("emitUmamiEvent", () => {
 });
 
 describe("refererPage", () => {
+  const ROUTES = { "/en/contact": [], "/de/contact": [], "/_not-found": [] };
   const withReferer = (referer: string) => request({ ...HEADERS, referer });
 
-  it("returns the path of a same-site referer without query or fragment", () => {
+  it("returns the path of a same-site referer that is a page, without query or fragment", () => {
     expect(
-      refererPage(withReferer("https://verbatra.kreitz-webdev.de/de/contact?x=1#top"), "/contact"),
+      refererPage(
+        withReferer("https://verbatra.kreitz-webdev.de/de/contact?x=1#top"),
+        "/contact",
+        ROUTES,
+      ),
     ).toBe("/de/contact");
   });
 
+  it("maps a default-locale public path to its served page", () => {
+    expect(refererPage(withReferer("https://verbatra.kreitz-webdev.de/contact"), "/", ROUTES)).toBe(
+      "/contact",
+    );
+  });
+
   it.each([
-    ["a foreign referer", "https://evil.test/contact"],
+    ["a foreign referer", "https://evil.test/de/contact"],
     ["an unparsable referer", "not a url"],
     ["an overlong path", `https://verbatra.kreitz-webdev.de/${"a".repeat(300)}`],
+    ["a same-site path that is no page", "https://verbatra.kreitz-webdev.de/jane.doe@example.com"],
+    ["the not-found route", "https://verbatra.kreitz-webdev.de/_not-found"],
+    ["a markdown variant", "https://verbatra.kreitz-webdev.de/de/contact.md"],
   ])("falls back for %s", (_case, referer) => {
-    expect(refererPage(withReferer(referer), "/contact")).toBe("/contact");
+    expect(refererPage(withReferer(referer), "/contact", ROUTES)).toBe("/contact");
   });
 
   it("falls back when there is no referer", () => {
-    expect(refererPage(request(), "/contact")).toBe("/contact");
+    expect(refererPage(request(), "/contact", ROUTES)).toBe("/contact");
   });
 });

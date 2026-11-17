@@ -1,8 +1,10 @@
 import "server-only";
 import { after } from "next/server";
-import { MAX_RELAY_PATH_LENGTH } from "@/lib/relay-path";
+import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
+import { MAX_RELAY_PATH_LENGTH, servedPathOf } from "@/lib/relay-path";
 import { requestHost } from "@/lib/request-host";
-import { isTrackingRefused, visitorOf } from "@/lib/server-pageview";
+import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
+import { isPageRoute, isTrackingRefused, visitorOf } from "@/lib/server-pageview";
 import { SITE_HOST, SITE_URL } from "@/lib/site";
 import { UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
 import { sendToUmami, type UmamiEventData, type UmamiMessage } from "@/lib/umami-send";
@@ -18,11 +20,18 @@ interface EmitOptions {
   readonly send?: typeof sendToUmami;
 }
 
-export function umamiEventFor(request: Request, spec: UmamiEventSpec): UmamiMessage | undefined {
+export function isCountableVisitor(request: Request): boolean {
   const { headers } = request;
-  if (requestHost(headers, new URL(request.url).host) !== SITE_HOST) return undefined;
-  if (isTrackingRefused(headers)) return undefined;
-  const visitor = visitorOf(headers);
+  return (
+    requestHost(headers, new URL(request.url).host) === SITE_HOST &&
+    !isTrackingRefused(headers) &&
+    visitorOf(headers) !== undefined
+  );
+}
+
+export function umamiEventFor(request: Request, spec: UmamiEventSpec): UmamiMessage | undefined {
+  if (!isCountableVisitor(request)) return undefined;
+  const visitor = visitorOf(request.headers);
   if (visitor === undefined) return undefined;
   return {
     type: "event",
@@ -53,12 +62,20 @@ export function emitUmamiEvent(
 
 const SITE_ORIGIN = new URL(SITE_URL).origin;
 
-export function refererPage(request: Request, fallback: string): string {
+export function refererPage(
+  request: Request,
+  fallback: string,
+  routes: ScriptHashesByRoute = loadBuiltScriptHashes(),
+): string {
   const referer = request.headers.get("referer");
   if (referer === null) return fallback;
   try {
     const { origin, pathname } = new URL(referer);
-    return origin === SITE_ORIGIN && pathname.length <= MAX_RELAY_PATH_LENGTH ? pathname : fallback;
+    const page =
+      origin === SITE_ORIGIN &&
+      pathname.length <= MAX_RELAY_PATH_LENGTH &&
+      isPageRoute(servedPathOf(pathname), routes);
+    return page ? pathname : fallback;
   } catch {
     return fallback;
   }

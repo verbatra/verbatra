@@ -250,6 +250,26 @@ describe("POST /api/e", () => {
     expect(fetchMock).toHaveBeenCalledTimes(60);
   });
 
+  it("does not spend rate budget on requests the server refuses anyway", async () => {
+    const headers = { "x-forwarded-for": "84.200.2.2" };
+    const refusals: Array<Record<string, string>> = [
+      { "sec-gpc": "1" },
+      { dnt: "1" },
+      { cookie: "verbatra_analytics=off" },
+      { "user-agent": "curl/8.7.1" },
+      { host: "localhost:3000" },
+    ];
+    for (let call = 0; call < 130; call += 1) {
+      const extra = refusals[call % refusals.length];
+      await post(relay({ e: "search_open", u: "/docs" }, { ...headers, ...extra }));
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    for (let call = 0; call < 60; call += 1) {
+      await post(relay({ e: "search_open", u: "/docs" }, headers));
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(60);
+  });
+
   it("answers 204 and stays silent when the upstream send fails", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
