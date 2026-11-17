@@ -4201,6 +4201,14 @@ html.light .vk-deck-shot-light {
   }
 }
 
+@supports selector(:has(*)) {
+  @media (min-width: 64rem) and (max-width: 1365.98px) {
+    .vk-home .vk-deck-pane {
+      margin-inline-start: -0.75rem;
+    }
+  }
+}
+
 .vk-footer-people {
   padding-block: 1.5rem 0.5rem;
 }
