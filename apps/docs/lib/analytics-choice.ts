@@ -5,6 +5,8 @@ import {
   LEGACY_OPT_OUT_COOKIE,
 } from "@/lib/umami-config.mjs";
 
+export const ANALYTICS_ROUTE = "/api/analytics";
+
 export type AnalyticsChoice = (typeof ANALYTICS_CHOICES)[number];
 
 export interface PrivacySignals {

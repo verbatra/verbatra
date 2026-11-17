@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { UMAMI_ORIGIN } from "../lib/umami-config.mjs";
 import { stubUmami } from "./umami-stub.mjs";
 
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
@@ -33,7 +34,6 @@ const COLLECT_VIOLATIONS = () => {
 
 const STEP_TIMEOUT_MS = 10_000;
 const STATIC_ASSET = "/_next/static/";
-const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
 const CONSENT_PAGES = [
   { path: "/", html: true },
   { path: "/de/docs", html: true },

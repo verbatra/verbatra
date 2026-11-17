@@ -1,9 +1,7 @@
 import { buttonClasses } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import type { AnalyticsChoice } from "@/lib/analytics-choice";
+import { ANALYTICS_ROUTE, type AnalyticsChoice } from "@/lib/analytics-choice";
 import type { Locale } from "@/lib/i18n";
-
-export const ANALYTICS_OPT_OUT_ACTION = "/api/analytics";
 
 export interface AnalyticsOptOutLabels {
   readonly optIn: string;
@@ -25,7 +23,7 @@ function ChoiceForm({
   label: string;
 }): ReactNode {
   return (
-    <form method="post" action={ANALYTICS_OPT_OUT_ACTION} className="m-0 max-w-full">
+    <form method="post" action={ANALYTICS_ROUTE} className="m-0 max-w-full">
       <input type="hidden" name="lang" value={locale} />
       <input type="hidden" name="choice" value={choice} />
       <button

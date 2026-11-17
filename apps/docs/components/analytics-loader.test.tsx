@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearDocumentCookie, setDocumentCookie } from "../test-support/document-cookie";
 
 vi.mock("@/lib/analytics-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/analytics-client")>()),
@@ -30,7 +31,7 @@ async function mount(): Promise<void> {
 }
 
 function setChoice(value: string): void {
-  document.cookie = `verbatra_analytics=${value}; Path=/`;
+  setDocumentCookie("verbatra_analytics", value);
 }
 
 function script(id: string): HTMLScriptElement | null {
@@ -38,7 +39,7 @@ function script(id: string): HTMLScriptElement | null {
 }
 
 beforeEach(() => {
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
 });
 
 afterEach(() => {
@@ -51,7 +52,7 @@ afterEach(() => {
   Reflect.deleteProperty(window, BEFORE_SEND_NAME);
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
   Reflect.deleteProperty(navigator, "doNotTrack");
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
   vi.clearAllMocks();
 });
 

@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHOICE_EVENT } from "@/lib/analytics-client";
+import { clearDocumentCookie, setDocumentCookie } from "../test-support/document-cookie";
 import { AnalyticsPrompt, type AnalyticsPromptLabels } from "./analytics-prompt";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -33,7 +34,7 @@ async function render(locale: "en" | "de" = "en"): Promise<HTMLDivElement> {
 
 function stubPost(cookie: string | undefined): ReturnType<typeof vi.fn> {
   const post = vi.fn(async () => {
-    if (cookie !== undefined) document.cookie = `verbatra_analytics=${cookie}; Path=/`;
+    if (cookie !== undefined) setDocumentCookie("verbatra_analytics", cookie);
     return new Response(null, { status: 303 });
   });
   vi.stubGlobal("fetch", post);
@@ -51,7 +52,7 @@ function click(container: HTMLElement, name: string): Promise<void> {
 }
 
 beforeEach(() => {
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
 });
 
 afterEach(() => {
@@ -63,7 +64,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
   Reflect.deleteProperty(navigator, "doNotTrack");
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
 });
 
 describe("AnalyticsPrompt", () => {
@@ -91,7 +92,7 @@ describe("AnalyticsPrompt", () => {
   });
 
   it.each(["full", "default", "off"])("stays hidden once the choice %s exists", async (value) => {
-    document.cookie = `verbatra_analytics=${value}; Path=/`;
+    setDocumentCookie("verbatra_analytics", value);
     const container = await render();
     expect(container.querySelector("section")).toBeNull();
   });

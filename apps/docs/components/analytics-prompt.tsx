@@ -2,7 +2,7 @@
 
 import { buttonClasses } from "@verbatra/ui";
 import { type ReactNode, useEffect, useState } from "react";
-import type { AnalyticsChoice } from "@/lib/analytics-choice";
+import { ANALYTICS_ROUTE, type AnalyticsChoice } from "@/lib/analytics-choice";
 import { announceChoice, browserChoice, browserHasSignal } from "@/lib/analytics-client";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
@@ -15,11 +15,9 @@ export interface AnalyticsPromptLabels {
   readonly privacy: string;
 }
 
-const ROUTE = "/api/analytics";
-
 async function storeChoice(choice: AnalyticsChoice, locale: Locale): Promise<boolean> {
   try {
-    await fetch(ROUTE, {
+    await fetch(ANALYTICS_ROUTE, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ choice, lang: locale }).toString(),

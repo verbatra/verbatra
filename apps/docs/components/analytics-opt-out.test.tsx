@@ -5,11 +5,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  ANALYTICS_OPT_OUT_ACTION,
-  AnalyticsOptOut,
-  type AnalyticsOptOutLabels,
-} from "./analytics-opt-out";
+import { ANALYTICS_ROUTE } from "@/lib/analytics-choice";
+import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "./analytics-opt-out";
 
 const LABELS: AnalyticsOptOutLabels = {
   optIn: "Allow extended analytics",
@@ -32,7 +29,7 @@ describe("AnalyticsOptOut", () => {
     const forms = Array.from(doc.querySelectorAll("form"));
 
     expect(forms.map((form) => [form.getAttribute("method"), form.getAttribute("action")])).toEqual(
-      forms.map(() => ["post", ANALYTICS_OPT_OUT_ACTION]),
+      forms.map(() => ["post", ANALYTICS_ROUTE]),
     );
     expect(
       forms.map((form) =>
