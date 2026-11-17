@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { classifyProviderError, getErrorStatus, isAbortError } from "./error-classification.js";
+import {
+  classifyProviderError,
+  getDeepLStatus,
+  getErrorStatus,
+  isAbortError,
+} from "./error-classification.js";
 
 describe("classifyProviderError: by status", () => {
   it("classifies 429 as RATE_LIMITED", () => {
@@ -163,5 +168,18 @@ describe("isAbortError", () => {
 
   it("is false for a non-Error thrown value with no aborted signal", () => {
     expect(isAbortError("a string throw", undefined)).toBe(false);
+  });
+});
+
+describe("getDeepLStatus", () => {
+  it("reads a numeric httpStatusCode", () => {
+    expect(getDeepLStatus({ httpStatusCode: 429 })).toBe(429);
+  });
+
+  it("is undefined without a numeric httpStatusCode", () => {
+    expect(getDeepLStatus({})).toBeUndefined();
+    expect(getDeepLStatus({ httpStatusCode: "429" })).toBeUndefined();
+    expect(getDeepLStatus(null)).toBeUndefined();
+    expect(getDeepLStatus("nope")).toBeUndefined();
   });
 });

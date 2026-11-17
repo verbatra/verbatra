@@ -41,7 +41,7 @@ describe("isRetryableProviderError by status on PROVIDER_ERROR", () => {
     );
   });
 
-  it.each([399, 500, 503, 599])("is true for a %i", (status) => {
+  it.each([399, 408, 429, 500, 503, 599])("is true for a %i", (status) => {
     expect(isRetryableProviderError(new ProviderError("PROVIDER_ERROR", "x", { status }))).toBe(
       true,
     );
