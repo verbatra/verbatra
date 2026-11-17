@@ -155,17 +155,28 @@ describe("startMotion", () => {
 describe("startMotion word hosts", () => {
   const FOLD = 800;
   const LINE = FOLD * 0.7;
+  const BELOW_FOLD = FOLD + 300;
 
   beforeEach(() => {
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
   });
 
+  const bottoms = new Map<HTMLElement, { bottom: number; height: number }>();
+
   function host(bottom: number, height = 100): HTMLElement {
     const element = document.createElement("h2");
     element.className = "vk-words";
-    element.getBoundingClientRect = () => ({ top: bottom - height, bottom, height }) as DOMRect;
+    bottoms.set(element, { bottom, height });
+    element.getBoundingClientRect = () => {
+      const box = bottoms.get(element) ?? { bottom, height };
+      return { top: box.bottom - box.height, bottom: box.bottom, height: box.height } as DOMRect;
+    };
     document.body.append(element);
     return element;
+  }
+
+  function moveTo(element: HTMLElement, bottom: number): void {
+    bottoms.set(element, { bottom, height: 100 });
   }
 
   function wordsObserver(): FakeObserver | undefined {
@@ -192,14 +203,23 @@ describe("startMotion word hosts", () => {
     expect(wordsObserver()).toBeUndefined();
   });
 
+  it("finishes at once a heading already visible in the lower 30 percent at mount, and waits for one still below the fold", () => {
+    const parked = host(FOLD * 0.85 + 50);
+    const justBelow = host(FOLD + 100);
+    stop = startMotion();
+    expect(parked.hasAttribute("data-words-done")).toBe(true);
+    expect(justBelow.hasAttribute("data-words-done")).toBe(false);
+    expect(wordsObserver()?.observed.has(parked)).toBe(false);
+    expect(wordsObserver()?.observed.has(justBelow)).toBe(true);
+  });
+
   it("forces the end state on a heading the end of the page can never lift to the line", () => {
     Object.defineProperty(document.documentElement, "scrollHeight", {
       configurable: true,
-      value: 1000,
+      value: 1300,
     });
-    const unreachable = host(900);
-    const reachable = host(LINE + 100);
-    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    const unreachable = host(1300);
+    const reachable = host(1000);
     stop = startMotion();
     expect(unreachable.hasAttribute("data-words-done")).toBe(true);
     expect(reachable.hasAttribute("data-words-done")).toBe(false);
@@ -209,7 +229,7 @@ describe("startMotion word hosts", () => {
 
   it("counts the restored scroll position when it decides what can still be reached", () => {
     Object.defineProperty(window, "scrollY", { configurable: true, value: 5000 });
-    const below = host(LINE + 300);
+    const below = host(BELOW_FOLD);
     const above = host(LINE - 300);
     stop = startMotion();
     expect(above.hasAttribute("data-words-done")).toBe(true);
@@ -217,8 +237,8 @@ describe("startMotion word hosts", () => {
     expect(wordsObserver()?.observed.has(below)).toBe(true);
   });
 
-  it("observes a reachable heading below the line against a 30 percent bottom inset, with no scroll listener", () => {
-    const below = host(LINE + 200);
+  it("observes a reachable heading below the fold against a 30 percent bottom inset, with no scroll listener", () => {
+    const below = host(BELOW_FOLD);
     stop = startMotion();
     expect(below.hasAttribute("data-words-done")).toBe(false);
     expect(wordsObserver()?.observed.has(below)).toBe(true);
@@ -226,7 +246,7 @@ describe("startMotion word hosts", () => {
   });
 
   it("finishes the heading once its bottom reaches the line, within one percent of its height, and watches it no more", () => {
-    const below = host(LINE + 200);
+    const below = host(BELOW_FOLD);
     stop = startMotion();
     entry(below, LINE + 40);
     expect(below.hasAttribute("data-words-done")).toBe(false);
@@ -238,11 +258,61 @@ describe("startMotion word hosts", () => {
   });
 
   it("keeps a heading done when it is scrolled back out of view", () => {
-    const below = host(LINE + 200);
+    const below = host(BELOW_FOLD);
     stop = startMotion();
     entry(below, LINE - 10);
     entry(below, LINE + 400);
     expect(below.hasAttribute("data-words-done")).toBe(true);
+  });
+
+  it("finishes a heading an entry reports scrolled past the top of the viewport", () => {
+    const below = host(BELOW_FOLD);
+    stop = startMotion();
+    entry(below, -20);
+    expect(below.hasAttribute("data-words-done")).toBe(true);
+    expect(wordsObserver()?.unobserved).toEqual([below]);
+  });
+
+  it("re-checks the waiting headings on resize against the new fold", () => {
+    const stays = host(BELOW_FOLD);
+    const nowAbove = host(BELOW_FOLD + 200);
+    stop = startMotion();
+    moveTo(nowAbove, LINE - 5);
+    window.dispatchEvent(new Event("resize"));
+    expect(nowAbove.hasAttribute("data-words-done")).toBe(true);
+    expect(stays.hasAttribute("data-words-done")).toBe(false);
+    expect(wordsObserver()?.observed.has(nowAbove)).toBe(false);
+    expect(wordsObserver()?.observed.has(stays)).toBe(true);
+  });
+
+  it("forces the end state on resize for a heading the shorter page can no longer lift to the line", () => {
+    const below = host(BELOW_FOLD);
+    stop = startMotion();
+    expect(below.hasAttribute("data-words-done")).toBe(false);
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 1000,
+    });
+    window.dispatchEvent(new Event("resize"));
+    expect(below.hasAttribute("data-words-done")).toBe(true);
+  });
+
+  it("uses the resized viewport height for the line", () => {
+    const below = host(BELOW_FOLD);
+    stop = startMotion();
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 1700 });
+    window.dispatchEvent(new Event("resize"));
+    expect(below.hasAttribute("data-words-done")).toBe(true);
+  });
+
+  it("stops listening to resize when the page unmounts", () => {
+    const below = host(BELOW_FOLD);
+    stop = startMotion();
+    stop();
+    stop = undefined;
+    moveTo(below, LINE - 5);
+    window.dispatchEvent(new Event("resize"));
+    expect(below.hasAttribute("data-words-done")).toBe(false);
   });
 
   it("leaves the headings that are not words hosts alone", () => {
@@ -254,7 +324,7 @@ describe("startMotion word hosts", () => {
   });
 
   it("stops watching the headings when the page unmounts", () => {
-    host(LINE + 200);
+    host(BELOW_FOLD);
     stop = startMotion();
     stop();
     stop = undefined;
@@ -442,16 +512,42 @@ describe("the word reveal stylesheet", () => {
     expect(host[0]?.declarations["view-timeline-inset"]).toBe("0");
   });
 
+  function rangePx(expression: string, index: number, heading: number): number {
+    const source = expression
+      .replace(/^entry /, "")
+      .replace(/var\(--i\)/g, String(index))
+      .replace(/(\d+(?:\.\d+)?)vh/g, (_, n) => `(${n}*8)`)
+      .replace(/(\d+(?:\.\d+)?)rem/g, (_, n) => `(${n}*16)`)
+      .replace(/100%/g, String(heading))
+      .replace(/calc\(/g, "(")
+      .replace(/min\(/g, "Math.min(");
+    return new Function(`return ${source}`)() as number;
+  }
+
   it("starts each word at 80 percent of the viewport staggered by its index and ends it at the 70 percent line", () => {
     const word = scrubbed.filter((rule) => rule.selector === WORD);
     expect(word).toHaveLength(1);
     const declarations = word[0]?.declarations ?? {};
     expect(declarations.animation).toBe("vk-word-in linear both");
     expect(declarations["animation-timeline"]).toBe("--vk-words");
-    expect(declarations["animation-range-start"]).toBe("entry calc(20vh + var(--i) * 0.7rem)");
+    expect(declarations["animation-range-start"]).toBe(
+      "entry min(calc(20vh + var(--i) * 0.7rem), calc(100% + 30vh - 1rem))",
+    );
     expect(declarations["animation-range-end"]).toBe(
       "entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh))",
     );
+  });
+
+  it("keeps every word's range start before its end however many words a heading holds", () => {
+    const declarations = scrubbed.find((rule) => rule.selector === WORD)?.declarations ?? {};
+    const start = declarations["animation-range-start"] ?? "";
+    const end = declarations["animation-range-end"] ?? "";
+    for (const heading of [40, 100, 300])
+      for (let index = 0; index < 30; index++)
+        expect(rangePx(start, index, heading), `${heading}px word ${index}`).toBeLessThan(
+          rangePx(end, index, heading),
+        );
+    expect(rangePx(start, 0, 100)).toBe(rangePx("20vh", 0, 100));
   });
 
   it("dims to 0.15 and blurs 4px, then ends sharp, with opacity and filter alone", () => {
@@ -462,9 +558,13 @@ describe("the word reveal stylesheet", () => {
     ]);
   });
 
-  it("styles the index as the only per-word input and declares no inline-style override", () => {
-    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+  it("reads the word index in the stylesheet", () => {
+    const css = readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8");
     expect(css.match(/var\(--i\)/g)?.length).toBeGreaterThan(0);
+  });
+
+  it("declares no variant, band, pin or highlight data attribute selector", () => {
+    const css = readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8");
     expect(css).not.toMatch(/data-(variant|band|pin|hl)\b/);
   });
 

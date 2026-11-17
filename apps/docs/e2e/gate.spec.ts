@@ -20,7 +20,6 @@ import {
   MIN_CONTRAST,
   openStaged,
   pinStart,
-  restNow,
   reversalSweep,
   STATES,
   scrollToSvh,
@@ -219,7 +218,7 @@ for (const [width, height] of VIEWPORTS) {
               const counts = colours.map(
                 (colour) => colours.filter((other) => other === colour).length,
               );
-              return counts.findIndex((count) => count === 1);
+              return counts.indexOf(1);
             }),
           )
           .toBe(index);
@@ -602,6 +601,35 @@ test.describe("gate with reduced motion", () => {
       return resolved;
     });
     expect(colour).toBe(danger);
+  });
+
+  test.describe("announced eyebrow when the stage is pinned", () => {
+    test.use({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference" });
+
+    test("keeps the head eyebrow in the accessibility tree while the pinned copy stays hidden", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      const state = await page.evaluate((section) => {
+        const head = document.querySelector(`${section} .vk-gate-head-eyebrow`);
+        const pinned = document.querySelector(`${section} .vk-gate-pin-eyebrow`);
+        if (head === null || pinned === null) return null;
+        const style = getComputedStyle(head);
+        return {
+          display: style.display,
+          visibility: style.visibility,
+          width: head.getBoundingClientRect().width,
+          pinnedHidden: pinned.getAttribute("aria-hidden"),
+          text: head.textContent,
+        };
+      }, SECTION);
+      expect(state).not.toBeNull();
+      expect(state?.display).not.toBe("none");
+      expect(state?.visibility).toBe("visible");
+      expect(state?.width).toBeLessThanOrEqual(1);
+      expect(state?.pinnedHidden).toBe("true");
+      expect(state?.text?.trim()).not.toBe("");
+    });
   });
 
   test("shows the head eyebrow only, the step list and the pinned eyebrow being drawn by the pinned stage alone", async ({

@@ -283,12 +283,27 @@ samp {
 }
 
 :root:is(:lang(zh-CN), :lang(ja))
-  :is(.vk-display, .vk-h2, .vk-h3, .vk-h4, .vk-faq-question, .vk-comparison-label td):is(
-    :lang(zh-CN),
-    :lang(ja)
-  ) {
+  :is(.vk-display, .vk-h2, .vk-h3, .vk-h4, .vk-comparison-label td):is(:lang(zh-CN), :lang(ja)) {
   word-break: keep-all;
   overflow-wrap: anywhere;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(.vk-faq-question, .vk-statement-text):is(:lang(zh-CN), :lang(ja)) {
+  min-width: 0;
+  word-break: keep-all;
+  line-break: strict;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 23.99rem) {
+  :root:is(:lang(zh-CN), :lang(ja)) .vk-statement-text:is(:lang(zh-CN), :lang(ja)) {
+    font-size: 1.875rem;
+  }
+
+  :root:is(:lang(zh-CN), :lang(ja)) .vk-faq-question:is(:lang(zh-CN), :lang(ja)) {
+    font-size: 1.0625rem;
+  }
 }
 
 :root:is(:lang(zh-CN), :lang(ja)) .vk-pill-new:is(:lang(zh-CN), :lang(ja)) {
@@ -4989,13 +5004,19 @@ html.light .vk-deck-shot-light {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-.vk-hl-pane::before {
-  content: "";
+.vk-hl-glow {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   opacity: 0;
+  pointer-events: none;
+}
+
+.vk-hl-pane::before {
+  content: "";
+  position: absolute;
+  display: none;
   pointer-events: none;
 }
 
@@ -5029,7 +5050,7 @@ article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
   border-color: var(--accent);
 }
 
-article.vk-hl-pane:is(:hover, :focus-within)::before {
+article.vk-hl-pane:is(:hover, :focus-within) > .vk-hl-glow {
   opacity: 1;
 }
 
@@ -5037,11 +5058,10 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   .vk-hl-pane > .vk-lock-card {
     transition:
       transform var(--duration-base) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard),
-      box-shadow var(--duration-base) var(--ease-standard);
+      border-color var(--duration-fast) var(--ease-standard);
   }
 
-  .vk-hl-pane::before {
+  .vk-hl-glow {
     transition: opacity var(--duration-base) var(--ease-standard);
   }
 
@@ -5050,12 +5070,20 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   }
 }
 
+@media print {
+  .vk-hl-glow {
+    box-shadow: none;
+    opacity: 1;
+    transition: none;
+  }
+}
+
 @media (forced-colors: active) {
   article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
     outline: 2px solid Highlight;
   }
 
-  .vk-hl-pane::before {
+  .vk-hl-glow {
     display: none;
   }
 }
@@ -5129,6 +5157,10 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   .vk-hl-rail .vk-lock-code code {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vk-hl-rail .vk-lock-code code > .vk-lock-line:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 
@@ -5256,15 +5288,11 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   }
 
   .vk-hl-pane::before {
-    inset: auto;
+    display: block;
     top: calc(1.25rem - 1px);
     width: calc(var(--grid-gap) / 2);
     height: 2px;
-    border-radius: 0;
     background: var(--accent);
-    box-shadow: none;
-    opacity: 1;
-    transition: none;
   }
 
   .vk-hl-pane:nth-child(odd)::before {
@@ -5298,12 +5326,6 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   .vk-hl-pane:nth-child(even)::after {
     right: calc(100% + var(--grid-gap) / 2 - var(--hl-node) / 2);
     left: auto;
-  }
-
-  article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
-    box-shadow:
-      var(--shadow-panel),
-      inset 0 1px 0 var(--hl-edge);
   }
 }
 
@@ -5676,7 +5698,15 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
     }
 
     .vk-gate-head-eyebrow {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
     }
 
     .vk-gate-steps {
@@ -5826,7 +5856,7 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
     html[data-motion-ready] .vk-words:not([data-words-done]) .vk-word {
       animation: vk-word-in linear both;
       animation-timeline: --vk-words;
-      animation-range-start: entry calc(20vh + var(--i) * 0.7rem);
+      animation-range-start: entry min(calc(20vh + var(--i) * 0.7rem), calc(100% + 30vh - 1rem));
       animation-range-end: entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh));
     }
 

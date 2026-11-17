@@ -1,4 +1,4 @@
-import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE } from "@/lib/check-demo";
+import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkBadge } from "@/lib/check-demo";
 import { GATE_CHECK_LINES, GATE_KEY } from "@/lib/gate-demo";
 import { HERO_CHECK_COMMAND, HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
 import { LOCK_DEMO_HASHES, LOCK_DEMO_LOCALE } from "@/lib/lock-demo";
@@ -87,13 +87,17 @@ export const STUDIO_COLUMNS = ["Locale", "Coverage", "Missing", "Stale", "Up to 
 
 type RailEntry = { readonly key: string; readonly hash: string; readonly comma: boolean };
 
-export const RAIL_ENTRIES: ReadonlyArray<RailEntry> = STALE_KEYS.map((key) => ({
-  key,
-  hash: LOCK_DEMO_HASHES[key]?.after ?? "",
-  comma: true,
-}));
+function railEntry(key: string): RailEntry {
+  const hash = LOCK_DEMO_HASHES[key]?.after;
+  if (hash === undefined) throw new Error(`LOCK_DEMO_HASHES has no hash for ${key}`);
+  const position = HERO_TERMINAL_SOURCE.findIndex((entry) => entry.key === key);
+  if (position < 0) throw new Error(`HERO_TERMINAL_SOURCE has no key ${key}`);
+  return { key, hash, comma: position < HERO_TERMINAL_SOURCE.length - 1 };
+}
 
-export const RAIL_BADGE = `${SURFACE_COUNTS.stale} stale, ${SURFACE_COUNTS.upToDate} up-to-date`;
+export const RAIL_ENTRIES: ReadonlyArray<RailEntry> = STALE_KEYS.map(railEntry);
+
+export const RAIL_BADGE = checkBadge(SURFACE_COUNTS.stale, SURFACE_COUNTS.upToDate);
 
 export type Surface = "cli" | "studio" | "sdk" | "mcp";
 

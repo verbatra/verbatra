@@ -648,7 +648,13 @@ describe("the gate stylesheet", () => {
     );
     expect(hiddenBase?.declarations.display).toBe("none");
     expect(declared(".vk-gate-pin-eyebrow", "display")).toBe("block");
-    expect(declared(".vk-gate-head-eyebrow", "display")).toBe("none");
+    expect(declared(".vk-gate-head-eyebrow", "display")).toBeUndefined();
+    const announced = declared(".vk-gate-head-eyebrow", "position");
+    expect(announced).toBe("absolute");
+    expect(declared(".vk-gate-head-eyebrow", "width")).toBe("1px");
+    expect(declared(".vk-gate-head-eyebrow", "height")).toBe("1px");
+    expect(declared(".vk-gate-head-eyebrow", "clip-path")).toBe("inset(50%)");
+    expect(declared(".vk-gate-head-eyebrow", "overflow")).toBe("hidden");
     expect(declared(".vk-gate-steps", "display")).toBe("grid");
     expect(declared(".vk-gate-steps", "grid-column")).toBe("10 / span 3");
     expect(declared(".vk-gate-steps", "grid-row")).toBe("1");

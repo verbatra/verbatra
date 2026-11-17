@@ -1,7 +1,11 @@
 export const CHECK_CLI_COMMAND = "verbatra check";
 
+export function checkBadge(stale: number, upToDate: number): string {
+  return `${stale} stale, ${upToDate} up-to-date`;
+}
+
 export function checkLocaleLine(locale: string, stale: number, upToDate: number): string {
-  return `  ${locale}: 0 missing, ${stale} stale, ${upToDate} up-to-date (out of sync)`;
+  return `  ${locale}: 0 missing, ${checkBadge(stale, upToDate)} (out of sync)`;
 }
 
 export const CHECK_OVERALL_LINE = "out of sync (run verbatra translate to update)";

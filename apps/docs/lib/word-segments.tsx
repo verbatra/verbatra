@@ -73,13 +73,16 @@ function splitSpaceless(text: string): ReactNode {
   });
 }
 
+const BREAKABLE_SPACE_RUN = /([^\S\u00a0\u2007\u202f]+)/;
+const BREAKABLE_SPACE_ONLY = /^[^\S\u00a0\u2007\u202f]+$/;
+
 export function splitWords(text: string): ReactNode {
   if (SPACELESS_SCRIPT.test(text)) return splitSpaceless(text);
   let index = 0;
   return text
-    .split(/(\s+)/)
+    .split(BREAKABLE_SPACE_RUN)
     .map((part, position) =>
-      part === "" || /^\s+$/.test(part) ? (
+      part === "" || BREAKABLE_SPACE_ONLY.test(part) ? (
         part
       ) : (
         <Fragment key={`${position}-${part}`}>{wordSpan(part, index++)}</Fragment>
