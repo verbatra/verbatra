@@ -180,7 +180,7 @@ describe("translate --estimate: what the packaged build actually counts", () => 
     const plain = await inputTokensOf("estimate-no-glossary", {});
     const withGlossary = await inputTokensOf("estimate-glossary", { glossary });
 
-    expect(withGlossary).toBeGreaterThan(plain * 3);
+    expect(withGlossary - plain).toBeGreaterThan(2000);
   });
 
   it("counts the plural forms generation would send on a project whose keys are in sync", async () => {
