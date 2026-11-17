@@ -13,18 +13,21 @@ metadata:
 ## Overview
 
 One model, no consent surface. Everything reaches the self-hosted Umami (`/api/send`) from our
-own server; the browser never talks to Umami and never loads an analytics script.
+own server; the browser never talks to Umami and never loads a third-party or Umami script. The only
+  script is the site's own first-party reporter, which posts to `/api/e`.
 
 - **Server pageviews.** The proxy (apps/docs/proxy.ts) counts a document navigation from request
   headers and posts it after the response (`event.waitUntil`).
-- **Server events.** `not_found` and `markdown_view` from the proxy (lib/server-events.ts),
+- **Server events.** `not_found` and `markdown_view` from the proxy (lib/server-events.ts; `not_found` reports a fixed url
+  per area, `/docs` or `/`, never the visitor path),
   `contact_submit` and `search_run` from their route handlers, all through `emitUmamiEvent`
   (lib/umami-event.ts).
 - **Relayed client events.** A tiny first-party reporter in the browser posts an allowlisted event
   to `/api/e` (app/api/e/route.ts, relay.ts); the server validates it and forwards it exactly like
   a server event, with the IP and user agent of that request.
 - **No cookies, no storage, no replay, no heatmaps, no performance data.** Legal basis Art. 6(1)(f)
-  GDPR; nothing is stored on or read from the device except the current page path. This is a
+  GDPR; nothing is stored on the device, the reporter reads only the current page path, and the server
+  reads the two objection cookies solely to honour an objection (§ 25(2) no. 2 TDDDG). This is a
   technical risk assessment, not legal advice. The residual risk is that first-party JavaScript
   events need no consent (medium confidence); stopping at server events only is the fallback.
 
@@ -45,7 +48,8 @@ the reporter, the objection handling, or the privacy wording about them.
 - **Server count rules** - `countedPageview` (lib/server-pageview.ts): GET with
   `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no prefetch purpose, a 200 without
   `Location`, not the `.md` variant, a served path in the CSP hash manifest other than the error
-  routes, the production host (`SITE_HOST`), a non-empty non-crawler user agent. Local runs,
+  routes, the production host (`SITE_HOST`), a non-empty non-crawler user agent, and a public client IP (without one the count is dropped, as in
+  the relay). Local runs,
   csp-smoke and health checks never count.
 - **Refusal** - `isTrackingRefused` is the one rule, shared by the proxy count, server events and
   the relay: `Sec-GPC: 1`, `DNT: 1`, the cookie `verbatra_analytics=off` or the legacy cookie
@@ -55,11 +59,15 @@ the reporter, the objection handling, or the privacy wording about them.
   are kept readable until 2027-11-17 (the latest expiry of a one-year cookie set on 2026-11-17),
   then remove `hasObjectionCookie`, the two constants and their tests in a follow-up.
 - **Relay** - app/api/e/route.ts always answers 204 and never echoes or logs. relay.ts requires
-  same-origin proof (`Sec-Fetch-Site: same-origin` or a matching `Origin`), a public client IP, an
-  in-memory per-IP fixed window of 60 per minute plus a global cap (lib/relay-rate-limit.ts, no
-  Arcjet: it would send every IP to a third party), a 1 KiB body, a zod schema over the closed
+  same-origin proof (`Sec-Fetch-Site: same-origin` or a matching `Origin`), a public client IP, the host,
+  refusal and bot checks (`isCountableVisitor`, run before the rate limit so refused traffic spends no
+  budget), an in-memory per-client fixed window of 60 per minute plus a global cap
+  (lib/relay-rate-limit.ts; IPv6 is keyed by its /64 prefix, an IPv4-mapped IPv6 address by its IPv4
+  address; expired windows are swept when the global window rolls over; no Arcjet: it would send every
+  IP to a third party), a 1 KiB body, a zod schema over the closed
   taxonomy (lib/relay-events.ts, strict objects), a path that is a real page route
-  (`servedPathOf` maps the public URL to the served one so stats do not split), the bot filter, and
+  (`servedPathOf` in the zod-free lib/relay-path.ts maps the public URL to the served one so stats do
+  not split; the proxy graph must stay free of zod, pinned by lib/no-zod-in-proxy.test.ts), the bot filter, and
   the refusal rule.
 - **Reporter** - lib/analytics-report.ts: `report(name, props)` and `reportPageview(path)` post
   `{ e, p?, u }` with `navigator.sendBeacon` (Blob `application/json`), falling back to
@@ -89,7 +97,7 @@ code or form values.
 | `mcp_install_click` | none | `data-mcp-install` on components/mcp-install-link.tsx |
 | `locale_switch` | `to`: a code from lib/locales.ts | `data-locale-switch` on the language options |
 | `contact_submit` | `result`: ok, invalid, rate_limited, error | server, app/api/contact/route.ts |
-| `search_run` | `results`: none, some | server, app/api/search/route.ts |
+| `search_run` | `results`: none, some | server, app/api/search/route.ts, only for queries of at least 3 characters; it counts query requests (the dialog debounces), not distinct searches. The url is the same-site referer only when it is a real page route (`refererPage`), else `/` |
 | `not_found` | `area`: docs, other | server, the proxy |
 | `markdown_view` | `via`: suffix, accept | server, the proxy |
 
@@ -108,7 +116,7 @@ code or form values.
 ### Why the design is what it is
 
 The stock Umami script reads `screen` and storage and the recorder captures behaviour, which in
-Germany needs consent; a consent prompt was removed on purpose. The reporter reads nothing from the
+Germany needs consent; a consent prompt was removed on purpose. The reporter reads only the page path from the
 device, the browser contacts only the site, and the server forwards. So: never add
 `script.js`, `recorder.js`, `data-umami-*` (the real tracker calls `preventDefault` on anchors and
 breaks Next `Link`), `umami.identify()`, `data-distinct-id`, a cookie, a localStorage or
@@ -153,7 +161,7 @@ delete anything. Replay and heatmaps are off in the dashboard and their data del
 ## Tests
 
 lib/analytics-report.test.ts, lib/analytics-click-events.test.ts, components/analytics-reporter.test.tsx,
-lib/relay-events.test.ts, lib/relay-rate-limit.test.ts, app/api/e/route.test.ts, lib/umami-send.test.ts,
+lib/relay-events.test.ts, lib/relay-path.test.ts, lib/no-zod-in-proxy.test.ts, lib/relay-rate-limit.test.ts, app/api/e/route.test.ts, lib/umami-send.test.ts,
 lib/umami-event.test.ts, lib/server-events.test.ts, lib/server-pageview.test.ts,
 proxy.pageview.test.ts, proxy.cookies.test.ts, lib/analytics-choice.test.ts,
 lib/security-headers.test.ts, proxy.csp.test.ts, the privacy page tests and retired claims under
