@@ -4,7 +4,7 @@ import { formatWait, QUOTA_EXHAUSTED_WAIT_MS } from "./retry-delay.js";
 const SAFE_VENDOR_ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 const GENERIC_VENDOR_ERROR_TYPE = "error";
 
-export type EndpointRemedies = "chat-completions" | "zen-chat-completions";
+export type EndpointRemedies = "chat-completions" | "zen-chat-completions" | "anthropic";
 
 export const BASE_URL_REMEDY =
   "Check that provider.options.baseUrl points at the API root, usually ending in /v1, not at " +
@@ -12,6 +12,11 @@ export const BASE_URL_REMEDY =
 export const REJECTED_REQUEST_REMEDY =
   "The server rejected the request: check the model name and whether the server supports Chat " +
   "Completions with strict JSON schema output.";
+export const ANTHROPIC_REJECTED_REQUEST_REMEDY =
+  "The Anthropic API rejected the request: this model may not support the parameters verbatra " +
+  "sends.";
+export const ANTHROPIC_UNKNOWN_MODEL_REMEDY =
+  "The Anthropic API does not know this model: check that the model id exists.";
 export const ZEN_MODEL_REMEDY =
   "The model must be one that OpenCode Zen serves over the Chat Completions endpoint.";
 export const REFUSED_REQUEST_REMEDY =
@@ -40,9 +45,15 @@ const ZEN_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
   422: ZEN_MODEL_REMEDY,
 };
 
+const ANTHROPIC_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
+  400: ANTHROPIC_REJECTED_REQUEST_REMEDY,
+  404: ANTHROPIC_UNKNOWN_MODEL_REMEDY,
+};
+
 const REMEDY_TABLES: Readonly<Record<EndpointRemedies, Readonly<Record<number, string>>>> = {
   "chat-completions": CHAT_COMPLETIONS_REMEDY_BY_STATUS,
   "zen-chat-completions": ZEN_REMEDY_BY_STATUS,
+  anthropic: ANTHROPIC_REMEDY_BY_STATUS,
 };
 
 const FORBIDDEN_STATUS = 403;

@@ -1,3 +1,4 @@
+import type { ProviderCallContext } from "../guard.js";
 import { type LlmCompletion, type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import { assertNotTruncated } from "../llm/truncation.js";
 import { toUsage as toUsageFromCounts } from "../llm/usage.js";
@@ -8,10 +9,12 @@ import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-ti
 import { createDefaultClient } from "./client.js";
 import { type AnthropicConfig, anthropicConfigSchema } from "./config.js";
 import { type BuiltRequest, buildRequest } from "./request.js";
-import { requireToolInput } from "./response.js";
+import { readStructuredOutput } from "./response.js";
 import type { AnthropicMessage, MessagesClient } from "./types.js";
 
 const PROVIDER_ID = "anthropic";
+
+const ENDPOINT: ProviderCallContext = { remedies: "anthropic" };
 
 export interface AnthropicDeps {
   readonly client?: MessagesClient;
@@ -42,7 +45,7 @@ function createMechanism(client: MessagesClient, config: AnthropicConfig): LlmMe
       const body = buildRequest(config, payloadJson);
       const message = await callClient(client, body, timeoutMs, signal);
       assertNotTruncated(message.stop_reason === "max_tokens");
-      const raw = requireToolInput(message.content);
+      const raw = readStructuredOutput(message.content);
       const usage = toUsage(message.usage);
       return usage === undefined ? { raw } : { raw, usage };
     },
@@ -55,8 +58,11 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<AnthropicMessage> {
-  return withSdkAttemptTimeout(timeoutMs, signal, (options) =>
-    client.messages.create(body, options),
+  return withSdkAttemptTimeout(
+    timeoutMs,
+    signal,
+    (options) => client.messages.create(body, options),
+    ENDPOINT,
   );
 }
 

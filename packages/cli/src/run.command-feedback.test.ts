@@ -108,7 +108,7 @@ describe("translate: start, outcome and next step", () => {
     const notice = {
       code: "SUB_BATCH_FAILED" as const,
       message:
-        "A sub-batch of 1 entry failed (PROVIDER_ERROR: The translation provider request to opencode.ai failed (HTTP 400, MissingSessionID).) and was withheld; it will be retried next run.",
+        "A sub-batch of 1 entry failed (PROVIDER_ERROR: The translation provider request to opencode.ai failed (HTTP 400, MissingSessionID).) and was withheld; running again will fail the same way until the cause is fixed.",
       causeCode: "PROVIDER_ERROR" as const,
     };
     const { code, err } = await stderrOf(["translate"], {

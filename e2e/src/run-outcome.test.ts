@@ -71,7 +71,7 @@ describe("classifyRunEnvelope", () => {
             {
               code: "SUB_BATCH_FAILED",
               message:
-                "A sub-batch of 1 entry failed (AUTH_FAILED: The translation provider rejected the credentials.) and was withheld; it will be retried next run.",
+                "A sub-batch of 1 entry failed (AUTH_FAILED: The translation provider rejected the credentials.) and was withheld; running again will fail the same way until the cause is fixed.",
             },
           ],
         }),
@@ -216,7 +216,7 @@ describe("classifyLiveRun", () => {
               {
                 code: "SUB_BATCH_FAILED",
                 message:
-                  "A sub-batch of 1 entry failed (PROVIDER_REFUSED: The translation provider refused the request.) and was withheld; it will be retried next run.",
+                  "A sub-batch of 1 entry failed (PROVIDER_REFUSED: The translation provider refused the request.) and was withheld; running again will fail the same way until the cause is fixed.",
               },
             ],
           }),

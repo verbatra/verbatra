@@ -223,7 +223,7 @@ describe("sdkTypeTableOptions", () => {
       const rows = (name: string) => generatedRows({ path: SDK_DECLARATIONS, name }, table);
 
       expect(await rows("SdkError")).toEqual(["code"]);
-      expect(await rows("ProviderError")).toEqual(["code", "envVar"]);
+      expect(await rows("ProviderError")).toEqual(["code", "envVar", "status"]);
       expect(await rows("AdapterError")).toEqual(["code", "position"]);
       expect(await rows("BatchInterruptedError")).toEqual(["results", "entry"]);
     },

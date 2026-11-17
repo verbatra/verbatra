@@ -1,6 +1,7 @@
 import {
   type ClassifiedProviderErrorCode,
   classifyProviderError,
+  getDeepLStatus,
   getErrorStatus,
   isAbortError,
 } from "./error-classification.js";
@@ -69,6 +70,9 @@ export async function guardProviderCall<T>(
       throw new ProviderError("NETWORK_POLICY_VIOLATION", violation.message);
     }
     const code = classifyProviderError(error);
-    throw new ProviderError(code, messageFor(code, error, context));
+    const status = getErrorStatus(error) ?? getDeepLStatus(error);
+    throw new ProviderError(code, messageFor(code, error, context), {
+      ...(status === undefined ? {} : { status }),
+    });
   }
 }

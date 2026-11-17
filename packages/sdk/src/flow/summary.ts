@@ -13,7 +13,9 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   added by hand. {@link check} reports the same code, per plural and for every format whose
  *   plural forms follow CLDR categories, in {@link LocaleCheckSummary.incompletePlurals}.
  * - `SUB_BATCH_FAILED`: one provider sub-batch of a locale failed. Its keys are withheld and retried
- *   on the next run, while the results of the other sub-batches are kept.
+ *   on the next run, while the results of the other sub-batches are kept. After a rejected request
+ *   (a 4xx status other than 408 and 429) or a credentials failure the message says running again
+ *   fails the same way until the cause is fixed.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
  *   and its lock-file baseline were kept rather than being erased.
  * - `HANDOFF_REVIEWS_RECORDED`: an imported XLIFF handoff marked keys `reviewed` or `final` (XLIFF

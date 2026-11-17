@@ -40,14 +40,7 @@ function anthropicStubProvider(
         messages: {
           create: () =>
             Promise.resolve({
-              content: [
-                {
-                  type: "tool_use",
-                  id: "t1",
-                  name: "submit_translations",
-                  input: { translations },
-                },
-              ],
+              content: [{ type: "text", text: JSON.stringify({ translations }) }],
             }),
         },
       },
