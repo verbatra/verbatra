@@ -43,10 +43,20 @@ describe("not_found", () => {
     ["/de/whatever", "other"],
   ])("reports a document navigation to the unknown page %s with area %s", (path, area) => {
     expect(eventFor(get(path))).toEqual({
-      url: path,
+      url: area === "docs" ? "/docs" : "/",
       name: "not_found",
       data: { area },
     });
+  });
+
+  it.each([
+    ["a very long path", `/docs/${"a".repeat(500)}`, "/docs"],
+    ["an email-like path", "/docs/jane.doe@example.com", "/docs"],
+    ["an email-like path outside docs", "/jane.doe@example.com", "/"],
+  ])("never forwards the visitor path for %s", (_case, path, url) => {
+    const spec = eventFor(get(path));
+    expect(spec?.url).toBe(url);
+    expect(JSON.stringify(spec)).not.toContain("jane");
   });
 
   it.each([
@@ -77,8 +87,8 @@ describe("not_found", () => {
     expect(eventFor(get("/docs/nope"), ok(), {})).toBeUndefined();
   });
 
-  it("drops the query string from the reported url", () => {
-    expect(eventFor(get("/docs/nope?q=secret"))?.url).toBe("/docs/nope");
+  it("never forwards the query string", () => {
+    expect(JSON.stringify(eventFor(get("/docs/nope?q=secret")))).not.toContain("secret");
   });
 });
 

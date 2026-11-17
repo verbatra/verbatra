@@ -7,6 +7,7 @@ import { isDocumentNavigation, isPageRoute, isRedirect } from "@/lib/server-page
 import type { UmamiEventSpec } from "@/lib/umami-event";
 
 const DOCS_AREA = /^\/[^/]+\/docs(\/|$)/;
+const NOT_FOUND_URL = { docs: "/docs", other: "/" } as const;
 const HOME_MARKDOWN = "/index";
 
 function pageOfMarkdown(pathname: string): string {
@@ -44,7 +45,7 @@ function notFoundOf(
   }
   if (Object.keys(routes).length === 0 || isPageRoute(servedPathname, routes)) return undefined;
   const area = DOCS_AREA.test(servedPathname) ? "docs" : "other";
-  return { url: pathname, name: "not_found", data: { area } };
+  return { url: NOT_FOUND_URL[area], name: "not_found", data: { area } };
 }
 
 export function proxyEventFor(
