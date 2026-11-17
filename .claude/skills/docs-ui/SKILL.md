@@ -1495,7 +1495,7 @@ not checked by CI. Full rules: `.claude/rules/docs.md`.
   `proxy.test.ts`, and `proxy.cookies.test.ts`; existing examples are
   `components/landing/faq.test.tsx`, `lib/landing-messages.test.ts`,
   `app/[lang]/docs.mdx/[[...slug]]/route.test.ts`, and
-  `app/[lang]/(legal)/privacy/page.test.tsx`.
+  `app/[lang]/(legal)/retired-legal-claims.test.tsx`.
 - Run `pnpm check` or `pnpm format` for Biome before committing.
 
 ## Verify before you trust this file
