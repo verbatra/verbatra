@@ -8,15 +8,16 @@ import { requestHost } from "@/lib/request-host";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { SITE_HOST } from "@/lib/site";
 import { UMAMI_ORIGIN, UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
+import { sendToUmami, UMAMI_SEND_TIMEOUT_MS, type UmamiMessage } from "@/lib/umami-send";
 
 export { FORWARDED_UTM_PARAMETERS, MAX_UTM_LENGTH, pageviewUrl } from "@/lib/pageview-url";
 export { UMAMI_ORIGIN, UMAMI_WEBSITE_ID };
 
-export const PAGEVIEW_TIMEOUT_MS = 1500;
+export const PAGEVIEW_TIMEOUT_MS = UMAMI_SEND_TIMEOUT_MS;
 
 const UNCOUNTED_ROUTES: ReadonlySet<string> = new Set(["/_not-found", "/_global-error"]);
 
-const AUTOMATED_AGENT =
+export const AUTOMATED_AGENT =
   /bot\/|bot;|crawler|spider|headlesschrome|lighthouse|uptime|curl\/|wget\/|python-requests|go-http-client|^node$|^undici/i;
 
 const MARKDOWN_ROUTE = /\.mdx?(\/|$)/;
@@ -53,20 +54,7 @@ export const MAX_LANGUAGE_LENGTH = 35;
 
 export const MAX_REFERRER_LENGTH = 500;
 
-interface PageviewPayload {
-  readonly website: string;
-  readonly hostname: string;
-  readonly url: string;
-  readonly userAgent: string;
-  readonly referrer?: string;
-  readonly language?: string;
-  readonly ip?: string;
-}
-
-export interface Pageview {
-  readonly type: "event";
-  readonly payload: PageviewPayload;
-}
+export type Pageview = UmamiMessage;
 
 function ipv4Number(address: string): number {
   return address.split(".").reduce((total, octet) => total * 256 + Number(octet), 0);
@@ -147,7 +135,7 @@ function isMarkdown(request: Request, servedPathname: string): boolean {
   );
 }
 
-function isPageRoute(servedPathname: string, routes: ScriptHashesByRoute): boolean {
+export function isPageRoute(servedPathname: string, routes: ScriptHashesByRoute): boolean {
   return !UNCOUNTED_ROUTES.has(servedPathname) && Object.hasOwn(routes, servedPathname);
 }
 
@@ -199,23 +187,37 @@ function primaryLanguage(headers: Headers): string | undefined {
   return tag && tag !== "*" && tag.length <= MAX_LANGUAGE_LENGTH ? tag : undefined;
 }
 
-export function pageviewFor(request: Request): Pageview | undefined {
-  const { headers } = request;
+export interface Visitor {
+  readonly userAgent: string;
+  readonly language?: string;
+  readonly ip?: string;
+}
+
+export function visitorOf(headers: Headers): Visitor | undefined {
   const userAgent = headers.get("user-agent")?.trim() ?? "";
   if (userAgent === "" || AUTOMATED_AGENT.test(userAgent)) return undefined;
-  const referrer = referrerWithoutQuery(headers);
   const language = primaryLanguage(headers);
   const ip = clientIp(headers);
+  return {
+    userAgent,
+    ...(language === undefined ? {} : { language }),
+    ...(ip === undefined ? {} : { ip }),
+  };
+}
+
+export function pageviewFor(request: Request): Pageview | undefined {
+  const { headers } = request;
+  const visitor = visitorOf(headers);
+  if (visitor === undefined) return undefined;
+  const referrer = referrerWithoutQuery(headers);
   return {
     type: "event",
     payload: {
       website: UMAMI_WEBSITE_ID,
       hostname: SITE_HOST,
       url: pageviewUrl(request.url),
-      userAgent,
+      ...visitor,
       ...(referrer === undefined ? {} : { referrer }),
-      ...(language === undefined ? {} : { language }),
-      ...(ip === undefined ? {} : { ip }),
     },
   };
 }
@@ -233,17 +235,6 @@ export function countedPageview(
   return pageviewFor(request);
 }
 
-export async function sendPageview(pageview: Pageview, send: typeof fetch = fetch): Promise<void> {
-  try {
-    const response = await send(`${UMAMI_ORIGIN}/api/send`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "user-agent": pageview.payload.userAgent },
-      body: JSON.stringify(pageview),
-      cache: "no-store",
-      signal: AbortSignal.timeout(PAGEVIEW_TIMEOUT_MS),
-    });
-    await response.body?.cancel();
-  } catch {
-    return;
-  }
+export function sendPageview(pageview: Pageview, send: typeof fetch = fetch): Promise<void> {
+  return sendToUmami(pageview, send);
 }
