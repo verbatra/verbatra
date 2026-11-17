@@ -63,6 +63,7 @@ export function AnalyticsPrompt({
 }): ReactNode {
   const [visible, setVisible] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const region = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -85,7 +86,10 @@ export function AnalyticsPrompt({
   if (!visible) return null;
 
   const choose = async (choice: AnalyticsChoice): Promise<void> => {
-    if (!(await storeChoice(choice, locale))) {
+    setSaving(true);
+    const stored = await storeChoice(choice, locale);
+    setSaving(false);
+    if (!stored) {
       setFailed(true);
       return;
     }
@@ -113,10 +117,20 @@ export function AnalyticsPrompt({
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button type="button" className={buttonClass} onClick={() => choose("full")}>
+        <button
+          type="button"
+          className={buttonClass}
+          disabled={saving}
+          onClick={() => choose("full")}
+        >
           {labels.allow}
         </button>
-        <button type="button" className={buttonClass} onClick={() => choose("default")}>
+        <button
+          type="button"
+          className={buttonClass}
+          disabled={saving}
+          onClick={() => choose("default")}
+        >
           {labels.decline}
         </button>
         <a href={`${localizedPath(locale, "/privacy")}#analytics`} className="vk-prose-link">

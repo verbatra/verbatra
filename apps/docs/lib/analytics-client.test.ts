@@ -2,7 +2,33 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearDocumentCookie, setDocumentCookie } from "../test-support/document-cookie";
-import { announceChoice, browserChoice, browserHasSignal, CHOICE_EVENT } from "./analytics-client";
+import {
+  announceChoice,
+  browserChoice,
+  browserHasSignal,
+  CHOICE_CHANNEL,
+  CHOICE_EVENT,
+  onChoiceInOtherWindow,
+} from "./analytics-client";
+
+class FakeChannel {
+  static readonly open: FakeChannel[] = [];
+  onmessage: (() => void) | null = null;
+  closed = false;
+  posted = 0;
+  constructor(readonly name: string) {
+    FakeChannel.open.push(this);
+  }
+  postMessage(): void {
+    this.posted += 1;
+    for (const other of FakeChannel.open) {
+      if (other !== this && !other.closed && other.name === this.name) other.onmessage?.();
+    }
+  }
+  close(): void {
+    this.closed = true;
+  }
+}
 
 function clearCookies(): void {
   for (const name of ["verbatra_analytics", "verbatra_analytics_optout"]) {
@@ -17,6 +43,8 @@ function setNavigator(values: Record<string, unknown>): void {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals();
+  FakeChannel.open.length = 0;
   clearCookies();
   for (const name of ["globalPrivacyControl", "doNotTrack", "msDoNotTrack"]) {
     Reflect.deleteProperty(navigator, name);
@@ -76,5 +104,47 @@ describe("announceChoice", () => {
     announceChoice();
     window.removeEventListener(CHOICE_EVENT, listener);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the cross-window choice signal", () => {
+  it("tells a listener in another window that a choice was made", () => {
+    vi.stubGlobal("BroadcastChannel", FakeChannel);
+    const listener = vi.fn();
+    const stop = onChoiceInOtherWindow(listener);
+    announceChoice();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(FakeChannel.open.every((channel) => channel.name === CHOICE_CHANNEL)).toBe(true);
+    stop();
+    announceChoice();
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the sending channel after each announcement", () => {
+    vi.stubGlobal("BroadcastChannel", FakeChannel);
+    announceChoice();
+    expect(FakeChannel.open.map((channel) => [channel.posted, channel.closed])).toEqual([
+      [1, true],
+    ]);
+  });
+
+  it("does nothing where BroadcastChannel does not exist", () => {
+    vi.stubGlobal("BroadcastChannel", undefined);
+    const listener = vi.fn();
+    expect(() => onChoiceInOtherWindow(listener)()).not.toThrow();
+    expect(() => announceChoice()).not.toThrow();
+  });
+
+  it("survives a channel that cannot be opened", () => {
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        constructor() {
+          throw new Error("blocked");
+        }
+      },
+    );
+    expect(() => onChoiceInOtherWindow(vi.fn())()).not.toThrow();
+    expect(() => announceChoice()).not.toThrow();
   });
 });

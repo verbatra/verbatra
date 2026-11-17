@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { UMAMI_ORIGIN, UMAMI_WEBSITE_ID } from "../lib/umami-config.mjs";
 
 const CORS = {
@@ -80,9 +82,18 @@ function respond(route, status, contentType, body) {
   });
 }
 
+function scriptSource(file, fallback) {
+  const directory = process.env.UMAMI_LOCAL_SCRIPTS_DIR;
+  return directory === undefined ? fallback : readFileSync(join(directory, file), "utf8");
+}
+
 function answer(route, pathname) {
-  if (pathname === "/script.js") return respond(route, 200, "text/javascript", STUB_TRACKER);
-  if (pathname === "/recorder.js") return respond(route, 200, "text/javascript", STUB_RECORDER);
+  if (pathname === "/script.js") {
+    return respond(route, 200, "text/javascript", scriptSource("script.js", STUB_TRACKER));
+  }
+  if (pathname === "/recorder.js") {
+    return respond(route, 200, "text/javascript", scriptSource("recorder.js", STUB_RECORDER));
+  }
   if (pathname === "/api/send") return respond(route, 200, "application/json", '{"cache":"stub"}');
   if (pathname === "/api/record") return respond(route, 200, "application/json", "{}");
   if (pathname === `/api/websites/${UMAMI_WEBSITE_ID}/recorder`) {
