@@ -72,16 +72,6 @@ const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
   ja: CJK_DESCRIPTION_WINDOW,
 };
 
-const ABSENCE_FOUND_WORD: Readonly<Record<Locale, RegExp>> = {
-  en: /found/,
-  de: /gefunden/,
-  es: /encontr/,
-  fr: /trouv/,
-  "zh-CN": /找到/,
-  "pt-BR": /encontr/,
-  ja: /未検出/,
-};
-
 describe("landing message parity", () => {
   const source = landingKeys(i18n.defaultLanguage);
 
@@ -97,7 +87,8 @@ describe("landing message parity", () => {
       "landing.marquee.pause",
       "landing.lockDemo.label",
       "landing.lockDemo.badge.changed",
-      "landing.compare.verdicts.yes",
+      "landing.comparison.heading",
+      "landing.comparison.verdicts.yes",
       "landing.lockDemo.heading",
       "landing.gate.heading",
       "landing.highlights.surfaces.mcp",
@@ -147,6 +138,7 @@ describe("landing message parity", () => {
     "showcase.tryIt.scenarios",
     "showcase.tryIt.result",
     "showcase",
+    "compare",
   ])("keeps no landing.%s message from a retired section", (path) => {
     for (const locale of i18n.languages) {
       expect(() => landingText(locale, path), locale).toThrow();
@@ -233,14 +225,6 @@ describe("landing message parity", () => {
   it("never breaks the closing heading at a hyphen", () => {
     for (const locale of i18n.languages) {
       expect(landingText(locale, "closing.heading"), locale).not.toContain("-");
-    }
-  });
-
-  it("words an absence in the comparison as a search that found nothing, never as a missing feature", () => {
-    for (const locale of i18n.languages) {
-      expect(landingText(locale, "compare.verdicts.noneFound"), locale).toMatch(
-        ABSENCE_FOUND_WORD[locale],
-      );
     }
   });
 });

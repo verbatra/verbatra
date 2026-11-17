@@ -118,7 +118,7 @@ describe("OG font subsets", () => {
       mkdirSync(join(root, "content/docs"), { recursive: true });
       writeFileSync(
         join(root, "messages/en.json"),
-        JSON.stringify({ landing: { banner: { headline } }, compare: { heading: "Compare" } }),
+        JSON.stringify({ landing: { banner: { headline } } }),
       );
       writeFileSync(join(root, "content/docs/index.mdx"), `---\n${frontmatter}\n---\n\nBody\n`);
       return root;
@@ -126,9 +126,9 @@ describe("OG font subsets", () => {
 
     const table = { ...OG_LOCALE_FONTS, "zh-CN": [], ja: [], en: [fixtureFont("Fixture.ttf")] };
 
-    it("collects the headline, the compare heading and the page frontmatter", () => {
+    it("collects the headline and the page frontmatter", () => {
       const root = project("<accent>Ship é</accent> fast", "title: Start\ndescription: Über uns");
-      expect(ogTexts("en", root)).toEqual(["Ship é fast", "Compare", "Start", "Über uns"]);
+      expect(ogTexts("en", root)).toEqual(["Ship é fast", "Start", "Über uns"]);
     });
 
     it("writes a subset that covers every character the locale's images can draw", async () => {
@@ -261,10 +261,7 @@ describe("OG font subsets", () => {
         mkdirSync(join(root, "content/docs"), { recursive: true });
         writeFileSync(
           join(root, "messages/en.json"),
-          JSON.stringify({
-            landing: { banner: { headline: "Ship" } },
-            compare: { heading: "Compare" },
-          }),
+          JSON.stringify({ landing: { banner: { headline: "Ship" } } }),
         );
         const table = { ...OG_LOCALE_FONTS, "zh-CN": [], ja: [], en: [fixtureFont("Fixture.ttf")] };
         await expect(
@@ -282,10 +279,7 @@ describe("OG font subsets", () => {
         mkdirSync(join(root, "content/docs"), { recursive: true });
         writeFileSync(
           join(root, "messages/en.json"),
-          JSON.stringify({
-            landing: { banner: { headline: "Ship" } },
-            compare: { heading: "Compare" },
-          }),
+          JSON.stringify({ landing: { banner: { headline: "Ship" } } }),
         );
         const table = {
           ...OG_LOCALE_FONTS,

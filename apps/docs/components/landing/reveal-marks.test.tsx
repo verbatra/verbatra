@@ -10,6 +10,7 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   gate: "gate.tsx",
   highlights: "highlights.tsx",
   features: "features.tsx",
+  compare: "comparison.tsx",
   faq: "faq.tsx",
   finalCta: "final-cta.tsx",
 };
@@ -42,6 +43,7 @@ describe("landing reveal marks", () => {
       "gate",
       "highlights",
       "features",
+      "compare",
       "faq",
       "finalCta",
     ]);

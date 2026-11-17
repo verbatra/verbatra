@@ -70,10 +70,9 @@ function docsUrls(locale: string): ReadonlySet<string> {
 }
 
 describe("the faq links", () => {
-  const pages = [
-    ...Object.values(FAQ_ANSWER_LINKS),
-    ...FAQ_ASIDE_LINKS.map(({ link }) => link),
-  ].filter((link) => link.page.startsWith("/docs/"));
+  const pages = [...Object.values(FAQ_ANSWER_LINKS), ...FAQ_ASIDE_LINKS.map(({ link }) => link)]
+    .filter((link) => "page" in link)
+    .filter((link) => link.page.startsWith("/docs/"));
 
   it.each(i18n.languages)("point at docs pages that exist in %s", (locale) => {
     const urls = docsUrls(locale);
@@ -87,9 +86,11 @@ describe("the faq links", () => {
     }
   });
 
-  it("sends the comparison answer to the localized comparison page", () => {
+  it("sends the comparison answer and the aside link to the comparison section of the same locale's home", () => {
     expect(FAQ_ITEM_IDS.at(-1)).toBe("compare");
-    expect(faqHref("en", FAQ_ANSWER_LINKS.compare)).toBe("/compare");
-    expect(faqHref("de", FAQ_ANSWER_LINKS.compare)).toBe("/de/compare");
+    expect(faqHref("en", FAQ_ANSWER_LINKS.compare)).toBe("/#compare");
+    expect(faqHref("de", FAQ_ANSWER_LINKS.compare)).toBe("/de#compare");
+    const aside = FAQ_ASIDE_LINKS.find(({ key }) => key === "compare");
+    expect(aside && faqHref("fr", aside.link)).toBe("/fr#compare");
   });
 });

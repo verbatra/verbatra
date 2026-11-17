@@ -273,7 +273,8 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     );
     for (const link of links) expect(link.textContent).not.toMatch(/[←-⇿]/);
     if (locale !== i18n.defaultLanguage) {
-      for (const link of links) expect(link.getAttribute("href")).toMatch(`/${locale}/`);
+      for (const link of links)
+        expect(link.getAttribute("href")?.startsWith(`/${locale}`)).toBe(true);
     }
   });
 
@@ -372,7 +373,7 @@ describe("the landing faq copy", () => {
     const { compare } = en.landing.faq.items;
     expect(compare.question).toBe("How is Verbatra different from other i18n tools?");
     expect(compare.answer).toBe(
-      "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison page</link> checks it against other tools, with sources, including where they are stronger.",
+      "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison table</link> checks it against other tools, including where they are stronger.",
     );
     expect(compare.answer.startsWith(YES.en)).toBe(false);
     expect(compare.answer.startsWith(NO.en)).toBe(false);
@@ -391,7 +392,7 @@ describe("the landing faq copy", () => {
   );
 
   it("points the comparison answer at the comparison page, beside the aside link", () => {
-    expect(FAQ_ANSWER_LINKS.compare).toEqual({ page: "/compare" });
+    expect(faqHref("en", FAQ_ANSWER_LINKS.compare)).toBe("/#compare");
     expect(FAQ_ASIDE_LINKS.map(({ key }) => key)).toContain("compare");
   });
 

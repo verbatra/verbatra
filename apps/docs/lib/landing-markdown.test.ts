@@ -5,6 +5,7 @@ import { stripAccentTags } from "@/test-support/accent-tags";
 import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SYNCED_KEYS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { SDK_INSTALL_COMMAND } from "./install-commands";
+import { COMPARISON_ROWS, COMPARISON_TOOLS, comparisonCell } from "./landing-comparison";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
 import { landingProviders } from "./landing-providers";
@@ -31,6 +32,7 @@ const SECTION_HEADINGS = [
   "gate.heading",
   "highlights.heading",
   "features.heading",
+  "comparison.heading",
   "faq.heading",
   "closing.heading",
 ] as const;
@@ -118,7 +120,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
   it("lists the comparison link beside Get started in the hero", async () => {
     const body = await landingMarkdown("en");
     expect(body).toContain(
-      `- [Get started](${SITE_URL}/docs/quickstart.md)\n- [Compare with other tools](${SITE_URL}/compare)`,
+      `- [Get started](${SITE_URL}/docs/quickstart.md)\n- [Compare with other tools](${SITE_URL}/#compare)`,
     );
   });
 
@@ -160,9 +162,44 @@ describe("the English landing markdown after the surfaces and the comparison lin
     const body = await landingMarkdown("en");
     expect(body).toContain("### How is Verbatra different from other i18n tools?");
     expect(body).toContain(
-      `The [comparison page](${SITE_URL}/compare) checks it against other tools`,
+      `The [comparison table](${SITE_URL}/#compare) checks it against other tools`,
     );
     expect(body).not.toContain("re-translate strings that did not change");
+  });
+});
+
+describe("the English landing markdown comparison section", () => {
+  async function section(): Promise<string> {
+    const body = await landingMarkdown("en");
+    const at = body.indexOf("## How Verbatra compares");
+    expect(at).toBeGreaterThan(0);
+    return body.slice(at, body.indexOf("\n## ", at + 3));
+  }
+
+  it("states the grid as a table with a verdict word in every cell, verbatra first and the manual workflow last", async () => {
+    const text = await section();
+    expect(text).toContain(
+      "| | Verbatra | Crowdin | Tolgee | Lingo.dev | Manual workflow |\n| --- | --- | --- | --- | --- | --- |",
+    );
+    expect(text).toContain("| Works without a vendor account | Yes | No | Partial | No | Yes |");
+    expect(text).toContain(
+      "| Fails CI on missing or stale translations | Yes | Yes | No | Yes | No |",
+    );
+    expect(text).toContain("| Web editor for translators | Partial | Yes | Yes | Partial | No |");
+  });
+
+  it("carries every source of every cell, which the visible section leaves out", async () => {
+    const text = await section();
+    for (const row of COMPARISON_ROWS)
+      for (const tool of COMPARISON_TOOLS)
+        for (const url of comparisonCell(row, tool).sources)
+          expect(text, `${row}.${tool}`).toContain(`<${url}>`);
+    expect(text).toContain("Last checked November 16, 2026");
+  });
+
+  it("leaves the manual workflow without a source", async () => {
+    const text = await section();
+    expect(text).not.toMatch(/Manual workflow: </);
   });
 });
 

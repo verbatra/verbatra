@@ -19,7 +19,6 @@ const ISLAND_MODULES = [
   "./marquee-motion",
   "./lock-demo-motion",
   "./faq-keys",
-  "./compare-picker",
   "./scroll-top",
   "@/components/command-row",
   "@/components/ui/copy-button",
@@ -107,7 +106,7 @@ const registered = REGISTRIES.flatMap((registry) =>
 
 describe("islands that translate", () => {
   it("finds every registered island and its module", () => {
-    expect(registered.length).toBeGreaterThanOrEqual(11);
+    expect(registered.length).toBeGreaterThanOrEqual(10);
     for (const entry of registered) expect(entry.module).not.toBe("");
   });
 

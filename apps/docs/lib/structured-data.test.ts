@@ -76,8 +76,8 @@ describe("websiteLd", () => {
 describe("techArticleLd", () => {
   it("dates the article only when a publication or modification date is given", () => {
     const dated = techArticleLd({
-      title: "Compare",
-      path: "/compare",
+      title: "Privacy",
+      path: "/privacy",
       lang: "en",
       datePublished: "2026-10-14",
       dateModified: "2026-10-15",

@@ -1,11 +1,11 @@
-import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
-import { COMPARE_PATH } from "./landing-compare";
+import { type Locale, localizedPath } from "./i18n";
+import { comparisonHref } from "./landing-comparison";
 import { MACHINE_PROVIDER_IDS, type MachineProviderId } from "./landing-facts";
 import { providerShortLabel } from "./landing-providers";
 import { providerReleaseBadge, RELEASE_BADGE, versionAtLeast } from "./release-badge";
 import { PACKAGE_VERSION } from "./site";
 
-type FaqDocsLink = { readonly page: string; readonly anchors?: LocalizedAnchors };
+type FaqDocsLink = { readonly page: string } | { readonly href: (locale: Locale) => string };
 
 export const FAQ_ITEM_IDS = ["cost", "providers", "privacy", "ci", "compare"] as const;
 
@@ -16,17 +16,17 @@ export const FAQ_ANSWER_LINKS: Readonly<Record<FaqItemId, FaqDocsLink>> = {
   providers: { page: "/docs/providers" },
   privacy: { page: "/docs/data-handling" },
   ci: { page: "/docs/github-action" },
-  compare: { page: COMPARE_PATH },
+  compare: { href: comparisonHref },
 };
 
 export const FAQ_ASIDE_LINKS = [
   { key: "quickstart", link: { page: "/docs/quickstart" } },
   { key: "safety", link: { page: "/docs/translation-safety" } },
-  { key: "compare", link: { page: COMPARE_PATH } },
+  { key: "compare", link: { href: comparisonHref } },
 ] as const satisfies ReadonlyArray<{ key: string; link: FaqDocsLink }>;
 
 export function faqHref(locale: Locale, link: FaqDocsLink): string {
-  return localizedAnchorPath(locale, link.page, link.anchors);
+  return "href" in link ? link.href(locale) : localizedPath(locale, link.page);
 }
 
 function released(id: MachineProviderId, version: string): boolean {

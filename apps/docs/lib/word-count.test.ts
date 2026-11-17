@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   countWords,
   groupWordSegments,
-  lastWordStart,
   SPACELESS_SCRIPT,
   type WordGroup,
   type WordSegment,
@@ -40,29 +39,6 @@ describe("countWords", () => {
 
   it("counts Latin words inside a spaceless locale once each", () => {
     expect(countWords("verbatra translate", "zh-CN")).toBe(2);
-  });
-});
-
-describe("lastWordStart", () => {
-  it("returns where the last word-like segment of a spaceless text starts", () => {
-    expect(lastWordStart("我们喜欢翻译，软件。", "zh-CN")).toBeGreaterThan(5);
-    expect(lastWordStart("", "zh-CN")).toBe(0);
-    expect(lastWordStart("。，", "zh-CN")).toBe(0);
-    expect(lastWordStart("支持 Crowdin", "zh-CN")).toBe(3);
-  });
-});
-
-describe("lastWordStart keeps a tail of at least two Han characters", () => {
-  it.each([
-    ["通用编辑器", "编辑器"],
-    ["公开源码", "源码"],
-    ["未说明是否网页版", "网页版"],
-    ["官方框架适配器", "适配器"],
-    ["我们喜欢字符串", "字符串"],
-  ])("cuts %s so its tail ends with %s and is not one character", (text, word) => {
-    const tail = text.slice(lastWordStart(text, "zh-CN"));
-    expect(tail.endsWith(word)).toBe(true);
-    expect([...tail].length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -399,30 +375,6 @@ describe("groupWordSegments groups Japanese text", () => {
       "别处吗",
       "？",
     ]);
-  });
-});
-
-describe("lastWordStart keeps a Japanese tail short", () => {
-  it("cuts only the last ending, never the whole verb phrase", () => {
-    const note = "本体は記載なし";
-    expect(note.slice(lastWordStart(note, "ja"))).toBe("なし");
-  });
-
-  it("keeps a katakana word whole at the end", () => {
-    const note = "ホスト型、リポジトリ";
-    expect(note.slice(lastWordStart(note, "ja"))).toBe("リポジトリ");
-  });
-});
-
-describe("lastWordStart keeps a particle with the word before it", () => {
-  it.each([
-    ["ローカルのみ", "ローカルのみ"],
-    ["製品なし、選ぶサービスによる", "による"],
-    ["企業向けレビューキューのみ", "のみ"],
-    ["Baidu（セルフホストのみ）", "のみ）"],
-    ["旧 CLI はローカルの Ollama で動作", "で動作"],
-  ])("cuts %s so its tail is %s", (note, tail) => {
-    expect(note.slice(lastWordStart(note, "ja"))).toBe(tail);
   });
 });
 

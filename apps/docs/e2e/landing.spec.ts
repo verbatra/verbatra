@@ -46,6 +46,7 @@ for (const locale of LOCALES) {
         "gate",
         "highlights",
         "features",
+        "compare",
         "faq",
         "closing-heading",
       ]);
@@ -108,34 +109,6 @@ test.describe("forced colors", () => {
     }
     expect(await primarySizes(page)).toEqual(normal);
   });
-
-  test("keeps the comparison verdict marks and the Verbatra column bar visible", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/compare");
-    await page.emulateMedia({ forcedColors: "active" });
-    const marks = page.locator("main .vk-compare-table .vk-compare-mark");
-    expect(await marks.count()).toBeGreaterThan(1);
-    for (let index = 0; index < (await marks.count()); index += 1) {
-      const paint = await marks.nth(index).evaluate((node) => {
-        const style = getComputedStyle(node);
-        return {
-          stroke: style.stroke,
-          background: getComputedStyle(document.body).backgroundColor,
-        };
-      });
-      expect(paint.stroke).not.toBe("none");
-      expect(paint.stroke).not.toBe("rgba(0, 0, 0, 0)");
-      expect(paint.stroke).not.toBe(paint.background);
-    }
-    const column = page.locator("main tbody td.vk-compare-self");
-    expect(await column.count()).toBeGreaterThan(1);
-    for (let index = 0; index < (await column.count()); index += 1) {
-      await expect(column.nth(index)).toHaveCSS("border-left-width", "3px");
-      await expect(column.nth(index)).toHaveCSS("border-left-style", "solid");
-    }
-  });
 });
 
 test.describe("landing search", () => {
@@ -165,8 +138,8 @@ test.describe("landing length on a phone", () => {
   const PHONE = { width: 391, height: 844 };
 
   for (const { motion, screens } of [
-    { motion: "no-preference", screens: 12.25 },
-    { motion: "reduce", screens: 12.25 },
+    { motion: "no-preference", screens: 13 },
+    { motion: "reduce", screens: 13 },
   ] as const) {
     test(`stays under ${screens} screens with motion ${motion}`, async ({ page }) => {
       await page.setViewportSize(PHONE);

@@ -27,15 +27,12 @@ async function dateModified(request: import("playwright/test").APIRequestContext
   return dates[0];
 }
 
-test("lists the landing, comparison and legal pages in every locale, with all hreflangs", async ({
+test("lists the landing and legal pages in every locale, with all hreflangs", async ({
   request,
 }) => {
   const sitemap = entries(await (await request.get("/sitemap.xml")).text());
   for (const locale of LOCALES) {
-    for (const url of [
-      homeUrl(locale),
-      ...["/compare", ...LEGAL_PAGES].map((path) => pageUrl(locale, path)),
-    ]) {
+    for (const url of [homeUrl(locale), ...LEGAL_PAGES.map((path) => pageUrl(locale, path))]) {
       const absolute = url === "/" ? `${SITE}/` : `${SITE}${url}`;
       const entry = sitemap.find((candidate) => candidate.loc === absolute);
       expect(entry, absolute).toBeDefined();
@@ -45,14 +42,12 @@ test("lists the landing, comparison and legal pages in every locale, with all hr
 });
 
 for (const locale of LOCALES) {
-  for (const path of ["/", "/compare"]) {
-    const url = path === "/" ? homeUrl(locale) : pageUrl(locale, path);
-    test(`dates ${url} the same in the sitemap and its JSON-LD`, async ({ request }) => {
-      const sitemap = entries(await (await request.get("/sitemap.xml")).text());
-      const absolute = url === "/" ? `${SITE}/` : `${SITE}${url}`;
-      const lastmod = sitemap.find((entry) => entry.loc === absolute)?.lastmod;
-      expect(lastmod).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(await dateModified(request, url)).toBe(lastmod);
-    });
-  }
+  const url = homeUrl(locale);
+  test(`dates ${url} the same in the sitemap and its JSON-LD`, async ({ request }) => {
+    const sitemap = entries(await (await request.get("/sitemap.xml")).text());
+    const absolute = url === "/" ? `${SITE}/` : `${SITE}${url}`;
+    const lastmod = sitemap.find((entry) => entry.loc === absolute)?.lastmod;
+    expect(lastmod).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(await dateModified(request, url)).toBe(lastmod);
+  });
 }

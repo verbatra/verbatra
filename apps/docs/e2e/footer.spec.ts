@@ -27,7 +27,7 @@ for (const locale of LOCALES) {
       const hrefs = await page
         .locator(`${FOOTER} a[href^='/']`)
         .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-      expect(hrefs).toContain(pageUrl(locale, "/compare"));
+      expect(hrefs).toContain(`${homeUrl(locale)}#compare`);
       expect(hrefs).toContain(pageUrl(locale, "/imprint"));
       expect(hrefs).toContain(pageUrl(locale, "/privacy"));
       expect(hrefs).toContain(pageUrl(locale, "/licenses"));
@@ -73,9 +73,9 @@ test.describe("footer surface", () => {
     });
   }
 
-  test("closes the comparison page too", async ({ page }) => {
-    await page.goto("/compare");
-    await expect(page.locator(FOOTER)).toHaveCount(1);
+  test("closes the privacy page with the legal footer", async ({ page }) => {
+    await page.goto("/privacy");
+    await expect(page.locator("footer.vk-legal-footer")).toHaveCount(1);
   });
 });
 
@@ -121,8 +121,7 @@ test.describe("footer contributors", () => {
 const SWITCH_PAGES = [
   "/",
   "/de",
-  "/compare",
-  "/fr/compare",
+  "/fr/privacy",
   "/es/imprint",
   "/privacy",
   "/de/contact",

@@ -43,10 +43,7 @@ function linkTags(
   );
 }
 
-async function frontmatter(
-  locale: Locale,
-  page: Exclude<MarkdownPage, typeof HOME_PATH | "/compare">,
-) {
+async function frontmatter(locale: Locale, page: Exclude<MarkdownPage, typeof HOME_PATH>) {
   const t = await getTranslations({ locale, namespace: SITE_PAGE_META[page] });
   return pageFrontmatter({ title: t("title"), description: t("description") }).trimEnd();
 }

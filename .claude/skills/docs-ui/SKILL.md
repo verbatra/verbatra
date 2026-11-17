@@ -287,8 +287,7 @@ characters (每|个, 密|钥, 适|配|器), so `groupWordSegments` in `lib/word-
 consecutive one-character Han or kana segments into a run, then gives a run of up to three characters to the
 word-like segment before it (a longer run gives that word its first character and stays together after it;
 a run with nothing word-like before it joins the segment after it), so no group is a single Han character
-unless punctuation or the text edge surrounds it, and a break point sits only between two such groups; the compare notes' tail
-unit (`lastWordStart`) reads the same groups. `word-break:
+unless punctuation or the text edge surrounds it, and a break point sits only between two such groups; `word-break:
 auto-phrase` is not used: Chrome ships it for Japanese only, and Firefox and Safari do not support it.
 MDX headings get no segmentation, only balanced lines, which never leave one character alone.
 
@@ -380,9 +379,9 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, lockDemo, gate, highlights,
-  features, faq, finalCta), which the home page maps
+  features, compare, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip (a `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`) and last a "Compare with other tools" text link (an `IntentPrefetchLink`, not a `Button`) to the localized `/compare` (`COMPARE_PATH`, no count in the label) in a non-interactive `.vk-banner-compare-row` that supplies the row break, so the anchor (`.vk-banner-compare`) is as wide as its label, flush-left, at least 44px tall, with a low-alpha resting underline and an accent underline on hover; on the right an `aria-hidden`
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip (a `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`) and last a "Compare with other tools" text link (an `IntentPrefetchLink`, not a `Button`) to the comparison section of the localized home page (`comparisonHref(locale)`, `#compare`, no count in the label) in a non-interactive `.vk-banner-compare-row` that supplies the row break, so the anchor (`.vk-banner-compare`) is as wide as its label, flush-left, at least 44px tall, with a low-alpha resting underline and an accent underline on hover; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
   with a `landing.banner.keysChanged` badge and `heroFileLines` where the changed keys (the lock-file demo's, `LOCK_DEMO_PLAYGROUND_IDS`) are marked
@@ -447,50 +446,8 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   `/_next/image` with `CARD_SHOT_SIZES` (a one pixel candidate below 64rem, where the card is not shown). The stylesheet shows
   one: `.vk-deck-shot-light` is `display: none` and `html.light` swaps the pair, from the class the pre-paint script sets, like
   `.vk-theme-icon-light`, so the hidden file is never fetched and a page without JavaScript shows one image), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
-  links and the footer). `lib/landing-compare.ts` holds its rows, tools and cells. A cell is typed
-  (`compareCell(row, tool)`): a verdict (`yes`, `no`, `partial`, `unknown` or `noneFound`, whose mark comes from `verdictMark`: none
-  found is the question mark, never a cross), a value (license, pricing, providers, formats and Verbatra's self-hosting: no mark) or not
-  applicable (the manual column). Marks are data, never translated text; the words come from one shared vocabulary,
-  `landing.compare.verdicts` (Yes, No, Partial, Unknown, None found, n/a), and each cell's copy is `landing.compare.rows.<row>.<tool>`
-  with an optional `value` and an optional `note` (the qualifier), cut by `lib/landing-copy.test.ts` at 8 words (10 for eleven listed
-  cells), a value at 4, in every locale. There is no overall score, no rating per tool and no rating wording. Verbatra's providers
-  cell is a plain count derived from `MACHINE_PROVIDER_IDS` through `compareCellView` (`lib/compare-cells.ts`), no names. The numbered
-  source list (`compareSource(n)`, `cellFootnote`) is kept for `/compare.md` and `llms-full.txt` only; the page shows no footnote
-  number, no Sources section and no `#source-n` anchor, and each cell carries one arrow-only link per source URL
-  (`a[data-source]`: an inline arrow SVG with `aria-hidden`, an `sr-only` name of tool, criterion and "source", at least 24px, set small and
-  `--text-muted`, `scroll-margin-block-start: 6rem` so a backward Tab walk never leaves one under the sticky header row). The first
-  arrow of a cell sits in a no-wrap `.vk-compare-unit` with the last word (or hyphen segment) before it (for a spaceless locale such as zh-CN, the last `groupWordSegments` group (never a single Han character) plus any opening bracket before it and any closing punctuation after it, via `tailCut` in `components/landing/compare-table.tsx`, so a Chinese clause still wraps; a note that ends in inline code gets a U+2060 word joiner before the arrow), and a verdict mark in one with
-  its first word, so an arrow never drops to a line of its own and a two-word verdict wraps after the mark and first word; every further
-  arrow of the cell sits in the same unit. The qualifier is `--text-muted` and follows the verdict word after a plain space, with no dash. A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
-  question mark in `--text-muted`, never red, always beside the word, each a different shape so colour is never the only cue, drawn in
-  `currentColor` so forced colors keep it. The page opens with the `h1`, one takeaway sentence, one scope sentence, one "where others are
-  stronger" line and the "Last checked" date (`COMPARE_LAST_CHECKED`, with one short clause saying what "None found" means, `compare.noneFound`), then a skip
-  link past the comparison, so the first comparison row sits within 400px at 1440 and at least two rows fit the first 391 by 844 screen
-  and one the first 320 by 640 screen, in every locale (under 23rem the intro gaps tighten and its secondary lines drop to
-  `--text-xs`; `compare.takeaway` and `compare.stronger` stay one line in the 46rem intro). Under the comparison come the two
-  next-step links. The layout is one `.vk-compare` container (`container-type: inline-size`) with two views of the same data, chosen by
-  its width, never the viewport: from 67.5rem the full eight-column matrix (`table.vk-compare-table`, `table-layout: fixed`, fitted to the
-  content width with no sideways scroll at any width from 320 to 2560, a sticky header row under the site header, the Verbatra column marked by
-  `.vk-compare-self`: an inset `--accent-fill` start bar and a faint tint, a 3px `CanvasText` start border under `forced-colors`); below
-  it Verbatra beside one chosen tool (`.vk-compare-pairs`, one `details.vk-compare-pair` per tool, each row a `dl` entry with the
-  Verbatra line over the tool line, the canonical row order for every tool, the pair and the select capped at 44rem and 24rem; a
-  tool's detail line, "current CLI and platform" and "no product, no sources", is one `.vk-compare-pair-detail` paragraph at the top
-  of its pair, never on a row; under `forced-colors` both lines reserve the 3px start border so they align). Without a live picker
-  (no JavaScript, a failed chunk, or before hydration) the pairs are seven collapsed sections, Lingo.dev open, each summary with the
-  FAQ's `.vk-faq-mark` plus or minus. The `ComparePicker` island (`compare-picker.tsx`, a plain `island()`) sets
-  `data-picker-live` on `.vk-compare` while it is mounted, and only then (under 67.5rem) are the select (`.vk-compare-picker`) shown
-  and the unselected pairs and the selected summary hidden, so a picker that never arrives hides nothing. It starts on Lingo.dev, marks
-  one pair `data-selected`, opens it and keeps the choice in the URL as `?tool=<id>` (`COMPARE_TOOL_PARAM`, carried through the header
-  and footer language switch by `carriedSearch` in `lib/locale-switch.ts`)
-  through `history.replaceState`, so it is shareable and survives a reload; the server HTML starts on Lingo.dev. Words never break
-  mid-word (`hyphens: manual`, never `hyphens: auto`, `overflow-wrap: normal`), so a long German word in a cell is a wording
-  problem, which `e2e/compare-page.spec.ts` checks at 1160, 1200, 1240, 1280 and 1440 in every locale. The matrix verdict word is 13px (`calc(var(--text-xs) + 1px)`), the qualifier 12px. The article's single grid track is
-  `minmax(0,1fr)`. `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx` (with `compare-table.tsx`:
-  `CompareMatrix`, `ComparePairs`, `CompareCellBody`). `/compare.md` (and `Accept: text/markdown` on `/compare`) is
-  `lib/compare-markdown.ts` served by `app/[lang]/site.mdx/[page]/route.ts`: it keeps the full table, now with the verdict words, the
-  providers named, and the full numbered source list; `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the
-  non-docs pages with a Markdown variant beside the landing's `/index.md`, and `SITE_MARKDOWN` in
+  (`#marquee`, see "Marquee" below), `comparison.tsx` (`#compare`, see "Comparison" in the section notes below), the landing's one place for the comparison: the old `/compare` page is retired, and `redirects()` in `next.config.mjs` sends `/compare`, `/compare.md` and every locale-prefixed form permanently to the locale's home at `#compare` (pinned in `next.config.test.ts`). `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the
+  legal pages with a Markdown variant beside the landing's `/index.md`, and `SITE_MARKDOWN` in
   `lib/site-markdown.ts` maps each to its generator; a direct `.mdx` url is redirected to its `.md`
   url once in `proxy.ts`), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
@@ -519,7 +476,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   drawn as CSS content with empty alt text, so a screen reader reads the label alone (the closing
   brace follows a no-break space, so it never starts a line); it is never
   numbered (`reveal-marks.test.tsx`). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
-  it to the home layout (the landing and `/compare`). `FullFooter` (`footer.tsx`, `footer.vk-footer`) sits on
+  it to the home layout (the landing). `FullFooter` (`footer.tsx`, `footer.vk-footer`) sits on
   the page (`--surface-page`) under one `--border-default` top hairline and no inner rule, with no gradient wash and no gradient
   rule, in three rows, no longer the brand column beside five link columns: a top row with the
   wordmark and the one-line tagline at the start and GitHub and the npm org (`NPM_ORG`) at the end
@@ -530,7 +487,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   then a "Contributing guide" text link to `CONTRIBUTING.md` (`.vk-contribute-guide`, muted, there is
   no open avatar slot); the avatars carry no ring); then `FOOTER_GROUPS`, five named `nav`s on
   `.vk-footer-groups`, deliberately not a row of equal columns: product (`PRIMARY_GROUP`: the docs
-  pages and the localized `/compare`) leads as the wide group, its links in
+  pages and the localized `#compare` anchor of the home page, `hash` on its `FooterLink`) leads as the wide group, its links in
   `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
   for agents (`AGENTS_GROUP`, titled `cols.agents.title`: the localized MCP docs page, `/llms.txt`,
   `/llms-full.txt` and `/.well-known/ai.txt`), packages (every package on npm and the release notes), community (contributor guide, code of
@@ -556,10 +513,10 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   missing docs slug too) passes none, since the switch there would link to more missing pages, and
   so loads no island.
   `e2e/footer.spec.ts` checks the surface, the contributors (axe, 44px targets, avatars loaded from this site) and every same-site link in every locale, and on the
-  landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
+  landing, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`, each item a bordered `--radius-card` `--surface-tile` panel: five
-  questions phrased the way people search (cost, providers, privacy and keys, CI, and last how Verbatra differs from other i18n tools, whose answer links `/compare` beside the aside's "Full comparison" link), each
+  questions phrased the way people search (cost, providers, privacy and keys, CI, and last how Verbatra differs from other i18n tools, whose answer links the landing's `#compare` section beside the aside's "Comparison table" link, both through `faqHref` with `comparisonHref`), each
   answer at most 30 words with a first sentence of at most 25, the heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head
   from 64rem, each link a 44px target) is a server section: each item is a native
@@ -978,6 +935,7 @@ The policy, in one place:
   lock-file demo, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
   the braces drawn in CSS with empty alt text); no section carries an index or a counter, and
   `reveal-marks.test.tsx` fails on a CSS counter or a numbered section list.
+- **Comparison.** `comparison.tsx` (`#compare`, between the features and the FAQ, a server component, no island) is `Section` plus `SectionHead` (split, aligned to the start, no eyebrow; `labelledBy` `compare-heading`) over `.vk-comparison-card` (`data-reveal={0}`, the only reveal in the section; `--radius-lg`, hairline, `--surface-tile`) > `.vk-comparison-frame` (`position: relative`, `overflow: clip`, so the hidden caption and verdict words cannot widen the page and the bar follows the card corners) > the `.vk-comparison-bar` span and one `table.vk-comparison-table`. `#compare` has its own `scroll-margin-top` of `-var(--section-rhythm) + 1.5rem`, the gate section's offset plus a gap, so an anchor jump does not show the empty section padding and the heading sits 1.5rem below the header. Data and sources live in `lib/landing-comparison.ts` (`COMPARISON_TOOLS` with verbatra first and the manual workflow last, `COMPARISON_ROWS`, `COMPARISON_VERDICTS`, `comparisonCell(row, tool)`: a verdict of `yes`, `partial` or `no`, plus source URLs that only the landing markdown twin and `llms-full.txt` print; `COMPARISON_LAST_CHECKED`, `comparisonHref(locale)`, the one builder of the `#compare` link); that file and `lib/landing-comparison.test.ts`, which pins every verdict, are the grid of record. Copy is `landing.comparison` (heading, lead, caption, `columns` with the short `manualShort` for the phone and tablet header, `rows`, `verdicts`, `lastChecked`, `sources`). Marks are inline SVGs (`.vk-comparison-mark`, `data-mark`, a 20px box whose drawn shape is at least 12px; the check in `--accent` and heavier, partial and no in `--text-muted`, never red), each followed by a `.sr-only` verdict word; the legend is an `aria-hidden` list and the visible text is one "Last checked" line. The table is `table-layout: fixed` at every width with the label column at 36% from 30rem and 0 below it, so the five tool columns are equal and the bar can be sized from them (`--comparison-columns`, pinned to `COMPARISON_TOOLS.length` in `comparison.test.tsx`). Under 30rem each row is a `tbody` of two rows: an `aria-hidden` `tr.vk-comparison-label` that repeats the label above the marks (`visibility: collapse` from 30rem), and the real `th[scope="row"]` whose `.vk-comparison-row-label` is visually hidden by absolute positioning but announced; the `th` keeps its cell, so the marks stay under their headers. No `display` is changed on a table part. The header swaps long and short labels at two breakpoints: the Lingo.dev column shows "Lingo" below 40rem (`.vk-comparison-swap-sm`) and the manual column shows its short label below 76rem (`.vk-comparison-swap-lg`), where the longest long label fits on one line. The long span is visually hidden, never `display: none`, while the short one shows, and the short span is `aria-hidden`, so a column header's accessible name is the full name at every width. The visible label rows run through `breakBetweenWords` and take the heading CJK treatment (`word-break: keep-all`, `overflow-wrap: anywhere`) so ja and zh-CN lines never break inside a word. The Verbatra column is the `.vk-comparison-self` header and cells plus `.vk-comparison-bar`, an absolutely positioned span behind the table aligned to that column whose background is the 2px `--accent-fill` bar and the tint (`--comparison-self-tint`, 7% and 16% in dark), so the bar and tint run through the label rows, which a `col` background would not paint; the header cell draws its own 2px bar. Forced colors give `.vk-comparison-self` a 3px `CanvasText` start border and the marks `CanvasText`. `e2e/comparison.spec.ts` covers axe in both themes, the reflow at 305px, 320px and 375px, the header gutter and mark-under-header alignment at 305px and 320px, the full accessible column names at 320px, Lingo.dev in full at 768px, one-line headers at 1024px and 1280px, and in ja and zh-CN no label row line starting inside a word at 305px and 320px, in every locale; the painted bar, the mark size, the semantics and forced colors are checked in English only.
 - **Gate.** `gate.tsx` (`#gate`, a server component, no island) is `Section` plus `SectionHead` (split, aligned to the start, no eyebrow, no trailing period; its lead ends in the one `docs/translation-safety` link, `GATE_DOCS_PATH`, so no focusable element sits inside a frame) over `.vk-gate-track` >
   `.vk-gate-pin` > `.vk-gate-stage`: three `figure.vk-gate-frame` (`data-state` `candidate`, `refused`, `stale`) starting from the lock the lock demo's run ends with (the fixture's English values, hashes for all 14 keys, every key synced) and editing one key once, `profile.greeting`, each a caption (`.vk-lock-caption`, a label and a sentence) over a card
   (`.vk-lock-card.vk-gate-card`) that spans the eight columns that follow the caption's four from 64rem (stacked and static) or the first eight (pinned). The three cards are within 60px of each other in height. 1. Candidate: head with the key and the model id of the lock demo's recorded run (`GATE_MODEL`, which is `PLAYGROUND_METADATA.model`, so one provider name appears on the page; the run test's config names the matching provider), the English
@@ -1006,7 +964,7 @@ The policy, in one place:
   through the shared observer (`html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves` yields to `--vk-gate-arrive` while pinned); reduced motion, no JavaScript and `scripting: none` show the stacked end states, whose card heights equal the pinned ones. In forced colors every card and the refused line take a 2px
   `Highlight` outline. The gate adds no eyebrow: `.vk-eyebrow` stays on the lock demo, the features and the closing panel. `gate.test.tsx` pins the markup and the stylesheet (supports test and `screen` query, the schedule, nothing scrolled but the state, the pointer and the marker, no literal colour), `e2e/gate.spec.ts` the rests (after the transitions settle, one frame at opacity 1 with no offset at every 4px of the pin both ways, with the text contrast measured through the opacity chain at 4.5:1 or more and nothing past a viewport edge, and at every PageDown, PageUp and 100px wheel-notch landing), the handoff (the numbers above sampled every animation frame, mirrored, a part-way offset and scale seen while each frame is visible, reversals timed inside the entrance, a flick), that no page key skips a state, the pointer, the edges,
   the free space, the card heights, the heading, layout shift 0, the axe scans, the path with the timeline out of reach, reflow and the phone height (1300px in English, 1375px in the other locales).
-- **Phone length.** The English landing stays under 12.25 screens at 391 by 844 with motion and with
+- **Phone length.** The English landing stays under 13 screens at 391 by 844 with motion and with
   reduced motion (`e2e/landing.spec.ts`, measured from the built page and rounded up to the next quarter screen; the gate section is at most 1300px tall on a phone in English and 1375px in the other locales, the highlights section at most 1350px). Under 40rem the section steps are 88px, 64px and 48px, `--head-gap` is 2rem,
   and the footer link rows sit at their 44px targets with no row gap. A new section's height is measured and the ceiling raised to it, not paid for by cuts.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
@@ -1201,7 +1159,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words in English, 30 in every other locale, tested in every locale), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`), the `.vk-banner-install` chip and last a "Compare with other tools" text link (`/compare`, `.vk-banner-compare` inside `.vk-banner-compare-row`, content-width, label on the column's left edge, never a second primary button; `align-items: center` keeps Get started at 50px beside the taller chip), the chip a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
+  (`/docs/quickstart`), the `.vk-banner-install` chip and last a "Compare with other tools" text link (`comparisonHref(locale)`, the same locale's home at `#compare`; `.vk-banner-compare` inside `.vk-banner-compare-row`, content-width, label on the column's left edge, never a second primary button; `align-items: center` keeps Get started at 50px beside the taller chip), the chip a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`, in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`

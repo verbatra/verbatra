@@ -62,20 +62,19 @@ describe("llms-full.txt", () => {
     );
   });
 
-  it("starts with the landing markdown, then the comparison, then the docs pages", () => {
+  it("starts with the landing markdown, comparison included, then the docs pages", () => {
     const landing = body.indexOf(`# ${stripAccentTags(en.landing.banner.headline)}\n`);
-    const compare = body.indexOf(`# ${en.compare.heading}\n`);
+    const comparison = body.indexOf(en.landing.comparison.heading);
     const docs = body.indexOf("# Quickstart (");
-    expect(landing).toBeGreaterThan(0);
-    expect(compare).toBeGreaterThan(landing);
-    expect(docs).toBeGreaterThan(compare);
+    expect(landing).toBeGreaterThan(-1);
+    expect(comparison).toBeGreaterThan(landing);
+    expect(docs).toBeGreaterThan(comparison);
     for (const heading of [
       en.landing.lockDemo.label,
       en.landing.gate.heading,
       en.landing.faq.heading,
     ]) {
       expect(body).toContain(heading);
-      expect(body.indexOf(heading)).toBeLessThan(compare);
     }
   });
 

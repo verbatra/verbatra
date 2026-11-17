@@ -40,7 +40,6 @@ export function ogTexts(locale: Locale, root: string): string[] {
   const files = readdirSync(contentDir, { recursive: true, encoding: "utf8" });
   return [
     message(catalog, ["landing", "banner", "headline"]).replace(ACCENT_TAGS, ""),
-    message(catalog, ["compare", "heading"]),
     ...pagesOf(locale, files).flatMap((file) =>
       frontmatterTexts(readFileSync(join(contentDir, file), "utf8")),
     ),

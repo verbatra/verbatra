@@ -28,13 +28,7 @@ const MDX_PATH = /\.mdx(?:\/|$)/;
 
 export const HOME_PATH = "/";
 
-export const MARKDOWN_PAGES = [
-  "/compare",
-  "/imprint",
-  "/privacy",
-  "/licenses",
-  "/contact",
-] as const;
+export const MARKDOWN_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
 
 export type MarkdownPage = typeof HOME_PATH | (typeof MARKDOWN_PAGES)[number];
 
@@ -42,7 +36,6 @@ export const SITE_MARKDOWN_PAGES: ReadonlyArray<MarkdownPage> = [HOME_PATH, ...M
 
 export const SITE_PAGE_META = {
   [HOME_PATH]: "landing.meta",
-  "/compare": "compare.meta",
   "/imprint": "legal.imprint.meta",
   "/privacy": "legal.privacy.meta",
   "/licenses": "legal.licenses.meta",

@@ -163,7 +163,6 @@ export const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const PREFIX_KANJI = /^[各他要新旧非未全]$/u;
 const SUFFIX_HOST =
   /(?:[\p{Script=Han}\p{Script=Katakana}\u30FC]|\p{Script=Han}[きぎしじちびみりめけげせてねべれえ])$/u;
-const MAX_PARTICLE_TAIL = 6;
 const LEADING_PARTICLE = /^[はがをにでとのもへやかねよ](?=.)/u;
 const KATAKANA_BEFORE_HIRAGANA = /^[\p{Script=Katakana}\u30FC]+(?=\p{Script=Hiragana})/u;
 const FRAGMENT_START = /^(?:ま[すせし]|せ|し[たて]|さい|たい|れ[るたて]|られ|ない|てい|いま|でし)/u;
@@ -301,23 +300,4 @@ export function groupWordSegments(
   );
   const groups = absorbSingleCharacters(runs, japanese);
   return keepEndings ? mergeEndings(groups) : groups;
-}
-
-export function lastWordStart(text: string, locale: string): number {
-  let previous: WordGroup | undefined;
-  let start = 0;
-  let head = 0;
-  for (const group of groupWordSegments(wordSegmenter(locale).segment(text), {
-    keepEndings: false,
-  })) {
-    if (group.isWordLike) {
-      const abuts = previous?.isWordLike === true;
-      head = abuts ? (previous?.index ?? start) : group.index;
-      start = group.index;
-    }
-    previous = group;
-  }
-  const widened =
-    PARTICLE_START.test(text.slice(start)) && characterCount(text.slice(head)) <= MAX_PARTICLE_TAIL;
-  return widened ? head : start;
 }

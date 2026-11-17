@@ -19,7 +19,7 @@ const NEW_TAB = {
 } as const;
 
 for (const locale of LOCALES) {
-  for (const url of [homeUrl(locale), pageUrl(locale, "/compare")]) {
+  for (const url of [homeUrl(locale), pageUrl(locale, "/privacy")]) {
     for (const width of [375, 1440]) {
       test(`names every new-tab link on ${url} as opening a new tab at ${width}px`, async ({
         page,

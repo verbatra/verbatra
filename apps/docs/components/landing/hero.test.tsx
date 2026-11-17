@@ -146,7 +146,7 @@ describe("Hero copy", () => {
     const links = Array.from(ctas?.querySelectorAll("a") ?? []);
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [banner.ctaPrimary, "/docs/quickstart"],
-      ["Compare with other tools", "/compare"],
+      ["Compare with other tools", "/#compare"],
     ]);
     expect(banner.ctaCompare).toBe("Compare with other tools");
     expect(ctas?.firstElementChild).toBe(links[0]);
@@ -172,7 +172,7 @@ describe("Hero copy", () => {
     const de = catalogFor("de").landing.banner;
     expect(german.querySelector(".vk-banner-ctas a")?.textContent).toBe(de.ctaPrimary);
     expect(german.querySelectorAll(".vk-banner-ctas a")[1]?.getAttribute("href")).toBe(
-      "/de/compare",
+      "/de#compare",
     );
     expect(german.querySelector(".vk-banner-lead")?.textContent).toBe(de.lead);
   });

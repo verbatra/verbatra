@@ -3,7 +3,13 @@ import { installShiftCounter, layoutShift } from "./support";
 
 const DECK = [".vk-deck-command", ".vk-deck-card"] as const;
 
-const ARTIFACTS = [...DECK, ".vk-faq-item", ".vk-final-install > div", ".vk-closer-proof"] as const;
+const ARTIFACTS = [
+  ...DECK,
+  ".vk-comparison-card",
+  ".vk-faq-item",
+  ".vk-final-install > div",
+  ".vk-closer-proof",
+] as const;
 
 const PHONE_WIDTH = 640;
 

@@ -96,7 +96,7 @@
         "label": "相关文档",
         "quickstart": "快速上手",
         "safety": "翻译安全",
-        "compare": "完整对比"
+        "compare": "对比表格"
       },
       "items": {
         "cost": {
@@ -117,7 +117,7 @@
         },
         "compare": {
           "question": "Verbatra 与其他 i18n 工具有何不同？",
-          "answer": "它是在你自己提交的文件上运行的 CLI，不是托管平台。<link>对比页面</link>附上来源，把它与其他工具逐项对照，包括别人更强的地方。"
+          "answer": "它是在你自己提交的文件上运行的 CLI，不是托管平台。<link>对比表格</link>把它与其他工具逐项对照，也包括对方更强的地方。"
         }
       }
     },
@@ -344,362 +344,6 @@
         }
       }
     },
-    "compare": {
-      "columns": {
-        "criterion": "标准",
-        "manual": "手动流程",
-        "lingoDetail": "当前 CLI 和平台",
-        "manualDetail": "无产品，无来源"
-      },
-      "verdicts": {
-        "yes": "是",
-        "no": "否",
-        "partial": "部分",
-        "unknown": "未知",
-        "noneFound": "未找到",
-        "notApplicable": "不适用"
-      },
-      "rows": {
-        "license": {
-          "label": "开源与许可证",
-          "verbatra": {
-            "value": "MIT"
-          },
-          "lingo": {
-            "value": "Apache-2.0（仓库）",
-            "note": "CLI 无许可证字段；平台未称开源"
-          },
-          "tolgee": {
-            "value": "Apache-2.0 核心",
-            "note": "企业版部分为非商业许可证；CLI 为 MIT"
-          },
-          "weblate": {
-            "value": "GPL-3.0-or-later",
-            "note": "`wlc` CLI 同样如此"
-          },
-          "crowdin": {
-            "value": "MIT (CLI, Action)",
-            "note": "未找到平台公开源码"
-          },
-          "lokalise": {
-            "value": "BSD-3-Clause (CLI)",
-            "note": "未找到平台公开源码"
-          },
-          "phrase": {
-            "value": "MIT (CLI, Action)",
-            "note": "未找到平台公开源码"
-          }
-        },
-        "selfHosting": {
-          "label": "自托管",
-          "verbatra": {
-            "value": "仅限本地",
-            "note": "你的机器和 CI；没有托管服务"
-          },
-          "lingo": {
-            "note": "较早的开源 CLI 可对接本地 Ollama"
-          },
-          "tolgee": {
-            "note": "高级功能需要许可证"
-          },
-          "weblate": {
-            "note": "或由 Weblate 托管"
-          },
-          "crowdin": {
-            "note": "定价页未列出本地部署选项；无明确说明"
-          },
-          "lokalise": {
-            "note": "不支持本地部署和私有云"
-          },
-          "phrase": {
-            "note": "定价页未列出自托管选项；无明确说明"
-          },
-          "manual": {
-            "note": "无产品；取决于你选择的服务"
-          }
-        },
-        "pricing": {
-          "label": "定价模式",
-          "verbatra": {
-            "value": "免费",
-            "note": "用量由提供商直接向你计费"
-          },
-          "lingo": {
-            "value": "按用量计费",
-            "note": "有免费 Sandbox 套餐"
-          },
-          "tolgee": {
-            "value": "免费套餐",
-            "note": "付费套餐按托管字数定价"
-          },
-          "weblate": {
-            "value": "自托管：免费",
-            "note": "托管版按字符串数；公开开源项目有免费 Libre 套餐"
-          },
-          "crowdin": {
-            "value": "付费套餐",
-            "note": "主要按托管字数；有试用；开源项目有免费许可"
-          },
-          "lokalise": {
-            "value": "4 档付费",
-            "note": "14 天试用"
-          },
-          "phrase": {
-            "value": "付费套餐",
-            "note": "按席位和字数计量；14 天试用"
-          },
-          "manual": {
-            "value": "开发者时间",
-            "note": "另加你选择的服务"
-          }
-        },
-        "providers": {
-          "label": "AI 与机器翻译提供商",
-          "verbatra": {
-            "value": "内置 {count} 个"
-          },
-          "lingo": {
-            "value": "多种 LLM",
-            "note": "OpenAI、Anthropic、Google；未列出 DeepL 这类引擎"
-          },
-          "tolgee": {
-            "value": "机器翻译与 LLM",
-            "note": "含 DeepL、Google、Amazon、OpenAI、Anthropic、Gemini；Baidu 仅限自托管"
-          },
-          "weblate": {
-            "value": "29 项服务",
-            "note": "内置，含 DeepL、OpenAI、Anthropic、LibreTranslate"
-          },
-          "crowdin": {
-            "value": "机器翻译与 AI",
-            "note": "DeepL、Google、Microsoft、Amazon；OpenAI、Anthropic、Gemini；等"
-          },
-          "lokalise": {
-            "value": "Google Translate, DeepL",
-            "note": "Pro AI 中含 LLM"
-          },
-          "phrase": {
-            "value": "Phrase Language AI",
-            "note": "Google、Amazon、Microsoft；Strings 于 2026-06-30 移除 DeepL"
-          },
-          "manual": {
-            "value": "任意服务",
-            "note": "由你粘贴进去"
-          }
-        },
-        "ownKeys": {
-          "label": "自带 API 密钥",
-          "verbatra": {
-            "note": "仅限环境变量"
-          },
-          "lingo": {
-            "note": "企业版功能；较早的开源 CLI：自带密钥"
-          },
-          "tolgee": {
-            "note": "LLM 可用自己的密钥；机器翻译仅自托管"
-          },
-          "weblate": {
-            "note": "管理员用各自的凭据设置每项服务"
-          },
-          "crowdin": {
-            "note": "第三方机器翻译：你的密钥；AI：你的密钥或 Crowdin 托管"
-          },
-          "lokalise": {
-            "note": "机器翻译和 AI 文档中未提及"
-          },
-          "phrase": {
-            "note": "生态内引擎：自有合同；Strings 内未确认"
-          },
-          "manual": {
-            "value": "自己的账号"
-          }
-        },
-        "incremental": {
-          "label": "增量翻译",
-          "verbatra": {
-            "note": "锁文件中的逐键哈希"
-          },
-          "lingo": {
-            "note": "CLI 中的锁文件差异"
-          },
-          "tolgee": {
-            "note": "仅新增或导入的键；未找到锁文件"
-          },
-          "weblate": {
-            "note": "仅未翻译字符串（自动翻译插件）"
-          },
-          "crowdin": {
-            "note": "仅未翻译字符串（预翻译选项）"
-          },
-          "lokalise": {
-            "note": "仅空值（自动化、预翻译）"
-          },
-          "phrase": {
-            "note": "仅空译文（预翻译）"
-          },
-          "manual": {
-            "value": "手动"
-          }
-        },
-        "cli": {
-          "label": "命令行工具（CLI）",
-          "verbatra": {
-            "note": "`verbatra`"
-          },
-          "lingo": {
-            "note": "`@lingo.dev/cli`；较早的开源 `lingo.dev` 仍在发布"
-          },
-          "tolgee": {
-            "note": "`@tolgee/cli`，MIT"
-          },
-          "weblate": {
-            "note": "`wlc`"
-          },
-          "crowdin": {
-            "note": "Crowdin CLI"
-          },
-          "lokalise": {
-            "note": "Lokalise CLI v2"
-          },
-          "phrase": {
-            "note": "Phrase Strings CLI"
-          }
-        },
-        "ci": {
-          "label": "CI 与 GitHub Action",
-          "verbatra": {
-            "note": "官方 Action；键缺失或过期时 `check` 以 1 退出"
-          },
-          "lingo": {
-            "note": "GitHub App；仓库附带 action.yml"
-          },
-          "tolgee": {
-            "note": "官方 Action"
-          },
-          "weblate": {
-            "note": "PR；未找到官方同步 Action；linter 为 beta"
-          },
-          "crowdin": {
-            "note": "官方 GitHub Action"
-          },
-          "lokalise": {
-            "note": "官方推送和拉取 Action"
-          },
-          "phrase": {
-            "note": "CI 中用 CLI；Phrase 组织下有 setup-cli Action"
-          }
-        },
-        "mcp": {
-          "label": "MCP 服务器",
-          "verbatra": {
-            "note": "本地，通过 stdio"
-          },
-          "weblate": {
-            "note": "官方 MCP 服务器"
-          },
-          "crowdin": {
-            "note": "托管"
-          },
-          "lokalise": {
-            "note": "托管，beta"
-          },
-          "phrase": {
-            "note": "托管，用 Phrase 账号登录"
-          }
-        },
-        "inContext": {
-          "label": "上下文内编辑",
-          "lingo": {
-            "note": "平台文档和仓库 README 中均未提及"
-          },
-          "tolgee": {
-            "note": "按住 Alt/Option 点击元素即可打开编辑器"
-          },
-          "weblate": {
-            "note": "官方上下文内编辑器"
-          },
-          "crowdin": {
-            "note": "Crowdin In-Context"
-          },
-          "lokalise": {
-            "note": "LiveJS 网页编辑器"
-          },
-          "phrase": {
-            "note": "In-Context Editor，官方框架适配器"
-          }
-        },
-        "translatorUi": {
-          "label": "面向译者的网页界面",
-          "verbatra": {
-            "note": "本地 Studio 仪表盘；没有托管界面"
-          },
-          "lingo": {
-            "note": "仅有企业版审校队列；未找到通用编辑器"
-          },
-          "tolgee": {
-            "note": "网页平台，托管或自托管"
-          },
-          "weblate": {
-            "note": "网页翻译界面"
-          },
-          "crowdin": {
-            "note": "浏览器中的在线编辑器"
-          },
-          "lokalise": {
-            "note": "有键编辑器文档；未说明是否网页版"
-          },
-          "phrase": {
-            "note": "浏览器中的 Strings Editor"
-          },
-          "manual": {
-            "value": "所用服务的界面"
-          }
-        },
-        "formats": {
-          "label": "文件格式",
-          "detail": "厂商自行列出，未统一口径",
-          "verbatra": {
-            "value": "{count} 种格式",
-            "note": "已在文档中列出"
-          },
-          "lingo": {
-            "value": "18 种格式",
-            "note": "已列出"
-          },
-          "tolgee": {
-            "value": "17 种格式",
-            "note": "见概览页"
-          },
-          "weblate": {
-            "value": "50 种格式",
-            "note": "已列出"
-          },
-          "crowdin": {
-            "value": "17 种格式",
-            "note": "字符串类项目已列出"
-          },
-          "lokalise": {
-            "value": "30 种格式",
-            "note": "已列出"
-          },
-          "phrase": {
-            "value": "47 个条目",
-            "note": "列出了格式条目"
-          },
-          "manual": {
-            "value": "任意格式",
-            "note": "凡是你手动复制的内容"
-          }
-        }
-      },
-      "sourceLink": "{tool}，{criterion}，来源",
-      "sourceLinkNth": "{tool}，{criterion}，来源 {number}",
-      "pairSummary": "Verbatra 与 {tool}",
-      "sources": "来源",
-      "manualNote": "手动流程不是产品，所以没有来源：该列描述的是手动把字符串复制到翻译服务再复制回来。",
-      "lastChecked": "最后核查",
-      "fairness": "每个单元格记录的是厂商自己的页面在该日期所写的内容。“未找到”表示我们的搜索没有找到相关内容，并不表示该产品没有此功能。"
-    },
     "openSource": {
       "newTab": "（在新标签页中打开）",
       "contributorsHeading": "贡献者",
@@ -721,30 +365,32 @@
     },
     "fab": {
       "label": "回到顶部"
-    }
-  },
-  "compare": {
-    "meta": {
-      "title": "Verbatra 与 Lingo.dev、Tolgee、Crowdin 等对比",
-      "description": "Verbatra 与 Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase 的对比：许可证、提供商、自带密钥、CI、MCP 和格式，每项附注明日期的来源。",
-      "ogImageAlt": "Verbatra 的对比情况，配有 verbatra 字标"
     },
-    "heading": "Verbatra 与其他工具的对比",
-    "takeaway": "Verbatra 在你的 CI 中只翻译已更改的键，使用你自己的 API 密钥，采用 MIT 许可证。",
-    "scope": "Verbatra 是 CLI 和 SDK；其他列是翻译平台和手动流程，都作为让语言文件保持已翻译状态的方式来对比。",
-    "stronger": "别人更强的地方：上下文内编辑（Tolgee、Crowdin、Lokalise、Phrase）和面向译者的托管编辑器。",
-    "skip": "跳过对比",
-    "pickerLabel": "将 Verbatra 与以下工具对比",
-    "caption": "让语言文件保持已翻译的几种方式：Verbatra、Lingo.dev、Tolgee、Weblate、Crowdin、Lokalise、Phrase 和手动流程",
-    "lingoNote": "Lingo.dev 的单元格指当前的 `@lingo.dev/cli` 和托管平台，除非明确写出较早的开源 CLI `lingo.dev`。",
-    "formatsNote": "格式数量取自各厂商自己的列表，彼此未做统一口径。",
-    "nextHeading": "亲自试试",
-    "quickstart": "从快速上手开始",
-    "home": "返回 Verbatra 首页",
-    "breadcrumbHome": "首页",
-    "breadcrumbCompare": "对比",
-    "noneFound": "“未找到”表示我们的搜索没有找到相关内容，并不表示该产品没有此功能。",
-    "checkedLine": "{label} <time>{date}</time>。{noneFound}"
+    "comparison": {
+      "heading": "Verbatra 与其他工具的对比",
+      "lead": "决定翻译工作流的关键点，针对团队最常比较的工具逐一作答。",
+      "caption": "Verbatra 与 Crowdin、Tolgee、Lingo.dev 和手动流程的对比",
+      "columns": {
+        "question": "问题",
+        "manual": "手动流程",
+        "manualShort": "手动"
+      },
+      "rows": {
+        "vendorAccount": "无需供应商账号即可使用",
+        "ownKeys": "使用你自己的提供商密钥",
+        "changedKeys": "只翻译已更改的键",
+        "ciGate": "翻译缺失或过期时让 CI 失败",
+        "placeholderCheck": "翻译后检查占位符和 ICU",
+        "webEditor": "面向译者的网页编辑器"
+      },
+      "verdicts": {
+        "yes": "是",
+        "partial": "部分",
+        "no": "否"
+      },
+      "lastChecked": "最后核查于 {date}",
+      "sources": "来源"
+    }
   },
   "legal": {
     "privacy": {

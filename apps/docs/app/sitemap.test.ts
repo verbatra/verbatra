@@ -29,7 +29,6 @@ vi.mock("@/lib/source", () => ({
 
 const { default: sitemap } = await import("./sitemap");
 const { LANDING_LAST_UPDATED, LEGAL_LAST_UPDATED } = await import("@/lib/site");
-const { COMPARE_LAST_CHECKED } = await import("@/lib/landing-compare");
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
 
@@ -47,16 +46,13 @@ const HOME_LANGUAGES = Object.fromEntries(
 
 const TRANSLATED_DOCS_URLS = LOCALES.slice(1).map((locale) => urlOf(locale, "/docs/intro"));
 
-const COMPARE_URLS = LOCALES.map((locale) => urlOf(locale, "/compare"));
-
 const LEGAL_URLS = LOCALES.flatMap((locale) =>
   (["/contact", "/imprint", "/licenses", "/privacy"] as const).map((path) => urlOf(locale, path)),
 );
 describe("sitemap", () => {
-  it("emits the locale roots first, then the comparison, the docs pages and the legal pages", () => {
+  it("emits the locale roots first, then the docs pages and the legal pages", () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       ...Object.values(HOME_LANGUAGES),
-      ...COMPARE_URLS,
       `${ORIGIN}/docs/intro`,
       `${ORIGIN}/docs/english-only`,
       ...TRANSLATED_DOCS_URLS,
@@ -64,28 +60,27 @@ describe("sitemap", () => {
     ]);
   });
 
-  it("spells the Simplified Chinese comparison entry and its alternates out literally", () => {
+  it("spells the Simplified Chinese privacy entry and its alternates out literally", () => {
     const entry = sitemap().find(
-      (candidate) => candidate.url === "https://verbatra.kreitz-webdev.de/zh-CN/compare",
+      (candidate) => candidate.url === "https://verbatra.kreitz-webdev.de/zh-CN/privacy",
     );
     expect(entry?.alternates).toEqual({
       languages: {
-        en: "https://verbatra.kreitz-webdev.de/compare",
-        de: "https://verbatra.kreitz-webdev.de/de/compare",
-        es: "https://verbatra.kreitz-webdev.de/es/compare",
-        fr: "https://verbatra.kreitz-webdev.de/fr/compare",
-        "zh-CN": "https://verbatra.kreitz-webdev.de/zh-CN/compare",
-        "pt-BR": "https://verbatra.kreitz-webdev.de/pt-BR/compare",
-        ja: "https://verbatra.kreitz-webdev.de/ja/compare",
+        en: "https://verbatra.kreitz-webdev.de/privacy",
+        de: "https://verbatra.kreitz-webdev.de/de/privacy",
+        es: "https://verbatra.kreitz-webdev.de/es/privacy",
+        fr: "https://verbatra.kreitz-webdev.de/fr/privacy",
+        "zh-CN": "https://verbatra.kreitz-webdev.de/zh-CN/privacy",
+        "pt-BR": "https://verbatra.kreitz-webdev.de/pt-BR/privacy",
+        ja: "https://verbatra.kreitz-webdev.de/ja/privacy",
       },
     });
   });
 
-  it("ranks the English root above the other roots, both above every docs page and the comparison, and the legal pages lowest", () => {
+  it("ranks the English root above the other roots, both above every docs page, and the legal pages lowest", () => {
     expect(sitemap().map((entry) => entry.priority)).toEqual([
       1,
       ...LOCALES.slice(1).map(() => 0.9),
-      ...COMPARE_URLS.map(() => 0.7),
       ...[...LOCALES, "english-only"].map(() => 0.8),
       ...LEGAL_URLS.map(() => 0.3),
     ]);
@@ -116,20 +111,9 @@ describe("sitemap", () => {
     }
   });
 
-  it("stamps the comparison in every locale with the day its sources were checked", () => {
-    const compare = sitemap().filter((entry) => COMPARE_URLS.includes(entry.url ?? ""));
-    expect(compare).toHaveLength(COMPARE_URLS.length);
-    for (const entry of compare) {
-      expect(entry.lastModified).toBe(COMPARE_LAST_CHECKED);
-      expect(entry.alternates).toEqual({
-        languages: languagesOf("/compare"),
-      });
-    }
-  });
-
-  it("marks the home and docs pages as changing weekly, and the comparison and legal pages monthly", () => {
+  it("marks the home and docs pages as changing weekly, and the legal pages monthly", () => {
     const entries = sitemap();
-    const monthly = [...LEGAL_URLS, ...COMPARE_URLS];
+    const monthly = LEGAL_URLS;
     const legal = entries.filter((entry) => monthly.includes(entry.url ?? ""));
     const rest = entries.filter((entry) => !monthly.includes(entry.url ?? ""));
     expect(rest.every((entry) => entry.changeFrequency === "weekly")).toBe(true);

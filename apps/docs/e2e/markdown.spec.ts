@@ -3,7 +3,7 @@ import { expectVaryAccept, homeUrl, LEGAL_PAGES, LOCALES, pageUrl } from "./supp
 
 const SITE = "https://verbatra.kreitz-webdev.de";
 
-const PAGES = ["/", "/compare", ...LEGAL_PAGES] as const;
+const PAGES = ["/", ...LEGAL_PAGES] as const;
 
 function htmlUrl(locale: (typeof LOCALES)[number], path: string): string {
   return path === "/" ? homeUrl(locale) : pageUrl(locale, path);
@@ -70,8 +70,8 @@ test("carries every heading of the landing page into its markdown", async ({ pag
 
 for (const [from, to] of [
   ["/docs/quickstart.mdx", "/docs/quickstart.md"],
-  ["/compare.mdx", "/compare.md"],
-  ["/de/compare.mdx", "/de/compare.md"],
+  ["/privacy.mdx", "/privacy.md"],
+  ["/de/imprint.mdx", "/de/imprint.md"],
   ["/index.mdx", "/index.md"],
   ["/docs.mdx/formats", "/docs/formats.md"],
   ["/fr/docs.mdx/providers", "/fr/docs/providers.md"],
@@ -86,6 +86,22 @@ for (const [from, to] of [
     expect(followed.status()).toBe(200);
     expect(followed.headers()["content-type"]).toContain("text/markdown");
     expectVaryAccept(followed);
+  });
+}
+
+for (const [from, location] of [
+  ["/compare", "/#compare"],
+  ["/compare.md", "/#compare"],
+  ["/en/compare", "/#compare"],
+  ["/en/compare.md", "/#compare"],
+  ["/de/compare", "/de#compare"],
+  ["/zh-CN/compare", "/zh-CN#compare"],
+  ["/zh-CN/compare.md", "/zh-CN#compare"],
+] as const) {
+  test(`permanently redirects the retired ${from} straight to ${location}`, async ({ request }) => {
+    const response = await request.get(from, { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(location);
   });
 }
 
@@ -114,17 +130,17 @@ test("lists every site markdown url in llms.txt, and each one it links answers 2
   }
 });
 
-test("puts the landing and the comparison before the docs in llms-full.txt", async ({
+test("puts the landing, comparison section included, before the docs in llms-full.txt", async ({
   request,
 }) => {
   const full = await (await request.get("/llms-full.txt")).text();
   const landing = await (await request.get("/index.md")).text();
-  const compare = await (await request.get("/compare.md")).text();
   const headline = landing.split("\n").find((line) => line.startsWith("# ")) ?? "missing";
-  const heading = compare.split("\n").find((line) => line.startsWith("# ")) ?? "missing";
   expect(full.indexOf(headline)).toBeGreaterThan(0);
-  expect(full.indexOf(heading)).toBeGreaterThan(full.indexOf(headline));
-  expect(full.indexOf("/docs/quickstart)")).toBeGreaterThan(full.indexOf(heading));
+  expect(full).toContain("## How Verbatra compares");
+  expect(full.indexOf("/docs/quickstart)")).toBeGreaterThan(
+    full.indexOf("## How Verbatra compares"),
+  );
   for (const retired of [
     "Verbatra in numbers",
     "Locale files drift every time you ship.",

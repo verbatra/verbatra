@@ -94,7 +94,7 @@ for (const locale of LOCALES) {
         .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
       expect(hrefs.length).toBeGreaterThan(0);
       for (const href of hrefs) {
-        if (locale !== "en") expect(href.startsWith(`/${locale}/`), href).toBe(true);
+        if (locale !== "en") expect(href, href).toMatch(new RegExp(`^/${locale}[/#]`));
         const [path, anchor] = href.split("#");
         const response = await page.request.get(path ?? "");
         expect(response.status(), href).toBe(200);

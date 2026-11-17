@@ -155,35 +155,6 @@ export async function expectNothingPastRightEdge(page: Page): Promise<void> {
   expect(clipped).toEqual([]);
 }
 
-export async function expectTargetsMeetMinimumSize(page: Page, selector: string): Promise<void> {
-  const failing = await page.locator(selector).evaluateAll((nodes) => {
-    const boxes = nodes
-      .filter((node) => node.checkVisibility())
-      .map((node) => ({ node, box: node.getBoundingClientRect() }));
-    const small = (box: DOMRect) => box.width < 24 || box.height < 24;
-    const centre = (box: DOMRect) => [box.left + box.width / 2, box.top + box.height / 2] as const;
-    return boxes
-      .filter(({ node, box }) => {
-        if (!small(box)) return false;
-        const [x, y] = centre(box);
-        return boxes.some((other) => {
-          if (other.node === node) return false;
-          const dx = Math.max(other.box.left - x, 0, x - other.box.right);
-          const dy = Math.max(other.box.top - y, 0, y - other.box.bottom);
-          if (Math.hypot(dx, dy) < 12) return true;
-          if (!small(other.box)) return false;
-          const [ox, oy] = centre(other.box);
-          return Math.hypot(ox - x, oy - y) < 24;
-        });
-      })
-      .map(
-        ({ node, box }) =>
-          `${node.textContent?.trim()} ${Math.round(box.width)}x${Math.round(box.height)}`,
-      );
-  });
-  expect(failing).toEqual([]);
-}
-
 export async function waitForFaqKeys(page: Page): Promise<void> {
   await expect(page.locator("#faq-list")).toHaveAttribute(FAQ_KEYS_ATTACHED, "");
 }
@@ -202,30 +173,11 @@ export const brokenWords = (selector: string): WordScan => ({
   check: "broken",
 });
 
-export const brokenWordPieces = (selector: string): WordScan => ({
-  selector,
-  split: "piece",
-  check: "broken",
-});
-
-export const overflowingWords = (selector: string): WordScan => ({
-  selector,
-  split: "piece",
-  check: "overflow",
-});
-
-export const wordsWithoutMargin = (selector: string): WordScan => ({
-  selector,
-  split: "piece",
-  check: "snug",
-});
-
 export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
   const spaceless = /^(zh|ja|th|lo|km|my)\b/.test(document.documentElement.lang);
-  const patternOf = (node: Text): RegExp => {
+  const patternOf = (): RegExp => {
     if (split === "space") return /\S+/g;
-    if (check === "overflow" || !spaceless || node.parentElement?.closest(".vk-compare-unit"))
-      return /[^\s\-/]+/g;
+    if (check === "overflow" || !spaceless) return /[^\s\-/]+/g;
     return /[A-Za-z0-9_][A-Za-z0-9_.:@]*/g;
   };
   const textNodes = (root: Element): Text[] => {
@@ -253,7 +205,7 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
       (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
     );
     return spoken.flatMap((node) =>
-      Array.from(node.data.matchAll(patternOf(node)))
+      Array.from(node.data.matchAll(patternOf()))
         .filter((match) => {
           const range = rangeOf(node, match);
           if (check === "broken") return isBroken(range);
@@ -265,91 +217,6 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
   };
   const anchors = Array.from(document.querySelectorAll(selector));
   return { found: anchors.flatMap(wordsFailingIn), checked: anchors.length };
-}
-
-export async function expectEveryCompareCellVisible(page: Page, tool: string): Promise<void> {
-  const viewport = page.viewportSize();
-  if (!viewport) throw new Error("no viewport");
-  const rows = page.locator(`main [data-pair="${tool}"] [data-row]`);
-  expect(await rows.count()).toBeGreaterThan(0);
-  const clipped = await page
-    .locator(`main [data-pair="${tool}"] dd`)
-    .evaluateAll((cells, width) => {
-      return cells
-        .filter((cell) => {
-          const box = cell.getBoundingClientRect();
-          return box.left < -0.5 || box.right > width + 0.5 || box.width === 0;
-        })
-        .map((cell) => cell.getAttribute("data-column") ?? "");
-    }, viewport.width);
-  expect(clipped).toEqual([]);
-}
-
-export function arrowsAloneOnTheirLine(selector: string): { found: string[]; checked: number } {
-  const lastTextLine = (cell: Element): DOMRect | undefined => {
-    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
-    let line: DOMRect | undefined;
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (node.parentElement?.closest(".sr-only") || !node.textContent?.trim()) continue;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      line = Array.from(range.getClientRects()).at(-1) ?? line;
-    }
-    return line;
-  };
-  const isAlone = (cell: Element): boolean => {
-    const link = cell.querySelector("a[data-source]")?.getBoundingClientRect();
-    const line = lastTextLine(cell);
-    return link !== undefined && line !== undefined && link.top + link.height / 2 > line.bottom;
-  };
-  const cells = Array.from(document.querySelectorAll(selector)).filter(
-    (cell) => cell.checkVisibility() && cell.querySelectorAll("a[data-source]").length === 1,
-  );
-  return {
-    found: cells.filter(isAlone).map((cell) => cell.textContent?.trim() ?? ""),
-    checked: cells.length,
-  };
-}
-
-export async function expectBackwardWalkClearsStickyHead(page: Page, scope: string): Promise<void> {
-  const selector = `${scope} a[data-source]`;
-  const links = page.locator(selector);
-  const count = await links.count();
-  expect(count).toBeGreaterThan(0);
-  await links.nth(count - 1).focus();
-  const hidden: string[] = [];
-  let visited = 0;
-  for (let step = 0; step < count; step += 1) {
-    const state = await page.evaluate(async (query) => {
-      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      let still = 0;
-      let last = window.scrollY;
-      while (still < 3) {
-        await frame();
-        still = window.scrollY === last ? still + 1 : 0;
-        last = window.scrollY;
-      }
-      const active = document.activeElement;
-      if (!(active instanceof HTMLElement) || !active.matches(query)) return null;
-      const box = active.getBoundingClientRect();
-      const heads = Array.from(
-        document.querySelectorAll("main thead th"),
-        (th) => th.getBoundingClientRect().bottom,
-      );
-      const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-      const covered = Math.max(header, ...heads);
-      return {
-        clear: box.top >= covered - 0.5 && box.bottom <= window.innerHeight + 0.5,
-        label: active.querySelector(".sr-only")?.textContent ?? "",
-      };
-    }, selector);
-    if (state === null) break;
-    visited += 1;
-    if (!state.clear) hidden.push(state.label);
-    await page.keyboard.press("Shift+Tab");
-  }
-  expect(visited).toBe(count);
-  expect(hidden).toEqual([]);
 }
 
 type ShiftEntry = PerformanceEntry & {

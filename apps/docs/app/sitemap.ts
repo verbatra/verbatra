@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
-import { COMPARE_LAST_CHECKED, COMPARE_PATH } from "@/lib/landing-compare";
 import { homePath, LANDING_LAST_UPDATED, LEGAL_LAST_UPDATED, SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
@@ -70,13 +69,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   );
 
-  const compare: MetadataRoute.Sitemap = i18n.languages.map((locale) => ({
-    url: new URL(localizedPath(locale, COMPARE_PATH), SITE_URL).href,
-    lastModified: COMPARE_LAST_CHECKED,
-    changeFrequency: "monthly",
-    priority: 0.7,
-    alternates: { languages: pageLanguageAlternates(COMPARE_PATH) },
-  }));
-
-  return [...home, ...compare, ...docs, ...legal];
+  return [...home, ...docs, ...legal];
 }

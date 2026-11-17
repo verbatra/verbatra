@@ -7,8 +7,8 @@ vi.mock("@/lib/csp-script-hashes", () => ({
     "/en": [],
     "/de": [],
     "/en/docs": [],
-    "/en/compare": [],
-    "/de/compare": [],
+    "/en/privacy": [],
+    "/de/privacy": [],
     "/_not-found": [],
   }),
   scriptHashesFor: () => [],
@@ -49,7 +49,7 @@ afterEach(() => {
 });
 
 describe("proxy: server-side pageview", () => {
-  it.each(["/", "/de", "/docs", "/compare", "/de/compare"])(
+  it.each(["/", "/de", "/docs", "/privacy", "/de/privacy"])(
     "hands exactly one pageview for a document navigation to %s to waitUntil",
     async (path) => {
       const waitUntil = await visit(path);
@@ -88,10 +88,10 @@ describe("proxy: server-side pageview", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("never counts the comparison page served as markdown", async () => {
-    expect(await visit("/compare.md")).not.toHaveBeenCalled();
+  it("never counts the privacy page served as markdown", async () => {
+    expect(await visit("/privacy.md")).not.toHaveBeenCalled();
     expect(
-      await visit("/compare", { ...DOCUMENT_NAVIGATION, accept: "text/markdown" }),
+      await visit("/privacy", { ...DOCUMENT_NAVIGATION, accept: "text/markdown" }),
     ).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });

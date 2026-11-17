@@ -59,29 +59,29 @@ describe("proxy", () => {
     expect(response.headers.get("vary")).toContain("Accept");
   });
 
-  it("serves the comparison page ending in .md from its markdown route", async () => {
+  it("serves the privacy page ending in .md from its markdown route", async () => {
     i18nProxyMock.mockClear();
-    const response = (await proxy(request({}, "/es/compare.md"), event)) as Response;
+    const response = (await proxy(request({}, "/es/privacy.md"), event)) as Response;
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost/es/site.mdx/compare",
+      "http://localhost/es/site.mdx/privacy",
     );
     expect(response.headers.get("vary")).toContain("Accept");
     expect(i18nProxyMock).not.toHaveBeenCalled();
   });
 
-  it("serves markdown for the comparison page when the Accept header prefers it", async () => {
+  it("serves markdown for the privacy page when the Accept header prefers it", async () => {
     const response = (await proxy(
-      request({ accept: "text/markdown" }, "/compare"),
+      request({ accept: "text/markdown" }, "/privacy"),
       event,
     )) as Response;
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost/en/site.mdx/compare",
+      "http://localhost/en/site.mdx/privacy",
     );
   });
 
-  it("marks the html comparison page as varying on Accept", async () => {
+  it("marks the html privacy page as varying on Accept", async () => {
     const response = (await proxy(
-      request({ accept: "text/html" }, "/de/compare"),
+      request({ accept: "text/html" }, "/de/privacy"),
       event,
     )) as Response;
     expect(response.headers.get("vary")).toContain("Accept");
@@ -124,8 +124,8 @@ describe("proxy", () => {
   it.each([
     ["/docs/quickstart.mdx", "/docs/quickstart.md"],
     ["/de/docs.mdx", "/de/docs.md"],
-    ["/compare.mdx", "/compare.md"],
-    ["/fr/compare.mdx", "/fr/compare.md"],
+    ["/privacy.mdx", "/privacy.md"],
+    ["/fr/privacy.mdx", "/fr/privacy.md"],
     ["/index.mdx", "/index.md"],
     ["/docs.mdx/cli/translate", "/docs/cli/translate.md"],
     ["/de/docs.mdx/formats", "/de/docs/formats.md"],

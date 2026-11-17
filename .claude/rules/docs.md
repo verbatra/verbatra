@@ -393,7 +393,7 @@ here and is plain `ja`, never `ja-JP`.
 A locale whose script has no word spaces needs handling that Latin locales never hit. Each piece
 has one owner:
 
-- Word counting: `countWords`, `isSpaceless` and `lastWordStart` in `apps/docs/lib/word-count.ts`
+- Word counting: `countWords` and `isSpaceless` in `apps/docs/lib/word-count.ts`
   (`Intl.Segmenter`). Do not count with a whitespace split for a locale-dependent limit.
 - Title and description length: `displayWidth`, `snippetLength` and `SPACELESS_SNIPPET_WIDTH` in
   `apps/docs/lib/display-width.ts`; a wide character counts as two.
@@ -403,8 +403,6 @@ has one owner:
   `lib/no-segmenter-in-client.test.ts`). `rehypeCjkCodeBreaks` (`lib/cjk-code-breaks.ts`) adds a
   `<wbr>` after a CJK clause mark, full stop or closing bracket before inline code, which Unicode line breaking forbids when the
   code starts with `.` or `%`.
-  The compare table keeps a cell's trailing arrow with its last word through `tailCut` in
-  `apps/docs/components/landing/compare-table.tsx`.
 - Typography: one `:lang(zh-CN)` / `:lang(ja)` block in `apps/docs/app/global.css`: system font
   stacks after Geist, no CJK webfont, no letter-spacing, uppercase or italics on Han text, and the
   heading line-height. Change them there, not per component.

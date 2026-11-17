@@ -73,6 +73,7 @@ describe("landing surface bands", () => {
       "gate",
       "highlights",
       "features",
+      "compare",
       "faq",
       "finalCta",
     ]);
@@ -84,10 +85,11 @@ describe("landing surface bands", () => {
         "gate.tsx",
         "highlights.tsx",
         "features.tsx",
+        "comparison.tsx",
         "faq.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, false, false, false, false, false, false, false]);
+    ).toEqual([false, false, false, false, false, false, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -184,6 +186,7 @@ describe("the section head on the 12-column grid", () => {
     await preloadRegisteredIslands();
     const { Faq, faqContent } = await import("./faq");
     const { Features } = await import("./features");
+    const { Comparison } = await import("./comparison");
     const { Highlights } = await import("./highlights");
     const { Marquee } = await import("./marquee");
     const { LockDemo } = await import("./lock-demo");
@@ -194,6 +197,7 @@ describe("the section head on the 12-column grid", () => {
       ["gate", Gate],
       ["highlights", Highlights],
       ["features", Features],
+      ["compare", Comparison],
       ["faq", async () => Faq({ locale: "en", items: await faqContent("en") })],
     ];
     const layouts: Record<string, string | null> = {};
@@ -216,6 +220,7 @@ describe("the section head on the 12-column grid", () => {
       gate: "split",
       highlights: "split",
       features: "split",
+      compare: "split",
       faq: "aside",
     });
   });
