@@ -1,11 +1,8 @@
 import { z } from "zod";
 import { COPY_SURFACES, CTA_IDS, OUTBOUND_TARGETS } from "@/lib/analytics-events";
-import { DEFAULT_LOCALE, LOCALES } from "@/lib/locales";
+import { LOCALES } from "@/lib/locales";
+import { MAX_RELAY_PATH_LENGTH } from "@/lib/relay-path";
 import type { UmamiEventData } from "@/lib/umami-send";
-
-export const MAX_RELAY_BODY_BYTES = 1024;
-
-export const MAX_RELAY_PATH_LENGTH = 200;
 
 export interface RelayEvent {
   readonly path: string;
@@ -50,11 +47,4 @@ export function parseRelayEvent(text: string): RelayEvent | undefined {
   if (event.e === "pageview") return { path: event.u };
   if (!("p" in event)) return { path: event.u, name: event.e };
   return { path: event.u, name: event.e, data: event.p };
-}
-
-export function servedPathOf(publicPath: string): string {
-  const [, first = ""] = publicPath.split("/");
-  const prefixed = first !== DEFAULT_LOCALE && (LOCALES as readonly string[]).includes(first);
-  if (prefixed) return publicPath;
-  return publicPath === "/" ? `/${DEFAULT_LOCALE}` : `/${DEFAULT_LOCALE}${publicPath}`;
 }

@@ -1,5 +1,6 @@
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
-import { MAX_RELAY_BODY_BYTES, parseRelayEvent, servedPathOf } from "@/lib/relay-events";
+import { parseRelayEvent } from "@/lib/relay-events";
+import { MAX_RELAY_BODY_BYTES, servedPathOf } from "@/lib/relay-path";
 import { createRelayRateLimit } from "@/lib/relay-rate-limit";
 import { clientIp, isPageRoute } from "@/lib/server-pageview";
 import { emitUmamiEvent } from "@/lib/umami-event";

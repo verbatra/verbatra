@@ -1,7 +1,7 @@
 import "server-only";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { hasMarkdownVariant, MARKDOWN_SUFFIX, markdownRewritePath } from "@/lib/markdown-route";
-import { servedPathOf } from "@/lib/relay-events";
+import { servedPathOf } from "@/lib/relay-path";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { isDocumentNavigation, isPageRoute, isRedirect } from "@/lib/server-pageview";
 import type { UmamiEventSpec } from "@/lib/umami-event";

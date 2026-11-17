@@ -1,6 +1,6 @@
 import "server-only";
 import { after } from "next/server";
-import { MAX_RELAY_PATH_LENGTH } from "@/lib/relay-events";
+import { MAX_RELAY_PATH_LENGTH } from "@/lib/relay-path";
 import { requestHost } from "@/lib/request-host";
 import { isTrackingRefused, visitorOf } from "@/lib/server-pageview";
 import { SITE_HOST, SITE_URL } from "@/lib/site";
