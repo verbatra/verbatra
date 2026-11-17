@@ -113,7 +113,7 @@ test.describe("analytics after the full choice", () => {
     expect(copy?.data).toEqual({ surface: "command-row" });
   });
 
-  test("never sends the screen size or a query string, and opens no other origin", async ({
+  test("the tracker never sends the screen size or a query string, and opens no other origin", async ({
     page,
     context,
     baseURL,
@@ -133,6 +133,21 @@ test.describe("analytics after the full choice", () => {
       expect(payload.url).toBe("/docs?utm_source=newsletter");
     }
     expect(new Set(foreign)).toEqual(new Set([UMAMI_ORIGIN]));
+  });
+
+  test("the recorder sends the full page address, which is why the policy says so", async ({
+    page,
+    context,
+  }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/docs?q=secret#intro");
+    await expect
+      .poll(() => requests.filter((request) => request.pathname === "/api/record").length)
+      .toBeGreaterThanOrEqual(1);
+    const recorded = requests
+      .filter((request) => request.pathname === "/api/record")
+      .map((request) => JSON.parse(request.body ?? "{}").url as string);
+    expect(recorded.every((url) => url.includes("?q=secret#intro"))).toBe(true);
   });
 
   test("raises no CSP violation while the tracker and recorder run", async ({ page, context }) => {
@@ -176,6 +191,122 @@ test.describe("analytics after the full choice", () => {
     await page.waitForLoadState("networkidle");
     expect(requests).toEqual([]);
   });
+});
+
+async function focusedBoxesOutsidePrompt(page: Page, steps: number) {
+  const overlaps: string[] = [];
+  for (let step = 0; step < steps; step += 1) {
+    await page.keyboard.press("Tab");
+    const result = await page.evaluate(() => {
+      const region = document.querySelector("section.rr-block[aria-label]");
+      const active = document.activeElement;
+      if (!region || !active || active === document.body || region.contains(active)) return null;
+      const a = active.getBoundingClientRect();
+      const r = region.getBoundingClientRect();
+      const control = a.height <= 200;
+      const overlaps =
+        control && a.left < r.right && a.right > r.left && a.top < r.bottom && a.bottom > r.top;
+      return overlaps ? `${active.tagName} ${a.top}-${a.bottom} behind ${r.top}-${r.bottom}` : null;
+    });
+    if (result !== null) overlaps.push(result);
+  }
+  return overlaps;
+}
+
+test.describe("analytics prompt and keyboard focus", () => {
+  test.use({ storageState: NO_CHOICE });
+
+  for (const size of [
+    { width: 375, height: 667 },
+    { width: 1440, height: 900 },
+  ]) {
+    for (const path of ["/", "/docs/config-file"]) {
+      test(`no focused element is hidden behind the prompt at ${size.width}px on ${path}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(size);
+        await page.goto(path);
+        await expect(prompt(page)).toBeVisible();
+        await page.keyboard.press("Tab");
+        expect(await prompt(page).evaluate((node) => node.contains(document.activeElement))).toBe(
+          true,
+        );
+        expect(await focusedBoxesOutsidePrompt(page, 70)).toEqual([]);
+      });
+    }
+  }
+
+  test("Escape hides the prompt for this page view and stores nothing", async ({ page }) => {
+    await page.goto("/");
+    await expect(prompt(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(prompt(page)).toHaveCount(0);
+    expect(await choiceCookie(page)).toBeUndefined();
+    await page.reload();
+    await expect(prompt(page)).toBeVisible();
+  });
+
+  test("the back-to-top button is not under the prompt while the prompt shows", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(prompt(page)).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect(page.locator(".vk-scroll-top")).toBeHidden();
+    await prompt(page).getByRole("button", { name: "No thanks" }).click();
+    await expect(page.locator(".vk-scroll-top")).toBeVisible();
+  });
+
+  test("the page leaves room below its end for the prompt", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/imprint");
+    await expect(prompt(page)).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const lastBottom = await page.evaluate(
+      () => document.querySelector("footer")?.getBoundingClientRect().bottom ?? 0,
+    );
+    const promptTop = (await prompt(page).boundingBox())?.y ?? 0;
+    expect(lastBottom).toBeLessThanOrEqual(promptTop);
+  });
+
+  for (const locale of LOCALES) {
+    test(`the ${locale} prompt takes at most about 30 percent of a 320x640 screen`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 320, height: 640 });
+      await page.goto(pageUrl(locale, "/"));
+      const box = await page.locator("section.rr-block[aria-label]").boundingBox();
+      expect(box?.height).toBeLessThanOrEqual(640 * 0.31);
+      for (const button of await page
+        .locator("section.rr-block[aria-label]")
+        .getByRole("button")
+        .all()) {
+        expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      }
+    });
+  }
+});
+
+test.describe("the privacy switch shows the stored choice", () => {
+  test.use({ storageState: NO_CHOICE });
+
+  for (const [value, pressed, status] of [
+    ["full", "Allow extended analytics", /extended analytics is allowed/i],
+    ["default", "Count page views only", /extended analytics stays off/i],
+    ["off", "Opt out of analytics", /you have opted out/i],
+  ] as const) {
+    test(`the ${value} choice presses ${pressed}`, async ({ page, context }) => {
+      await context.addCookies([{ name: "verbatra_analytics", value, url: "http://localhost" }]);
+      await page.goto("/privacy");
+      const panel = page.locator('.rr-block:has(form[action="/api/analytics"])');
+      await expect(panel.getByRole("button", { pressed: true })).toHaveText(pressed);
+      await expect(panel.getByRole("button", { pressed: false })).toHaveCount(2);
+      await expect(panel.getByRole("status")).toHaveText(status);
+      for (const button of await panel.getByRole("button").all()) {
+        expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      }
+    });
+  }
 });
 
 test.describe("analytics with a stored off or default choice", () => {

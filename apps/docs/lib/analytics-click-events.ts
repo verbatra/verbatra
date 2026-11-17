@@ -1,3 +1,4 @@
+import { LEGAL_PAGE_LINKS } from "@/components/landing/links";
 import {
   COPY_SURFACES,
   CTA_IDS,
@@ -16,6 +17,10 @@ const HOST_TARGETS: ReadonlyArray<readonly [RegExp, (typeof OUTBOUND_TARGETS)[nu
   [/(^|\.)npmjs\.com$/, "npm"],
   [/(^|\.)modelcontextprotocol\.io$/, "mcp-registry"],
 ];
+
+const LEGAL_SEGMENTS: readonly string[] = LEGAL_PAGE_LINKS.map(
+  ({ path }) => path.replace(/^\//, "").split("#")[0] ?? "",
+);
 
 function oneOf<T extends string>(
   allowed: readonly T[],
@@ -54,12 +59,7 @@ function outboundOrigin(link: Element): EventProperties["outbound_click"]["from"
   if (link.closest("header")) return "header";
   const segments = window.location.pathname.split("/").filter(Boolean);
   const section = segments.find(
-    (segment) =>
-      segment === "docs" ||
-      segment === "imprint" ||
-      segment === "privacy" ||
-      segment === "contact" ||
-      segment === "licenses",
+    (segment) => segment === "docs" || LEGAL_SEGMENTS.includes(segment),
   );
   if (section === undefined) return "landing";
   return section === "docs" ? "docs" : "legal";
@@ -80,15 +80,5 @@ export function eventForClick(target: Element): ClickEvent | undefined {
 export function reportClick(target: Element): void {
   const event = eventForClick(target);
   if (event === undefined) return;
-  switch (event[0]) {
-    case "copy_code":
-      trackEvent(event[0], event[1]);
-      break;
-    case "cta_click":
-      trackEvent(event[0], event[1]);
-      break;
-    case "outbound_click":
-      trackEvent(event[0], event[1]);
-      break;
-  }
+  trackEvent(event[0], event[1]);
 }

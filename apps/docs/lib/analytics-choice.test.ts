@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   choiceCookie,
+  expiredLegacyOptOutCookie,
   hasLegacyOptOut,
   hasPrivacySignal,
-  parseChoice,
   readChoiceCookie,
 } from "./analytics-choice";
 
-describe("parseChoice", () => {
+describe("readChoiceCookie", () => {
   it.each(["full", "default", "off"] as const)("reads %s from the choice cookie", (choice) => {
-    expect(parseChoice(`theme=x; verbatra_analytics=${choice}; other=1`)).toBe(choice);
+    expect(readChoiceCookie(`theme=x; verbatra_analytics=${choice}; other=1`)).toBe(choice);
   });
 
   it.each([
@@ -20,27 +20,15 @@ describe("parseChoice", () => {
     "x_verbatra_analytics=full",
     "verbatra_analytics_extra=full",
   ])("treats %s as undecided", (cookie) => {
-    expect(parseChoice(cookie)).toBeUndefined();
+    expect(readChoiceCookie(cookie)).toBeUndefined();
   });
 
   it.each([null, undefined, ""])("treats an absent cookie header (%s) as undecided", (header) => {
-    expect(parseChoice(header)).toBeUndefined();
-  });
-
-  it("maps the legacy opt-out cookie to off", () => {
-    expect(parseChoice("verbatra_analytics_optout=1")).toBe("off");
-  });
-
-  it("ignores a legacy cookie with another value", () => {
-    expect(parseChoice("verbatra_analytics_optout=0")).toBeUndefined();
-  });
-
-  it("lets the choice cookie win over the legacy cookie", () => {
-    expect(parseChoice("verbatra_analytics_optout=1; verbatra_analytics=full")).toBe("full");
+    expect(readChoiceCookie(header)).toBeUndefined();
   });
 
   it("ignores malformed pairs", () => {
-    expect(parseChoice(";;novalue; verbatra_analytics=default")).toBe("default");
+    expect(readChoiceCookie(";;novalue; verbatra_analytics=default")).toBe("default");
   });
 });
 
@@ -83,5 +71,13 @@ describe("choiceCookie", () => {
 
   it("never marks the choice cookie HttpOnly", () => {
     expect(choiceCookie("off")).not.toContain("HttpOnly");
+  });
+});
+
+describe("expiredLegacyOptOutCookie", () => {
+  it("clears the HttpOnly legacy cookie at the root path", () => {
+    expect(expiredLegacyOptOutCookie()).toBe(
+      "verbatra_analytics_optout=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0",
+    );
   });
 });

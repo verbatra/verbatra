@@ -41,16 +41,17 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
 - **Shared constants** - apps/docs/lib/umami-config.mjs (no `server-only`, so client code and
   security headers import it): `UMAMI_ORIGIN`, `UMAMI_WEBSITE_ID`, `UMAMI_SCRIPT_URL`,
   `UMAMI_RECORDER_URL`, `ANALYTICS_CHOICE_COOKIE`, `LEGACY_OPT_OUT_COOKIE`,
-  `ANALYTICS_CHOICES`. `lib/server-pageview.ts` re-exports the origin and website ID.
+  `ANALYTICS_CHOICES`, `CHOICE_COOKIE_MAX_AGE_SECONDS` (one year, shared by the cookie string and its test). `lib/server-pageview.ts` re-exports the origin and website ID.
 - **Choice cookie** - `verbatra_analytics` with the value `full`, `default` or `off`; absent
   means undecided; anything else is undecided. Secure, SameSite=Lax, Path=/, one year, NOT
   HttpOnly (the loader and the prompt read it in the browser; page HTML is prerendered, so the
   server cannot decide). `default` is "No thanks" and keeps the Tier 0 count. Parsing and the
-  `Set-Cookie` string live in lib/analytics-choice.ts (`readChoiceCookie`, `parseChoice`,
-  `choiceCookie`, `hasPrivacySignal`).
+  `Set-Cookie` string live in lib/analytics-choice.ts (`readChoiceCookie`, `hasLegacyOptOut`,
+  `choiceCookie`, `expiredLegacyOptOutCookie`, `hasPrivacySignal`).
 - **Legacy cookie** - `verbatra_analytics_optout=1` is HttpOnly, so only the server sees it. The
   proxy still honours it for counting and, when it is present without the choice cookie,
-  appends `Set-Cookie: verbatra_analytics=off` (`withChoiceMigration`). An explicit choice on
+  appends `Set-Cookie: verbatra_analytics=off` and always expires the legacy cookie
+  (`withChoiceMigration`). An explicit choice on
   /api/analytics clears it.
 - **Server count rules** - `countedPageview` (lib/server-pageview.ts) returns an event only for a
   GET with `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in
@@ -75,25 +76,38 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   hostname, so a local run counts nothing), then `recorder.js` with only `data-website-id`. Both
   carry ids and are injected once. It listens for the same-tab event `verbatra:analytics-choice`:
   `full` injects without a reload, anything else reloads when the scripts are present (scripts
-  cannot be unloaded). It reads and writes no storage. There is no `next/script`, no inline
+  cannot be unloaded). It re-checks the same rule on `pageshow` (back-forward cache
+  restore) and when the tab becomes visible, so a withdrawal made in another tab or before a restore
+  also reloads. It reads and writes no storage. There is no `next/script`, no inline
   code and no manifest hash change; external scripts are never hashed.
 - **Sanitiser** - lib/analytics-sanitize.ts, exposed as `window.verbatraUmamiBeforeSend`: drops
   `screen`, rebuilds `url` as path plus the five UTM parameters (255 cap), strips query and hash
-  from `referrer`. The recorder has no such hook and sends `location.href`, so keep query
+  from `referrer`, and drops a relative or unparsable `referrer` to `""` (internal referrers
+  carry no value here, external ones keep origin and path). It covers `script.js` only. The
+  recorder has no such hook and sends the full `location.href` with every replay and heatmap
+  event, query and fragment included; `rr-block` hides DOM content, not the address. The policy
+  says so (legal.privacy.s4.extended), and no URL is rewritten to hide it, so keep query
   strings out of internal links (the only query on the site is the privacy page `?analytics=`
-  redirect, which is inside an `rr-block` panel).
+  redirect).
 - **CSP** - lib/security-headers.mjs adds `UMAMI_ORIGIN` to `script-src` and `connect-src`
   statically, in production and development. `img-src`, `frame-ancestors` (`'none'`) and
   `X-Frame-Options: DENY` are unchanged, so the Umami heatmap preview shows a blank canvas by
   decision. The choice is enforced by the loader and its tests, not by the CSP.
 - **Consent prompt** - components/analytics-prompt.tsx: a non-blocking fixed region (bottom
-  corner, no layout shift), rendered only after hydration when there is no choice and no GPC or
-  DNT signal, with equal-weight Allow and No thanks and a link to `/privacy#analytics`. It
-  posts to /api/analytics with `fetch` (`redirect: "manual"`), checks that the cookie arrived,
-  hides, and dispatches the choice event. Strings: `analyticsPrompt.*` in messages.
+  corner, no layout shift, about 30 percent of a 320x640 screen at most, buttons 44px), rendered
+  only after hydration when there is no choice and no GPC or DNT signal, with equal-weight Allow
+  and No thanks and a link to `/privacy#analytics`. It sits first in the body (early focus
+  order) in the locale layout. While it shows it sets `data-analytics-prompt` and
+  `--analytics-prompt-clearance` on `<html>`; app/global.css uses them for bottom padding and
+  scroll padding (no focused element sits behind it) and hides the back-to-top button. Escape
+  hides it for the page view and stores nothing. It posts to /api/analytics with `fetch`
+  (`redirect: "manual"`), checks that the cookie arrived, hides and dispatches the choice event,
+  or shows `analyticsPrompt.error` when the choice could not be saved. Strings: `analyticsPrompt.*`.
 - **Privacy switch** - components/analytics-opt-out.tsx renders three plain forms (Allow
   extended analytics, Count page views only, Opt out) in section 4 of the policy; they work
-  without JavaScript. app/api/analytics/route.ts takes the form POST (`choice=full|default|off`,
+  without JavaScript. After hydration it reads the cookie and marks the stored choice with
+  `aria-pressed` and one status line (id `analytics-<choice>`), replacing the three `:target`
+  fallbacks. app/api/analytics/route.ts takes the form POST (`choice=full|default|off`,
   `lang`), checks the Origin like the contact route, sets the choice cookie, clears the legacy
   one, and answers 303 to `/privacy?analytics=<choice>#analytics-<choice>` (locale prefixed
   except for English). The confirmation shows through `:target`. A footer link "Analytics
@@ -121,6 +135,10 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   `data-errors`, `data-tag`, reading `umami.disabled`.
 - **Kill switch** - turning replay and heatmaps off in the Umami website settings stops
   recording without a deploy (the recorder fetches its config first).
+- **Retention** - the policy promises replays and heatmaps 30 days and page view and event rows
+  13 months (legal.privacy.s4.retention). Both periods depend on the owner enforcing them on the
+  Umami server (replay retention, and scheduled deletion of older rows if the self-hosted version
+  has no retention setting); the site code cannot delete anything.
 - **Accepted limits** - the tiers measure different things: Tier 0 counts document loads only,
   Tier 1 counts soft navigations too, so the two series are not comparable. Visitors with a
   blocker on Tier 1 are not counted at all.

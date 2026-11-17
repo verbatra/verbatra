@@ -87,11 +87,6 @@ export default async function Layout({
       </head>
       <body className="flex flex-col min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <JsonLd data={websiteLd({ lang: locale })} />
-        <JsonLd data={organizationLd()} />
-        {children}
-        <AnalyticsLoader />
-        <AnalyticsClickEvents />
         <AnalyticsPrompt
           locale={locale}
           labels={{
@@ -101,8 +96,14 @@ export default async function Layout({
             allow: tPrompt("allow"),
             decline: tPrompt("decline"),
             privacy: tPrompt("privacy"),
+            error: tPrompt("error"),
           }}
         />
+        <JsonLd data={websiteLd({ lang: locale })} />
+        <JsonLd data={organizationLd()} />
+        {children}
+        <AnalyticsLoader />
+        <AnalyticsClickEvents />
       </body>
     </html>
   );

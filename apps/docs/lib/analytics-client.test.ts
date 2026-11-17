@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearDocumentCookie, setDocumentCookie } from "../test-support/document-cookie";
 import { announceChoice, browserChoice, browserHasSignal, CHOICE_EVENT } from "./analytics-client";
 
 function clearCookies(): void {
   for (const name of ["verbatra_analytics", "verbatra_analytics_optout"]) {
-    document.cookie = `${name}=; Max-Age=0; Path=/`;
+    clearDocumentCookie(name);
   }
 }
 
@@ -30,12 +31,12 @@ describe("browserChoice", () => {
   });
 
   it("reads the choice cookie", () => {
-    document.cookie = "verbatra_analytics=full; Path=/";
+    setDocumentCookie("verbatra_analytics", "full");
     expect(browserChoice()).toBe("full");
   });
 
   it("ignores a value outside the allowlist", () => {
-    document.cookie = "verbatra_analytics=maybe; Path=/";
+    setDocumentCookie("verbatra_analytics", "maybe");
     expect(browserChoice()).toBeUndefined();
   });
 });

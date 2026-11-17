@@ -215,10 +215,10 @@ jobs:
             exit 0
           fi
           changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- \
-            apps/docs packages pnpm-lock.yaml .github/workflows/ci.yml)
+            apps/docs packages package.json pnpm-lock.yaml .github/workflows/ci.yml)
           if [ -z "$changed" ]; then
             echo "build=false" >> "$GITHUB_OUTPUT"
-            echo "No change under apps/docs, packages, pnpm-lock.yaml or this workflow."
+            echo "No change under apps/docs, packages, package.json, pnpm-lock.yaml or this workflow."
             exit 0
           fi
           echo "build=true" >> "$GITHUB_OUTPUT"

@@ -39,16 +39,34 @@ function allowed(): boolean {
   return browserChoice() === "full" && !browserHasSignal();
 }
 
+function reloadIfWithdrawn(): void {
+  if (!allowed() && document.getElementById(TRACKER_ID) !== null) reloadPage();
+}
+
 function onChoice(): void {
   if (allowed()) injectScripts();
-  else if (document.getElementById(TRACKER_ID) !== null) reloadPage();
+  else reloadIfWithdrawn();
+}
+
+function onPageShow(event: PageTransitionEvent): void {
+  if (event.persisted) reloadIfWithdrawn();
+}
+
+function onVisibilityChange(): void {
+  if (document.visibilityState === "visible") reloadIfWithdrawn();
 }
 
 export function AnalyticsLoader(): null {
   useEffect(() => {
     if (allowed()) injectScripts();
     window.addEventListener(CHOICE_EVENT, onChoice);
-    return () => window.removeEventListener(CHOICE_EVENT, onChoice);
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener(CHOICE_EVENT, onChoice);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
   return null;
 }

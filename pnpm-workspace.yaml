@@ -125,7 +125,8 @@ overrides:
   # >=3.0.0 <3.1.7 and GHSA-58mr-gqgx-xq4g (high) names 3.1.6 itself, so the 3.1.4 floor this override
   # used to set is vulnerable in its own right. Lifts the copies ajv pulls through commitlint (dev-only)
   # and through @google/genai > @modelcontextprotocol/sdk (published sdk path), bounded to the v3 line
-  # ajv expects. The 3.1.8 copy is still vulnerable (OSV, fixed in 3.1.9), so the floor is 3.1.9.
+  # ajv expects. The 3.1.8 copy is still vulnerable (GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr,
+  # GHSA-xhq7-xmqj-769h, GHSA-333x-w4r6-6crp, all fixed in 3.1.9), so the floor is 3.1.9.
   "fast-uri@>=3.0.0 <3.1.9": ">=3.1.9 <4"
   # GHSA-hxh3-vqpv-xpqv: hono/jsx renders plain strings unescaped in boundary components (XSS).
   # Vulnerable <4.13.7; lifts the 4.13.5 copy @hono/node-server pulls through
@@ -168,8 +169,9 @@ overrides:
   # token after a { comment } token. Vulnerable >=1.8.4 <1.11.0; lifts the 1.10.0 copy launch-editor
   # pulls through @changesets/cli (dev-only), bounded to the v1 line launch-editor declares.
   shell-quote@<1.11.0: ">=1.11.0 <2"
-  # Scorecard Vulnerabilities finding: launch-editor 2.14.1 is vulnerable, fixed in 2.14.2. Lifts the
-  # copy @changesets/cli pulls (dev-only), bounded to the v2 line.
+  # Scorecard Vulnerabilities finding: launch-editor <=2.14.1 is vulnerable (GHSA-r825-w8mm-5pxw,
+  # GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv), fixed in 2.14.2. Lifts the copy @changesets/cli pulls
+  # (dev-only), bounded to the v2 line.
   "launch-editor@<2.14.2": ">=2.14.2 <3"
   # follow-redirects high-severity advisories (Dependabot alerts 65 and 66), vulnerable >=1.16.0 <1.16.1.
   # Lifts the 1.16.0 copy axios pulls through deepl-node on the published ai-providers/sdk path, bounded

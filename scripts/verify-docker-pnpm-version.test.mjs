@@ -8,13 +8,18 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DOCKERFILE = readFileSync(resolve(REPO_ROOT, "apps/docs/Dockerfile"), "utf8");
 const ROOT_MANIFEST = JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), "utf8"));
 
-const COREPACK_ENABLES = [...DOCKERFILE.matchAll(/^RUN corepack enable\s*$/gm)];
+const COREPACK_ENABLES = [...DOCKERFILE.matchAll(/^RUN corepack enable && corepack install\s*$/gm)];
 const MANIFEST_COPY_INDEX = DOCKERFILE.search(/^COPY package\.json \.\/\s*$/m);
 
 describe("docs Dockerfile pnpm version", () => {
   it("activates pnpm through corepack exactly once", () => {
     expect(COREPACK_ENABLES).toHaveLength(1);
     expect(DOCKERFILE).not.toMatch(/npm install --global pnpm/);
+  });
+
+  it("installs the pinned pnpm in the same step instead of at the first pnpm call", () => {
+    expect(DOCKERFILE).toMatch(/^RUN corepack enable && corepack install\s*$/m);
+    expect(DOCKERFILE).not.toMatch(/^RUN corepack enable\s*$/m);
   });
 
   it("copies the manifest before corepack reads the packageManager field", () => {

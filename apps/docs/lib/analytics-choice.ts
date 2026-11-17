@@ -5,6 +5,8 @@ import {
   LEGACY_OPT_OUT_COOKIE,
 } from "@/lib/umami-config.mjs";
 
+export const ANALYTICS_ROUTE = "/api/analytics";
+
 export type AnalyticsChoice = (typeof ANALYTICS_CHOICES)[number];
 
 export interface PrivacySignals {
@@ -37,14 +39,14 @@ export function hasLegacyOptOut(header: string | null | undefined): boolean {
   return cookieValue(header, LEGACY_OPT_OUT_COOKIE) === "1";
 }
 
-export function parseChoice(header: string | null | undefined): AnalyticsChoice | undefined {
-  return readChoiceCookie(header) ?? (hasLegacyOptOut(header) ? "off" : undefined);
-}
-
 export function hasPrivacySignal({ gpc, dnt }: PrivacySignals): boolean {
   return gpc === true || dnt === "1" || dnt === "yes" || dnt === true;
 }
 
 export function choiceCookie(choice: AnalyticsChoice): string {
   return `${ANALYTICS_CHOICE_COOKIE}=${choice}; Secure; SameSite=Lax; Path=/; Max-Age=${CHOICE_COOKIE_MAX_AGE_SECONDS}`;
+}
+
+export function expiredLegacyOptOutCookie(): string {
+  return `${LEGACY_OPT_OUT_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }

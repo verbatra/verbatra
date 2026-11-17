@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearDocumentCookie, setDocumentCookie } from "../test-support/document-cookie";
 
 vi.mock("@/lib/analytics-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/analytics-client")>()),
@@ -30,7 +31,7 @@ async function mount(): Promise<void> {
 }
 
 function setChoice(value: string): void {
-  document.cookie = `verbatra_analytics=${value}; Path=/`;
+  setDocumentCookie("verbatra_analytics", value);
 }
 
 function script(id: string): HTMLScriptElement | null {
@@ -38,7 +39,7 @@ function script(id: string): HTMLScriptElement | null {
 }
 
 beforeEach(() => {
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
 });
 
 afterEach(() => {
@@ -51,7 +52,7 @@ afterEach(() => {
   Reflect.deleteProperty(window, BEFORE_SEND_NAME);
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
   Reflect.deleteProperty(navigator, "doNotTrack");
-  document.cookie = "verbatra_analytics=; Max-Age=0; Path=/";
+  clearDocumentCookie("verbatra_analytics");
   vi.clearAllMocks();
 });
 
@@ -176,6 +177,65 @@ describe("AnalyticsLoader", () => {
     });
     expect(reloadPage).not.toHaveBeenCalled();
     expect(document.querySelectorAll("script")).toHaveLength(0);
+  });
+
+  it("reloads when a restored page finds the choice withdrawn in the meantime", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a pageshow that is not a restore from the back-forward cache", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: false }));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("reloads when the tab becomes visible after the choice was withdrawn elsewhere", async () => {
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload on becoming visible while the choice still stands", async () => {
+    setChoice("full");
+    await mount();
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("does not reload on a resume when nothing was injected", async () => {
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("stops listening for resumes when it unmounts", async () => {
+    setChoice("full");
+    await mount();
+    act(() => mounted?.root.unmount());
+    setChoice("off");
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(reloadPage).not.toHaveBeenCalled();
   });
 
   it("stops listening when it unmounts", async () => {
