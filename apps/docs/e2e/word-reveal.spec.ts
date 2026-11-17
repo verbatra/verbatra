@@ -174,6 +174,14 @@ for (const [width, height] of VIEWPORTS) {
         await expect.poll(async () => (await words(page, index)).done).toBe(true);
       }
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+      await page.evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((animation) => animation instanceof CSSTransition)
+            .map((animation) => animation.finished),
+        ),
+      );
       await expectNoAxeViolations(page);
       await expectNoHorizontalScroll(page);
     });
