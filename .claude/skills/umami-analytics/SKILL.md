@@ -156,7 +156,7 @@ delete anything. Replay and heatmaps are off in the dashboard and their data del
 | Free text, queries, code or form values in an event | Closed enums in lib/analytics-events.ts, enforced by the strict relay schema |
 | Counting in a page or an action | Count in proxy.ts through `countedPageview` or a route handler through `emitUmamiEvent` |
 | Logging a failed send or a dropped relay request | `sendToUmami` and the relay stay silent: no IP, user agent or error text |
-| Adding a cookie or a storage write | Name it in legal.privacy.s5 in every locale and pin it in privacy/page.test.tsx |
+| Adding a cookie or a storage write | Name it in legal.privacy.s5 in every locale and pin it in retired-legal-claims.test.tsx |
 | Changing what is counted without the policy | Update legal.privacy.s2, s4, s5, s6 and the objection section in every locale and verbatra.lock.json in the same change, through `verbatra export` and `verbatra import`; remove keys with `verbatra translate --dry-run --prune` then `--prune`; never `pnpm i18n` for hand-maintained legal text |
 | Writing a claim the tests retired (an optional extended tier, a consent prompt, replay or heatmap retention) | app/[lang]/(legal)/retired-legal-claims.test.tsx lists them in every locale |
 
@@ -166,6 +166,6 @@ lib/analytics-report.test.ts, lib/analytics-click-events.test.ts, components/ana
 lib/relay-events.test.ts, lib/relay-path.test.ts, lib/no-zod-in-proxy.test.ts, lib/relay-rate-limit.test.ts, app/api/e/route.test.ts, lib/umami-send.test.ts,
 lib/umami-event.test.ts, lib/server-events.test.ts, lib/server-pageview.test.ts,
 proxy.pageview.test.ts, proxy.cookies.test.ts, lib/analytics-choice.test.ts,
-lib/security-headers.test.ts, proxy.csp.test.ts, the privacy page tests and retired claims under
+lib/security-headers.test.ts, proxy.csp.test.ts, the retired claims test under
 app/[lang]/(legal)/, and e2e/analytics.spec.ts. The e2e intercepts `/api/e` with `page.route` and
 never reaches the real host; scripts/csp-smoke.mjs fails on any request to another origin.
