@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { UMAMI_WEBSITE_ID } from "./umami-config.mjs";
 import { emitUmamiEvent, refererPage, umamiEventFor } from "./umami-event";
+import type { UmamiMessage } from "./umami-send";
 
 const SAFARI =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
@@ -75,7 +76,7 @@ describe("umamiEventFor", () => {
 
 describe("emitUmamiEvent", () => {
   it("hands the send to the scheduler once for an allowed request", async () => {
-    const send = vi.fn(async () => undefined);
+    const send = vi.fn(async (_message: UmamiMessage) => undefined);
     const schedule = vi.fn((task: () => Promise<void>) => void task());
     emitUmamiEvent(request(), SPEC, { schedule, send });
     expect(schedule).toHaveBeenCalledTimes(1);

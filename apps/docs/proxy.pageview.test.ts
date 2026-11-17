@@ -26,7 +26,7 @@ const DOCUMENT_NAVIGATION: Record<string, string> = {
   "user-agent": SAFARI,
 };
 
-const fetchMock = vi.fn(async () => new Response("{}"));
+const fetchMock = vi.fn(async (..._args: unknown[]) => new Response("{}"));
 
 function eventSpy() {
   const waitUntil = vi.fn();

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { ScriptHashesByRoute } from "./script-hashes-manifest.mjs";
 import { proxyEventFor } from "./server-events";
 
 const SAFARI =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
-const ROUTES = {
+const ROUTES: ScriptHashesByRoute = {
   "/en": [],
   "/de": [],
   "/en/docs": [],
