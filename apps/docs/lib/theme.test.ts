@@ -422,10 +422,14 @@ describe("theme tokens", () => {
           rule.selector.includes(selector) &&
           rule.declarations["word-break"] === "keep-all",
       )?.declarations["overflow-wrap"];
-    for (const selector of [".vk-closer h2", ".vk-marquee-heading"])
+    for (const selector of [
+      ".vk-closer h2",
+      ".vk-marquee-heading",
+      ".vk-faq-question",
+      ".vk-statement-text",
+    ])
       expect(wrapOf(selector)).toBe("break-word");
-    for (const selector of [".vk-h2", ".vk-display", ".vk-faq-question"])
-      expect(wrapOf(selector)).toBe("anywhere");
+    for (const selector of [".vk-h2", ".vk-display"]) expect(wrapOf(selector)).toBe("anywhere");
   });
 
   it("lets the closing call to action shrink its grid track below its heading", () => {
@@ -442,7 +446,19 @@ describe("theme tokens", () => {
           rule.declarations["word-break"] === "keep-all",
       )?.declarations["overflow-wrap"];
     expect(wrapOf(".vk-closer h2")).toBe("break-word");
-    expect(wrapOf(".vk-faq-question")).toBe("anywhere");
+    expect(wrapOf(".vk-faq-question")).toBe("break-word");
+    expect(wrapOf(".vk-h2")).toBe("anywhere");
+  });
+
+  it("keeps the Japanese and Chinese faq question and statement from starting a line with a closing mark, and lets the question shrink in its flex row", () => {
+    const strict = rules.find(
+      (rule) =>
+        rule.selector.includes(":lang(ja)") &&
+        rule.selector.includes(".vk-faq-question") &&
+        rule.selector.includes(".vk-statement-text"),
+    );
+    expect(strict?.declarations["line-break"]).toBe("strict");
+    expect(strict?.declarations["min-width"]).toBe("0");
   });
 });
 

@@ -283,12 +283,27 @@ samp {
 }
 
 :root:is(:lang(zh-CN), :lang(ja))
-  :is(.vk-display, .vk-h2, .vk-h3, .vk-h4, .vk-faq-question, .vk-comparison-label td):is(
-    :lang(zh-CN),
-    :lang(ja)
-  ) {
+  :is(.vk-display, .vk-h2, .vk-h3, .vk-h4, .vk-comparison-label td):is(:lang(zh-CN), :lang(ja)) {
   word-break: keep-all;
   overflow-wrap: anywhere;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(.vk-faq-question, .vk-statement-text):is(:lang(zh-CN), :lang(ja)) {
+  min-width: 0;
+  word-break: keep-all;
+  line-break: strict;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 23.99rem) {
+  :root:is(:lang(zh-CN), :lang(ja)) .vk-statement-text:is(:lang(zh-CN), :lang(ja)) {
+    font-size: 1.875rem;
+  }
+
+  :root:is(:lang(zh-CN), :lang(ja)) .vk-faq-question:is(:lang(zh-CN), :lang(ja)) {
+    font-size: 1.0625rem;
+  }
 }
 
 :root:is(:lang(zh-CN), :lang(ja)) .vk-pill-new:is(:lang(zh-CN), :lang(ja)) {
