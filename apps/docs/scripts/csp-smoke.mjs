@@ -1,4 +1,6 @@
 import { chromium } from "playwright";
+import { UMAMI_ORIGIN } from "../lib/umami-config.mjs";
+import { stubUmami } from "./umami-stub.mjs";
 
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
 
@@ -32,7 +34,11 @@ const COLLECT_VIOLATIONS = () => {
 
 const STEP_TIMEOUT_MS = 10_000;
 const STATIC_ASSET = "/_next/static/";
-const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
+const CONSENT_PAGES = [
+  { path: "/", html: true },
+  { path: "/de/docs", html: true },
+  { path: "/privacy", html: true },
+];
 const PAGE_ORIGIN = new URL(baseUrl).origin;
 const NETWORK_SCHEMES = new Set(["http:", "https:", "ws:", "wss:"]);
 const CSP_HEADER = "content-security-policy";
@@ -94,25 +100,29 @@ function watchStaticAssets(page) {
   return failures;
 }
 
-function watchThirdPartyRequests(page) {
+function watchThirdPartyRequests(page, allowedOrigins) {
   const requests = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (NETWORK_SCHEMES.has(url.protocol) && url.origin !== PAGE_ORIGIN) {
+    if (
+      NETWORK_SCHEMES.has(url.protocol) &&
+      url.origin !== PAGE_ORIGIN &&
+      !allowedOrigins.includes(url.origin)
+    ) {
       requests.push(url.origin === UMAMI_ORIGIN ? `${request.url()} (Umami)` : request.url());
     }
   });
   return requests;
 }
 
-async function visit(context, { path, html, search = false }) {
+async function visit(context, { path, html, search = false }, allowedOrigins = []) {
   const page = await context.newPage();
   const consoleViolations = [];
   page.on("console", (message) => {
     if (/content security policy/i.test(message.text())) consoleViolations.push(message.text());
   });
   const staticFailures = watchStaticAssets(page);
-  const thirdPartyRequests = watchThirdPartyRequests(page);
+  const thirdPartyRequests = watchThirdPartyRequests(page, allowedOrigins);
   const response = await page.goto(`${baseUrl}${path}`, { waitUntil: "networkidle" });
   const headerProblems = html && response ? policyProblems(await response.headersArray()) : [];
   const hydrated = html ? await holds(page, HYDRATED) : null;
@@ -136,6 +146,18 @@ const context = await browser.newContext();
 await context.addInitScript(COLLECT_VIOLATIONS);
 const results = [];
 for (const target of PAGES) results.push(await visit(context, target));
+
+const consentContext = await browser.newContext();
+await consentContext.addInitScript(COLLECT_VIOLATIONS);
+await consentContext.addCookies([{ name: "verbatra_analytics", value: "full", url: PAGE_ORIGIN }]);
+const umamiRequests = await stubUmami(consentContext);
+for (const target of CONSENT_PAGES) {
+  const result = await visit(consentContext, target, [UMAMI_ORIGIN]);
+  results.push({ ...result, path: `${result.path} (consent)` });
+}
+const scriptsLoaded = ["/script.js", "/recorder.js", "/api/send"].every((pathname) =>
+  umamiRequests.some((request) => request.pathname === pathname),
+);
 await browser.close();
 
 function note(value, passed, failed) {
@@ -170,6 +192,13 @@ for (const result of results) {
   const checks = failedChecks(result);
   for (const check of checks) console.log(`  ${check}`);
   if (checks.length > 0) failures += 1;
+}
+
+if (!scriptsLoaded) {
+  console.log(
+    "consent run: the tracker, the recorder or the pageview did not reach the Umami stub",
+  );
+  failures += 1;
 }
 
 console.log(failures === 0 ? "csp-smoke: passed" : `csp-smoke: ${failures} pages failed`);

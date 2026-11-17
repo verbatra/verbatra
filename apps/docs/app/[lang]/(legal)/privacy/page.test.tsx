@@ -9,8 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
 import { IMPRINT_PROVIDER_LINES } from "@/lib/legal-imprint";
 import { PACKAGE_MANAGER_GROUP } from "@/lib/package-manager-tabs";
-import { ANALYTICS_OPT_OUT_COOKIE } from "@/lib/server-pageview";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { ANALYTICS_CHOICE_COOKIE, LEGACY_OPT_OUT_COOKIE } from "@/lib/umami-config.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
@@ -145,15 +145,15 @@ const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
 };
 
 const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
-  en: /No analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, the first language tag of your browser's Accept-Language header .*, the referring page \(without its query string\) and the path of the page you loaded/,
-  de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers .*, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
-  es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador .*, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
-  fr: /Aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
+  en: /For this count, no analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, the first language tag of your browser's Accept-Language header .*, the referring page \(without its query string\) and the path of the page you loaded/,
+  de: /Für dieses Zählen läuft in deinem Browser kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers .*, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
+  es: /Para este recuento, en tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador .*, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
+  fr: /Pour ce comptage, aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
   "zh-CN":
-    /你的浏览器中不运行任何分析脚本，统计页面浏览量也不会向你的设备写入任何内容。.*我们的 Web 服务器会把该请求的以下信息转发给我们的 Umami 服务器：你的 IP 地址，你浏览器的 user-agent 字符串，浏览器 Accept-Language 请求头中的第一个语言标签.*，来源页面（不含其查询字符串），以及你加载的页面路径/,
+    /对于这种统计，你的浏览器中不运行任何分析脚本，统计页面浏览量也不会向你的设备写入任何内容。.*我们的 Web 服务器会把该请求的以下信息转发给我们的 Umami 服务器：你的 IP 地址，你浏览器的 user-agent 字符串，浏览器 Accept-Language 请求头中的第一个语言标签.*，来源页面（不含其查询字符串），以及你加载的页面路径/,
   "pt-BR":
-    /Nenhum script de análise é executado no seu navegador, e nada é gravado no seu dispositivo para contar visualizações de página\..*nosso servidor web encaminha .*: seu endereço IP, a string de user-agent do seu navegador, a primeira etiqueta de idioma do cabeçalho Accept-Language do seu navegador .*, a página de referência \(sem a query string\) e o caminho da página que você carregou/,
-  ja: /ブラウザーで分析スクリプトは動作せず、ページビューの集計のためにデバイスへ書き込むものもありません。.*Web サーバーがそのリクエストの次の情報を Umami サーバーに転送します。IP アドレス、ブラウザーの user-agent 文字列、ブラウザーの Accept-Language ヘッダーの最初の言語タグ.*、参照元ページ（クエリ文字列を除く）、読み込んだページのパス/,
+    /Para essa contagem, nenhum script de análise é executado no seu navegador, e nada é gravado no seu dispositivo para contar visualizações de página\..*nosso servidor web encaminha .*: seu endereço IP, a string de user-agent do seu navegador, a primeira etiqueta de idioma do cabeçalho Accept-Language do seu navegador .*, a página de referência \(sem a query string\) e o caminho da página que você carregou/,
+  ja: /この集計では、ブラウザーで分析スクリプトは動作せず、ページビューの集計のためにデバイスへ書き込むものもありません。.*Web サーバーがそのリクエストの次の情報を Umami サーバーに転送します。IP アドレス、ブラウザーの user-agent 文字列、ブラウザーの Accept-Language ヘッダーの最初の言語タグ.*、参照元ページ（クエリ文字列を除く）、読み込んだページのパス/,
 };
 
 const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
@@ -215,48 +215,157 @@ const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
 };
 
 const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
-  en: /Clicks, copied text and other interactions are not recorded\./,
-  de: /Klicks, kopierte Texte und andere Interaktionen werden nicht erfasst\./,
-  es: /No se registran clics, textos copiados ni otras interacciones\./,
-  fr: /Les clics, les textes copiés et les autres interactions ne sont pas enregistrés\./,
-  "zh-CN": /点击、复制的文本和其他交互不会记录。/,
-  "pt-BR": /Cliques, textos copiados e outras interações não são registrados\./,
-  ja: /クリック、コピーしたテキスト、その他の操作は記録しません。/,
+  en: /Clicks, copied text and other interactions are not recorded by this count\./,
+  de: /Klicks, kopierte Texte und andere Interaktionen werden von diesem Zählen nicht erfasst\./,
+  es: /Este recuento no registra clics, textos copiados ni otras interacciones\./,
+  fr: /Ce comptage n’enregistre ni les clics, ni les textes copiés, ni les autres interactions\./,
+  "zh-CN": /这种统计不会记录点击、复制的文本和其他交互。/,
+  "pt-BR": /Essa contagem não registra cliques, textos copiados nem outras interações\./,
+  ja: /この集計では、クリック、コピーしたテキスト、その他の操作は記録しません。/,
 };
 
 const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
   en: /opt-out saved in your browser's local storage under this site's earlier analytics setup is no longer read/,
-  de: /Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen/,
+  de: /Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird von der serverseitigen Zählung nicht mehr ausgelesen/,
   es: /exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee/,
   fr: /opposition enregistrée dans le stockage local de ton navigateur avec l’ancienne configuration statistique de ce site n’est plus lue/,
-  "zh-CN": /本站早先的分析设置曾把退出选择保存在你浏览器的本地存储中，现在不再读取/,
+  "zh-CN": /本站早先的分析设置曾把退出选择保存在你浏览器的本地存储中，服务器端统计现在不再读取/,
   "pt-BR":
     /opt-out salvo no armazenamento local do seu navegador pela configuração de análise anterior deste site não é mais lido/,
-  ja: /以前の分析設定でブラウザーのローカルストレージに保存されたオプトアウトは、もう読み取りません/,
+  ja: /以前の分析設定でブラウザーのローカルストレージに保存されたオプトアウトは、サーバー側の集計ではもう読み取りません/,
 };
 
-const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
-  en: /verbatra_analytics_optout with the value 1, valid for one year.*needs no consent \(§ 25\(2\) no\. 2 TDDDG\)\. Allowing analytics again deletes it\. No other cookies are set\./,
-  de: /verbatra_analytics_optout mit dem Wert 1, gültig für ein Jahr.*keine Einwilligung braucht \(§ 25 Abs\. 2 Nr\. 2 TDDDG\)\. Wenn du die Analyse wieder erlaubst, wird es gelöscht\. Andere Cookies werden nicht gesetzt\./,
-  es: /verbatra_analytics_optout con el valor 1, válida durante un año.*no requiere consentimiento \(§ 25, apdo\. 2, n\.º 2 de la TDDDG\)\. Si vuelves a permitir la analítica, se elimina\. No se establece ninguna otra cookie\./,
-  fr: /verbatra_analytics_optout avec la valeur 1, valable un an.*ne requiert donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\)\. Autoriser à nouveau les statistiques le supprime\. Aucun autre cookie n’est déposé\./,
+const CHOICE_COOKIE_BASIS: Record<Locale, RegExp> = {
+  en: /verbatra_analytics with the value full \(extended analytics allowed\), default \(extended analytics declined\) or off \(opted out\), valid for one year.*not marked HttpOnly.*need no consent \(§ 25\(2\) no\. 2 TDDDG\); the value full records your consent to extended analytics \(§ 25\(1\) TDDDG\)\..*verbatra_analytics_optout.*No other cookies are set\./,
+  de: /verbatra_analytics mit dem Wert full \(erweiterte Analyse erlaubt\), default \(erweiterte Analyse abgelehnt\) oder off \(widersprochen\), gültig für ein Jahr.*nicht als HttpOnly markiert.*keine Einwilligung brauchen \(§ 25 Abs\. 2 Nr\. 2 TDDDG\); der Wert full hält deine Einwilligung in die erweiterte Analyse fest \(§ 25 Abs\. 1 TDDDG\)\..*verbatra_analytics_optout.*Andere Cookies werden nicht gesetzt\./,
+  es: /verbatra_analytics con el valor full \(analítica ampliada permitida\), default \(analítica ampliada rechazada\) u off \(te has opuesto\), válida durante un año.*no está marcada como HttpOnly.*no requieren consentimiento \(§ 25, apdo\. 2, n\.º 2 de la TDDDG\); el valor full registra tu consentimiento a la analítica ampliada \(§ 25, apdo\. 1 de la TDDDG\)\..*verbatra_analytics_optout.*No se establece ninguna otra cookie\./,
+  fr: /verbatra_analytics avec la valeur full \(statistiques étendues autorisées\), default \(statistiques étendues refusées\) ou off \(opposition\), valable un an.*pas marqué HttpOnly.*ne requièrent donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\) ; la valeur full enregistre ton consentement aux statistiques étendues \(§ 25, al\. 1 TDDDG\)\..*verbatra_analytics_optout.*Aucun autre cookie n’est déposé\./,
   "zh-CN":
-    /名为 verbatra_analytics_optout 的 Cookie，值为 1，有效期一年.*无需征得同意（§ 25 第 2 款第 2 项 TDDDG）。再次允许分析会删除它。本站不设置其他 Cookie。/,
+    /名为 verbatra_analytics 的 Cookie，值为 full（已允许扩展分析）、default（已拒绝扩展分析）或 off（已选择退出），有效期一年.*没有标记为 HttpOnly.*无需征得同意（§ 25 第 2 款第 2 项 TDDDG）；full 记录的是你对扩展分析的同意（§ 25 第 1 款 TDDDG）。.*verbatra_analytics_optout.*本站不设置其他 Cookie。/,
   "pt-BR":
-    /verbatra_analytics_optout com o valor 1, válido por um ano.*não requer consentimento \(§ 25\(2\) nº 2 da TDDDG\)\. Permitir a análise de novo o exclui\. Nenhum outro cookie é definido\./,
-  ja: /verbatra_analytics_optout で、値は 1、有効期間は 1 年です.*同意は不要です（§ 25 第 2 項第 2 号 TDDDG）。分析を再び許可すると削除されます。ほかの Cookie は設定しません。/,
+    /verbatra_analytics com o valor full \(análise ampliada permitida\), default \(análise ampliada recusada\) ou off \(oposição\), válido por um ano.*não é marcado como HttpOnly.*não requerem consentimento \(§ 25\(2\) nº 2 da TDDDG\); o valor full registra seu consentimento à análise ampliada \(§ 25\(1\) da TDDDG\)\..*verbatra_analytics_optout.*Nenhum outro cookie é definido\./,
+  ja: /Cookie は verbatra_analytics で、値は full（拡張分析を許可）、default（拡張分析を拒否）、off（オプトアウト）のいずれかで、有効期間は 1 年です.*HttpOnly は付けていません.*同意は不要です（§ 25 第 2 項第 2 号 TDDDG）。full は拡張分析への同意を記録します（§ 25 第 1 項 TDDDG）。.*verbatra_analytics_optout.*ほかの Cookie は設定しません。/,
 };
 
-const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
-  en: /The only thing read from your device in connection with analytics is the opt-out cookie described in section 5, and only to honour your objection\..*Because nothing is stored on your device for counting page views and the opt-out cookie is read only to honour your objection, no consent/,
-  de: /Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten\..*Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung/,
-  es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita para ello ningún consentimiento/,
-  fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d’opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n’est stocké sur ton appareil pour compter les pages vues et que le cookie d’opposition n’est lu que pour respecter ton opposition, aucun consentement/,
+const CHOICE_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
+  en: /The only thing read from your device for this count is the analytics choice cookie described in section 5, and only to honour your choice\..*the analytics choice cookie is read only to honour your choice, no consent/,
+  de: /Für dieses Zählen wird von deinem Gerät nur das in Abschnitt 5 beschriebene Cookie zur Analyse-Auswahl ausgelesen, und zwar ausschließlich, um deine Auswahl zu beachten\..*das Cookie zur Analyse-Auswahl nur ausgelesen wird, um deine Auswahl zu beachten, ist dafür keine Einwilligung/,
+  es: /Lo único que se lee de tu dispositivo para este recuento es la cookie de elección de analítica descrita en la sección 5, y solo para respetar tu elección\..*la cookie de elección de analítica solo se lee para respetar tu elección, no se necesita para ello ningún consentimiento/,
+  fr: /La seule chose lue sur ton appareil pour ce comptage est le cookie de choix des statistiques décrit à la section 5, et uniquement pour respecter ton choix\..*le cookie de choix des statistiques n’est lu que pour respecter ton choix, aucun consentement/,
   "zh-CN":
-    /与分析相关、从你的设备读取的唯一内容，是第 5 节所述的退出分析 Cookie，而且只在遵从你的反对时读取。.*由于统计页面浏览量时没有向你的设备存储任何内容，退出分析 Cookie 也只在遵从你的反对时读取，因此依据/,
+    /就这种统计而言，从你的设备读取的唯一内容，是第 5 节所述的分析选择 Cookie，而且只在遵从你的选择时读取。.*分析选择 Cookie 也只在遵从你的选择时读取，因此依据/,
   "pt-BR":
-    /A única coisa lida do seu dispositivo em relação à análise é o cookie de opt-out descrito na seção 5, e apenas para respeitar sua oposição\..*Como nada é armazenado no seu dispositivo para contar visualizações de página e o cookie de opt-out é lido apenas para respeitar sua oposição, não é necessário consentimento/,
-  ja: /分析に関連してデバイスから読み取るのは、第 5 節で説明するオプトアウト用 Cookie だけで、異議を尊重する目的でしか読み取りません。.*ページビューの集計のためにデバイスへ何も保存せず、オプトアウト用 Cookie も異議を尊重する目的でしか読み取らないため/,
+    /A única coisa lida do seu dispositivo para essa contagem é o cookie de escolha de análise descrito na seção 5, e apenas para respeitar sua escolha\..*o cookie de escolha de análise é lido apenas para respeitar sua escolha, não é necessário consentimento/,
+  ja: /この集計のためにデバイスから読み取るのは、第 5 節で説明する分析選択用 Cookie だけで、選択を尊重する目的でしか読み取りません。.*分析選択用 Cookie も選択を尊重する目的でしか読み取らないため/,
+};
+
+const RECORDER_KEEPS_FULL_ADDRESS: Record<Locale, RegExp> = {
+  en: /Unlike the first script, it has no such filter: replays and heatmaps carry the full page address, including any query string and fragment\./,
+  de: /Anders als das erste Skript filtert es nicht: Wiedergaben und Heatmaps enthalten die vollständige Seitenadresse, einschließlich Query-Parametern und Fragment\./,
+  es: /A diferencia del primer script, no tiene ese filtro: las reproducciones y los mapas de calor incluyen la dirección completa de la página, con cualquier cadena de consulta y fragmento\./,
+  fr: /Contrairement au premier script, il n’applique pas ce filtre : les relectures et les cartes de chaleur contiennent l’adresse complète de la page, avec toute chaîne de requête et tout fragment\./,
+  "zh-CN":
+    /与第一个脚本不同，它没有这一过滤：回放和热力图包含页面的完整地址，包括任何查询字符串和片段。/,
+  "pt-BR":
+    /Diferentemente do primeiro script, ele não tem esse filtro: as reproduções e os mapas de calor trazem o endereço completo da página, incluindo qualquer query string e fragmento\./,
+  ja: /1 つ目のスクリプトと違い、このフィルターはなく、リプレイとヒートマップにはクエリ文字列とフラグメントを含むページアドレス全体が含まれます。/,
+};
+
+const RETENTION: Record<Locale, RegExp> = {
+  en: /Replays and heatmaps are kept for 30 days\. Page view and event records are kept for 13 months\./,
+  de: /Wiedergaben und Heatmaps werden für 30 Tage aufbewahrt\. Seitenaufruf- und Ereignisdatensätze werden für 13 Monate aufbewahrt\./,
+  es: /Las reproducciones y los mapas de calor se conservan durante 30 días\. Los registros de visitas a páginas y de eventos se conservan durante 13 meses\./,
+  fr: /Les relectures et les cartes de chaleur sont conservées pendant 30 jours\. Les enregistrements de pages vues et d’événements sont conservés pendant 13 mois\./,
+  "zh-CN": /回放和热力图保留 30 天。页面浏览和事件记录保留 13 个月。/,
+  "pt-BR":
+    /As reproduções e os mapas de calor são mantidos por 30 dias\. Os registros de visualizações de página e de eventos são mantidos por 13 meses\./,
+  ja: /リプレイとヒートマップは 30 日間保持されます。ページビューとイベントの記録は 13 か月間保持されます。/,
+};
+
+const EXTENDED_ANALYTICS: Record<Locale, ReadonlyArray<RegExp>> = {
+  en: [
+    /your consent under Art\. 6\(1\)\(a\) GDPR and § 25\(1\) TDDDG/,
+    /records a sample of sessions as a replay of mouse movement, clicks, scrolling and navigation within the site, and builds heatmaps/,
+    /All form inputs are masked, and the contact form, the analytics settings panel and the consent prompt are blocked from recording/,
+    /it does not send your screen size/,
+    /with effect for the future, with the buttons below or the "Analytics settings" link in the footer/,
+  ],
+  de: [
+    /deiner Einwilligung nach Art\. 6 Abs\. 1 lit\. a DSGVO und § 25 Abs\. 1 TDDDG/,
+    /eine Wiedergabe von Mausbewegungen, Klicks, Scrollen und Navigation innerhalb der Seite auf und erstellt Heatmaps/,
+    /Alle Formulareingaben werden maskiert, und das Kontaktformular, das Analyse-Einstellungsfeld und die Einblendung sind von der Aufzeichnung ausgenommen/,
+    /deine Bildschirmgröße sendet es nicht/,
+    /Link „Analyse-Einstellungen“ in der Fußzeile/,
+  ],
+  es: [
+    /consentimiento conforme al art\. 6\.1\.a\) del RGPD y al § 25, apdo\. 1 de la TDDDG/,
+    /una reproducción de movimientos del ratón, clics, desplazamiento y navegación dentro del sitio, y genera mapas de calor/,
+    /Todos los campos de formulario se enmascaran, y el formulario de contacto, el panel de ajustes de analítica y el aviso de elección quedan excluidos de la grabación/,
+    /no envía el tamaño de tu pantalla/,
+    /enlace «Ajustes de analítica» del pie de página/,
+  ],
+  fr: [
+    /consentement au titre de l’art\. 6, paragraphe 1, point a\) du RGPD et du § 25, al\. 1 TDDDG/,
+    /relecture des mouvements de souris, des clics, du défilement et de la navigation au sein du site, et construit des cartes de chaleur/,
+    /Tous les champs de saisie sont masqués, et le formulaire de contact, le panneau des réglages d’analyse et l’invite de choix sont exclus de l’enregistrement/,
+    /il n’envoie pas la taille de ton écran/,
+    /lien « Réglages d’analyse » du pied de page/,
+  ],
+  "zh-CN": [
+    /依据 GDPR 第 6\(1\)\(a\) 条和 TDDDG 第 25\(1\) 条给出的同意/,
+    /录制回放，内容为站内的鼠标移动、点击、滚动和跳转，并按屏幕宽度生成点击和滚动深度的热力图/,
+    /所有表单输入都会被遮盖，联系表单、分析设置面板和选择提示不在录制范围内/,
+    /它不发送你的屏幕尺寸/,
+    /页脚中的“分析设置”链接/,
+  ],
+  "pt-BR": [
+    /consentimento nos termos do art\. 6\(1\)\(a\) do GDPR e do § 25\(1\) da TDDDG/,
+    /uma reprodução dos movimentos do mouse, cliques, rolagem e navegação dentro do site, e gera mapas de calor/,
+    /Todos os campos de formulário são mascarados, e o formulário de contato, o painel de configurações de análise e o aviso de escolha ficam fora da gravação/,
+    /ele não envia o tamanho da sua tela/,
+    /link “Configurações de análise” no rodapé/,
+  ],
+  ja: [
+    /GDPR 第 6\(1\)\(a\) 条および TDDDG 第 25 条第 1 項に基づく同意/,
+    /サイト内のマウスの動き、クリック、スクロール、移動をリプレイとして記録し、画面幅ごとのクリックとスクロール深度のヒートマップを作成します/,
+    /フォームの入力内容はすべてマスクされ、お問い合わせフォーム、分析設定パネル、選択プロンプトは記録の対象外です/,
+    /画面サイズは送信せず/,
+    /フッターの「分析の設定」リンク/,
+  ],
+};
+
+const DEFAULT_NO_SCRIPTS: Record<Locale, RegExp> = {
+  en: /By default it loads no third-party or analytics scripts in your browser.*If you allow extended analytics \(section 4\), your browser also loads scripts from our own analytics server/,
+  de: /Standardmäßig lädt sie keine Skripte von Dritten und kein Analyseskript.*Wenn du die erweiterte Analyse erlaubst \(Abschnitt 4\), lädt dein Browser zusätzlich Skripte von unserem eigenen Analyseserver/,
+  es: /De forma predeterminada no carga en tu navegador scripts de terceros ni de analítica.*Si permites la analítica ampliada \(sección 4\), tu navegador carga además scripts de nuestro propio servidor de analítica/,
+  fr: /Par défaut, il ne charge aucun script tiers ni script de statistiques.*Si tu autorises les statistiques étendues \(section 4\), ton navigateur charge en plus des scripts depuis notre propre serveur de statistiques/,
+  "zh-CN":
+    /默认情况下，它不在你的浏览器中加载任何第三方脚本或分析脚本.*如果你允许扩展分析（第 4 节），你的浏览器还会从我们自己的分析服务器加载脚本/,
+  "pt-BR":
+    /Por padrão, ele não carrega scripts de terceiros nem de análise.*Se você permitir a análise ampliada \(seção 4\), seu navegador também carrega scripts do nosso próprio servidor de análise/,
+  ja: /既定では、ブラウザーでサードパーティのスクリプトや分析スクリプトを読み込まず.*拡張分析を許可した場合は（第 4 節）、ブラウザーが当方の分析サーバーからスクリプトも読み込みます/,
+};
+
+const ANALYTICS_SCRIPTS_ONLY_AFTER_CONSENT: Record<Locale, RegExp> = {
+  en: /Analytics scripts load only if you allow extended analytics \(section 4\), and then from our own Umami server/,
+  de: /Analyseskripte werden nur geladen, wenn du die erweiterte Analyse erlaubst \(Abschnitt 4\), und dann von unserem eigenen Umami-Server/,
+  es: /Los scripts de analítica solo se cargan si permites la analítica ampliada \(sección 4\), y entonces desde nuestro propio servidor de Umami/,
+  fr: /Les scripts de statistiques ne se chargent que si tu autorises les statistiques étendues \(section 4\), et alors depuis notre propre serveur Umami/,
+  "zh-CN": /只有在你允许扩展分析（第 4 节）时才会加载分析脚本，并且来自我们自己的 Umami 服务器/,
+  "pt-BR":
+    /Scripts de análise só são carregados se você permitir a análise ampliada \(seção 4\), e então do nosso próprio servidor Umami/,
+  ja: /分析スクリプトは、拡張分析を許可した場合にだけ、当方の Umami サーバーから読み込まれます/,
+};
+
+const EXTENDED_ANALYTICS_REST_ON_CONSENT: Record<Locale, RegExp> = {
+  en: /Extended analytics rests on your consent instead and is not subject to this right: you can withdraw that consent at any time with the buttons in section 4\./,
+  de: /Die erweiterte Analyse beruht stattdessen auf deiner Einwilligung und unterliegt diesem Recht nicht: Du kannst diese Einwilligung jederzeit mit den Schaltflächen in Abschnitt 4 widerrufen\./,
+  es: /La analítica ampliada se basa en cambio en tu consentimiento y no está sujeta a este derecho: puedes retirar ese consentimiento en cualquier momento con los botones de la sección 4\./,
+  fr: /Les statistiques étendues reposent en revanche sur ton consentement et ne relèvent pas de ce droit : tu peux retirer ce consentement à tout moment avec les boutons de la section 4\./,
+  "zh-CN": /扩展分析则基于你的同意，不适用这项权利：你可以随时通过第 4 节的按钮撤回该同意。/,
+  "pt-BR":
+    /A análise ampliada se baseia, em vez disso, no seu consentimento e não está sujeita a esse direito: você pode retirar esse consentimento a qualquer momento com os botões da seção 4\./,
+  ja: /拡張分析は代わりに本人の同意に基づいており、この権利の対象ではありません。同意は、第 4 節のボタンでいつでも撤回できます。/,
 };
 
 const THEME_STORAGE: Record<Locale, RegExp> = {
@@ -338,15 +447,15 @@ const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
 };
 
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
-  en: /machine-translated into every language other than English, either by verbatra with Google's Gemini language model or by an AI coding agent working in the repository whose output is imported with verbatra/,
-  de: /maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit dem Sprachmodell Gemini von Google oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird/,
-  es: /se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y el modelo de lenguaje Gemini de Google, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra/,
-  fr: /traduits automatiquement dans toutes les langues autres que l’anglais, soit par verbatra avec le modèle de langage Gemini de Google, soit par un agent de code IA qui travaille dans le dépôt et dont le résultat est importé avec verbatra/,
+  en: /machine-translated into every language other than English, either by verbatra with Google's Gemini or Anthropic's Claude language models or by an AI coding agent working in the repository whose output is imported with verbatra/,
+  de: /maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit den Sprachmodellen Gemini von Google oder Claude von Anthropic oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird/,
+  es: /se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y los modelos de lenguaje Gemini de Google o Claude de Anthropic, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra/,
+  fr: /traduits automatiquement dans toutes les langues autres que l’anglais, soit par verbatra avec les modèles de langage Gemini de Google ou Claude d’Anthropic, soit par un agent de code IA qui travaille dans le dépôt et dont le résultat est importé avec verbatra/,
   "zh-CN":
-    /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
+    /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 或 Anthropic 的 Claude 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
   "pt-BR":
-    /traduzido automaticamente para todos os idiomas diferentes do inglês, seja pelo verbatra com o modelo de linguagem Gemini do Google, seja por um agente de programação com IA que trabalha no repositório e cuja saída é importada com o verbatra/,
-  ja: /英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini 言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします/,
+    /traduzido automaticamente para todos os idiomas diferentes do inglês, seja pelo verbatra com os modelos de linguagem Gemini do Google ou Claude da Anthropic, seja por um agente de programação com IA que trabalha no repositório e cuja saída é importada com o verbatra/,
+  ja: /英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini または Anthropic の Claude の言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします/,
 };
 
 const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
@@ -532,7 +641,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(analytics).toMatch(UMAMI_LANGUAGE_TAG_PER_PAGEVIEW[locale]);
   });
 
-  it("records no interactions and no longer reads the old local storage opt-out", async () => {
+  it("records no interactions in the server count and no longer reads the old local storage opt-out", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
     expect(analytics).toMatch(UMAMI_NO_INTERACTIONS[locale]);
@@ -540,27 +649,67 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(analytics).not.toContain("umami.disabled");
   });
 
-  it("renders the opt-out as two plain forms in the analytics section", async () => {
+  it("renders the analytics choice as three plain forms in the analytics section", async () => {
     const doc = await renderPrivacy(locale);
     const analytics = sectionNumbered(doc, 4);
     const forms = Array.from(analytics?.querySelectorAll("form") ?? []);
 
     expect(analytics?.querySelector("h2")?.id).toBe("analytics");
-    expect(forms).toHaveLength(2);
+    expect(forms).toHaveLength(3);
     for (const form of forms) {
       expect(form.getAttribute("method")).toBe("post");
       expect(form.getAttribute("action")).toBe("/api/analytics");
       expect(form.querySelector<HTMLInputElement>('input[name="lang"]')?.value).toBe(locale);
     }
-    expect(analytics?.querySelector("#analytics-off")).not.toBeNull();
-    expect(analytics?.querySelector("#analytics-on")).not.toBeNull();
-    expect(doc.querySelectorAll("form")).toHaveLength(2);
+    for (const choice of ["full", "default", "off"]) {
+      expect(analytics?.querySelector(`#analytics-${choice}`)).not.toBeNull();
+    }
+    expect(doc.querySelectorAll("form")).toHaveLength(3);
   });
 
-  it("names the opt-out cookie as the only cookie and every browser storage entry", async () => {
+  it("describes extended analytics as opt-in, consent based, masked and revocable", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+
+    for (const pattern of EXTENDED_ANALYTICS[locale]) expect(analytics).toMatch(pattern);
+    expect(analytics).toMatch(RECORDER_KEEPS_FULL_ADDRESS[locale]);
+  });
+
+  it("names the footer link under the label the footer shows", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+    const messages = loadMessages(locale) as {
+      landing: { footer: { cols: { legal: { analyticsSettings: string } } } };
+    };
+
+    expect(analytics).toContain(messages.landing.footer.cols.legal.analyticsSettings);
+  });
+
+  it("gives the retention of replays and records its own paragraph before the switch", async () => {
+    const section = sectionNumbered(await renderPrivacy(locale), 4);
+    const paragraphs = Array.from(section?.querySelectorAll(":scope > p") ?? []);
+
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs[2]?.textContent).toMatch(RETENTION[locale]);
+    expect(paragraphs[2]?.nextElementSibling?.querySelector("form")).not.toBeNull();
+  });
+
+  it("qualifies the no-analytics-scripts statements with the consent choice", async () => {
+    const doc = await renderPrivacy(locale);
+
+    expect(sectionText(doc, /^2\. /)).toMatch(DEFAULT_NO_SCRIPTS[locale]);
+    expect(sectionText(doc, /^6\. /)).toMatch(ANALYTICS_SCRIPTS_ONLY_AFTER_CONSENT[locale]);
+    expect(sectionText(doc, /^9\. /)).toMatch(EXTENDED_ANALYTICS_REST_ON_CONSENT[locale]);
+  });
+
+  it("has no event retention placeholder left in the policy text", async () => {
+    const text = (await renderPrivacy(locale)).body.textContent ?? "";
+
+    expect(text).not.toMatch(/\[EVENT_RETENTION\]/);
+  });
+
+  it("names the choice cookie as the only cookie and every browser storage entry", async () => {
     const cookies = sectionText(await renderPrivacy(locale), /^5\. /);
 
-    expect(cookies).toMatch(OPT_OUT_COOKIE_BASIS[locale]);
+    expect(cookies).toMatch(CHOICE_COOKIE_BASIS[locale]);
     expect(cookies).toMatch(THEME_STORAGE[locale]);
     expect(cookies).toMatch(PACKAGE_MANAGER_STORAGE[locale]);
     expect(cookies).toMatch(STORAGE_NEVER_SENT[locale]);
@@ -569,15 +718,20 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
   it("names the cookie and the storage keys under the names the site code writes", async () => {
     const cookies = sectionText(await renderPrivacy(locale), /^5\. /);
 
-    for (const name of [ANALYTICS_OPT_OUT_COOKIE, THEME_STORAGE_KEY, PACKAGE_MANAGER_GROUP]) {
+    for (const name of [
+      ANALYTICS_CHOICE_COOKIE,
+      LEGACY_OPT_OUT_COOKIE,
+      THEME_STORAGE_KEY,
+      PACKAGE_MANAGER_GROUP,
+    ]) {
       expect(cookies).toMatch(new RegExp(`(^|\\s)${name}[\\s.,]`));
     }
   });
 
-  it("states that the opt-out cookie is read only to honour the objection", async () => {
+  it("states that the choice cookie is read only to honour the choice", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
-    expect(analytics).toMatch(OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR[locale]);
+    expect(analytics).toMatch(CHOICE_COOKIE_READ_ONLY_TO_HONOUR[locale]);
   });
 
   it("states Arcjet's documented 30-day retention and links to its privacy documentation", async () => {

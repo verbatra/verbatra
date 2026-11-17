@@ -149,6 +149,7 @@ export function PromptCopyButton({ className }: { className?: string } = {}): Re
         type="button"
         aria-describedby={popoverId}
         data-copied={status === "copied"}
+        data-copy-surface="ai-prompt"
         onClick={() => copy(AI_SETUP_PROMPT)}
         className={buttonClasses({
           variant: "secondary",

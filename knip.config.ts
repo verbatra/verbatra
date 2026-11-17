@@ -23,6 +23,8 @@ const config: KnipConfig = {
         "lib/script-hashes-manifest.d.mts",
         "lib/security-headers.d.mts",
         "lib/standalone-output.d.mts",
+        "lib/umami-config.d.mts",
+        "scripts/umami-stub.d.mts",
       ],
     },
 

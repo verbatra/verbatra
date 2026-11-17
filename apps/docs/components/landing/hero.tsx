@@ -84,7 +84,12 @@ export async function Hero(): Promise<ReactNode> {
           </h1>
           <p className="vk-banner-lead">{t("lead")}</p>
           <div className="vk-banner-ctas">
-            <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
+            <Button
+              href={localizedPath(locale, "/docs/quickstart")}
+              variant="primary"
+              size="lg"
+              data-cta="hero-quickstart"
+            >
               {t("ctaPrimary")}
             </Button>
             <div className="vk-banner-install">
@@ -95,7 +100,11 @@ export async function Hero(): Promise<ReactNode> {
               />
             </div>
             <div className="vk-banner-compare-row">
-              <IntentPrefetchLink href={comparisonHref(locale)} className="vk-banner-compare">
+              <IntentPrefetchLink
+                href={comparisonHref(locale)}
+                className="vk-banner-compare"
+                data-cta="hero-compare"
+              >
                 {t("ctaCompare")}
               </IntentPrefetchLink>
             </div>

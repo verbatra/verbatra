@@ -53,6 +53,14 @@ describe("inlineScriptHashes", () => {
     expect(inlineScriptHashes(html)).toEqual([]);
   });
 
+  it("adds no hash for the deferred tracker and recorder tags the analytics loader injects", () => {
+    const html = [
+      `<script id="verbatra-umami-tracker" src="https://umami.kreitz-webdev.de/script.js" defer="" data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d" data-before-send="verbatraUmamiBeforeSend"></script>`,
+      `<script id="verbatra-umami-recorder" src="https://umami.kreitz-webdev.de/recorder.js" defer="" data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"></script>`,
+    ].join("");
+    expect(inlineScriptHashes(html)).toEqual([]);
+  });
+
   it("does not mistake a data-src attribute for an external script", () => {
     expect(inlineScriptHashes(`<script data-src="x">e()</script>`)).toEqual([sha256("e()")]);
   });

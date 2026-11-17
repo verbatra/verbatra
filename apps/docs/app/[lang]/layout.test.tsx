@@ -41,6 +41,16 @@ describe("Layout: no third-party script", () => {
   });
 });
 
+describe("Layout: analytics loader", () => {
+  it("mounts the loader, which renders no markup and so adds no script tag to the page", async () => {
+    const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
+    const { AnalyticsLoader } = await import("@/components/analytics-loader");
+    expect(
+      JSON.stringify(tree, (_key, value) => (typeof value === "function" ? value.name : value)),
+    ).toContain(AnalyticsLoader.name);
+  });
+});
+
 describe("Layout: browser chrome", () => {
   it("leaves the theme-color and color-scheme meta tags to the theme script, with the dark pair only for a visitor without JavaScript", async () => {
     expect(await import("./layout")).not.toHaveProperty("viewport");
