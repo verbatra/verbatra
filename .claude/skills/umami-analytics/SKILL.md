@@ -82,9 +82,13 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   code and no manifest hash change; external scripts are never hashed.
 - **Sanitiser** - lib/analytics-sanitize.ts, exposed as `window.verbatraUmamiBeforeSend`: drops
   `screen`, rebuilds `url` as path plus the five UTM parameters (255 cap), strips query and hash
-  from `referrer`. The recorder has no such hook and sends `location.href`, so keep query
+  from `referrer`, and drops a relative or unparsable `referrer` to `""` (internal referrers
+  carry no value here, external ones keep origin and path). It covers `script.js` only. The
+  recorder has no such hook and sends the full `location.href` with every replay and heatmap
+  event, query and fragment included; `rr-block` hides DOM content, not the address. The policy
+  says so (legal.privacy.s4.extended), and no URL is rewritten to hide it, so keep query
   strings out of internal links (the only query on the site is the privacy page `?analytics=`
-  redirect, which is inside an `rr-block` panel).
+  redirect).
 - **CSP** - lib/security-headers.mjs adds `UMAMI_ORIGIN` to `script-src` and `connect-src`
   statically, in production and development. `img-src`, `frame-ancestors` (`'none'`) and
   `X-Frame-Options: DENY` are unchanged, so the Umami heatmap preview shows a blank canvas by
@@ -124,6 +128,10 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   `data-errors`, `data-tag`, reading `umami.disabled`.
 - **Kill switch** - turning replay and heatmaps off in the Umami website settings stops
   recording without a deploy (the recorder fetches its config first).
+- **Retention** - the policy promises replays and heatmaps 30 days and page view and event rows
+  13 months (legal.privacy.s4.retention). Both periods depend on the owner enforcing them on the
+  Umami server (replay retention, and scheduled deletion of older rows if the self-hosted version
+  has no retention setting); the site code cannot delete anything.
 - **Accepted limits** - the tiers measure different things: Tier 0 counts document loads only,
   Tier 1 counts soft navigations too, so the two series are not comparable. Visitors with a
   blocker on Tier 1 are not counted at all.

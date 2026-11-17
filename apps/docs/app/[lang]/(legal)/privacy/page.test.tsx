@@ -259,6 +259,29 @@ const CHOICE_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
   ja: /この集計のためにデバイスから読み取るのは、第 5 節で説明する分析選択用 Cookie だけで、選択を尊重する目的でしか読み取りません。.*分析選択用 Cookie も選択を尊重する目的でしか読み取らないため/,
 };
 
+const RECORDER_KEEPS_FULL_ADDRESS: Record<Locale, RegExp> = {
+  en: /Unlike the first script, it has no such filter: replays and heatmaps carry the full page address, including any query string and fragment\./,
+  de: /Anders als das erste Skript filtert es nicht: Wiedergaben und Heatmaps enthalten die vollständige Seitenadresse, einschließlich Query-Parametern und Fragment\./,
+  es: /A diferencia del primer script, no tiene ese filtro: las reproducciones y los mapas de calor incluyen la dirección completa de la página, con cualquier cadena de consulta y fragmento\./,
+  fr: /Contrairement au premier script, il n’applique pas ce filtre : les relectures et les cartes de chaleur contiennent l’adresse complète de la page, avec toute chaîne de requête et tout fragment\./,
+  "zh-CN":
+    /与第一个脚本不同，它没有这一过滤：回放和热力图包含页面的完整地址，包括任何查询字符串和片段。/,
+  "pt-BR":
+    /Diferentemente do primeiro script, ele não tem esse filtro: as reproduções e os mapas de calor trazem o endereço completo da página, incluindo qualquer query string e fragmento\./,
+  ja: /1 つ目のスクリプトと違い、このフィルターはなく、リプレイとヒートマップにはクエリ文字列とフラグメントを含むページアドレス全体が含まれます。/,
+};
+
+const RETENTION: Record<Locale, RegExp> = {
+  en: /Replays and heatmaps are kept for 30 days\. Page view and event records are kept for 13 months\./,
+  de: /Wiedergaben und Heatmaps werden für 30 Tage aufbewahrt\. Seitenaufruf- und Ereignisdatensätze werden für 13 Monate aufbewahrt\./,
+  es: /Las reproducciones y los mapas de calor se conservan durante 30 días\. Los registros de visitas a páginas y de eventos se conservan durante 13 meses\./,
+  fr: /Les relectures et les cartes de chaleur sont conservées pendant 30 jours\. Les enregistrements de pages vues et d’événements sont conservés pendant 13 mois\./,
+  "zh-CN": /回放和热力图保留 30 天。页面浏览和事件记录保留 13 个月。/,
+  "pt-BR":
+    /As reproduções e os mapas de calor são mantidos por 30 dias\. Os registros de visualizações de página e de eventos são mantidos por 13 meses\./,
+  ja: /リプレイとヒートマップは 30 日間保持されます。ページビューとイベントの記録は 13 か月間保持されます。/,
+};
+
 const EXTENDED_ANALYTICS: Record<Locale, ReadonlyArray<RegExp>> = {
   en: [
     /your consent under Art\. 6\(1\)\(a\) GDPR and § 25\(1\) TDDDG/,
@@ -424,15 +447,15 @@ const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
 };
 
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
-  en: /machine-translated into every language other than English, either by verbatra with Google's Gemini language model or by an AI coding agent working in the repository whose output is imported with verbatra/,
-  de: /maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit dem Sprachmodell Gemini von Google oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird/,
-  es: /se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y el modelo de lenguaje Gemini de Google, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra/,
-  fr: /traduits automatiquement dans toutes les langues autres que l’anglais, soit par verbatra avec le modèle de langage Gemini de Google, soit par un agent de code IA qui travaille dans le dépôt et dont le résultat est importé avec verbatra/,
+  en: /machine-translated into every language other than English, either by verbatra with Google's Gemini or Anthropic's Claude language models or by an AI coding agent working in the repository whose output is imported with verbatra/,
+  de: /maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit den Sprachmodellen Gemini von Google oder Claude von Anthropic oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird/,
+  es: /se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y los modelos de lenguaje Gemini de Google o Claude de Anthropic, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra/,
+  fr: /traduits automatiquement dans toutes les langues autres que l’anglais, soit par verbatra avec les modèles de langage Gemini de Google ou Claude d’Anthropic, soit par un agent de code IA qui travaille dans le dépôt et dont le résultat est importé avec verbatra/,
   "zh-CN":
-    /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
+    /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 或 Anthropic 的 Claude 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
   "pt-BR":
-    /traduzido automaticamente para todos os idiomas diferentes do inglês, seja pelo verbatra com o modelo de linguagem Gemini do Google, seja por um agente de programação com IA que trabalha no repositório e cuja saída é importada com o verbatra/,
-  ja: /英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini 言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします/,
+    /traduzido automaticamente para todos os idiomas diferentes do inglês, seja pelo verbatra com os modelos de linguagem Gemini do Google ou Claude da Anthropic, seja por um agente de programação com IA que trabalha no repositório e cuja saída é importada com o verbatra/,
+  ja: /英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini または Anthropic の Claude の言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします/,
 };
 
 const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
@@ -648,6 +671,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
     for (const pattern of EXTENDED_ANALYTICS[locale]) expect(analytics).toMatch(pattern);
+    expect(analytics).toMatch(RECORDER_KEEPS_FULL_ADDRESS[locale]);
   });
 
   it("names the footer link under the label the footer shows", async () => {
@@ -664,7 +688,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const paragraphs = Array.from(section?.querySelectorAll(":scope > p") ?? []);
 
     expect(paragraphs).toHaveLength(3);
-    expect(paragraphs[2]?.textContent).toMatch(/EVENT_RETENTION|\d/);
+    expect(paragraphs[2]?.textContent).toMatch(RETENTION[locale]);
     expect(paragraphs[2]?.nextElementSibling?.querySelector("form")).not.toBeNull();
   });
 

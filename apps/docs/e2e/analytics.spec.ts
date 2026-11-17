@@ -113,7 +113,7 @@ test.describe("analytics after the full choice", () => {
     expect(copy?.data).toEqual({ surface: "command-row" });
   });
 
-  test("never sends the screen size or a query string, and opens no other origin", async ({
+  test("the tracker never sends the screen size or a query string, and opens no other origin", async ({
     page,
     context,
     baseURL,
@@ -133,6 +133,21 @@ test.describe("analytics after the full choice", () => {
       expect(payload.url).toBe("/docs?utm_source=newsletter");
     }
     expect(new Set(foreign)).toEqual(new Set([UMAMI_ORIGIN]));
+  });
+
+  test("the recorder sends the full page address, which is why the policy says so", async ({
+    page,
+    context,
+  }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/docs?q=secret#intro");
+    await expect
+      .poll(() => requests.filter((request) => request.pathname === "/api/record").length)
+      .toBeGreaterThanOrEqual(1);
+    const recorded = requests
+      .filter((request) => request.pathname === "/api/record")
+      .map((request) => JSON.parse(request.body ?? "{}").url as string);
+    expect(recorded.every((url) => url.includes("?q=secret#intro"))).toBe(true);
   });
 
   test("raises no CSP violation while the tracker and recorder run", async ({ page, context }) => {
