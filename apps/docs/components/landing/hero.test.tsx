@@ -90,6 +90,16 @@ const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
   ja: "2 件のキーに変更あり",
 };
 
+describe("Hero analytics markers", () => {
+  it("marks the quickstart button and the comparison link with stable cta ids", async () => {
+    const doc = await render();
+    expect(doc.querySelector('a[href$="/docs/quickstart"]')?.getAttribute("data-cta")).toBe(
+      "hero-quickstart",
+    );
+    expect(doc.querySelector(".vk-banner-compare")?.getAttribute("data-cta")).toBe("hero-compare");
+  });
+});
+
 describe("Hero copy", () => {
   it("names its section by the one h1, the headline, under the subline", async () => {
     const doc = await render();

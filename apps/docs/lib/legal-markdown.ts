@@ -10,7 +10,12 @@ import {
   IMPRINT_TITLE,
   imprintLicenseRuns,
 } from "./legal-imprint";
-import { PRIVACY_OBJECTION_KEY, PRIVACY_SECTION_KEYS, privacyLinkHrefs } from "./legal-privacy";
+import {
+  PRIVACY_ANALYTICS_KEY,
+  PRIVACY_OBJECTION_KEY,
+  PRIVACY_SECTION_KEYS,
+  privacyLinkHrefs,
+} from "./legal-privacy";
 import { licenseTermsUrl } from "./license-terms";
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "./licenses-manifest";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
@@ -79,7 +84,15 @@ export async function privacyMarkdown(locale: Locale): Promise<string> {
   const lastUpdated = `*${t.markup("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks: string) => chunks })}*`;
   const sections = PRIVACY_SECTION_KEYS.map((key) => {
     const body = t.markup(`${key}.body`, tags);
-    return blocks(`## ${t(`${key}.heading`)}`, key === PRIVACY_OBJECTION_KEY ? `> ${body}` : body);
+    const extras =
+      key === PRIVACY_ANALYTICS_KEY
+        ? [t.markup(`${key}.extended`, tags), t.markup(`${key}.retention`, tags)]
+        : [];
+    return blocks(
+      `## ${t(`${key}.heading`)}`,
+      key === PRIVACY_OBJECTION_KEY ? `> ${body}` : body,
+      ...extras,
+    );
   });
   return blocks(
     await frontmatter(locale, "/privacy"),

@@ -21,6 +21,16 @@ function prompt(): Element | null {
   return new DOMParser().parseFromString(markup, "text/html").querySelector("figure");
 }
 
+describe("PromptCopyButton analytics marker", () => {
+  it("marks its copy button as the ai-prompt surface", () => {
+    const doc = new DOMParser().parseFromString(
+      renderToStaticMarkup(<PromptCopyButton />),
+      "text/html",
+    );
+    expect(doc.querySelector("button")?.getAttribute("data-copy-surface")).toBe("ai-prompt");
+  });
+});
+
 describe("AiSetupPrompt", () => {
   it("is a compact row under the box's command rows", () => {
     const figure = prompt();

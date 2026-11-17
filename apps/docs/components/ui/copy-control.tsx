@@ -74,6 +74,7 @@ export function CopyControl({
         onClick={() => copy(text)}
         aria-label={status === "idle" ? label : undefined}
         data-status={status}
+        data-copy-surface="command-row"
         className={cn(
           "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
           SIZE[size],

@@ -2,6 +2,9 @@ import "../global.css";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { AnalyticsClickEvents } from "@/components/analytics-click-events";
+import { AnalyticsLoader } from "@/components/analytics-loader";
+import { AnalyticsPrompt } from "@/components/analytics-prompt";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
 import { FONT_VARIABLES } from "@/lib/fonts";
@@ -75,6 +78,7 @@ export default async function Layout({
   const { lang } = await params;
   const locale = toLocale(lang);
   setRequestLocale(locale);
+  const tPrompt = await getTranslations({ locale, namespace: "analyticsPrompt" });
 
   return (
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
@@ -86,6 +90,19 @@ export default async function Layout({
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
         {children}
+        <AnalyticsLoader />
+        <AnalyticsClickEvents />
+        <AnalyticsPrompt
+          locale={locale}
+          labels={{
+            label: tPrompt("label"),
+            title: tPrompt("title"),
+            body: tPrompt("body"),
+            allow: tPrompt("allow"),
+            decline: tPrompt("decline"),
+            privacy: tPrompt("privacy"),
+          }}
+        />
       </body>
     </html>
   );

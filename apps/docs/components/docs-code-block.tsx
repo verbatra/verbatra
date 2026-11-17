@@ -13,7 +13,11 @@ function CodeBlockActions({
   className?: string;
   children?: ReactNode;
 }): ReactNode {
-  return <div className={cn("empty:hidden", className)}>{children}</div>;
+  return (
+    <div data-copy-surface="code-block" className={cn("empty:hidden", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function DocsCodeBlock(props: Omit<CodeBlockProps, "Actions">): ReactNode {

@@ -159,7 +159,7 @@ export function ContactForm({
       method="post"
       action="/api/contact"
       onSubmit={handleSubmit}
-      className="not-prose flex flex-col gap-5"
+      className="rr-block not-prose flex flex-col gap-5"
     >
       <noscript>
         <p className="text-sm text-(--text-strong)">

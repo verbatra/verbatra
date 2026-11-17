@@ -1,0 +1,265 @@
+import { expect, type Page, test } from "playwright/test";
+import { UMAMI_ORIGIN } from "../lib/umami-config.mjs";
+import { stubUmami } from "../scripts/umami-stub.mjs";
+import {
+  expectNoAxeViolations,
+  expectNoHorizontalScroll,
+  LOCALES,
+  openInTheme,
+  pageUrl,
+  THEMES,
+} from "./support";
+
+const NO_CHOICE = { cookies: [], origins: [] };
+const FULL_CHOICE = {
+  cookies: [
+    {
+      name: "verbatra_analytics",
+      value: "full",
+      domain: "localhost",
+      path: "/",
+      expires: -1,
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax" as const,
+    },
+  ],
+  origins: [],
+};
+
+const PROMPT_NAME = "Analytics choice";
+
+function prompt(page: Page) {
+  return page.getByRole("region", { name: PROMPT_NAME });
+}
+
+async function choiceCookie(page: Page): Promise<string | undefined> {
+  const cookies = await page.context().cookies();
+  return cookies.find((cookie) => cookie.name === "verbatra_analytics")?.value;
+}
+
+function sentPayloads(requests: Awaited<ReturnType<typeof stubUmami>>) {
+  return requests
+    .filter((request) => request.pathname === "/api/send")
+    .map((request) => JSON.parse(request.body ?? "{}").payload as Record<string, unknown>);
+}
+
+test.describe("analytics before a choice", () => {
+  test.use({ storageState: NO_CHOICE });
+
+  test("asks once, and talks to Umami not at all", async ({ page, context }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/");
+    await expect(prompt(page)).toBeVisible();
+    await expect(prompt(page).getByRole("button", { name: "Allow" })).toBeVisible();
+    await expect(prompt(page).getByRole("button", { name: "No thanks" })).toBeVisible();
+    expect(await page.evaluate(() => "umami" in window)).toBe(false);
+    expect(
+      await page
+        .locator("script[src]")
+        .evaluateAll((nodes) => nodes.map((n) => (n as HTMLScriptElement).src)),
+    ).not.toContain(`${UMAMI_ORIGIN}/script.js`);
+    expect(requests).toEqual([]);
+  });
+
+  test("No thanks stores default, sends nothing and never asks again", async ({
+    page,
+    context,
+  }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/");
+    await prompt(page).getByRole("button", { name: "No thanks" }).click();
+    await expect(prompt(page)).toHaveCount(0);
+    expect(await choiceCookie(page)).toBe("default");
+    await page.reload();
+    await page.goto("/docs");
+    await expect(prompt(page)).toHaveCount(0);
+    expect(requests).toEqual([]);
+  });
+
+  test("Allow loads the tracker and the recorder without a reload and counts the page", async ({
+    page,
+    context,
+  }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/");
+    await prompt(page).getByRole("button", { name: "Allow" }).click();
+    await expect(prompt(page)).toHaveCount(0);
+    expect(await choiceCookie(page)).toBe("full");
+    await expect
+      .poll(() => requests.map((request) => request.pathname))
+      .toEqual(expect.arrayContaining(["/script.js", "/recorder.js", "/api/send"]));
+    await expect.poll(() => page.evaluate(() => "umami" in window)).toBe(true);
+  });
+});
+
+test.describe("analytics after the full choice", () => {
+  test.use({ storageState: FULL_CHOICE });
+
+  test("counts client navigations and reports a copy event", async ({ page, context }) => {
+    const requests = await stubUmami(context);
+    await page.goto("/");
+    await expect.poll(() => sentPayloads(requests).length).toBeGreaterThanOrEqual(1);
+    const before = sentPayloads(requests).length;
+    await page.locator("header a[href='/docs'], header a[href$='/docs']").first().click();
+    await expect(page).toHaveURL(/\/docs/);
+    await expect.poll(() => sentPayloads(requests).length).toBeGreaterThan(before);
+    await page.goto("/");
+    await expect(async () => {
+      await page.locator("[data-copy-surface='command-row']").first().click();
+      expect(sentPayloads(requests).map((payload) => payload.name)).toContain("copy_code");
+    }).toPass();
+    const copy = sentPayloads(requests).find((payload) => payload.name === "copy_code");
+    expect(copy?.data).toEqual({ surface: "command-row" });
+  });
+
+  test("never sends the screen size or a query string, and opens no other origin", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const requests = await stubUmami(context);
+    const foreign: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (/^https?:$/.test(url.protocol) && url.origin !== new URL(baseURL ?? "").origin) {
+        foreign.push(url.origin);
+      }
+    });
+    await page.goto("/docs?q=secret&utm_source=newsletter#intro");
+    await expect.poll(() => sentPayloads(requests).length).toBeGreaterThanOrEqual(1);
+    for (const payload of sentPayloads(requests)) {
+      expect(payload).not.toHaveProperty("screen");
+      expect(payload.url).toBe("/docs?utm_source=newsletter");
+    }
+    expect(new Set(foreign)).toEqual(new Set([UMAMI_ORIGIN]));
+  });
+
+  test("raises no CSP violation while the tracker and recorder run", async ({ page, context }) => {
+    await stubUmami(context);
+    const violations: string[] = [];
+    page.on("console", (message) => {
+      if (/content security policy/i.test(message.text())) violations.push(message.text());
+    });
+    await page.goto("/");
+    await expect.poll(() => page.evaluate(() => "umami" in window)).toBe(true);
+    await page.waitForLoadState("networkidle");
+    expect(violations).toEqual([]);
+  });
+
+  test("blocks the contact form and the privacy switch from replay", async ({ page, context }) => {
+    await stubUmami(context);
+    await page.goto("/contact");
+    await expect(page.locator("form.rr-block")).toHaveCount(1);
+    await page.goto("/privacy");
+    await expect(page.locator('.rr-block:has(form[action="/api/analytics"])')).toHaveCount(1);
+  });
+
+  test("a privacy signal beats the full choice", async ({ page, context }) => {
+    const requests = await stubUmami(context);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "globalPrivacyControl", { value: true });
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(prompt(page)).toHaveCount(0);
+    expect(requests).toEqual([]);
+    expect(await page.evaluate(() => "umami" in window)).toBe(false);
+  });
+
+  test("Do Not Track beats the full choice", async ({ page, context }) => {
+    const requests = await stubUmami(context);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "doNotTrack", { value: "1" });
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    expect(requests).toEqual([]);
+  });
+});
+
+test.describe("analytics with a stored off or default choice", () => {
+  test.use({ storageState: NO_CHOICE });
+
+  for (const value of ["off", "default"]) {
+    test(`the ${value} choice loads nothing and asks nothing`, async ({ page, context }) => {
+      const requests = await stubUmami(context);
+      await context.addCookies([{ name: "verbatra_analytics", value, url: "http://localhost" }]);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(prompt(page)).toHaveCount(0);
+      expect(requests).toEqual([]);
+    });
+  }
+});
+
+test.describe("analytics choice without JavaScript", () => {
+  test.use({ storageState: NO_CHOICE, javaScriptEnabled: false });
+
+  for (const [button, value] of [
+    ["Allow extended analytics", "full"],
+    ["Count page views only", "default"],
+    ["Opt out of analytics", "off"],
+  ] as const) {
+    test(`${button} stores ${value} and returns to the privacy page`, async ({ page }) => {
+      await page.goto("/privacy");
+      await page.getByRole("button", { name: button }).click();
+      await expect(page).toHaveURL(new RegExp(`/privacy\\?analytics=${value}#analytics-${value}$`));
+      expect(await choiceCookie(page)).toBe(value);
+      await expect(page.locator(`#analytics-${value}`)).toBeVisible();
+    });
+  }
+});
+
+test.describe("analytics surfaces", () => {
+  test.use({ storageState: NO_CHOICE });
+
+  for (const locale of LOCALES) {
+    for (const theme of THEMES) {
+      test(`the ${locale} prompt has no axe violations in the ${theme} theme`, async ({ page }) => {
+        await openInTheme(page, pageUrl(locale, "/") || "/", theme);
+        await expect(page.locator("section.rr-block[aria-label]")).toHaveCount(1);
+        await expectNoAxeViolations(page);
+      });
+
+      test(`the ${locale} privacy switch has no axe violations in the ${theme} theme`, async ({
+        page,
+      }) => {
+        await openInTheme(page, pageUrl(locale, "/privacy"), theme);
+        await expectNoAxeViolations(page, "#analytics");
+      });
+    }
+
+    test(`the ${locale} prompt and switch reflow at 320px`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 640 });
+      await page.goto(pageUrl(locale, "/privacy"));
+      await expect(page.locator("section.rr-block[aria-label]")).toHaveCount(1);
+      await expectNoHorizontalScroll(page);
+      const box = await page.locator("section.rr-block[aria-label]").boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
+    });
+  }
+});
+
+test.describe("analytics click markers on the real docs components", () => {
+  test.use({ storageState: FULL_CHOICE });
+
+  for (const surface of ["code-block", "page-markdown"]) {
+    test(`a click on the ${surface} copy control reports copy_code`, async ({ page, context }) => {
+      const requests = await stubUmami(context);
+      await page.goto("/docs/config-file");
+      await expect.poll(() => sentPayloads(requests).length).toBeGreaterThanOrEqual(1);
+      await expect(async () => {
+        await page
+          .locator(
+            `[data-copy-surface="${surface}"] button, button[data-copy-surface="${surface}"]`,
+          )
+          .first()
+          .click();
+        const copy = sentPayloads(requests).find((payload) => payload.name === "copy_code");
+        expect(copy?.data).toEqual({ surface });
+      }).toPass();
+    });
+  }
+});

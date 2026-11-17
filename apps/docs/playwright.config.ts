@@ -6,6 +6,21 @@ const IN_CI = process.env.CI !== undefined;
 const REUSE_SERVER = process.env.PW_REUSE_SERVER === "1";
 const REST_SWEEP_EARLY = "**/gate-rests-early.spec.ts";
 const REST_SWEEP_LATE = "**/gate-rests-late.spec.ts";
+const ANALYTICS_DEFAULT_CHOICE = {
+  cookies: [
+    {
+      name: "verbatra_analytics",
+      value: "default",
+      domain: "localhost",
+      path: "/",
+      expires: -1,
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax" as const,
+    },
+  ],
+  origins: [],
+};
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,6 +31,7 @@ export default defineConfig({
   reporter: IN_CI ? [["list"], ["github"]] : "list",
   use: {
     baseURL: BASE_URL,
+    storageState: ANALYTICS_DEFAULT_CHOICE,
     trace: "retain-on-failure",
     reducedMotion: "reduce",
   },

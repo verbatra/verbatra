@@ -1,3 +1,5 @@
+import { UMAMI_ORIGIN } from "./umami-config.mjs";
+
 export const CSP_ENFORCED = true;
 
 const DEV_SCRIPT_SOURCES = ["'unsafe-inline'", "'unsafe-eval'"];
@@ -22,11 +24,11 @@ export function contentSecurityPolicy({
   const inlineScripts = isDev ? DEV_SCRIPT_SOURCES : scriptHashes;
   const directives = [
     "default-src 'self'",
-    ["script-src 'self'", ...inlineScripts].join(" "),
+    ["script-src 'self'", ...inlineScripts, UMAMI_ORIGIN].join(" "),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
-    "connect-src 'self'",
+    `connect-src 'self' ${UMAMI_ORIGIN}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

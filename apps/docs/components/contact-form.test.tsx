@@ -94,6 +94,10 @@ function serverMarkup(): HTMLFormElement {
 }
 
 describe("ContactForm without JavaScript", () => {
+  it("is blocked from session replay in its server markup", () => {
+    expect(serverMarkup().classList.contains("rr-block")).toBe(true);
+  });
+
   it("posts to the contact route, so a no-JS submit never puts the fields into the URL", () => {
     const form = serverMarkup();
     expect(form.getAttribute("method")).toBe("post");
