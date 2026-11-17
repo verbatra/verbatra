@@ -41,7 +41,7 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
 - **Shared constants** - apps/docs/lib/umami-config.mjs (no `server-only`, so client code and
   security headers import it): `UMAMI_ORIGIN`, `UMAMI_WEBSITE_ID`, `UMAMI_SCRIPT_URL`,
   `UMAMI_RECORDER_URL`, `ANALYTICS_CHOICE_COOKIE`, `LEGACY_OPT_OUT_COOKIE`,
-  `ANALYTICS_CHOICES`. `lib/server-pageview.ts` re-exports the origin and website ID.
+  `ANALYTICS_CHOICES`, `CHOICE_COOKIE_MAX_AGE_SECONDS` (one year, shared by the cookie string and its test). `lib/server-pageview.ts` re-exports the origin and website ID.
 - **Choice cookie** - `verbatra_analytics` with the value `full`, `default` or `off`; absent
   means undecided; anything else is undecided. Secure, SameSite=Lax, Path=/, one year, NOT
   HttpOnly (the loader and the prompt read it in the browser; page HTML is prerendered, so the
@@ -94,13 +94,20 @@ or route, the loader, an event, the prompt, or the privacy wording that describe
   `X-Frame-Options: DENY` are unchanged, so the Umami heatmap preview shows a blank canvas by
   decision. The choice is enforced by the loader and its tests, not by the CSP.
 - **Consent prompt** - components/analytics-prompt.tsx: a non-blocking fixed region (bottom
-  corner, no layout shift), rendered only after hydration when there is no choice and no GPC or
-  DNT signal, with equal-weight Allow and No thanks and a link to `/privacy#analytics`. It
-  posts to /api/analytics with `fetch` (`redirect: "manual"`), checks that the cookie arrived,
-  hides, and dispatches the choice event. Strings: `analyticsPrompt.*` in messages.
+  corner, no layout shift, about 30 percent of a 320x640 screen at most, buttons 44px), rendered
+  only after hydration when there is no choice and no GPC or DNT signal, with equal-weight Allow
+  and No thanks and a link to `/privacy#analytics`. It sits first in the body (early focus
+  order) in the locale layout. While it shows it sets `data-analytics-prompt` and
+  `--analytics-prompt-clearance` on `<html>`; app/global.css uses them for bottom padding and
+  scroll padding (no focused element sits behind it) and hides the back-to-top button. Escape
+  hides it for the page view and stores nothing. It posts to /api/analytics with `fetch`
+  (`redirect: "manual"`), checks that the cookie arrived, hides and dispatches the choice event,
+  or shows `analyticsPrompt.error` when the choice could not be saved. Strings: `analyticsPrompt.*`.
 - **Privacy switch** - components/analytics-opt-out.tsx renders three plain forms (Allow
   extended analytics, Count page views only, Opt out) in section 4 of the policy; they work
-  without JavaScript. app/api/analytics/route.ts takes the form POST (`choice=full|default|off`,
+  without JavaScript. After hydration it reads the cookie and marks the stored choice with
+  `aria-pressed` and one status line (id `analytics-<choice>`), replacing the three `:target`
+  fallbacks. app/api/analytics/route.ts takes the form POST (`choice=full|default|off`,
   `lang`), checks the Origin like the contact route, sets the choice cookie, clears the legacy
   one, and answers 303 to `/privacy?analytics=<choice>#analytics-<choice>` (locale prefixed
   except for English). The confirmation shows through `:target`. A footer link "Analytics
