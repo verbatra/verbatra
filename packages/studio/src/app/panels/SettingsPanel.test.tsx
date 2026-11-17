@@ -282,6 +282,24 @@ describe("SettingsPanel", () => {
     expect(detailValue(view, "Tone")).toBe("formal");
   });
 
+  it("renders per-locale tones as their own row beside the default tone", async () => {
+    stubSettings({ ...SNAPSHOT, tone: "informal", toneByLocale: { ja: "neutral", de: "formal" } });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(detailValue(view, "Tone")).toBe("informal");
+    expect(detailValue(view, "Tone by locale")).toBe("ja: neutral, de: formal");
+  });
+
+  it("renders per-locale tones alone when the config sets no default", async () => {
+    stubSettings({ ...SNAPSHOT, toneByLocale: { ja: "neutral" } });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(detailValue(view, "Tone")).toBeNull();
+    expect(detailValue(view, "Tone by locale")).toBe("ja: neutral");
+  });
+
   it("renders an explicitly disabled boolean setting as no rather than omitting it", async () => {
     stubSettings({ ...SNAPSHOT, prune: false, generatePlurals: true, tone: "informal" });
 

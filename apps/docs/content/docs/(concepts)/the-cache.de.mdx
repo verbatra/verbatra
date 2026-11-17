@@ -33,10 +33,10 @@ Lauf nicht lesen kann (eine von einer neueren verbatra-Version oder eine beschä
 ## Der Fingerprint
 
 Jeder Eintrag ist auf den Kontext beschränkt, in dem er entstanden ist: einen Fingerprint über den
-Provider, das Modell, den Tonfall, die Glossarbegriffe dieser Locale und die
+Provider, das Modell, den Tonfall dieser Locale, die Glossarbegriffe dieser Locale und die
 [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes) des Providers, wenn sie
-Einträge hat. Ändert sich einer davon, passen frühere Einträge nicht mehr, sodass ein neuer Tonfall
-oder ein bearbeitetes Glossar neu übersetzt, statt ein veraltetes Ergebnis zu liefern. Der Glossaranteil sind die Begriffe, die verbatra an den Provider senden würde, nach einer `sensitiveData`-Einstellung, die einen Begriff zurückhält oder schwärzt, und zwar unabhängig davon, ob der konfigurierte Provider Glossarbegriffe verwendet (DeepL, Google Cloud Translation und LibreTranslate ignorieren sie), sodass ein bearbeiteter Begriff trotzdem neu übersetzt. Das `caseSensitive`-Flag eines Begriffs gehört nicht dazu. Jede Locale
+Einträge hat. Ändert sich einer davon, passen frühere Einträge nicht mehr, sodass der Cache nach einem neuen Tonfall
+oder einem bearbeiteten Glossar nie ein veraltetes Ergebnis liefert. Bereits geschriebene Werte bleiben, bis du sie neu übersetzt. Der Glossaranteil sind die Begriffe, die verbatra an den Provider senden würde, nach einer `sensitiveData`-Einstellung, die einen Begriff zurückhält oder schwärzt, und zwar unabhängig davon, ob der konfigurierte Provider Glossarbegriffe verwendet (DeepL, Google Cloud Translation und LibreTranslate ignorieren sie), sodass ein bearbeiteter Begriff trotzdem neu übersetzt. Das `caseSensitive`-Flag eines Begriffs gehört nicht dazu. Jede Locale
 hat ihren eigenen Fingerprint, das Bearbeiten nur der deutschen Übersetzung eines Glossarbegriffs
 lässt die französischen Einträge also passend.
 

@@ -122,7 +122,7 @@ provider: {
 Reads `DEEPL_API_KEY`; `options` may be `{}`. DeepL has no model and no output-token limit, and degrades with a notice rather than failing:
 
 - **Placeholders** travel as numbered markers in an ignored tag (`Hello {{name}}` as `Hello <x>{0}</x>`) and are restored. `PLACEHOLDER_UNSUPPORTED` withholds the whole value when it has a tag, a placeholder is non-literal, or the text outside placeholders holds `<`, `>`, `{` or `}`; a result with a lost, repeated, changed or bare marker, an unknown entity or a stray tag is dropped whole. Markup alone goes as plain text. <AvailableFrom version="0.12.0" />
-- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key sends no formality and reports `FORMALITY_DOWNGRADED`. A paid key requests `prefer_more` or `prefer_less`, so a language without formality, such as Swedish, falls back with the same notice. The [glossary](#tone-and-glossary-across-providers) is not applied.
+- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key sends no formality and reports `FORMALITY_DOWNGRADED`. A paid key requests `prefer_more` or `prefer_less`, so a language without formality, such as Swedish, falls back with the same notice. Japanese: use `ja: "neutral"` (`informal` sends `prefer_less`).
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ A request carries only its target locale's glossary terms, and every output is c
 
 | Provider | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | sent and honored | translations, forbidden renderings, do-not-translate terms and notes sent as binding data |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | sent per locale as a fixed register (Japanese: polite です/ます unless `formal`) | translations, forbidden renderings, do-not-translate terms and notes sent as binding data |
 | DeepL | mapped to formality | `GLOSSARY_IGNORED`; only `glossaryId` applies |
 | Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` for `formal` or `informal` | `GLOSSARY_IGNORED` |
 
@@ -353,7 +353,7 @@ provider: {
 }
 ```
 
-- **Keys** must be `sourceLocale` or a target locale as configured, or the config fails with `CONFIG_INVALID`. The map goes under `options`, for every provider except `none`.
+- **Keys** must be `sourceLocale` or a target locale as configured, or the config fails with `CONFIG_INVALID`.
 - **Values** are non-empty strings of at most 64 characters, sent unchanged: as the code to a machine-translation provider, in place of the code to an LLM (`"pt-BR (Brazilian Portuguese)"` works), whose language names still come from the key. A bare `EN` or `PT` for DeepL fails with `INVALID_REQUEST`; a value the provider rejects fails its sub-batch.
 - **Effect on memory.** Only new and changed strings go out with a new code. A non-empty map is part of the [memory](/docs/the-cache) fingerprint, so changing it starts a separate bucket.
 

@@ -122,7 +122,7 @@ provider: {
 Lê `DEEPL_API_KEY`; `options` pode ser `{}`. O DeepL não tem modelo nem limite de tokens de saída, e, em vez de falhar, abre mão do recurso com um aviso:
 
 - **Placeholders** viajam como marcadores numerados dentro de uma tag ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) e são restaurados. `PLACEHOLDER_UNSUPPORTED` retém o valor inteiro quando ele contém uma tag, um placeholder não é literal ou o texto fora dos placeholders contém `<`, `>`, `{` ou `}`; um resultado com um marcador perdido, repetido, alterado ou solto, uma entidade desconhecida ou uma tag avulsa é descartado por inteiro. Marcação sozinha vai como texto simples. <AvailableFrom version="0.12.0" />
-- **Tom** é convertido em formalidade (`formal` mais, `informal` menos, `neutral` omitido). Uma chave de API do nível gratuito não envia formalidade e informa `FORMALITY_DOWNGRADED`. Uma chave de API paga solicita `prefer_more` ou `prefer_less`, então um idioma sem formalidade, como o sueco, segue sem formalidade e com o mesmo aviso. O [glossário](#tom-e-glossário-entre-provedores) não é aplicado.
+- **Tom** é convertido em formalidade (`formal` mais, `informal` menos, `neutral` omitido). Uma chave de API do nível gratuito não envia formalidade e informa `FORMALITY_DOWNGRADED`. Uma chave de API paga solicita `prefer_more` ou `prefer_less`, então um idioma sem formalidade, como o sueco, segue sem formalidade e com o mesmo aviso. Japonês: use `ja: "neutral"` (`informal` envia `prefer_less`).
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ Uma requisição carrega apenas os termos do glossário do locale de destino, e 
 
 | Provedor | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | enviado e respeitado | traduções, traduções proibidas, termos que não devem ser traduzidos e notas, enviados como dados vinculantes |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | enviado por locale como registro fixo (japonês: です/ます polido, exceto em `formal`) | traduções, traduções proibidas, termos que não devem ser traduzidos e notas, enviados como dados vinculantes |
 | DeepL | convertido em formalidade | `GLOSSARY_IGNORED`; só `glossaryId` se aplica |
 | Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` para `formal` ou `informal` | `GLOSSARY_IGNORED` |
 
@@ -353,7 +353,7 @@ provider: {
 }
 ```
 
-- **As chaves do mapa** precisam ser `sourceLocale` ou um locale de destino como configurado, ou a configuração falha com `CONFIG_INVALID`. O mapa fica em `options`, para todo provedor, exceto `none`.
+- **As chaves do mapa** precisam ser `sourceLocale` ou um locale de destino como configurado, ou a configuração falha com `CONFIG_INVALID`.
 - **Os valores** são strings não vazias de no máximo 64 caracteres, enviadas sem alteração: como o código a um provedor de tradução automática, no lugar do código a um LLM (`"pt-BR (Brazilian Portuguese)"` funciona), cujos nomes de idioma ainda vêm da chave do mapa. Um `EN` ou `PT` solto para o DeepL falha com `INVALID_REQUEST`; um valor que o provedor rejeita faz o sublote dele falhar.
 - **Efeito na memória.** Só as strings novas e alteradas saem com um código novo. Um mapa não vazio faz parte da impressão digital da memória de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)), então mudá-lo inicia um grupo separado.
 

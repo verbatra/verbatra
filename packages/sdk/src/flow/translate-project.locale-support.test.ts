@@ -136,6 +136,27 @@ describe("translate: capability warnings", () => {
     expect(noticeCodes(summary.locales[1])).toEqual(["FORMALITY_UNSUPPORTED_BY_PROVIDER"]);
   });
 
+  it("sends each locale the tone resolved for it", async () => {
+    const dir = await project();
+    const stub = makeStubProvider();
+
+    await translate(
+      {
+        config: baseConfig({
+          targetLocales: ["de", "fr"],
+          tone: { default: "informal", fr: "formal" },
+        }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    const toneOf = (locale: string) =>
+      stub.calls.find((call) => call.request.targetLocale === locale)?.request.tone;
+    expect(toneOf("de")).toBe("informal");
+    expect(toneOf("fr")).toBe("formal");
+  });
+
   it("reports the same notices on a dry run", async () => {
     const dir = await project();
 

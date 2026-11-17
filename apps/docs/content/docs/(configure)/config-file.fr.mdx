@@ -60,7 +60,7 @@ Les clés inconnues sont rejetées à chaque niveau sauf `$schema` et les tables
 | `provider.id` | id de fournisseur | requis | 0.1.0 | Le fournisseur de traduction, ou `none` pour aucune traduction automatique. |
 | `provider.options` | objet | requis, sauf pour `none` | 0.1.0 | Les [options propres](/fr/docs/providers) au fournisseur. |
 | `glossary` | objet ou chemin de fichier | aucun | 0.1.0 | Traductions fixes, traductions interdites et termes à ne pas traduire. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | aucun | 0.1.0 | Le registre des traductions, appliqué [selon le fournisseur](/fr/docs/providers#ton-et-glossaire-selon-les-fournisseurs). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"` ou une table | aucun | 0.1.0 | Le registre des traductions, appliqué [selon le fournisseur](/fr/docs/providers#ton-et-glossaire-selon-les-fournisseurs). Une table fixe un ton par locale cible, plus `default`. <AvailableFrom version="0.14.0" /> |
 | `prune` | booléen | `false` | 0.3.0 | Supprime les clés orphelines des fichiers cibles et du fichier de verrouillage ; `translate --prune` prime. |
 | `generatePlurals` | booléen | `false` | 0.3.0 | Synthétise les formes plurielles CLDR dont une langue cible a besoin. |
 | `fuzzyCache.enabled` | booléen | requis dans le bloc | 0.11.0 | Réutilise la traduction d'une source peu modifiée. |
@@ -232,10 +232,10 @@ Sous `"stop"` :
 
 - Après chaque requête, le total est réconcilié avec l'usage remonté par le fournisseur : une exécution peut donc finir légèrement au-dessus de `maxTokens` ([le `budget` du résumé d'exécution](/fr/docs/sdk/run-summary#anatomie-du-runsummary)). Les fournisseurs de traduction automatique ne remontent aucun token et sont budgétés à partir de la projection.
 - Une requête échouée ou tronquée est entièrement comptée.
-- La projection ajoute une allocation fixe pour le prompt LLM, aussi pour les fournisseurs de traduction automatique, et couvre un lot entier, donc un `maxTokens` inférieur à la projection d'un lot le refuse à chaque exécution ; l'avis dit de baisser `maxBatchSize` ou d'augmenter `maxTokens`.
+- La projection ajoute une allocation fixe pour le prompt LLM, aussi pour les fournisseurs de traduction automatique, et couvre un lot entier, donc un `maxTokens` inférieur à la projection d'un lot le refuse à chaque exécution.
 - Une locale dont des clés ont été retenues est `partial`, ou `failed` si aucune clé n'est arrivée, et les deux sortent avec `1`. Sous `"warn"`, le code de sortie ne change jamais.
 
-Le budget borne une exécution de `translate`, jamais la retraduction d'une seule entrée ; `watch` en démarre un neuf par exécution. Un budget exclut [`--concurrency`](/fr/docs/cli/translate#locales-en-parallèle) supérieur à `1` sur une exécution réelle ; une exécution à blanc est exemptée. `budgetBehavior` sans `maxTokens` n'a aucun effet.
+Le budget borne une exécution de `translate`, jamais la retraduction d'une seule entrée ; `watch` en démarre un neuf par exécution. Un budget exclut [`--concurrency`](/fr/docs/cli/translate#locales-en-parallèle) supérieur à `1` sur une exécution réelle ; une exécution à blanc est exemptée.
 
 <Callout type="warn" title="Deux maxTokens différents">
 Le `maxTokens` de premier niveau est ce budget de toute l'exécution ; le `provider.options.maxTokens` d'Anthropic, sans lien avec lui, plafonne une réponse ([Fournisseurs](/fr/docs/providers#anthropic)).
@@ -354,7 +354,7 @@ provider:
 
 ### Ce que le document ne peut pas vérifier
 
-Seul le chargement de la configuration vérifie ces règles : les règles de `targetLocales` et des [codes de locale](#codes-de-locale), les clés de [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) et les règles de `baseUrl` et [`apiKeyEnvVar`](/fr/docs/providers#openai-compatible) d'`openai-compatible`, des adresses et plages valides dans [`network.allowedHosts`](/fr/docs/network-policy), `sensitiveData.patterns` dans les [règles de sécurité des motifs](/fr/docs/data-handling#protection-des-contenus-sensibles) et les règles des termes d'un glossaire en ligne en [version 2](#glossaire-par-locale-version-2).
+Seul le chargement de la configuration vérifie ces règles : les règles de `targetLocales` et des [codes de locale](#codes-de-locale), les clés de [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) et de la table `tone` et les règles de `baseUrl` et [`apiKeyEnvVar`](/fr/docs/providers#openai-compatible) d'`openai-compatible`, des adresses et plages valides dans [`network.allowedHosts`](/fr/docs/network-policy), `sensitiveData.patterns` dans les [règles de sécurité des motifs](/fr/docs/data-handling#protection-des-contenus-sensibles) et les règles des termes d'un glossaire en ligne en [version 2](#glossaire-par-locale-version-2).
 
 ## Le répertoire de travail et .env
 

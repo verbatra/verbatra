@@ -10,6 +10,7 @@ import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/pro
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { type ToneConfig, toneForLocale } from "../config/tone.js";
 import {
   clipText,
   RUN_HISTORY_LIMITS,
@@ -34,7 +35,7 @@ import type {
 } from "./summary.js";
 
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
-export const ESTIMATED_SYSTEM_RULES_TOKENS = 550;
+export const ESTIMATED_SYSTEM_RULES_TOKENS = 700;
 export const ESTIMATED_RESPONSE_SCHEMA_TOKENS = 100;
 export const ESTIMATED_TRANSLATION_EXPANSION = 1.5;
 
@@ -52,7 +53,7 @@ export interface EstimateRunInput {
   readonly maxBatchSize: number;
   readonly locales: readonly LocaleEstimateInput[];
   readonly glossary?: GlossaryInput;
-  readonly tone?: Tone;
+  readonly tone?: ToneConfig;
   readonly rates?: RateCard;
 }
 
@@ -259,7 +260,7 @@ function measureLocales(input: EstimateRunInput, unit: BillingUnit): readonly Me
         sourceLocale: input.sourceLocale,
         targetLocale: locale.locale,
         glossary: glossaryForLocale(input.glossary, locale.locale),
-        tone: input.tone,
+        tone: toneForLocale(input.tone, locale.locale),
       }),
       input.maxBatchSize,
     );

@@ -122,7 +122,7 @@ provider: {
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
 
 - **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält den ganzen Wert zurück, wenn er ein Tag enthält, ein Platzhalter nicht wörtlich ist oder der Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält; ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag wird ganz verworfen. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
-- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt. Japanisch: nimm `ja: "neutral"` (`informal` sendet `prefer_less`).
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ Eine Anfrage enthält nur die Glossarbegriffe ihrer Ziel-Locale, und jede Ausgab
 
 | Provider | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | gesendet und eingehalten | Übersetzungen, verbotene Wiedergaben, `doNotTranslate`-Begriffe und Notizen als bindende Daten gesendet |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | pro Locale als festes Register gesendet (Japanisch: höfliches です/ます, außer bei `formal`) | Übersetzungen, verbotene Wiedergaben, `doNotTranslate`-Begriffe und Notizen als bindende Daten gesendet |
 | DeepL | auf Formalität abgebildet | `GLOSSARY_IGNORED`; nur `glossaryId` wird angewendet |
 | Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` bei `formal` oder `informal` | `GLOSSARY_IGNORED` |
 
@@ -353,7 +353,7 @@ provider: {
 }
 ```
 
-- **Keys** müssen `sourceLocale` oder eine Ziel-Locale wie konfiguriert sein, sonst scheitert die Konfiguration mit `CONFIG_INVALID`. Die Zuordnung gehört unter `options`, bei jedem Provider außer `none`.
+- **Keys** müssen `sourceLocale` oder eine Ziel-Locale wie konfiguriert sein, sonst scheitert die Konfiguration mit `CONFIG_INVALID`.
 - **Werte** sind nicht leere Strings mit höchstens 64 Zeichen und werden unverändert gesendet: an einen Maschinenübersetzungs-Provider als Sprachcode, an ein LLM anstelle des Codes (`"pt-BR (Brazilian Portuguese)"` funktioniert), dessen Sprachnamen trotzdem aus dem Key kommen. Ein bloßes `EN` oder `PT` für DeepL scheitert mit `INVALID_REQUEST`; ein Wert, den der Provider ablehnt, lässt seinen Sub-Batch scheitern.
 - **Wirkung auf den Übersetzungsspeicher.** Nur neue und geänderte Strings gehen mit einem neuen Code hinaus. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Übersetzungsspeicher](/de/docs/the-cache), eine Änderung beginnt also einen eigenen Bereich.
 

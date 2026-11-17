@@ -60,7 +60,7 @@ Unknown keys are rejected at every level except `$schema` and maps whose keys yo
 | `provider.id` | provider id | required | 0.1.0 | The translation provider, or `none` for no machine translation. |
 | `provider.options` | object | required, except for `none` | 0.1.0 | The provider's [own options](/docs/providers). |
 | `glossary` | object or file path | none | 0.1.0 | Fixed translations, forbidden renderings and do-not-translate terms. |
-| `tone` | `"formal"`, `"informal"`, `"neutral"` | none | 0.1.0 | The register to translate in, applied [per provider](/docs/providers#tone-and-glossary-across-providers). |
+| `tone` | `"formal"`, `"informal"`, `"neutral"`, or a map | none | 0.1.0 | The register to translate in, applied [per provider](/docs/providers#tone-and-glossary-across-providers). A map sets a tone per locale, plus `default`. <AvailableFrom version="0.14.0" /> |
 | `prune` | boolean | `false` | 0.3.0 | Remove orphaned keys from target files and the lock; `translate --prune` overrides it. |
 | `generatePlurals` | boolean | `false` | 0.3.0 | Synthesize the CLDR plural forms a target language needs. |
 | `fuzzyCache.enabled` | boolean | required in the block | 0.11.0 | Reuse a slightly changed source's translation. |
@@ -232,10 +232,10 @@ Under `"stop"`:
 
 - After each request the total is reconciled to the provider's reported usage, so a run can end slightly above `maxTokens` ([the run summary's `budget`](/docs/sdk/run-summary#the-runsummary-anatomy)). Machine-translation providers report no tokens and are budgeted from the projection.
 - A failed or truncated request is charged in full.
-- The projection adds a fixed LLM prompt allowance, for machine-translation providers too, and covers a whole batch, so a `maxTokens` below one batch's projection refuses it every run; the notice says to lower `maxBatchSize` or raise `maxTokens`.
+- The projection adds a fixed LLM prompt allowance, for machine-translation providers too, and covers a whole batch, so a `maxTokens` below one batch's projection refuses it every run.
 - A locale with withheld keys is `partial`, or `failed` if no key landed, and both exit `1`. Under `"warn"` the exit code never changes.
 
-The budget bounds one `translate` run, never a single-entry retranslation; `watch` starts a fresh one per run. A budget rules out [`--concurrency`](/docs/cli/translate#parallel-locales) above `1` on a live run; a dry run is exempt. `budgetBehavior` without `maxTokens` has no effect.
+The budget bounds one `translate` run, never a single-entry retranslation; `watch` starts a fresh one per run. A budget rules out [`--concurrency`](/docs/cli/translate#parallel-locales) above `1` on a live run; a dry run is exempt.
 
 <Callout type="warn" title="Two different maxTokens">
 The top-level `maxTokens` is this whole-run budget; Anthropic's unrelated `provider.options.maxTokens` caps one response ([Providers](/docs/providers#anthropic)).
@@ -354,7 +354,7 @@ provider:
 
 ### What the document cannot check
 
-Only loading the config checks these rules: the `targetLocales` rules and [locale codes](#locale-codes), [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) keys and the `openai-compatible` `baseUrl` and [`apiKeyEnvVar`](/docs/providers#openai-compatible) rules, valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
+Only loading the config checks these rules: the `targetLocales` rules and [locale codes](#locale-codes), [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) and `tone` map keys and the `openai-compatible` `baseUrl` and [`apiKeyEnvVar`](/docs/providers#openai-compatible) rules, valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
 
 ## The working directory and .env
 

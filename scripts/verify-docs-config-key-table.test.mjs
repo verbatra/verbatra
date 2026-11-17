@@ -52,6 +52,7 @@ const ENUM_CONSTANTS = {
 };
 
 const ENUMS_OWNED_ELSEWHERE = new Set(["provider.id"]);
+const ENUMS_IN_UNION = new Set(["tone"]);
 
 function variantsOf(node) {
   return [node, ...(node.oneOf ?? []), ...(node.anyOf ?? [])];
@@ -80,7 +81,10 @@ function schemaPaths(node, prefix) {
 }
 
 function enumValues(path) {
-  const values = schemaNodes(path).flatMap((node) =>
+  const nodes = ENUMS_IN_UNION.has(path)
+    ? schemaNodes(path).flatMap(variantsOf)
+    : schemaNodes(path);
+  const values = nodes.flatMap((node) =>
     node.enum !== undefined ? node.enum : node.const !== undefined ? [node.const] : [],
   );
   return values.length > 0 ? [...new Set(values)] : undefined;

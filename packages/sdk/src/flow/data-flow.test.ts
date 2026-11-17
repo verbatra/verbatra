@@ -490,6 +490,26 @@ describe("buildDataFlowManifest: what is sent", () => {
     expect(llmFull.sent.fields).toEqual(expect.arrayContaining(["tone", "glossary-terms"]));
   });
 
+  it("reports tone and formality when any target locale resolves one", async () => {
+    const onlyDefault = await manifestFor({
+      tone: { default: "neutral" },
+      provider: { id: "deepl", options: {} },
+    });
+    const oneLocale = await manifestFor({
+      tone: { de: "formal" },
+      provider: { id: "deepl", options: {} },
+    });
+    const llmOneLocale = await manifestFor({
+      tone: { ja: "neutral" },
+      targetLocales: ["de", "ja"],
+    });
+
+    expect(onlyDefault.sent.fields).not.toContain("formality");
+    expect(oneLocale.sent.fields).toContain("formality");
+    expect(llmOneLocale.sent.fields).toContain("tone");
+    expect(llmOneLocale.sent.fields).not.toContain("formality");
+  });
+
   it("counts glossary terms exactly as the request payload carries them", async () => {
     const manifest = await manifestFor({
       glossary: {

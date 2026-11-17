@@ -1,3 +1,4 @@
+import { didYouMeanHint } from "./case-insensitive.js";
 import { isMachineProvider, type ProviderConfig } from "./provider-config.js";
 
 export interface LocaleMapScope {
@@ -16,9 +17,7 @@ function configuredLocales(scope: LocaleMapScope): readonly string[] {
 }
 
 function unknownKeyMessage(key: string, configured: readonly string[]): string {
-  const lowered = key.toLowerCase();
-  const sameIgnoringCase = configured.find((locale) => locale.toLowerCase() === lowered);
-  const hint = sameIgnoringCase === undefined ? "" : `; did you mean "${sameIgnoringCase}"?`;
+  const hint = didYouMeanHint(key, configured);
   return (
     `"${key}" is not a configured locale: a localeMap key must be sourceLocale or one of ` +
     `targetLocales, spelled as configured${hint}`

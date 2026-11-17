@@ -88,7 +88,6 @@ describe("createAnthropicProvider: request building", () => {
     );
     const body = calls[0];
     expect(body?.system).toBe(SYSTEM_RULES);
-    expect(body?.system).not.toContain("formal");
     expect(body?.system).not.toContain("Servus");
     expect(body?.system).not.toContain("{{name}}");
   });

@@ -130,6 +130,20 @@ describe("assessLocaleCapabilities: DeepL", () => {
     expect(warningCodes(entryOf(report, "sv"))).toEqual(["FORMALITY_UNSUPPORTED_BY_PROVIDER"]);
   });
 
+  it("applies the formality warning per locale from its own resolved tone", () => {
+    const report = reportOf(
+      deeplConfig({
+        targetLocales: ["de", "sv", "nb"],
+        tone: { default: "neutral", sv: "formal", nb: "informal" },
+      }),
+    );
+
+    expect(warningCodes(entryOf(report, "de"))).toEqual([]);
+    expect(warningCodes(entryOf(report, "sv"))).toEqual(["FORMALITY_UNSUPPORTED_BY_PROVIDER"]);
+    expect(entryOf(report, "sv").warnings[0]?.message).toContain("configured formal tone");
+    expect(entryOf(report, "nb").warnings[0]?.message).toContain("configured informal tone");
+  });
+
   it("warns about a native glossary for a pair DeepL has no glossaries for", () => {
     const config = deeplConfig({
       targetLocales: ["de", "th"],

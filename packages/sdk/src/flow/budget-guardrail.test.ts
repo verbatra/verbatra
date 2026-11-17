@@ -205,7 +205,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 820,
+          maxTokens: 970,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -231,7 +231,7 @@ describe("translate: budget crossed, stop behavior", () => {
     expect(summary.failed).toEqual(["fr"]);
 
     expect(summary.budget).toEqual({
-      maxTokens: 820,
+      maxTokens: 970,
       behavior: "stop",
       supported: true,
       tokensUsed: 200,
@@ -252,7 +252,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 820,
+          maxTokens: 970,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -260,7 +260,7 @@ describe("translate: budget crossed, stop behavior", () => {
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(820);
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(870);
     expect(stub.calls).toHaveLength(2);
   });
 
@@ -299,7 +299,7 @@ describe("translate: budget crossed, stop behavior", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxBatchSize: 2, maxTokens: 800, budgetBehavior: "stop" }),
+        config: cfg({ maxBatchSize: 2, maxTokens: 900, budgetBehavior: "stop" }),
         cwd: dir,
       },
       { createProvider: () => stub.provider },
@@ -490,16 +490,16 @@ describe("translate: token-less provider with a configured budget", () => {
     const stub = makeStubProvider({ kind: "machine-translation" });
 
     const summary = await translate(
-      { config: cfg({ maxBatchSize: 2, maxTokens: 1450, budgetBehavior: "stop" }), cwd: dir },
+      { config: cfg({ maxBatchSize: 2, maxTokens: 1750, budgetBehavior: "stop" }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 
     expect(stub.calls).toHaveLength(2);
     expect(summary.budget).toEqual({
-      maxTokens: 1450,
+      maxTokens: 1750,
       behavior: "stop",
       supported: false,
-      tokensUsed: 1424,
+      tokensUsed: 1724,
       exceeded: true,
     });
     expect(summary.usage).toBeUndefined();

@@ -63,8 +63,9 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `GLOSSARY_UNSUPPORTED_BY_PROVIDER`: a glossary applies to this locale but the provider cannot
  *   apply a glossary for the language pair (Google Cloud Translation Basic never can; DeepL only
  *   for the languages on its glossary list), so the glossary is only checked after translation.
- * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the config sets a `formal` or `informal` tone and the
- *   provider has no formality control for this target language, so the default register is used.
+ * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the tone that applies to this locale (the scalar `tone`, or
+ *   the map entry for the locale, else its `default`) is `formal` or `informal` and the provider has
+ *   no formality control for this target language, so the default register is used.
  * - `SOURCE_FOREIGN_PLACEHOLDERS`: source values this locale is about to translate hold a token
  *   that looks like a placeholder the configured format does not interpolate, such as a
  *   single-brace `{name}` in an i18next value. DeepL, Google Cloud Translation and LibreTranslate

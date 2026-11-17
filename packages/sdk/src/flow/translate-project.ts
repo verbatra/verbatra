@@ -26,6 +26,7 @@ import {
   DEFAULT_MAX_BATCH_SIZE,
   type VerbatraConfig,
 } from "../config/schema.js";
+import { toneForLocale } from "../config/tone.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
@@ -379,7 +380,7 @@ async function buildLocaleRunParams(
     format: context.config.format,
     glossary: glossaryForLocale(context.config.glossary, targetLocale),
     maxLength: context.maxLengths.limits,
-    tone: context.config.tone,
+    tone: toneForLocale(context.config.tone, targetLocale),
     prune: context.prune,
     generatePlurals: context.generatePlurals,
     maxBatchSize: context.maxBatchSize,

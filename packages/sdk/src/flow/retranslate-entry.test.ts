@@ -355,6 +355,23 @@ describe("retranslateEntry: provider request shape", () => {
     expect(stub.calls[0]?.request.targetLocale).toBe("de");
   });
 
+  it("sends the tone resolved for the retranslated locale", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider();
+
+    await retranslateEntry(
+      {
+        config: cfg({ tone: { default: "formal", de: "informal" } }),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls[0]?.request.tone).toBe("informal");
+  });
+
   it("carries the configured glossary and tone onto the request when set", async () => {
     const dir = await project({ greeting: "Hello" });
     const stub = makeStubProvider();

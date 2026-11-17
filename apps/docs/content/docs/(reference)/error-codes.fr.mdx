@@ -1152,7 +1152,7 @@ Une remise XLIFF a marqué des clés comme relues ou finales, et elles ont été
 
 ### BUDGET_TOKENS_EXCEEDED
 
-L'exécution a atteint son budget de tokens : `maxTokens` dans la config, ou `--max-tokens` pour une exécution. Avec `"warn"` elle continue ; avec `"stop"` les clés pas encore tentées sont retenues et listées sous `budgetWithheld`.
+L'exécution a atteint son budget de tokens : `maxTokens` dans la config, ou `--max-tokens` pour une exécution. Avec `"warn"` elle continue ; avec `"stop"` les clés pas encore tentées sont retenues et listées sous `budgetWithheld`. Un `maxTokens` inférieur à la projection d'un lot retient ce lot à chaque exécution ; l'avis dit de baisser `maxBatchSize` ou d'augmenter `maxTokens`.
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : aucun avec `budgetBehavior: "warn"` ; `1` avec `"stop"` dès que des clés sont retenues
