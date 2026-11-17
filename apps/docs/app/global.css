@@ -5826,7 +5826,7 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
     html[data-motion-ready] .vk-words:not([data-words-done]) .vk-word {
       animation: vk-word-in linear both;
       animation-timeline: --vk-words;
-      animation-range-start: entry calc(20vh + var(--i) * 0.7rem);
+      animation-range-start: entry min(calc(20vh + var(--i) * 0.7rem), calc(100% + 30vh - 1rem));
       animation-range-end: entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh));
     }
 

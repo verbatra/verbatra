@@ -442,16 +442,42 @@ describe("the word reveal stylesheet", () => {
     expect(host[0]?.declarations["view-timeline-inset"]).toBe("0");
   });
 
+  function rangePx(expression: string, index: number, heading: number): number {
+    const source = expression
+      .replace(/^entry /, "")
+      .replace(/var\(--i\)/g, String(index))
+      .replace(/(\d+(?:\.\d+)?)vh/g, (_, n) => `(${n}*8)`)
+      .replace(/(\d+(?:\.\d+)?)rem/g, (_, n) => `(${n}*16)`)
+      .replace(/100%/g, String(heading))
+      .replace(/calc\(/g, "(")
+      .replace(/min\(/g, "Math.min(");
+    return new Function(`return ${source}`)() as number;
+  }
+
   it("starts each word at 80 percent of the viewport staggered by its index and ends it at the 70 percent line", () => {
     const word = scrubbed.filter((rule) => rule.selector === WORD);
     expect(word).toHaveLength(1);
     const declarations = word[0]?.declarations ?? {};
     expect(declarations.animation).toBe("vk-word-in linear both");
     expect(declarations["animation-timeline"]).toBe("--vk-words");
-    expect(declarations["animation-range-start"]).toBe("entry calc(20vh + var(--i) * 0.7rem)");
+    expect(declarations["animation-range-start"]).toBe(
+      "entry min(calc(20vh + var(--i) * 0.7rem), calc(100% + 30vh - 1rem))",
+    );
     expect(declarations["animation-range-end"]).toBe(
       "entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh))",
     );
+  });
+
+  it("keeps every word's range start before its end however many words a heading holds", () => {
+    const declarations = scrubbed.find((rule) => rule.selector === WORD)?.declarations ?? {};
+    const start = declarations["animation-range-start"] ?? "";
+    const end = declarations["animation-range-end"] ?? "";
+    for (const heading of [40, 100, 300])
+      for (let index = 0; index < 30; index++)
+        expect(rangePx(start, index, heading), `${heading}px word ${index}`).toBeLessThan(
+          rangePx(end, index, heading),
+        );
+    expect(rangePx(start, 0, 100)).toBe(rangePx("20vh", 0, 100));
   });
 
   it("dims to 0.15 and blurs 4px, then ends sharp, with opacity and filter alone", () => {
