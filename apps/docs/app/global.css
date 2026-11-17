@@ -5843,3 +5843,15 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
     }
   }
 }
+
+html:root[data-analytics-prompt] {
+  scroll-padding-bottom: var(--analytics-prompt-clearance);
+}
+
+html:root[data-analytics-prompt] body {
+  padding-block-end: var(--analytics-prompt-clearance);
+}
+
+html:root[data-analytics-prompt] .vk-scroll-top {
+  display: none;
+}

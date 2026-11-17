@@ -17,6 +17,7 @@ const LABELS: AnalyticsPromptLabels = {
   allow: "Allow",
   decline: "No thanks",
   privacy: "Privacy policy and settings",
+  error: "Could not save your choice. Please try again.",
 };
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
@@ -51,7 +52,13 @@ function click(container: HTMLElement, name: string): Promise<void> {
   });
 }
 
+class StubResizeObserver {
+  observe(): void {}
+  disconnect(): void {}
+}
+
 beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", StubResizeObserver);
   clearDocumentCookie("verbatra_analytics");
 });
 
@@ -135,6 +142,66 @@ describe("AnalyticsPrompt", () => {
       expect(listener).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("marks the page while it shows, so the stylesheet can clear space and lift the back-to-top button", async () => {
+    const container = await render();
+    expect(document.documentElement.hasAttribute("data-analytics-prompt")).toBe(true);
+    stubPost("default");
+    await click(container, "No thanks");
+    expect(document.documentElement.hasAttribute("data-analytics-prompt")).toBe(false);
+    expect(document.documentElement.style.getPropertyValue("--analytics-prompt-clearance")).toBe(
+      "",
+    );
+  });
+
+  it("removes the page mark when it unmounts", async () => {
+    await render();
+    act(() => mounted?.root.unmount());
+    mounted = undefined;
+    expect(document.documentElement.hasAttribute("data-analytics-prompt")).toBe(false);
+  });
+
+  it("hides on Escape for this page view without storing or announcing a choice", async () => {
+    const post = stubPost("default");
+    const listener = vi.fn();
+    window.addEventListener(CHOICE_EVENT, listener);
+    const container = await render();
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    window.removeEventListener(CHOICE_EVENT, listener);
+    expect(container.querySelector("section")).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
+    expect(document.cookie).not.toContain("verbatra_analytics=");
+    expect(document.documentElement.hasAttribute("data-analytics-prompt")).toBe(false);
+  });
+
+  it("ignores other keys", async () => {
+    const container = await render();
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(container.querySelector("section")).not.toBeNull();
+  });
+
+  it("gives every button a 44px touch target and styles the link like the site's links", async () => {
+    const container = await render();
+    for (const button of container.querySelectorAll("button")) {
+      expect(button.className.split(" ")).toContain("min-h-11");
+    }
+    expect(container.querySelector("a")?.className.split(" ")).toContain("vk-prose-link");
+  });
+
+  it("says so in a status line when the choice could not be saved, and clears it on success", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const container = await render();
+    await click(container, "No thanks");
+    expect(container.querySelector("[role='status']")?.textContent).toBe(LABELS.error);
+    stubPost("default");
+    await click(container, "No thanks");
+    expect(container.querySelector("section")).toBeNull();
+  });
 
   it("stays visible and silent when the cookie was not stored", async () => {
     stubPost(undefined);

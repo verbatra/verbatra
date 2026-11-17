@@ -540,6 +540,7 @@
     "body": "Wenn du es erlaubst, laden wir unsere eigene Analyse: welche Bedienelemente du nutzt und, bei einem Teil der Besuche, eine Wiedergabe und Heatmap von Mausbewegungen, Klicks und Scrollen. Eingaben werden immer maskiert.",
     "allow": "Erlauben",
     "decline": "Nein, danke",
-    "privacy": "Datenschutzerklärung und Einstellungen"
+    "privacy": "Datenschutzerklärung und Einstellungen",
+    "error": "Deine Wahl konnte nicht gespeichert werden. Bitte versuche es erneut."
   }
 }

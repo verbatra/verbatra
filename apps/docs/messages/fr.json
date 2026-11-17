@@ -540,6 +540,7 @@
     "body": "Si tu l’autorises, nous chargeons notre propre outil d’analyse : les commandes que tu utilises et, pour un échantillon de visites, un enregistrement et une carte de chaleur des mouvements de souris, des clics et du défilement. Les champs de saisie sont toujours masqués.",
     "allow": "Autoriser",
     "decline": "Non merci",
-    "privacy": "Politique de confidentialité et réglages"
+    "privacy": "Politique de confidentialité et réglages",
+    "error": "Ton choix n’a pas pu être enregistré. Réessaie."
   }
 }

@@ -540,6 +540,7 @@
     "body": "Si lo permites, cargamos nuestra propia analítica: qué controles usas y, en una muestra de visitas, una reproducción y un mapa de calor de los movimientos del ratón, los clics y el desplazamiento. Los campos de entrada siempre se enmascaran.",
     "allow": "Permitir",
     "decline": "No, gracias",
-    "privacy": "Política de privacidad y ajustes"
+    "privacy": "Política de privacidad y ajustes",
+    "error": "No se pudo guardar tu elección. Inténtalo de nuevo."
   }
 }

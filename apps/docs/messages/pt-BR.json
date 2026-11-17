@@ -540,6 +540,7 @@
     "body": "Se você permitir, carregamos nossa própria análise: quais controles você usa e, em uma amostra de visitas, uma reprodução e um mapa de calor dos movimentos do mouse, dos cliques e da rolagem. Os campos de entrada são sempre mascarados.",
     "allow": "Permitir",
     "decline": "Não, obrigado",
-    "privacy": "Política de privacidade e configurações"
+    "privacy": "Política de privacidade e configurações",
+    "error": "Não foi possível salvar sua escolha. Tente novamente."
   }
 }

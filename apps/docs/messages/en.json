@@ -540,6 +540,7 @@
     "body": "If you allow it, we load our own analytics: which controls you use and, for a sample of visits, a replay and heatmap of mouse movement, clicks and scrolling. Inputs are always masked.",
     "allow": "Allow",
     "decline": "No thanks",
-    "privacy": "Privacy policy and settings"
+    "privacy": "Privacy policy and settings",
+    "error": "Could not save your choice. Please try again."
   }
 }
