@@ -60,7 +60,7 @@ export default defineConfig({
 | `provider.id` | 提供商 ID | 必填 | 0.1.0 | 翻译提供商，设为 `none` 表示不用机器翻译。 |
 | `provider.options` | 对象 | 必填，`none` 除外 | 0.1.0 | 提供商的专有选项（见[提供商](/zh-CN/docs/providers)）。 |
 | `glossary` | 对象或文件路径 | 无 | 0.1.0 | 固定译法、禁用译法和不翻译的术语。 |
-| `tone` | `"formal"`、`"informal"`、`"neutral"` | 无 | 0.1.0 | 翻译所用的语气，[按提供商](/zh-CN/docs/providers#各提供商的语气与术语表)应用。 |
+| `tone` | `"formal"`、`"informal"`、`"neutral"`，或一个映射 | 无 | 0.1.0 | 翻译所用的语气，[按提供商](/zh-CN/docs/providers#各提供商的语气与术语表)应用。映射为每个目标语言环境指定语气，另加 `default`。<AvailableFrom version="0.14.0" /> |
 | `prune` | 布尔值 | `false` | 0.3.0 | 从目标文件和锁文件中移除孤立的键；`translate --prune` 会覆盖它。 |
 | `generatePlurals` | 布尔值 | `false` | 0.3.0 | 为目标语言补全它所需的 CLDR 复数形式。 |
 | `fuzzyCache.enabled` | 布尔值 | 该块中必填 | 0.11.0 | 复用略有更改的源文本的译文。 |
@@ -232,10 +232,10 @@ maxLength: {
 
 - 每次请求之后，总量会按提供商报告的用量校正，因此运行结束时可能略高于 `maxTokens`（见[运行摘要的 `budget`](/zh-CN/docs/sdk/run-summary#runsummary-的结构)）。机器翻译提供商不报告 token，按预测值计入预算。
 - 失败或被截断的请求按全额计费。
-- 预测值会加上固定的 LLM 提示词余量，机器翻译提供商也一样，并且覆盖整个批次，因此低于单个批次预测值的 `maxTokens` 会让它每次运行都被拒绝；通知会提示降低 `maxBatchSize` 或提高 `maxTokens`。
+- 预测值会加上固定的 LLM 提示词余量，机器翻译提供商也一样，并且覆盖整个批次，因此低于单个批次预测值的 `maxTokens` 会让它每次运行都被拒绝。
 - 有键被搁置的语言环境为 `partial`，一个键都没有写入时为 `failed`，两者都以退出码 `1` 退出。在 `"warn"` 下，退出码从不改变。
 
-预算只约束一次 `translate` 运行，不约束单个条目的重新翻译；`watch` 每次运行都从新的预算开始。有预算时，实际运行不允许 [`--concurrency`](/zh-CN/docs/cli/translate#并行语言环境) 大于 `1`；试运行不受此限。没有 `maxTokens` 时，`budgetBehavior` 不起作用。
+预算只约束一次 `translate` 运行，不约束单个条目的重新翻译；`watch` 每次运行都从新的预算开始。有预算时，实际运行不允许 [`--concurrency`](/zh-CN/docs/cli/translate#并行语言环境) 大于 `1`；试运行不受此限。
 
 <Callout type="warn" title="两个不同的 maxTokens">
 顶层的 `maxTokens` 是这个整次运行的预算；Anthropic 的 `provider.options.maxTokens` 与它无关，只限制单次响应（见[提供商](/zh-CN/docs/providers#anthropic)）。
@@ -354,7 +354,7 @@ provider:
 
 ### 文档无法检查的内容
 
-只有加载配置时才会检查这些规则：`targetLocales` 的规则和[语言环境代码](#语言环境代码)，[`localeMap`](/zh-CN/docs/providers#发送给提供商的语言环境代码) 的键，`openai-compatible` 的 `baseUrl` 和 [`apiKeyEnvVar`](/zh-CN/docs/providers#openai-compatible) 规则，有效的 [`network.allowedHosts`](/zh-CN/docs/network-policy) 地址和范围，符合[安全规则](/zh-CN/docs/data-handling#敏感内容防护)的 `sensitiveData.patterns`，以及内联的[版本 2 术语表](#按语言环境的术语表版本-2)的术语规则。
+只有加载配置时才会检查这些规则：`targetLocales` 的规则和[语言环境代码](#语言环境代码)，[`localeMap`](/zh-CN/docs/providers#发送给提供商的语言环境代码) 与 `tone` 映射的键，`openai-compatible` 的 `baseUrl` 和 [`apiKeyEnvVar`](/zh-CN/docs/providers#openai-compatible) 规则，有效的 [`network.allowedHosts`](/zh-CN/docs/network-policy) 地址和范围，符合[安全规则](/zh-CN/docs/data-handling#敏感内容防护)的 `sensitiveData.patterns`，以及内联的[版本 2 术语表](#按语言环境的术语表版本-2)的术语规则。
 
 ## 工作目录与 .env
 

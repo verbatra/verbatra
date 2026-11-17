@@ -160,6 +160,7 @@ export {
   type VerbatraConfigInput,
   verbatraConfigSchema,
 } from "./config/schema.js";
+export { type ToneConfig, toneForLocale } from "./config/tone.js";
 export {
   type DetectedFormat,
   type DetectedFormatSource,

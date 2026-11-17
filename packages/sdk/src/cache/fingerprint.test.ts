@@ -103,3 +103,34 @@ describe("computeFingerprint: provider localeMap", () => {
     expect(ab).toBe(ba);
   });
 });
+
+describe("computeFingerprint: per-locale tone", () => {
+  const toneMap = (tone: VerbatraConfig["tone"]): VerbatraConfig =>
+    cfg({ targetLocales: ["de", "ja"], tone });
+
+  it("keeps a scalar tone byte-identical to the pre-map canonical form", () => {
+    const canonical = JSON.stringify({
+      provider: "anthropic",
+      model: "test-model",
+      tone: "informal",
+      glossary: {},
+    });
+    expect(computeFingerprint(toneMap("informal"), "ja")).toBe(stableStringHash(canonical));
+  });
+
+  it("hashes a locale by its resolved tone, so a map equal to the scalar for it matches", () => {
+    expect(computeFingerprint(toneMap({ default: "informal" }), "de")).toBe(
+      computeFingerprint(toneMap("informal"), "de"),
+    );
+    expect(computeFingerprint(toneMap({ ja: "neutral" }), "de")).toBe(
+      computeFingerprint(toneMap(undefined), "de"),
+    );
+  });
+
+  it("changes only the fingerprint of the locale whose tone changed", () => {
+    const before = toneMap({ default: "informal", ja: "informal" });
+    const after = toneMap({ default: "informal", ja: "neutral" });
+    expect(computeFingerprint(after, "de")).toBe(computeFingerprint(before, "de"));
+    expect(computeFingerprint(after, "ja")).not.toBe(computeFingerprint(before, "ja"));
+  });
+});

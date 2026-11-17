@@ -33,10 +33,10 @@ l'exécution ne connaît alors aucun rejet.
 ## L'empreinte
 
 Chaque entrée est rattachée au contexte dans lequel elle a été produite : une empreinte sur le
-fournisseur, le modèle, le ton, les termes du glossaire de cette locale, et le
+fournisseur, le modèle, le ton de cette locale, les termes du glossaire de cette locale, et le
 [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur quand il a
-des entrées. Change l'un d'eux et les entrées précédentes ne correspondent plus, donc un nouveau ton
-ou un glossaire modifié retraduit au lieu de servir un résultat obsolète. La partie glossaire correspond aux termes que verbatra enverrait au fournisseur, après un réglage `sensitiveData` qui retient ou masque un terme, que le fournisseur configuré utilise ou non les termes du glossaire (DeepL, Google Cloud Translation et LibreTranslate les ignorent), donc un terme modifié entraîne tout de même une retraduction. L'indicateur `caseSensitive` d'un terme n'en fait pas partie. Chaque locale a sa propre
+des entrées. Change l'un d'eux et les entrées précédentes ne correspondent plus, donc le cache ne sert jamais un résultat obsolète après un nouveau ton
+ou un glossaire modifié. Les valeurs déjà écrites restent jusqu'à ce que tu les retraduises. La partie glossaire correspond aux termes que verbatra enverrait au fournisseur, après un réglage `sensitiveData` qui retient ou masque un terme, que le fournisseur configuré utilise ou non les termes du glossaire (DeepL, Google Cloud Translation et LibreTranslate les ignorent), donc un terme modifié entraîne tout de même une retraduction. L'indicateur `caseSensitive` d'un terme n'en fait pas partie. Chaque locale a sa propre
 empreinte, donc modifier seulement la traduction allemande d'un terme laisse les entrées françaises
 correspondre.
 

@@ -20,6 +20,23 @@ export function projectGlossaryIndicator(
   return { source: glossary.source };
 }
 
+function projectTone(
+  tone: LoadedConfig["config"]["tone"],
+): Pick<ProjectSnapshotResult, "tone" | "toneByLocale"> {
+  if (tone === undefined) {
+    return {};
+  }
+  if (typeof tone === "string") {
+    return { tone };
+  }
+  const { default: fallback, ...byLocale } = tone;
+  const entries = Object.entries(byLocale).map(([locale, value]) => [redact(locale), value]);
+  return {
+    ...(fallback !== undefined ? { tone: fallback } : {}),
+    ...(entries.length > 0 ? { toneByLocale: Object.fromEntries(entries) } : {}),
+  };
+}
+
 export function buildProjectSnapshot(
   loaded: LoadedConfig,
   projectRoot: string,
@@ -41,6 +58,6 @@ export function buildProjectSnapshot(
     ...(config.prune !== undefined ? { prune: config.prune } : {}),
     ...(config.generatePlurals !== undefined ? { generatePlurals: config.generatePlurals } : {}),
     ...(config.maxBatchSize !== undefined ? { maxBatchSize: config.maxBatchSize } : {}),
-    ...(config.tone !== undefined ? { tone: config.tone } : {}),
+    ...projectTone(config.tone),
   };
 }

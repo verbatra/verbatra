@@ -82,7 +82,6 @@ describe("createOpenAiProvider: request building", () => {
     const body = firstCallOf(calls);
     expect(body.messages[0].role).toBe("system");
     expect(body.messages[0].content).toBe(OPENAI_SYSTEM_RULES);
-    expect(body.messages[0].content).not.toContain("formal");
     expect(body.messages[0].content).not.toContain("Servus");
     expect(body.response_format.type).toBe("json_schema");
     if (body.response_format.type !== "json_schema") {

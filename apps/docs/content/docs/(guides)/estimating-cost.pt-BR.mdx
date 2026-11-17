@@ -80,7 +80,7 @@ Os preços acima são valores de exemplo, não preços reais. Todo número impre
 A estimativa faz a aritmética que você faria manualmente:
 
 - **Requisições.** As chaves de cada locale são divididas em lotes de no máximo [`maxBatchSize`](/pt-BR/docs/config-file#maxbatchsize) (padrão `50`), uma requisição cada, mais os lotes que [`generatePlurals`](/pt-BR/docs/config-file#generateplurals) enviaria.
-- **Entrada.** Toda requisição a um LLM leva regras de sistema fixas (cerca de 550 tokens) e um schema da resposta (cerca de 100 tokens), depois as chaves, as descrições delas, o tom e o glossário completo do locale de destino. O prompt é medido serializando o payload que seria enviado, então um glossário grande é contado em toda requisição em que viaja.
+- **Entrada.** Toda requisição a um LLM leva regras de sistema fixas (cerca de 700 tokens) e um schema da resposta (cerca de 100 tokens), depois as chaves, as descrições delas, o tom e o glossário completo do locale de destino. O prompt é medido serializando o payload que seria enviado, então um glossário grande é contado em toda requisição em que viaja.
 - **Saída.** Uma tradução ainda não existe, então ela é dimensionada como o texto de origem mais 50%, já que alemão, francês e russo costumam ser de um terço à metade mais longos que o inglês.
 - **Tokens.** Os caracteres são convertidos a cerca de quatro por token, o que serve para prosa em inglês; outras escritas são mais densas.
 

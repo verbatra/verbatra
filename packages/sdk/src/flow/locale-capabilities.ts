@@ -10,6 +10,7 @@ import {
   providerCodeFor,
   supportsFormality,
   supportsGlossaryPair,
+  type Tone,
 } from "@verbatra/ai-providers";
 import { glossaryForLocale } from "../config/glossary.js";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../config/provider-config.js";
 import { languageSupportOf } from "../config/provider-languages.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { toneForLocale } from "../config/tone.js";
 import { SdkError } from "../errors.js";
 import type { LocaleSummary, SdkNotice, SdkNoticeCode } from "./summary.js";
 
@@ -216,8 +218,9 @@ function hasGlossaryFor(assessment: Assessment, locale: string): boolean {
   return appliesTerms(glossaryForLocale(config.glossary, locale));
 }
 
-function wantsFormality(config: VerbatraConfig): boolean {
-  return config.tone === "formal" || config.tone === "informal";
+function formalityToneFor(config: VerbatraConfig, locale: string): Tone | undefined {
+  const tone = toneForLocale(config.tone, locale);
+  return tone === "formal" || tone === "informal" ? tone : undefined;
 }
 
 function featureWarnings(
@@ -226,6 +229,7 @@ function featureWarnings(
   features: { readonly glossary: boolean; readonly formality: boolean },
 ): readonly LocaleCapabilityWarning[] {
   const { provider, config } = assessment;
+  const formalityTone = formalityToneFor(config, locale);
   return [
     ...(!features.glossary && hasGlossaryFor(assessment, locale)
       ? [
@@ -235,11 +239,11 @@ function featureWarnings(
           ),
         ]
       : []),
-    ...(!features.formality && wantsFormality(config)
+    ...(!features.formality && formalityTone !== undefined
       ? [
           warning(
             "FORMALITY_UNSUPPORTED_BY_PROVIDER",
-            `Provider "${provider.id}" has no formality control for "${locale}", so the configured ${config.tone} tone is not applied and the provider's default register is used.`,
+            `Provider "${provider.id}" has no formality control for "${locale}", so the configured ${formalityTone} tone is not applied and the provider's default register is used.`,
           ),
         ]
       : []),

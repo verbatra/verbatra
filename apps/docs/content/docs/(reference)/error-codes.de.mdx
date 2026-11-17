@@ -1151,7 +1151,7 @@ Eine XLIFF-Übergabe hat Keys als geprüft oder final markiert, und sie wurden i
 
 ### BUDGET_TOKENS_EXCEEDED
 
-Der Lauf hat sein Token-Budget erreicht: `maxTokens` in der Konfiguration oder `--max-tokens` für einen Lauf. Unter `"warn"` läuft er weiter; unter `"stop"` werden die noch nicht versuchten Keys zurückgehalten und unter `budgetWithheld` aufgeführt.
+Der Lauf hat sein Token-Budget erreicht: `maxTokens` in der Konfiguration oder `--max-tokens` für einen Lauf. Unter `"warn"` läuft er weiter; unter `"stop"` werden die noch nicht versuchten Keys zurückgehalten und unter `budgetWithheld` aufgeführt. Ein `maxTokens` unterhalb der Projektion eines Batches hält diesen Batch bei jedem Lauf zurück; der Hinweis sagt, `maxBatchSize` zu senken oder `maxTokens` zu erhöhen.
 
 - **Ausgelöst von**: `translate`, `watch`
 - **Exit-Code**: keiner unter `budgetBehavior: "warn"`; `1` unter `"stop"`, sobald Keys zurückgehalten werden

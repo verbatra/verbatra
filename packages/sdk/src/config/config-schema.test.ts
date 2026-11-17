@@ -107,6 +107,21 @@ describe("the config JSON Schema document: the network block", () => {
   });
 });
 
+describe("the config JSON Schema document: the tone setting", () => {
+  it("is either one tone name or a map from a locale to a tone name", () => {
+    const tone = propertyOf(document, "tone");
+    const variants = tone?.anyOf as JsonSchemaObject[] | undefined;
+    expect(variants).toHaveLength(2);
+    expect(variants?.[0]?.enum).toEqual(["formal", "informal", "neutral"]);
+    expect(variants?.[1]?.type).toBe("object");
+    expect((variants?.[1]?.additionalProperties as JsonSchemaObject | undefined)?.enum).toEqual([
+      "formal",
+      "informal",
+      "neutral",
+    ]);
+  });
+});
+
 describe("the config JSON Schema document: the locale code rule", () => {
   const sourceLocale = propertyOf(document, "sourceLocale");
   const targetLocales = propertyOf(document, "targetLocales");

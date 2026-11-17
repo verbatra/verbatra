@@ -30,6 +30,23 @@ describe("SHARED_SYSTEM_RULES", () => {
     );
   });
 
+  it("states tone as a register of address and pins Japanese to polite desu/masu", () => {
+    const toneRules = SHARED_SYSTEM_RULES.filter((line) =>
+      line.startsWith("When a tone is provided"),
+    );
+    expect(toneRules).toHaveLength(1);
+    const [rule = ""] = toneRules;
+    expect(rule).toContain("register of address, never a casual style");
+    expect(rule).toContain("informal means the familiar second person (du, tu, tú, você)");
+    expect(rule).toContain("formal means the polite second person (Sie, vous, usted, o senhor)");
+    expect(rule).toContain("neutral avoids direct address");
+    expect(rule).toContain("never slang or casual spoken style");
+    expect(rule).toContain(
+      "In Japanese, informal and neutral both mean polite です/ます (丁寧語), never plain だ or である or casual endings such as よ, ね, だよ",
+    );
+    expect(rule).toContain("formal means keigo (尊敬語, 謙譲語)");
+  });
+
   it("binds glossary translations and rules out forbidden renderings, which arrive only as data", () => {
     const rules = SHARED_SYSTEM_RULES.join("\n");
     expect(rules).toContain(
@@ -79,7 +96,7 @@ describe("SHARED_SYSTEM_RULES", () => {
 
 describe("the fixed per-request overhead a pre-run cost estimate reserves for", () => {
   const CHARACTERS_PER_TOKEN = 4;
-  const SYSTEM_RULES_TOKEN_ALLOWANCE = 550;
+  const SYSTEM_RULES_TOKEN_ALLOWANCE = 650;
   const RESPONSE_SCHEMA_TOKEN_ALLOWANCE = 100;
 
   function tokens(text: string): number {

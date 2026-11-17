@@ -1035,7 +1035,7 @@ XLIFF の受け渡しでキーが reviewed または final とされ、`verbatra
 
 ### BUDGET_TOKENS_EXCEEDED
 
-実行がトークン予算に達しました。設定の `maxTokens`、または 1 回の実行に対する `--max-tokens` です。`"warn"` では実行が続きます。`"stop"` では、まだ試行していないキーが保留され、`budgetWithheld` に一覧されます。
+実行がトークン予算に達しました。設定の `maxTokens`、または 1 回の実行に対する `--max-tokens` です。`"warn"` では実行が続きます。`"stop"` では、まだ試行していないキーが保留され、`budgetWithheld` に一覧されます。1 バッチの予測より小さい `maxTokens` は、毎回の実行でそのバッチを保留します。通知には、`maxBatchSize` を下げるか `maxTokens` を上げるよう示されます。
 
 - **発生元**：`translate`、`watch`
 - **終了コード**：`budgetBehavior: "warn"` ではなし、`"stop"` でキーが保留された場合は `1`

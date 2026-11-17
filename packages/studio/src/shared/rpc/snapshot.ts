@@ -44,4 +44,5 @@ export interface ProjectSnapshotResult {
   readonly generatePlurals?: boolean;
   readonly maxBatchSize?: number;
   readonly tone?: "formal" | "informal" | "neutral";
+  readonly toneByLocale?: Readonly<Record<string, "formal" | "informal" | "neutral">>;
 }

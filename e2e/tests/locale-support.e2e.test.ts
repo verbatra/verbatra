@@ -67,7 +67,11 @@ beforeAll(async () => {
   offlineEnv = { ...NO_KEYS, NODE_OPTIONS: `--import ${preloadUrl}` };
 }, 180_000);
 
-async function scaffold(name: string, targetLocales: readonly string[]): Promise<string> {
+async function scaffold(
+  name: string,
+  targetLocales: readonly string[],
+  tone: unknown = "formal",
+): Promise<string> {
   const dir = join(consumer.dir, name);
   await mkdir(dir, { recursive: true });
   await writeJsonIn(dir, ".verbatrarc.json", {
@@ -76,7 +80,7 @@ async function scaffold(name: string, targetLocales: readonly string[]): Promise
     format: "i18next-json",
     files: { pattern: "locales/{locale}.json" },
     provider: { id: "deepl", options: {} },
-    tone: "formal",
+    tone,
   });
   await writeJsonIn(dir, "locales/en.json", { greeting: "Hello" });
   return dir;
@@ -146,6 +150,43 @@ describe("locale support pre-flight (keyless, no network)", () => {
       ["de", []],
       ["sv", ["FORMALITY_UNSUPPORTED_BY_PROVIDER"]],
     ]);
+  });
+
+  it("applies a per-locale tone only to the locale that names it", async () => {
+    const dir = await scaffold("locale-support-tone-map", ["de", "sv"], {
+      default: "neutral",
+      sv: "formal",
+    });
+
+    const result = await runVerbatra(consumer, ["translate", "--dry-run", "--json", "--cwd", dir], {
+      env: offlineEnv,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const envelope = parseEnvelope<{ locales: { locale: string; notices: { code: string }[] }[] }>(
+      result.stdout,
+    );
+    if (!envelope.ok) {
+      throw new Error("expected a success envelope");
+    }
+    expect(
+      envelope.result.locales.map((entry) => [entry.locale, entry.notices.map((n) => n.code)]),
+    ).toEqual([
+      ["de", []],
+      ["sv", ["FORMALITY_UNSUPPORTED_BY_PROVIDER"]],
+    ]);
+  });
+
+  it("refuses a tone map that names a locale which is not a target", async () => {
+    const dir = await scaffold("locale-support-tone-map-unknown", ["de"], { fr: "formal" });
+
+    const result = await runVerbatra(consumer, ["translate", "--dry-run", "--json", "--cwd", dir], {
+      env: offlineEnv,
+    });
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("tone");
+    expect(result.stdout).toContain('\\"fr\\" is not a target locale');
   });
 
   it("reports every locale's support from doctor --json without a key or a request", async () => {

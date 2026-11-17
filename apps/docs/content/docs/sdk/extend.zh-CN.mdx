@@ -190,3 +190,18 @@ const summary = await translate({ config }, { createProvider });
 - 当网络策略限制提供商可以连接的位置时，`ProviderNetwork` 就是 `CreateProviderContext.network` 所持有的内容：有效的 `policy`、解析端点所用的 `env`，以及可选的测试用 `deps`。自定义提供商可以忽略它，但这样一来，只有 SDK 在调用工厂函数之前运行的检查才适用于它的请求。
 
 **示例**：[不用密钥测试你的集成](/zh-CN/docs/programmatic-api#不用密钥测试你的集成)
+
+### toneForLocale
+
+<AvailableFrom version="0.14.0" />
+
+按一次运行的方式解析适用于某个目标语言环境的语气：单个语气适用于所有语言环境，映射则依次返回该语言环境自己的条目、`default`，最后是 `undefined`。自定义提供商收到的 `TranslateRequest.tone` 已经按此方式解析。
+
+```ts title="签名"
+function toneForLocale(
+  tone: ToneConfig | undefined,
+  locale: string,
+): Tone | undefined;
+```
+
+**返回**：`Tone | undefined`

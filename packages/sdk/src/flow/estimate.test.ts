@@ -3,6 +3,7 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
+import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig, localeGlossaryOf } from "../test-support.js";
 import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
@@ -89,7 +90,7 @@ describe("estimateRun: token-billed providers", () => {
     });
 
     expect(estimate.unit).toBe("tokens");
-    expect(estimate.inputTokens).toBe(691);
+    expect(estimate.inputTokens).toBe(841);
     expect(estimate.outputTokens).toBe(17);
     expect(estimate.sourceCharacters).toBeUndefined();
   });
@@ -127,8 +128,8 @@ describe("estimateRun: token-billed providers", () => {
     expect(estimate.pricing).toBe("priced");
     expect(estimate.currency).toBe("USD");
     expect(estimate.asOf).toBe("2026-01-15");
-    expect(estimate.cost).toBeCloseTo(0.002328, 9);
-    expect(estimate.locales[0]?.cost).toBeCloseTo(0.002328, 9);
+    expect(estimate.cost).toBeCloseTo(0.002778, 9);
+    expect(estimate.locales[0]?.cost).toBeCloseTo(0.002778, 9);
   });
 
   it("warns that a token count is a heuristic and that repair requests are uncounted", () => {
@@ -188,7 +189,7 @@ describe("estimateRun: what cannot be priced", () => {
     expect(estimate.pricing).toBe("not-billed");
     expect(estimate.cost).toBeUndefined();
     expect(estimate.currency).toBeUndefined();
-    expect(estimate.inputTokens).toBe(691);
+    expect(estimate.inputTokens).toBe(841);
   });
 
   it("names the missing rate key rather than reporting a cost of zero", () => {
@@ -312,7 +313,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
 
 describe("the estimation heuristic", () => {
   it("holds the per-request overhead and character density the cost guide publishes", () => {
-    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(550);
+    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(700);
     expect(ESTIMATED_RESPONSE_SCHEMA_TOKENS).toBe(100);
     expect(ESTIMATED_CHARACTERS_PER_TOKEN).toBe(4);
     expect(ESTIMATED_TRANSLATION_EXPANSION).toBe(1.5);
@@ -326,7 +327,7 @@ describe("quantifyLocale", () => {
     expect(quantifyLocale([GREETING], CONTEXT, 50)).toEqual({
       keys: 1,
       requests: 1,
-      inputTokens: 691,
+      inputTokens: 841,
       outputTokens: 17,
       sourceCharacters: 11,
     });
@@ -412,7 +413,9 @@ describe("quantifyLocale: everything the request carries is counted", () => {
       50,
     );
 
-    expect(withGlossary.inputTokens).toBeGreaterThan(without.inputTokens * 4);
+    expect(withGlossary.inputTokens - without.inputTokens).toBeGreaterThanOrEqual(
+      Math.floor(JSON.stringify(glossary).length / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
   });
 
   it("charges the glossary once per request, so two requests carry it twice", () => {
@@ -587,7 +590,9 @@ describe("estimateForRun", () => {
       maxBatchSize: 50,
     });
 
-    expect(withGlossary.inputTokens ?? 0).toBeGreaterThan((plain.inputTokens ?? 0) * 4);
+    expect((withGlossary.inputTokens ?? 0) - (plain.inputTokens ?? 0)).toBeGreaterThanOrEqual(
+      Math.floor(JSON.stringify(glossary).length / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
   });
 
   it("carries the config's tone into the figure", () => {
@@ -605,6 +610,22 @@ describe("estimateForRun", () => {
     });
 
     expect(withTone.inputTokens ?? 0).toBeGreaterThan(plain.inputTokens ?? 0);
+  });
+
+  it("counts each locale's own tone, so a map prices only the locales it names", () => {
+    const run = (tone: VerbatraConfig["tone"]) =>
+      estimateForRun({
+        summaries: [summary("de", ["greeting"]), summary("fr", ["greeting"])],
+        source: source([GREETING]),
+        config: baseConfig({ provider: ANTHROPIC, targetLocales: ["de", "fr"], tone }),
+        maxBatchSize: 50,
+      });
+    const plain = run(undefined);
+    const mapped = run({ de: "informal" });
+    const scalar = run("informal");
+
+    expect(mapped.locales[0]?.inputTokens).toBe(scalar.locales[0]?.inputTokens);
+    expect(mapped.locales[1]?.inputTokens).toBe(plain.locales[1]?.inputTokens);
   });
 
   it("uses the config's source locale, which is part of every request payload", () => {

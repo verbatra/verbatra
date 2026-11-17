@@ -122,7 +122,7 @@ provider: {
 Lit `DEEPL_API_KEY` ; `options` peut valoir `{}`. DeepL n'a ni modèle ni limite de tokens de sortie, et se dégrade avec un avis plutôt que d'échouer :
 
 - **Les placeholders** voyagent comme des marqueurs numérotés dans une balise ignorée (`Hello {{name}}` comme `Hello <x>{0}</x>`) puis sont restaurés. `PLACEHOLDER_UNSUPPORTED` retient la valeur entière quand elle contient une balise, qu'un placeholder n'est pas littéral ou que le texte hors des placeholders contient `<`, `>`, `{` ou `}` ; un résultat avec un marqueur perdu, répété, modifié ou nu, une entité inconnue ou une balise étrangère est rejeté en entier. Le balisage seul part en texte brut. <AvailableFrom version="0.12.0" />
-- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite n'envoie pas de formalité et signale `FORMALITY_DOWNGRADED`. Une clé payante la demande avec `prefer_more` ou `prefer_less`, donc une langue sans formalité, comme le suédois, retombe sur le registre par défaut avec le même avis. Le [glossaire](#ton-et-glossaire-selon-les-fournisseurs) n'est pas appliqué.
+- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite n'envoie pas de formalité et signale `FORMALITY_DOWNGRADED`. Une clé payante la demande avec `prefer_more` ou `prefer_less`, donc une langue sans formalité, comme le suédois, retombe sur le registre par défaut avec le même avis. Japonais : utilise `ja: "neutral"` (`informal` envoie `prefer_less`).
 
 <AvailableFrom version="0.12.0" />
 
@@ -290,7 +290,7 @@ Une requête ne porte que les termes du glossaire de sa locale cible, et chaque 
 
 | Fournisseur | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | envoyé et respecté | traductions, traductions interdites, termes à ne pas traduire et notes envoyés comme données contraignantes |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | envoyé par locale comme registre fixe (japonais : です/ます poli sauf en `formal`) | traductions, traductions interdites, termes à ne pas traduire et notes envoyés comme données contraignantes |
 | DeepL | mappé sur la formalité | `GLOSSARY_IGNORED` ; seul `glossaryId` s'applique |
 | Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` pour `formal` ou `informal` | `GLOSSARY_IGNORED` |
 
@@ -353,7 +353,7 @@ provider: {
 }
 ```
 
-- **Les clés** doivent être `sourceLocale` ou une locale cible comme dans la configuration, sinon la configuration échoue avec `CONFIG_INVALID`. La table se place sous `options`, pour tous les fournisseurs sauf `none`.
+- **Les clés** doivent être `sourceLocale` ou une locale cible comme dans la configuration, sinon la configuration échoue avec `CONFIG_INVALID`.
 - **Les valeurs** sont des chaînes non vides de 64 caractères au plus, envoyées telles quelles : comme code de langue à un fournisseur de traduction automatique, à la place du code pour un LLM (`"pt-BR (Brazilian Portuguese)"` fonctionne), dont les noms de langue viennent toujours de la clé. Un `EN` ou `PT` nu pour DeepL échoue avec `INVALID_REQUEST` ; une valeur que le fournisseur rejette fait échouer son sous-lot.
 - **Effet sur la mémoire.** Seules les chaînes nouvelles et modifiées partent avec un nouveau code. Une table non vide fait partie de l'empreinte de la [mémoire](/fr/docs/the-cache), donc la modifier ouvre un compartiment séparé.
 

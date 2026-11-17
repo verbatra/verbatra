@@ -15,9 +15,11 @@ import type { ProviderNetwork } from "./network/transport.js";
 export type ProviderKind = "llm" | "machine-translation";
 
 /**
- * Target tone for a translation. `formal` and `informal` request the corresponding register, and
- * `neutral` requests neither. Machine-translation providers map it to their formality setting and may
- * report a `FORMALITY_DOWNGRADED` {@link ProviderNotice} when they cannot apply it.
+ * Target tone for a translation, always a register of address and never a casual style. `formal`
+ * requests the polite second person, `informal` the familiar one, and `neutral` avoids direct address.
+ * LLM providers state each as a fixed rule; in Japanese, `informal` and `neutral` both write polite
+ * です/ます and `formal` writes keigo. Machine-translation providers map it to their formality setting
+ * and may report a `FORMALITY_DOWNGRADED` {@link ProviderNotice} when they cannot apply it.
  */
 export type Tone = "formal" | "informal" | "neutral";
 

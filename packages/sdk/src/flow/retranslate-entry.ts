@@ -14,6 +14,7 @@ import { assertMachineTranslationEnabled } from "../config/machine-translation.j
 import { projectCwd } from "../config/project-root.js";
 import { resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { toneForLocale } from "../config/tone.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
@@ -215,7 +216,7 @@ async function translateOne(context: UnderLockContext) {
           adapter,
           glossary: glossaryForLocale(config.glossary, locale),
           maxLength: context.maxLength,
-          tone: config.tone,
+          tone: toneForLocale(config.tone, locale),
         },
         [sourceEntry],
       ),
