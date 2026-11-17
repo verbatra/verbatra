@@ -5844,6 +5844,10 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   }
 }
 
+html:root {
+  --analytics-prompt-clearance: 0px;
+}
+
 html:root[data-analytics-prompt] {
   scroll-padding-bottom: var(--analytics-prompt-clearance);
 }
