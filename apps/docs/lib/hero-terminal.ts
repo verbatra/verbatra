@@ -1,4 +1,9 @@
-import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkLocaleLine } from "@/lib/check-demo";
+import {
+  CHECK_CLI_COMMAND,
+  CHECK_OVERALL_LINE,
+  checkBadge,
+  checkLocaleLine,
+} from "@/lib/check-demo";
 
 type HeroTerminalLocale = { readonly locale: string };
 
@@ -53,7 +58,7 @@ export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
   CHECK_OVERALL_LINE,
 ];
 
-export const HERO_CHECK_BADGE = `${stale} stale, ${synced} up-to-date`;
+export const HERO_CHECK_BADGE = checkBadge(stale, synced);
 
 export const HERO_TRANSLATE_BADGE = `${stale} translated, ${synced} unchanged`;
 
