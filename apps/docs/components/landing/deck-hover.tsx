@@ -62,7 +62,7 @@ function attach(deck: HTMLElement): () => void {
   const onOut = (event: PointerEvent) => {
     if (event.pointerType !== "mouse") return;
     const row = rowOf(event.target);
-    if (row !== null && row === armedRow) cancel();
+    if (row !== null && row === armedRow && rowOf(event.relatedTarget) !== row) cancel();
   };
 
   deck.addEventListener("pointermove", onMove);

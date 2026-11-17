@@ -49,7 +49,7 @@ async function placeBottom(page: Page, index: number, offsetPx: number): Promise
       (host, [line, offset]) => {
         const bottom = host.getBoundingClientRect().bottom;
         window.scrollTo({
-          top: window.scrollY + bottom - line * innerHeight + (offset ?? 0),
+          top: window.scrollY + bottom - line * innerHeight - (offset ?? 0),
           behavior: "instant",
         });
       },
