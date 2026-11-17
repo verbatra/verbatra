@@ -20,8 +20,32 @@ export function browserHasSignal(): boolean {
   return hasPrivacySignal({ gpc: legacy.globalPrivacyControl === true, dnt });
 }
 
+export const CHOICE_CHANNEL = "verbatra-analytics-choice";
+
+function withChannel(use: (channel: BroadcastChannel) => void): void {
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    use(new BroadcastChannel(CHOICE_CHANNEL));
+  } catch {
+    return;
+  }
+}
+
 export function announceChoice(): void {
   window.dispatchEvent(new Event(CHOICE_EVENT));
+  withChannel((channel) => {
+    channel.postMessage(null);
+    channel.close();
+  });
+}
+
+export function onChoiceInOtherWindow(listener: () => void): () => void {
+  let close = (): void => undefined;
+  withChannel((channel) => {
+    channel.onmessage = listener;
+    close = () => channel.close();
+  });
+  return () => close();
 }
 
 export function reloadPage(): void {

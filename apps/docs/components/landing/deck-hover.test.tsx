@@ -123,6 +123,17 @@ describe("DeckHover", () => {
     unmount();
   });
 
+  it("keeps the dwell when the pointer crosses descendants of the same row", () => {
+    stubMedia({ [FINE]: true, [WIDE]: true });
+    const { unmount } = mount();
+    move(row("b"), 10, 10);
+    vi.advanceTimersByTime(DECK_HOVER_DWELL_MS - 20);
+    leave(document.querySelector('label[for="r-b"]') as Element, "mouse", radio("b"));
+    vi.advanceTimersByTime(20);
+    expect(radio("b").checked).toBe(true);
+    unmount();
+  });
+
   it("cancels when the pointer leaves the deck and keeps the last selection", () => {
     stubMedia({ [FINE]: true, [WIDE]: true });
     const { deck, unmount } = mount();

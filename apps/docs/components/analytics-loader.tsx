@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { browserChoice, browserHasSignal, CHOICE_EVENT, reloadPage } from "@/lib/analytics-client";
+import {
+  browserChoice,
+  browserHasSignal,
+  CHOICE_EVENT,
+  onChoiceInOtherWindow,
+  reloadPage,
+} from "@/lib/analytics-client";
 import { sanitizeTrackerPayload, type TrackerPayload } from "@/lib/analytics-sanitize";
 import { SITE_URL } from "@/lib/site-url";
 import { UMAMI_RECORDER_URL, UMAMI_SCRIPT_URL, UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
@@ -62,7 +68,9 @@ export function AnalyticsLoader(): null {
     window.addEventListener(CHOICE_EVENT, onChoice);
     window.addEventListener("pageshow", onPageShow);
     document.addEventListener("visibilitychange", onVisibilityChange);
+    const stopOtherWindows = onChoiceInOtherWindow(onChoice);
     return () => {
+      stopOtherWindows();
       window.removeEventListener(CHOICE_EVENT, onChoice);
       window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("visibilitychange", onVisibilityChange);

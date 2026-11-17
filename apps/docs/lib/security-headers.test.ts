@@ -103,7 +103,9 @@ describe("contentSecurityPolicy", () => {
 
   it("names the Umami origin in no other directive, so frames and images stay closed", () => {
     const policy = directives(contentSecurityPolicy({ enforce: true, isDev: false }).value);
-    const withUmami = [...policy].filter(([, sources]) => sources.includes(UMAMI));
+    const withUmami = [...policy].filter(([, sources]) =>
+      sources.split(" ").some((token) => token === UMAMI),
+    );
     expect(withUmami.map(([name]) => name)).toEqual(["script-src", "connect-src"]);
     expect(policy.get("frame-ancestors")).toBe("'none'");
     expect(policy.get("img-src")).toBe("'self' data:");

@@ -169,6 +169,35 @@ describe("AnalyticsLoader", () => {
     expect(reloadPage).toHaveBeenCalledTimes(1);
   });
 
+  it("reloads a visible window when another window withdraws the choice", async () => {
+    let notify: (() => void) | undefined;
+    const close = vi.fn();
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        constructor() {
+          Object.defineProperty(this, "onmessage", {
+            set: (listener: () => void) => {
+              notify = listener;
+            },
+          });
+        }
+        close = close;
+      },
+    );
+    setChoice("full");
+    await mount();
+    setChoice("off");
+    await act(async () => {
+      notify?.();
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+    act(() => mounted?.root.unmount());
+    mounted = undefined;
+    expect(close).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
   it("does nothing when a non-full choice is announced and nothing was injected", async () => {
     await mount();
     setChoice("default");

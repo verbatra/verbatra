@@ -173,5 +173,8 @@ tests under app/[lang]/(legal)/, and e2e/analytics.spec.ts. The e2e and scripts/
 answer the Umami origin with the stubs in scripts/umami-stub.mjs and never reach the real host.
 
 Before a deploy, run csp-smoke once by hand against the real `script.js` and `recorder.js`
-downloaded to an untracked path (the recorder contains a blob worker string), and put the result
-in the PR description.
+downloaded to an untracked directory (the recorder contains a blob worker string): set
+`UMAMI_LOCAL_SCRIPTS_DIR=<that directory>` and run `node scripts/csp-smoke.mjs <base url>` from
+`apps/docs`. The stub then serves those two files in place of its fixtures while every API request
+stays answered by the stub, so the real host is still never reached. Put the result in the PR
+description.

@@ -296,6 +296,7 @@ test.describe("the privacy switch shows the stored choice", () => {
     ["off", "Opt out of analytics", /you have opted out/i],
   ] as const) {
     test(`the ${value} choice presses ${pressed}`, async ({ page, context }) => {
+      await stubUmami(context);
       await context.addCookies([{ name: "verbatra_analytics", value, url: "http://localhost" }]);
       await page.goto("/privacy");
       const panel = page.locator('.rr-block:has(form[action="/api/analytics"])');

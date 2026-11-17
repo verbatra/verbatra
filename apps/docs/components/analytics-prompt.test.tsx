@@ -22,7 +22,16 @@ const LABELS: AnalyticsPromptLabels = {
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
+function unmountMounted(): void {
+  if (!mounted) return;
+  const { container, root } = mounted;
+  act(() => root.unmount());
+  container.remove();
+  mounted = undefined;
+}
+
 async function render(locale: "en" | "de" = "en"): Promise<HTMLDivElement> {
+  unmountMounted();
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -63,11 +72,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (mounted) {
-    act(() => mounted?.root.unmount());
-    mounted.container.remove();
-    mounted = undefined;
-  }
+  unmountMounted();
   vi.unstubAllGlobals();
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
   Reflect.deleteProperty(navigator, "doNotTrack");
@@ -142,6 +147,28 @@ describe("AnalyticsPrompt", () => {
       expect(listener).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("disables both choices while a save is pending, so the last click cannot be overtaken", async () => {
+    let finish: (response: Response) => void = () => undefined;
+    const post = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", post);
+    const container = await render();
+    await click(container, "Allow");
+    const buttons = Array.from(container.querySelectorAll("button"));
+    expect(buttons.map((button) => button.disabled)).toEqual([true, true]);
+    await click(container, "No thanks");
+    expect(post).toHaveBeenCalledTimes(1);
+    setDocumentCookie("verbatra_analytics", "full");
+    await act(async () => {
+      finish(new Response(null, { status: 303 }));
+    });
+    expect(container.querySelector("section")).toBeNull();
+  });
 
   it("marks the page while it shows, so the stylesheet can clear space and lift the back-to-top button", async () => {
     const container = await render();

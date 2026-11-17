@@ -3029,6 +3029,12 @@ html:has(.vk-home) {
   }
 }
 
+@media (max-width: 19.99rem) {
+  .vk-comparison-table thead :where(th) {
+    font-size: 0.625rem;
+  }
+}
+
 @media (min-width: 30rem) {
   .vk-comparison-frame {
     --comparison-label-col: 36%;
@@ -4206,6 +4212,14 @@ html.light .vk-deck-shot-light {
 
     .vk-deck-link {
       margin-top: 0.25rem;
+    }
+  }
+}
+
+@supports selector(:has(*)) {
+  @media (min-width: 64rem) and (max-width: 1365.98px) {
+    .vk-home .vk-deck-pane {
+      margin-inline-start: -0.75rem;
     }
   }
 }
