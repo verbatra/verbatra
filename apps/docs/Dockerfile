@@ -11,9 +11,11 @@
 FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS builder
 WORKDIR /app
 
-# Activate the pnpm version and sha512 hash pinned in package.json's packageManager field.
+# Corepack pins the pnpm wrapper to the version and sha512 hash in package.json's packageManager
+# field; the hash covers the wrapper only, so `corepack install` fetches that exact pnpm now,
+# instead of at the first pnpm call.
 COPY package.json ./
-RUN corepack enable
+RUN corepack enable && corepack install
 
 # The build context is the repository root; .dockerignore keeps it lean.
 COPY . .
