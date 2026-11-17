@@ -49,6 +49,7 @@ const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-16", hash: "3d7e8d451e79883659935d1bc1dbe4dddee3d33809f69551baf01546f687b6b4" },
   { date: "2026-11-16", hash: "a03daeff79e3bce6d79318e5b1befaa71640bf0ffe162a24dd79637753ce9cd2" },
   { date: "2026-11-16", hash: "ca784e4e2b83c7a8eb759761e33b5f3737cac1a4d51a1ddba6fe8bd6bd0da168" },
+  { date: "2026-11-17", hash: "3d7e8d451e79883659935d1bc1dbe4dddee3d33809f69551baf01546f687b6b4" },
 ];
 
 const COMPARISON_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [

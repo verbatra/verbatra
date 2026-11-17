@@ -161,15 +161,6 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     sample: "it saves the entry umami.disabled in your browser's local storage",
   },
   {
-    claim: "no analytics script runs in the browser, stated without the consent choice",
-    pattern:
-      /(^|\. )No analytics script runs in your browser|(^|\. )In deinem Browser läuft kein Analyseskript|(^|\. )En tu navegador no se ejecuta ningún script de analítica|(^|\. )Aucun script de statistiques ne s’exécute dans ton navigateur|(^|。)你的浏览器中不运行任何分析脚本|(^|\. )Nenhum script de análise é executado no seu navegador|(^|。)ブラウザーで分析スクリプトは動作せず|and no analytics script runs in your browser|und in deinem Browser läuft kein Analyseskript|y en tu navegador no se ejecuta ningún script de analítica|et aucun script de statistiques ne s’exécute dans ton navigateur|你的浏览器中也不运行分析脚本|e nenhum script de análise é executado no seu navegador|ブラウザーで分析スクリプトも動作しません/,
-    sample: "No analytics script runs in your browser, and nothing is written to your device.",
-    portugueseSample:
-      "Nenhum script de análise é executado no seu navegador, e nada é gravado no seu dispositivo.",
-    japaneseSample: "ブラウザーで分析スクリプトは動作せず、デバイスへ書き込むものもありません。",
-  },
-  {
     claim: "no cookie consent banner is required",
     pattern:
       /no cookie consent banner is required|kein Cookie-Einwilligungsbanner erforderlich|no se necesita ningún banner de consentimiento de cookies|aucune bannière de consentement aux cookies n’est requise|不需要 Cookie 同意横幅|não é necessário um banner de consentimento de cookies|Cookie 同意バナーは不要です/,
@@ -178,14 +169,6 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     portugueseSample:
       "Como nada que exija consentimento é armazenado no seu dispositivo, não é necessário um banner de consentimento de cookies.",
     japaneseSample: "同意が必要なものはデバイスに保存されないため、Cookie 同意バナーは不要です。",
-  },
-  {
-    claim: "site sets no cookies at all",
-    pattern:
-      /sets no cookies|setzt keine Cookies|no establece cookies|ne dépose aucun cookie|não define cookies|Cookie を一切設定しません/,
-    sample: "This site sets no cookies.",
-    portugueseSample: "Este site não define cookies.",
-    japaneseSample: "このサイトは Cookie を一切設定しません。",
   },
   {
     claim: "logs kept only for a short period",
@@ -211,6 +194,48 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     portugueseSample: "Este aviso existe, não porque um requisito legal específico se aplique.",
     japaneseSample:
       "この注記は、特定の法的要件があるからではなく、読者への配慮として載せています。",
+  },
+  {
+    claim: "extended analytics offered as an optional tier",
+    pattern:
+      /extended analytics|erweiterte Analyse|analítica ampliada|statistiques étendues|扩展分析|análise ampliada|拡張分析/i,
+    sample: "Extended analytics is optional and stays off until you allow it",
+    portugueseSample: "A análise ampliada é opcional e fica desligada até você permitir.",
+    japaneseSample: "拡張分析は任意で、許可するまでオフです。",
+  },
+  {
+    claim: "analytics scripts loaded only after the visitor allows them",
+    pattern:
+      /load only if you allow|nur geladen, wenn du|solo se cargan si permites|ne se chargent que si tu autorises|只有在你允许|só são carregados se você permitir|許可した場合にだけ/,
+    sample: "Analytics scripts load only if you allow extended analytics",
+    portugueseSample: "Scripts de análise só são carregados se você permitir a análise ampliada.",
+    japaneseSample: "分析スクリプトは、許可した場合にだけ読み込まれます。",
+  },
+  {
+    claim: "consent prompt or analytics settings link",
+    pattern:
+      /consent prompt|analytics settings|Einblendung|Analyse-Einstellungen|aviso de elección|ajustes de analítica|invite de choix|réglages d’analyse|选择提示|分析设置|aviso de escolha|configurações de análise|選択プロンプト|分析の設定/i,
+    sample: "the consent prompt and the Analytics settings link in the footer",
+    portugueseSample: "o aviso de escolha e o link Configurações de análise no rodapé",
+    japaneseSample: "選択プロンプトとフッターの「分析の設定」リンク",
+  },
+  {
+    claim: "sampled session replays and heatmaps",
+    pattern:
+      /sample of sessions|Stichprobe von Sitzungen|muestra de sesiones|échantillon de sessions|抽样的会话|部分会话|amostra de sessões|一部のセッション|Replays and heatmaps are kept|Wiedergaben und Heatmaps werden|reproducciones y los mapas de calor se conservan|relectures et les cartes de chaleur sont conservées|回放和热力图保留|reproduções e os mapas de calor são mantidos|リプレイとヒートマップは/,
+    sample:
+      "It records a sample of sessions as a replay. Replays and heatmaps are kept for 30 days.",
+    portugueseSample:
+      "Ele grava uma amostra de sessões. As reproduções e os mapas de calor são mantidos por 30 dias.",
+    japaneseSample: "一部のセッションを記録します。リプレイとヒートマップは 30 日間保持されます。",
+  },
+  {
+    claim: "opt-out switch buttons in the analytics section",
+    pattern:
+      /Count page views only|Opt out of analytics|Seitenaufrufe nur zählen|Contar solo las visitas|Compter seulement les pages vues|仅统计页面浏览量|Contar apenas as visualizações|ページビューだけを集計/,
+    sample: "Allow extended analytics, Count page views only, Opt out of analytics",
+    portugueseSample: "Contar apenas as visualizações de página",
+    japaneseSample: "ページビューだけを集計",
   },
 ];
 
@@ -243,8 +268,8 @@ describe("legal pages: retired claim patterns", () => {
 
   const PORTUGUESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.portugueseSample !== undefined);
 
-  it("covers the thirteen claims with a per-language pattern in Portuguese", () => {
-    expect(PORTUGUESE_CLAIMS).toHaveLength(13);
+  it("covers the sixteen claims with a per-language pattern in Portuguese", () => {
+    expect(PORTUGUESE_CLAIMS).toHaveLength(16);
   });
 
   it.each(PORTUGUESE_CLAIMS)(
@@ -256,7 +281,7 @@ describe("legal pages: retired claim patterns", () => {
 
   const JAPANESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.japaneseSample !== undefined);
 
-  it("covers the same thirteen claims with a Japanese pattern", () => {
+  it("covers the same sixteen claims with a Japanese pattern", () => {
     expect(JAPANESE_CLAIMS.map(({ claim }) => claim)).toEqual(
       PORTUGUESE_CLAIMS.map(({ claim }) => claim),
     );

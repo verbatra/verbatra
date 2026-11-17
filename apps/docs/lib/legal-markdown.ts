@@ -84,7 +84,10 @@ export async function privacyMarkdown(locale: Locale): Promise<string> {
   const lastUpdated = `*${t.markup("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks: string) => chunks })}*`;
   const sections = PRIVACY_SECTION_KEYS.map((key) => {
     const body = t.markup(`${key}.body`, tags);
-    const extras = key === PRIVACY_ANALYTICS_KEY ? [t.markup(`${key}.retention`, tags)] : [];
+    const extras =
+      key === PRIVACY_ANALYTICS_KEY
+        ? [t.markup(`${key}.events`, tags), t.markup(`${key}.retention`, tags)]
+        : [];
     return blocks(
       `## ${t(`${key}.heading`)}`,
       key === PRIVACY_OBJECTION_KEY ? `> ${body}` : body,
