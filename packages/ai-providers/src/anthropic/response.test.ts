@@ -61,6 +61,7 @@ describe("readStructuredOutput", () => {
       readStructuredOutput(text("secret-sk-123 not json"));
       expect.unreachable("should have thrown");
     } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).message).not.toContain("secret-sk-123");
     }
   });
