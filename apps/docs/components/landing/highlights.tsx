@@ -163,6 +163,7 @@ function Pane({
       data-reveal={reveal}
       aria-labelledby={titleId}
     >
+      <span className="vk-hl-glow" aria-hidden="true" />
       <div className="vk-lock-card">
         <div className="vk-lock-head">
           <h3 id={titleId} className="vk-hl-surface">

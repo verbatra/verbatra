@@ -4989,13 +4989,19 @@ html.light .vk-deck-shot-light {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-.vk-hl-pane::before {
-  content: "";
+.vk-hl-glow {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   opacity: 0;
+  pointer-events: none;
+}
+
+.vk-hl-pane::before {
+  content: "";
+  position: absolute;
+  display: none;
   pointer-events: none;
 }
 
@@ -5029,7 +5035,7 @@ article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
   border-color: var(--accent);
 }
 
-article.vk-hl-pane:is(:hover, :focus-within)::before {
+article.vk-hl-pane:is(:hover, :focus-within) > .vk-hl-glow {
   opacity: 1;
 }
 
@@ -5037,11 +5043,10 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   .vk-hl-pane > .vk-lock-card {
     transition:
       transform var(--duration-base) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard),
-      box-shadow var(--duration-base) var(--ease-standard);
+      border-color var(--duration-fast) var(--ease-standard);
   }
 
-  .vk-hl-pane::before {
+  .vk-hl-glow {
     transition: opacity var(--duration-base) var(--ease-standard);
   }
 
@@ -5055,7 +5060,7 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
     outline: 2px solid Highlight;
   }
 
-  .vk-hl-pane::before {
+  .vk-hl-glow {
     display: none;
   }
 }
@@ -5256,15 +5261,11 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   }
 
   .vk-hl-pane::before {
-    inset: auto;
+    display: block;
     top: calc(1.25rem - 1px);
     width: calc(var(--grid-gap) / 2);
     height: 2px;
-    border-radius: 0;
     background: var(--accent);
-    box-shadow: none;
-    opacity: 1;
-    transition: none;
   }
 
   .vk-hl-pane:nth-child(odd)::before {
@@ -5298,12 +5299,6 @@ article.vk-hl-pane:is(:hover, :focus-within)::before {
   .vk-hl-pane:nth-child(even)::after {
     right: calc(100% + var(--grid-gap) / 2 - var(--hl-node) / 2);
     left: auto;
-  }
-
-  article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card {
-    box-shadow:
-      var(--shadow-panel),
-      inset 0 1px 0 var(--hl-edge);
   }
 }
 
