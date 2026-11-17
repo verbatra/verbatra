@@ -8,8 +8,9 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   marquee: "marquee.tsx",
   lockDemo: "lock-demo.tsx",
   gate: "gate.tsx",
-  highlights: "highlights.tsx",
+  statement: "statement-band.tsx",
   features: "features.tsx",
+  highlights: "highlights.tsx",
   compare: "comparison.tsx",
   faq: "faq.tsx",
   finalCta: "final-cta.tsx",
@@ -19,7 +20,7 @@ function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
 }
 
-const STILL_SECTIONS: ReadonlyArray<LandingSectionId> = ["hero", "marquee"];
+const STILL_SECTIONS: ReadonlyArray<LandingSectionId> = ["hero", "marquee", "statement"];
 
 const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = LANDING_SECTIONS.filter(
   (id) => !STILL_SECTIONS.includes(id),
@@ -41,8 +42,8 @@ describe("landing reveal marks", () => {
     expect(REVEALING_SECTIONS).toEqual([
       "lockDemo",
       "gate",
-      "highlights",
       "features",
+      "highlights",
       "compare",
       "faq",
       "finalCta",
@@ -56,6 +57,18 @@ describe("landing reveal marks", () => {
       const file = source(SECTION_FILES[id]);
       expect(file, id).not.toMatch(/<(h[1-6]|p)\b[^>]*data-reveal/);
       expect(file, id).not.toMatch(/<SectionHead[^>]*reveal/);
+    }
+  });
+
+  it.each(["hero", "marquee"] as const)("%s carries no word reveal", (id) => {
+    expect(source(SECTION_FILES[id])).not.toMatch(/vk-words|splitWords/);
+  });
+
+  it("lets a heading carry the word reveal but never a reveal mark on top of it", () => {
+    for (const file of ["section-head.tsx", "final-cta.tsx", "statement-band.tsx"]) {
+      const text = source(file);
+      expect(text, file).toMatch(/vk-words/);
+      expect(text, file).not.toMatch(/<(h2|p)\b[^>]*data-reveal/);
     }
   });
 

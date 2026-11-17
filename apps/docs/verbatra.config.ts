@@ -9,10 +9,10 @@ export default defineConfig({
     pattern: "messages/{locale}.json",
   },
   provider: {
-    id: "gemini",
+    id: "anthropic",
     options: {
-      model: "gemini-2.5-flash",
-      maxOutputTokens: 32768,
+      model: "claude-sonnet-5-5",
+      maxTokens: 32000,
     },
   },
   maxBatchSize: 50,

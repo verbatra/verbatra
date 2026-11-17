@@ -2,12 +2,20 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type CheckSummary, check, translate } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  GATE_DE_CANDIDATE,
+  GATE_DE_OLD,
+  GATE_KEY,
+  GATE_SOURCE,
+  GATE_SOURCE_BEFORE,
+} from "@/lib/gate-demo";
 import { HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
 import {
   CLI_LINES,
   LOCK_STATE_STALE,
   MCP_CALL,
   MCP_RESPONSE_LINES,
+  RAIL_BADGE,
   RAIL_ENTRIES,
   SDK_CALL_LINES,
   SDK_RESULT_LINES,
@@ -41,18 +49,31 @@ afterEach(async () => {
   cwd = undefined;
 });
 
-async function projectWithEditedKeys(): Promise<string> {
+type Phase = "seed" | "edited";
+
+let phase: Phase = "seed";
+
+const provider = () =>
+  stubProvider((key, value) => {
+    if (key !== GATE_KEY) return `${value} (t)`;
+    return phase === "seed" ? GATE_DE_OLD : GATE_DE_CANDIDATE;
+  });
+
+async function projectAfterRefusal(): Promise<string> {
   const dir = await tempProject("verbatra-docs-surfaces-");
   cwd = dir;
+  phase = "seed";
   await writeSource(
     dir,
-    sourceFile(({ value, before }) => before ?? value),
+    sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE_BEFORE : value)),
   );
-  await translate({ config: CONFIG, cwd: dir }, { createProvider: stubProvider() });
+  await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
   await writeSource(
     dir,
-    sourceFile(({ value }) => value),
+    sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE : value)),
   );
+  phase = "edited";
+  await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
   return dir;
 }
 
@@ -72,8 +93,8 @@ function sdkObject(): Record<string, unknown> {
 }
 
 describe("the four surfaces print what verbatra returns", () => {
-  it("counts the same keys the real check counts, and the dataset stays 14 keys, de, 2 stale", async () => {
-    const summary = await check({ config: CONFIG, cwd: await projectWithEditedKeys() });
+  it("counts the same keys the real check counts, and the dataset stays 14 keys, de, 1 stale after the gate refused one key", async () => {
+    const summary = await check({ config: CONFIG, cwd: await projectAfterRefusal() });
     const real = localeOf(summary);
     expect(SURFACE_COUNTS).toEqual({
       locale: real.locale,
@@ -85,14 +106,14 @@ describe("the four surfaces print what verbatra returns", () => {
     expect(SURFACE_COUNTS).toMatchObject({
       locale: "de",
       missing: 0,
-      stale: 2,
-      upToDate: 12,
+      stale: 1,
+      upToDate: 13,
       total: 14,
     });
   });
 
   it("prints the check lines the CLI renders, after the command", async () => {
-    const summary = await check({ config: CONFIG, cwd: await projectWithEditedKeys() });
+    const summary = await check({ config: CONFIG, cwd: await projectAfterRefusal() });
     expect(CLI_LINES.map(({ text }) => text)).toEqual([
       "$ npx @verbatra/cli check",
       ...renderCheckHuman(summary).split("\n"),
@@ -101,7 +122,7 @@ describe("the four surfaces print what verbatra returns", () => {
   });
 
   it("shows a call that runs against the real check and returns the object it prints", async () => {
-    const dir = await projectWithEditedKeys();
+    const dir = await projectAfterRefusal();
     const summary = await check({ config: CONFIG, cwd: dir });
     const real = localeOf(summary);
     const [importLine, ...statements] = SDK_CALL_LINES.map(({ text }) => text);
@@ -126,7 +147,7 @@ describe("the four surfaces print what verbatra returns", () => {
   });
 
   it("prints the status.check call and the response the real tool returns", async () => {
-    const dir = await projectWithEditedKeys();
+    const dir = await projectAfterRefusal();
     const base = makeContext();
     const outcome = await statusCheckTool.execute(
       {},
@@ -159,15 +180,15 @@ describe("the four surfaces print what verbatra returns", () => {
   });
 
   it("draws the Studio Locales row with the figures and the coverage rule Studio uses", async () => {
-    const summary = await check({ config: CONFIG, cwd: await projectWithEditedKeys() });
+    const summary = await check({ config: CONFIG, cwd: await projectAfterRefusal() });
     const real = localeOf(summary) as { missing: number; stale: number; upToDate: number };
     expect(STUDIO_ROW).toEqual({
       locale: "de",
       percent: coveragePercent(real),
-      keys: "12 / 14 keys",
+      keys: "13 / 14 keys",
       missing: 0,
-      stale: 2,
-      upToDate: 12,
+      stale: 1,
+      upToDate: 13,
     });
     const studio = await readFile(
       join(import.meta.dirname, "../../../packages/studio/src/app/LocalesSection.tsx"),
@@ -202,13 +223,29 @@ describe("the four surfaces print what verbatra returns", () => {
     expect(SURFACE_BADGES.sdk).toBe(`${check.name}()`);
   });
 
-  it("lists the stale entries the lock file records, with the old hashes", () => {
-    expect(RAIL_ENTRIES.map(({ key }) => key)).toEqual(["checkout.pay", "checkout.title"]);
-    for (const { key, hash } of RAIL_ENTRIES) expect(hash).toBe(LOCK_DEMO_HASHES[key]?.before);
+  it("lists the one stale entry the lock file still records, the key the gate refused, with the hash it kept", async () => {
+    const dir = await projectAfterRefusal();
+    const lock = JSON.parse(await readFile(join(dir, "verbatra.lock.json"), "utf8")) as {
+      locales: Record<string, Record<string, string>>;
+    };
+    const entries = Object.entries(lock.locales[SURFACE_COUNTS.locale] ?? {});
+    expect(RAIL_ENTRIES).toEqual(
+      entries.flatMap(([key, hash], index) =>
+        key === GATE_KEY ? [{ key, hash, comma: index < entries.length - 1 }] : [],
+      ),
+    );
+    expect(RAIL_ENTRIES.map(({ key }) => key)).toEqual([GATE_KEY]);
+    expect(RAIL_ENTRIES[0]?.hash).toBe(LOCK_DEMO_HASHES[GATE_KEY]?.after);
+  });
+
+  it("badges the rail with the counts the check prints", async () => {
+    const summary = await check({ config: CONFIG, cwd: await projectAfterRefusal() });
+    const real = localeOf(summary);
+    expect(RAIL_BADGE).toBe(`${real.stale} stale, ${real.upToDate} up-to-date`);
   });
 
   it("prints the lock state word the check output prints, and nothing else for the rail tag", async () => {
-    const summary = await check({ config: CONFIG, cwd: await projectWithEditedKeys() });
+    const summary = await check({ config: CONFIG, cwd: await projectAfterRefusal() });
     expect(renderCheckHuman(summary)).toContain(`${SURFACE_COUNTS.stale} ${LOCK_STATE_STALE}`);
   });
 

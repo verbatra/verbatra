@@ -11,6 +11,7 @@ import {
 } from "@/lib/feature-artifacts";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { LANDING_FEATURES, type LandingFeatureId } from "@/lib/landing-features";
+import { DeckHover } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -19,6 +20,7 @@ import { StudioCardShot } from "./studio-card-shot";
 const FEATURES_HEADING_ID = "features-heading";
 
 const DECK_GROUP = "vk-deck";
+const DECK_ID = "vk-deck-list";
 
 type Translate = Awaited<ReturnType<typeof getTranslations<"landing.features">>>;
 
@@ -132,7 +134,7 @@ export async function Features(): Promise<ReactNode> {
     <Section id="features" labelledBy={FEATURES_HEADING_ID}>
       <p className="vk-eyebrow">{t("label")}</p>
       <SectionHead id={FEATURES_HEADING_ID} title={t("heading")} lead={t("lead")} align="start" />
-      <PlainList ordered className="vk-deck">
+      <PlainList ordered id={DECK_ID} className="vk-deck">
         {LANDING_FEATURES.map(({ id, command, docsPath }, index) => {
           const artifact = FEATURE_ARTIFACTS[id];
           const radio = `feature-${id}`;
@@ -174,6 +176,7 @@ export async function Features(): Promise<ReactNode> {
           );
         })}
       </PlainList>
+      <DeckHover deckId={DECK_ID} />
     </Section>
   );
 }

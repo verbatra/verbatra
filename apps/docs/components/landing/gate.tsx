@@ -56,13 +56,15 @@ function Entrance({ className, children }: { className: string; children: ReactN
   );
 }
 
-function Progress(): ReactNode {
+function Steps({ labels }: { labels: Record<GateState, string> }): ReactNode {
   return (
-    <div className="vk-gate-progress" aria-hidden="true">
+    <ol className="vk-gate-steps" aria-hidden="true">
       {GATE_STATES.map((state) => (
-        <i key={state} data-state={state} />
+        <li key={state} data-state={state}>
+          {labels[state]}
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -200,10 +202,23 @@ export async function Gate(): Promise<ReactNode> {
 
   return (
     <Section id="gate" labelledBy={GATE_HEADING_ID} className="vk-gate">
+      <div className="vk-gate-head">
+        <p className="vk-eyebrow vk-gate-head-eyebrow">{t("label")}</p>
+        <SectionHead id={GATE_HEADING_ID} title={t("heading")} lead={lead} align="start" />
+      </div>
       <div className="vk-gate-track">
         <div className="vk-gate-pin">
-          <SectionHead id={GATE_HEADING_ID} title={t("heading")} lead={lead} align="start" />
+          <p className="vk-eyebrow vk-gate-pin-eyebrow" aria-hidden="true">
+            {t("label")}
+          </p>
           <div className="vk-gate-stage">
+            <Steps
+              labels={{
+                candidate: t("candidate.label"),
+                refused: t("refused.label"),
+                stale: t("stale.label"),
+              }}
+            />
             <Frame
               state="candidate"
               label={t("candidate.label")}
@@ -289,7 +304,6 @@ export async function Gate(): Promise<ReactNode> {
               </p>
             </Frame>
           </div>
-          <Progress />
         </div>
       </div>
     </Section>

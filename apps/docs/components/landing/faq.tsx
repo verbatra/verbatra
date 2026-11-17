@@ -127,6 +127,7 @@ export async function Faq({
     <Section id="faq" labelledBy="faq-heading">
       <SectionAside
         id="faq-heading"
+        eyebrow={t("label")}
         title={t("heading")}
         lead={t("lead")}
         className="vk-faq-aside"

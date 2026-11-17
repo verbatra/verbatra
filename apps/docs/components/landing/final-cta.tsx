@@ -4,7 +4,7 @@ import { toLocale } from "@/lib/i18n";
 import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
 import { PROOF_IDS, proofHref, proofIsExternal } from "@/lib/landing-proof";
 import { COVERAGE_THRESHOLD } from "@/lib/site";
-import { breakBetweenWords } from "@/lib/word-segments";
+import { splitWords } from "@/lib/word-segments";
 import { CommandRow } from "./islands";
 
 const CLOSING_HEADING_ID = "closing-heading";
@@ -22,8 +22,8 @@ export async function FinalCta(): Promise<ReactNode> {
       <div className="vk-closer">
         <div aria-hidden="true" className="vk-closer-grid" />
         <p className="vk-eyebrow">{t("label")}</p>
-        <h2 id={CLOSING_HEADING_ID} className="vk-closer-title">
-          {breakBetweenWords(t("heading"))}
+        <h2 id={CLOSING_HEADING_ID} className="vk-closer-title vk-words">
+          {splitWords(t("heading"))}
         </h2>
         <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
         <div className="vk-final-install @container">

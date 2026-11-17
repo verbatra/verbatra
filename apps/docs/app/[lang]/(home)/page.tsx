@@ -13,6 +13,7 @@ import { ScrollTop } from "@/components/landing/islands";
 import { LockDemo } from "@/components/landing/lock-demo";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
+import { StatementBand } from "@/components/landing/statement-band";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
@@ -40,8 +41,9 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     marquee: <Marquee />,
     lockDemo: <LockDemo />,
     gate: <Gate />,
-    highlights: <Highlights />,
+    statement: <StatementBand />,
     features: <Features />,
+    highlights: <Highlights />,
     compare: <Comparison />,
     faq: <Faq locale={locale} items={faqItems} />,
     finalCta: <FinalCta />,

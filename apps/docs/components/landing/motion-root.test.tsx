@@ -152,6 +152,124 @@ describe("startMotion", () => {
   });
 });
 
+describe("startMotion word hosts", () => {
+  const FOLD = 800;
+  const LINE = FOLD * 0.7;
+
+  beforeEach(() => {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+  });
+
+  function host(bottom: number, height = 100): HTMLElement {
+    const element = document.createElement("h2");
+    element.className = "vk-words";
+    element.getBoundingClientRect = () => ({ top: bottom - height, bottom, height }) as DOMRect;
+    document.body.append(element);
+    return element;
+  }
+
+  function wordsObserver(): FakeObserver | undefined {
+    return FakeObserver.all.find((observer) => observer.options?.rootMargin === "0px 0px -30% 0px");
+  }
+
+  function entry(target: Element, bottom: number, height = 100): void {
+    wordsObserver()?.callback([
+      {
+        target,
+        isIntersecting: true,
+        boundingClientRect: { bottom, height },
+        rootBounds: { bottom: LINE },
+      } as unknown as IntersectionObserverEntry,
+    ]);
+  }
+
+  it("finishes at once a heading whose bottom already sits above the 70 percent line", () => {
+    const above = host(LINE - 1);
+    const onTheLine = host(LINE);
+    stop = startMotion();
+    expect(above.hasAttribute("data-words-done")).toBe(true);
+    expect(onTheLine.hasAttribute("data-words-done")).toBe(true);
+    expect(wordsObserver()).toBeUndefined();
+  });
+
+  it("forces the end state on a heading the end of the page can never lift to the line", () => {
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 1000,
+    });
+    const unreachable = host(900);
+    const reachable = host(LINE + 100);
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    stop = startMotion();
+    expect(unreachable.hasAttribute("data-words-done")).toBe(true);
+    expect(reachable.hasAttribute("data-words-done")).toBe(false);
+    expect(wordsObserver()?.observed.has(reachable)).toBe(true);
+    expect(wordsObserver()?.observed.has(unreachable)).toBe(false);
+  });
+
+  it("counts the restored scroll position when it decides what can still be reached", () => {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 5000 });
+    const below = host(LINE + 300);
+    const above = host(LINE - 300);
+    stop = startMotion();
+    expect(above.hasAttribute("data-words-done")).toBe(true);
+    expect(below.hasAttribute("data-words-done")).toBe(false);
+    expect(wordsObserver()?.observed.has(below)).toBe(true);
+  });
+
+  it("observes a reachable heading below the line against a 30 percent bottom inset, with no scroll listener", () => {
+    const below = host(LINE + 200);
+    stop = startMotion();
+    expect(below.hasAttribute("data-words-done")).toBe(false);
+    expect(wordsObserver()?.observed.has(below)).toBe(true);
+    expect(wordsObserver()?.options?.threshold).toEqual([0, 0.99, 1]);
+  });
+
+  it("finishes the heading once its bottom reaches the line, within one percent of its height, and watches it no more", () => {
+    const below = host(LINE + 200);
+    stop = startMotion();
+    entry(below, LINE + 40);
+    expect(below.hasAttribute("data-words-done")).toBe(false);
+    entry(below, LINE + 1.6);
+    expect(below.hasAttribute("data-words-done")).toBe(false);
+    entry(below, LINE + 1.5);
+    expect(below.hasAttribute("data-words-done")).toBe(true);
+    expect(wordsObserver()?.unobserved).toEqual([below]);
+  });
+
+  it("keeps a heading done when it is scrolled back out of view", () => {
+    const below = host(LINE + 200);
+    stop = startMotion();
+    entry(below, LINE - 10);
+    entry(below, LINE + 400);
+    expect(below.hasAttribute("data-words-done")).toBe(true);
+  });
+
+  it("leaves the headings that are not words hosts alone", () => {
+    const plain = document.createElement("h2");
+    plain.getBoundingClientRect = () => ({ top: 0, bottom: 10, height: 10 }) as DOMRect;
+    document.body.append(plain);
+    stop = startMotion();
+    expect(plain.hasAttribute("data-words-done")).toBe(false);
+  });
+
+  it("stops watching the headings when the page unmounts", () => {
+    host(LINE + 200);
+    stop = startMotion();
+    stop();
+    stop = undefined;
+    expect(wordsObserver()?.observed.size).toBe(0);
+  });
+});
+
+function allowedKeyframeProperties(name: string): string[] {
+  if (/^vk-gate-hit-(candidate|refused|stale)$/.test(name))
+    return ["pointer-events", "animation-timing-function"];
+  if (name === "vk-gate-state") return ["--vk-gate-state", "animation-timing-function"];
+  if (name === "vk-word-in") return ["opacity", "filter"];
+  return ["opacity", "transform"];
+}
+
 describe("the motion stylesheet", () => {
   const css = `${uiTokensCss()}\n${readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8")}`;
   const all = docsStylesheetRules();
@@ -267,11 +385,7 @@ describe("the motion stylesheet", () => {
     for (const name of names) {
       const sets = all.filter((rule) => rule.media.endsWith(`@keyframes ${name}`));
       expect(sets.length, name).toBeGreaterThan(0);
-      const allowed = /^vk-gate-hit-(candidate|refused|stale)$/.test(name)
-        ? ["pointer-events", "animation-timing-function"]
-        : name === "vk-gate-state"
-          ? ["--vk-gate-state", "animation-timing-function"]
-          : ["opacity", "transform"];
+      const allowed = allowedKeyframeProperties(name);
       for (const rule of sets)
         expect(
           Object.keys(rule.declarations).filter((property) => !allowed.includes(property)),
@@ -285,5 +399,98 @@ describe("the motion stylesheet", () => {
       .filter((rule) => "animation" in rule.declarations && rule.declarations.animation !== "none")
       .map((rule) => rule.selector);
     expect(moving.some((selector) => selector.includes("vk-banner"))).toBe(false);
+  });
+});
+
+describe("the word reveal stylesheet", () => {
+  const all = docsStylesheetRules();
+  const SUPPORTED = "@supports (animation-timeline: view())";
+  const wordRules = all.filter((rule) => /\.vk-words?\b/.test(rule.selector));
+  const scrubbed = wordRules.filter((rule) => rule.media.includes(SUPPORTED));
+  const HOST = "html[data-motion-ready] .vk-words:not([data-words-done])";
+  const WORD = `${HOST} .vk-word`;
+
+  it("puts every dimming and timeline declaration behind the supports test, no-preference, screen and the ready root", () => {
+    const moving = wordRules.filter((rule) =>
+      Object.keys(rule.declarations).some((property) =>
+        /^(animation|view-timeline|opacity|filter)/.test(property),
+      ),
+    );
+    expect(moving.length).toBeGreaterThan(1);
+    for (const rule of moving) {
+      expect(rule.media, rule.selector).toContain(SUPPORTED);
+      expect(rule.media, rule.selector).toContain("prefers-reduced-motion: no-preference");
+      expect(rule.media, rule.selector).toMatch(/@media screen\b/);
+      expect(rule.selector, rule.selector).toMatch(/^html\[data-motion-ready\] /);
+      expect(rule.selector, rule.selector).toContain(":not([data-words-done])");
+    }
+  });
+
+  it("leaves the words as plain inline blocks outside that block, so the static text is fully readable", () => {
+    const fallback = wordRules.filter((rule) => !rule.media.includes(SUPPORTED));
+    expect(fallback.length).toBeGreaterThan(0);
+    for (const rule of fallback)
+      expect(Object.keys(rule.declarations).filter((property) => property !== "display")).toEqual(
+        [],
+      );
+  });
+
+  it("gives each host one named view timeline with an explicit zero inset", () => {
+    const host = scrubbed.filter((rule) => rule.selector === HOST);
+    expect(host).toHaveLength(1);
+    expect(host[0]?.declarations["view-timeline"]).toBe("--vk-words block");
+    expect(host[0]?.declarations["view-timeline-inset"]).toBe("0");
+  });
+
+  it("starts each word at 80 percent of the viewport staggered by its index and ends it at the 70 percent line", () => {
+    const word = scrubbed.filter((rule) => rule.selector === WORD);
+    expect(word).toHaveLength(1);
+    const declarations = word[0]?.declarations ?? {};
+    expect(declarations.animation).toBe("vk-word-in linear both");
+    expect(declarations["animation-timeline"]).toBe("--vk-words");
+    expect(declarations["animation-range-start"]).toBe("entry calc(20vh + var(--i) * 0.7rem)");
+    expect(declarations["animation-range-end"]).toBe(
+      "entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh))",
+    );
+  });
+
+  it("dims to 0.15 and blurs 4px, then ends sharp, with opacity and filter alone", () => {
+    const keyframes = all.filter((rule) => rule.media.endsWith("@keyframes vk-word-in"));
+    expect(keyframes.map((rule) => [rule.selector, rule.declarations])).toEqual([
+      ["from", { opacity: "0.15", filter: "blur(4px)" }],
+      ["to", { opacity: "1", filter: "blur(0)" }],
+    ]);
+  });
+
+  it("styles the index as the only per-word input and declares no inline-style override", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    expect(css.match(/var\(--i\)/g)?.length).toBeGreaterThan(0);
+    expect(css).not.toMatch(/data-(variant|band|pin|hl)\b/);
+  });
+
+  const HOST_ANCESTORS = [
+    ".vk-closer",
+    ".vk-final-cta",
+    ".vk-section-aside",
+    ".vk-section-aside-side",
+    ".vk-faq-aside",
+    ".vk-section-head",
+    ".vk-section-head-title",
+    ".vk-statement",
+    ".vk-gate-head",
+    ".vk-gutter",
+    ".vk-w-wide",
+  ];
+
+  it("lets no ancestor of a words host clip with hidden, auto or scroll, which would become the timeline's scroller", () => {
+    for (const rule of all) {
+      const names = rule.selector.split(",").map((part) => part.trim());
+      if (!names.some((name) => HOST_ANCESTORS.includes(name))) continue;
+      for (const property of ["overflow", "overflow-x", "overflow-y"])
+        expect(rule.declarations[property] ?? "", `${rule.selector} ${property}`).not.toMatch(
+          /hidden|auto|scroll/,
+        );
+    }
+    expect(all.find((rule) => rule.selector === ".vk-closer")?.declarations.overflow).toBe("clip");
   });
 });

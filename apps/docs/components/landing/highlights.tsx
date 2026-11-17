@@ -1,9 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
-import { HERO_CHECK_BADGE } from "@/lib/hero-terminal";
 import {
   LOCK_STATE_STALE,
+  RAIL_BADGE,
   RAIL_ENTRIES,
   STUDIO_COLUMNS,
   STUDIO_ROW,
@@ -63,7 +63,7 @@ function Rail(): ReactNode {
       <p className="vk-lock-head">
         <span lang="en">{LOCK_FILE_NAME}</span>{" "}
         <span className="vk-lock-badge" lang="en">
-          {keepCompoundsWhole(HERO_CHECK_BADGE)}
+          {keepCompoundsWhole(RAIL_BADGE)}
         </span>
       </p>
       <pre className="vk-lock-code" lang="en">
@@ -196,8 +196,10 @@ export async function Highlights(): Promise<ReactNode> {
   const locale = toLocale(await getLocale());
   return (
     <Section id="highlights" labelledBy={HIGHLIGHTS_HEADING_ID}>
+      <p className="vk-eyebrow">{t("label")}</p>
       <SectionHead
         id={HIGHLIGHTS_HEADING_ID}
+        layout="stacked"
         title={t("heading")}
         lead={keepCompoundsWhole(
           t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),

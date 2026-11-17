@@ -6,6 +6,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { renderToStaticMarkup, renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { LANDING_SECTIONS } from "@/lib/landing-sections";
+import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { Section } from "./section";
 import { SectionAside, SectionHead } from "./section-head";
@@ -71,8 +72,9 @@ describe("landing surface bands", () => {
       "marquee",
       "lockDemo",
       "gate",
-      "highlights",
+      "statement",
       "features",
+      "highlights",
       "compare",
       "faq",
       "finalCta",
@@ -83,13 +85,14 @@ describe("landing surface bands", () => {
         "marquee.tsx",
         "lock-demo.tsx",
         "gate.tsx",
-        "highlights.tsx",
+        "statement-band.tsx",
         "features.tsx",
+        "highlights.tsx",
         "comparison.tsx",
         "faq.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, false, false, false, false, false, false, false, false]);
+    ).toEqual([false, false, false, false, false, false, false, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -163,6 +166,20 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
   });
 
+  it("puts an aside eyebrow first in the side column, above the heading, and none when not asked", () => {
+    const side = (eyebrow?: string) =>
+      render(
+        <SectionAside id="h" title="Title" lead="Lead" {...(eyebrow ? { eyebrow } : {})}>
+          <p>content</p>
+        </SectionAside>,
+      ).querySelector(".vk-section-aside-side");
+    const labelled = side("Label");
+    expect(labelled?.firstElementChild?.className).toBe("vk-eyebrow");
+    expect(labelled?.firstElementChild?.textContent).toBe("Label");
+    expect(labelled?.querySelector("h2")?.textContent).toBe("Title");
+    expect(side()?.querySelector(".vk-eyebrow")).toBeNull();
+  });
+
   it("opens every section's content one --head-gap under its head, never an ad hoc margin", () => {
     expect(css).toMatch(/:root \{[^}]*--head-gap: 2\.5rem;/);
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
@@ -218,10 +235,136 @@ describe("the section head on the 12-column grid", () => {
       marquee: "heading",
       "lock-demo": "heading",
       gate: "split",
-      highlights: "split",
+      highlights: "stacked",
       features: "split",
       compare: "split",
       faq: "aside",
     });
+  });
+
+  it("labels every content section with one unnumbered eyebrow above its heading, and the band with none", async () => {
+    await preloadRegisteredIslands();
+    const { Faq, faqContent } = await import("./faq");
+    const { Features } = await import("./features");
+    const { Comparison } = await import("./comparison");
+    const { Highlights } = await import("./highlights");
+    const { LockDemo } = await import("./lock-demo");
+    const { StatementBand } = await import("./statement-band");
+    const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>, string | null]> = [
+      ["lock-demo", LockDemo, en.landing.lockDemo.label],
+      ["features", Features, en.landing.features.label],
+      ["highlights", Highlights, en.landing.highlights.label],
+      ["compare", Comparison, en.landing.comparison.label],
+      [
+        "faq",
+        async () => Faq({ locale: "en", items: await faqContent("en") }),
+        en.landing.faq.label,
+      ],
+      ["statement", StatementBand, null],
+    ];
+    for (const [id, section, label] of sections) {
+      const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
+      const eyebrows = Array.from(doc.querySelectorAll(`section#${id} .vk-eyebrow`));
+      if (label === null) {
+        expect(eyebrows, id).toHaveLength(0);
+        continue;
+      }
+      expect(
+        eyebrows.map((node) => node.textContent),
+        id,
+      ).toEqual([label]);
+      const heading = doc.querySelector(`section#${id} h2`);
+      expect(eyebrows[0]?.compareDocumentPosition(heading as Node) ?? 0, id).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      expect(heading?.textContent, id).not.toBe(label);
+    }
+  });
+
+  it("opens the FAQ eyebrow one eyebrow gap above the heading, like the stacked heads, by cancelling the aside's row gap", () => {
+    expect(css).toMatch(
+      /\.vk-section-aside-side > \.vk-eyebrow \{\s+margin-block-end: calc\(1\.25rem - var\(--head-gap\)\);/,
+    );
+  });
+
+  it("lets the highlights title run the full measure of its stacked head", () => {
+    expect(css).toMatch(
+      /\.vk-home #highlights \.vk-section-head-title \.vk-h2 \{\s+max-width: none;/,
+    );
+  });
+});
+
+describe("the headline word reveal in the section heads", () => {
+  function heading(node: ReactNode, selector: string): Element {
+    const doc = new DOMParser().parseFromString(renderToString(node), "text/html");
+    const found = doc.querySelector(selector);
+    if (found === null) throw new Error(`no ${selector}`);
+    return found;
+  }
+
+  it("splits a split, stacked and inline head title into indexed word spans on the h2", () => {
+    for (const layout of ["split", "stacked", "inline"] as const) {
+      const h2 = heading(
+        <SectionHead id="h" title="Two keys changed" lead="Lead" layout={layout} />,
+        "h2#h",
+      );
+      expect(h2.classList.contains("vk-words"), layout).toBe(true);
+      expect(
+        [...h2.querySelectorAll(".vk-word")].map((word) => word.getAttribute("style")),
+      ).toEqual(["--i:0", "--i:1", "--i:2"]);
+      expect(h2.textContent).toBe("Two keys changed");
+    }
+  });
+
+  it("splits the sticky aside heading too and leaves the lead and the eyebrow whole", () => {
+    const aside = heading(
+      <SectionAside id="h" title="Before you ship" lead="Lead text" eyebrow="The questions">
+        <p>body</p>
+      </SectionAside>,
+      ".vk-section-aside",
+    );
+    expect(aside.querySelector("h2")?.classList.contains("vk-words")).toBe(true);
+    expect(aside.querySelectorAll(".vk-word")).toHaveLength(3);
+    expect(aside.querySelector(".vk-section-head-lead")?.querySelector(".vk-word")).toBeNull();
+    expect(aside.querySelector(".vk-eyebrow")?.querySelector(".vk-word")).toBeNull();
+  });
+
+  it("keeps a title that is not plain text as it was, without a words host", () => {
+    const h2 = heading(<SectionHead id="h" title={<em>Rich</em>} lead="Lead" />, "h2#h");
+    expect(h2.classList.contains("vk-words")).toBe(false);
+    expect(h2.querySelector(".vk-word")).toBeNull();
+  });
+
+  it("puts the words host on the h2 of every section but the hero and the marquee, never under a reveal mark", async () => {
+    await preloadRegisteredIslands();
+    const { Faq, faqContent } = await import("./faq");
+    const { Features } = await import("./features");
+    const { Comparison } = await import("./comparison");
+    const { Highlights } = await import("./highlights");
+    const { Marquee } = await import("./marquee");
+    const { LockDemo } = await import("./lock-demo");
+    const { Gate } = await import("./gate");
+    const { StatementBand } = await import("./statement-band");
+    const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>, string]> = [
+      ["lock-demo", LockDemo, "h2"],
+      ["gate", Gate, "h2"],
+      ["statement", StatementBand, "p.vk-statement-text"],
+      ["features", Features, "h2"],
+      ["highlights", Highlights, "h2"],
+      ["compare", Comparison, "h2"],
+      ["faq", async () => Faq({ locale: "en", items: await faqContent("en") }), "h2"],
+    ];
+    for (const [id, section, selector] of sections) {
+      const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
+      const host = doc.querySelector(`section#${id} ${selector}.vk-words`);
+      expect(host, id).not.toBeNull();
+      expect(host?.closest("[data-reveal]"), id).toBeNull();
+      expect(host?.querySelectorAll(".vk-word").length, id).toBeGreaterThan(0);
+      for (const word of host?.querySelectorAll(".vk-word") ?? [])
+        expect(word.getAttributeNames().sort(), id).toEqual(["class", "style"]);
+      expect(doc.querySelectorAll(`section#${id} .vk-words`), id).toHaveLength(1);
+    }
+    const marquee = new DOMParser().parseFromString(renderToString(await Marquee()), "text/html");
+    expect(marquee.querySelector(".vk-words, .vk-word")).toBeNull();
   });
 });

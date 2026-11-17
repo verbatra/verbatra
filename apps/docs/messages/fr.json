@@ -119,7 +119,8 @@
           "question": "En quoi Verbatra diffère-t-il des autres outils i18n ?",
           "answer": "C’est une CLI qui s’exécute sur tes propres fichiers versionnés, pas une plateforme hébergée. Le <link>tableau comparatif</link> la confronte aux autres outils, même là où ils font mieux."
         }
-      }
+      },
+      "label": "Les questions"
     },
     "footer": {
       "tagline": "Une CLI et un SDK open source qui gardent tes fichiers de locale i18n synchronisés via le fournisseur de ton choix.",
@@ -264,11 +265,12 @@
         "text": "La clé reste obsolète, donc la vérification échoue toujours.",
         "foot": "{file} conserve la valeur précédente. La clé reste obsolète et sera réessayée lors de la prochaine exécution."
       },
-      "valueUnchanged": "inchangé"
+      "valueUnchanged": "inchangé",
+      "label": "La barrière"
     },
     "highlights": {
       "heading": "Une surface au choix, la même réponse",
-      "lead": "Chaque surface lit le même fichier de verrouillage, donc l’allemand affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
+      "lead": "Chaque surface lit le même fichier de verrouillage, donc avec profile.greeting refusée, l’allemand affiche obsolètes : {stale} et à jour : {upToDate}, où que tu demandes.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -284,10 +286,11 @@
       },
       "sdk": {
         "copyAria": "Copier la commande d’installation du SDK"
-      }
+      },
+      "label": "Le résultat"
     },
     "features": {
-      "label": "Fonctionnalités",
+      "label": "Les commandes",
       "heading": "Conçu pour l’ensemble du flux de travail de traduction",
       "lead": "De la première chaîne dans ton code source à la traduction relue en production.",
       "items": {
@@ -389,7 +392,11 @@
         "no": "Non"
       },
       "lastChecked": "Dernière vérification le {date}",
-      "sources": "Sources"
+      "sources": "Sources",
+      "label": "Les alternatives"
+    },
+    "statement": {
+      "text": "Un fichier de verrouillage. Chaque commande le lit."
     }
   },
   "legal": {

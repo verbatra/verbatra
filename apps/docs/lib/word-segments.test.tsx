@@ -1,7 +1,10 @@
+// @vitest-environment jsdom
+
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { breakBetweenWords } from "./word-segments";
+import { LOCALES } from "./locales";
+import { breakBetweenWords, splitWords } from "./word-segments";
 
 function markup(text: ReactNode): string {
   return renderToStaticMarkup(<span>{text}</span>);
@@ -93,4 +96,127 @@ describe("breakBetweenWords without Intl.Segmenter", () => {
     vi.stubGlobal("Intl", { ...Intl, Segmenter: undefined });
     expect(markup(breakBetweenWords("Plain Latin text"))).toBe("<span>Plain Latin text</span>");
   });
+});
+
+describe("splitWords", () => {
+  function host(text: string): Element {
+    const doc = new DOMParser().parseFromString(markup(splitWords(text)), "text/html");
+    return doc.body.firstElementChild as Element;
+  }
+
+  function words(text: string): Element[] {
+    return [...host(text).querySelectorAll(".vk-word")];
+  }
+
+  it("wraps each word of a spaced heading in a span and keeps the spaces as real text", () => {
+    expect(markup(splitWords("Two keys changed"))).toBe(
+      '<span><span class="vk-word" style="--i:0">Two</span> <span class="vk-word" style="--i:1">keys</span> <span class="vk-word" style="--i:2">changed</span></span>',
+    );
+    expect(host("Two keys changed").textContent).toBe("Two keys changed");
+  });
+
+  it("gives every word its index as the only inline style", () => {
+    const spans = words("One lock file. Every command reads it.");
+    expect(spans.map((span) => span.getAttribute("style"))).toEqual(
+      spans.map((_, index) => `--i:${index}`),
+    );
+    expect(spans.map((span) => span.textContent)).toEqual([
+      "One",
+      "lock",
+      "file.",
+      "Every",
+      "command",
+      "reads",
+      "it.",
+    ]);
+  });
+
+  it("adds no attribute, role or label beyond the class and the index", () => {
+    for (const span of words("Gate pull requests")) {
+      expect(span.getAttributeNames().sort()).toEqual(["class", "style"]);
+    }
+  });
+
+  it("collapses runs of whitespace into one text node between spans", () => {
+    expect(host("a  b").textContent).toBe("a  b");
+    expect(words("a  b")).toHaveLength(2);
+  });
+
+  it.each([
+    ["zh-CN", "两个键已更改，两个键已发送"],
+    ["ja", "二つのキーが変更され、二つを送信"],
+    ["zh-CN with Latin", "安装 Verbatra 之前"],
+  ])("splits %s per segment with a break point between the spans", (_, text) => {
+    const spans = words(text);
+    expect(spans.length).toBeGreaterThan(1);
+    expect(host(text).textContent).toBe(text);
+    expect(host(text).querySelectorAll("wbr").length).toBe(spans.length - 1);
+    for (const span of spans) {
+      const han = [...(span.textContent ?? "")].filter((char) => /\p{Script=Han}/u.test(char));
+      expect(han.length === 1 && (span.textContent ?? "").length === 1).toBe(false);
+    }
+  });
+
+  it("numbers the spans of a spaceless heading from zero in order", () => {
+    expect(words("两个键已更改，两个键已发送").map((span) => span.getAttribute("style"))).toEqual(
+      words("两个键已更改，两个键已发送").map((_, index) => `--i:${index}`),
+    );
+  });
+
+  it("keeps punctuation inside the word before it", () => {
+    for (const span of words("两个键已更改，两个键已发送")) {
+      expect(span.textContent).not.toMatch(/^[，。、]/);
+    }
+  });
+
+  it("fades a spaceless heading as one block when the engine has no Intl.Segmenter", () => {
+    vi.stubGlobal("Intl", { ...Intl, Segmenter: undefined });
+    try {
+      expect(words("无论问哪个入口，答案都一样")).toHaveLength(1);
+      expect(host("无论问哪个入口，答案都一样").textContent).toBe("无论问哪个入口，答案都一样");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("renders an empty string as nothing", () => {
+    expect(words("")).toHaveLength(0);
+  });
+});
+
+describe("splitWords on every landing heading of every locale", () => {
+  const KEYS = [
+    ["gate", "heading"],
+    ["features", "heading"],
+    ["highlights", "heading"],
+    ["comparison", "heading"],
+    ["faq", "heading"],
+    ["closing", "heading"],
+    ["statement", "text"],
+  ] as const;
+
+  it.each([...LOCALES])(
+    "keeps the %s text whole and never isolates one Han character",
+    async (locale) => {
+      const messages = (await import(`@/messages/${locale}.json`)).default.landing as Record<
+        string,
+        Record<string, string>
+      >;
+      for (const [section, key] of KEYS) {
+        const text = messages[section]?.[key] ?? "";
+        const doc = new DOMParser().parseFromString(
+          renderToStaticMarkup(<h2>{splitWords(text)}</h2>),
+          "text/html",
+        );
+        const heading = doc.querySelector("h2") as Element;
+        expect(heading.textContent, `${locale} ${section}`).toBe(text);
+        const spans = [...heading.querySelectorAll(".vk-word")];
+        expect(spans.length, `${locale} ${section}`).toBeGreaterThan(0);
+        for (const span of spans)
+          expect(/^\p{Script=Han}$/u.test(span.textContent ?? ""), `${locale} ${section}`).toBe(
+            false,
+          );
+      }
+    },
+  );
 });

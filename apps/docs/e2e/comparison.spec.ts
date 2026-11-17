@@ -97,13 +97,15 @@ async function open(page: Page, locale: (typeof LOCALES)[number], width: number)
 
 for (const locale of LOCALES) {
   test.describe(`comparison section ${homeUrl(locale)}`, () => {
-    test("sits between the features and the FAQ and is named by its heading", async ({ page }) => {
+    test("sits between the highlights and the FAQ and is named by its heading", async ({
+      page,
+    }) => {
       await page.goto(homeUrl(locale));
       const ids = await page
         .locator(".vk-home > section")
         .evaluateAll((nodes) => nodes.map((node) => node.id));
       const at = ids.indexOf("compare");
-      expect(ids[at - 1]).toBe("features");
+      expect(ids[at - 1]).toBe("highlights");
       expect(ids[at + 1]).toBe("faq");
       await expect(page.locator(SECTION)).toHaveAttribute("aria-labelledby", "compare-heading");
       await expect(page.locator("#compare-heading")).not.toBeEmpty();
@@ -318,15 +320,16 @@ test.describe("comparison table semantics and layout", () => {
 
 test.describe("comparison anchor jump", () => {
   for (const width of [375, 1440]) {
-    test(`lands the heading about 1.5rem below the header at ${width}px`, async ({ page }) => {
+    test(`lands the eyebrow about 1.5rem below the header at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/#compare");
-      await expect(page.locator("#compare-heading")).toBeInViewport();
+      await expect(page.locator("#compare .vk-eyebrow")).toBeInViewport();
       await page.waitForFunction(() => window.scrollY > 0);
       const gap = await page.evaluate(() => {
         const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
         return (
-          (document.querySelector("#compare-heading")?.getBoundingClientRect().top ?? 0) - header
+          (document.querySelector("#compare .vk-eyebrow")?.getBoundingClientRect().top ?? 0) -
+          header
         );
       });
       expect(gap).toBeGreaterThanOrEqual(16);

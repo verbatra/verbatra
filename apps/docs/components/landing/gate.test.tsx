@@ -37,7 +37,6 @@ import {
   GATE_FADE_EXPONENT,
   GATE_HANDOFF_CEILING_MS,
   GATE_LANDING_OFFSET_PX,
-  GATE_MARKER_MIN_PX,
   GATE_PAGE_STEP_MARGIN_SVH,
   GATE_PAGE_STEP_MAX_SVH,
   GATE_PIN_SVH,
@@ -48,7 +47,6 @@ import {
   GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
   GATE_STEP_MS,
-  gateMarkerRange,
   gatePercent,
   gateStateAt,
   gateStateRange,
@@ -118,7 +116,7 @@ const RERUN_PROMISES: Readonly<Record<Locale, RegExp>> = {
 const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];
 
 describe("Gate", () => {
-  it("is the named region #gate with one h2 and the integrity lead, and no eyebrow", () => {
+  it("is the named region #gate with one h2 and the integrity lead", () => {
     const section = root.querySelector("section#gate");
     expect(section?.getAttribute("aria-labelledby")).toBe("gate-heading");
     expect(root.querySelector("h2#gate-heading")?.textContent).toBe(
@@ -128,8 +126,33 @@ describe("Gate", () => {
     expect(lead?.textContent).toBe(
       `Every candidate passes an integrity gate before it reaches your file. ${GATE_DOCS_PATH.slice(1)}`,
     );
-    expect(root.querySelector(".vk-eyebrow")).toBeNull();
     expect(root.querySelectorAll("h1, h2")).toHaveLength(1);
+  });
+
+  it("opens with a head outside the pinned track, so it scrolls away before the pin starts, eyebrow above the heading and the lead", () => {
+    const section = root.querySelector("section#gate");
+    const head = section?.firstElementChild;
+    expect(head?.className).toBe("vk-gate-head");
+    expect(head?.firstElementChild?.className).toBe("vk-eyebrow vk-gate-head-eyebrow");
+    expect(head?.firstElementChild?.textContent).toBe(en.landing.gate.label);
+    expect(head?.querySelector("h2#gate-heading")).not.toBeNull();
+    expect(head?.querySelector(".vk-section-head-lead")).not.toBeNull();
+    expect(head?.closest(".vk-gate-track")).toBeNull();
+    expect(head?.nextElementSibling?.className).toBe("vk-gate-track");
+    expect(root.querySelector(".vk-gate-track h2")).toBeNull();
+  });
+
+  it("repeats the eyebrow inside the pin for the pinned stage only, hidden from assistive technology", () => {
+    const eyebrows = Array.from(root.querySelectorAll(".vk-eyebrow"));
+    expect(eyebrows.map((node) => node.textContent)).toEqual([
+      en.landing.gate.label,
+      en.landing.gate.label,
+    ]);
+    const pinned = root.querySelector(".vk-gate-pin > .vk-gate-pin-eyebrow");
+    expect(pinned).toBe(eyebrows[1]);
+    expect(pinned?.getAttribute("aria-hidden")).toBe("true");
+    expect(pinned?.nextElementSibling?.className).toBe("vk-gate-stage");
+    expect(eyebrows[0]?.hasAttribute("aria-hidden")).toBe(false);
   });
 
   it("draws the three states in order, each a figure named by its caption", () => {
@@ -228,25 +251,34 @@ describe("Gate", () => {
     expect(stamp?.closest("pre")).toBeNull();
   });
 
-  it("draws one progress marker in the pin, outside every frame: aria-hidden, no digits, one segment per state", () => {
-    const markers = Array.from(root.querySelectorAll(".vk-gate-progress"));
-    expect(markers).toHaveLength(1);
-    const [marker] = markers;
-    expect(marker?.getAttribute("aria-hidden")).toBe("true");
-    expect(marker?.parentElement?.classList.contains("vk-gate-pin")).toBe(true);
-    expect(marker?.closest("figure")).toBeNull();
-    expect(marker?.textContent).toBe("");
-    expect(
-      Array.from(marker?.querySelectorAll("i") ?? []).map((segment) =>
-        segment.getAttribute("data-state"),
-      ),
-    ).toEqual([...GATE_STATES]);
-    expect(root.querySelectorAll("figcaption .vk-gate-marker, .vk-gate-marker")).toHaveLength(0);
+  it("lists the three states in the stage beside the frames, aria-hidden, in the frames' own labels, with no digits and no marker bar", () => {
+    const lists = Array.from(root.querySelectorAll(".vk-gate-steps"));
+    expect(lists).toHaveLength(1);
+    const [list] = lists;
+    expect(list?.localName).toBe("ol");
+    expect(list?.getAttribute("aria-hidden")).toBe("true");
+    expect(list?.parentElement?.classList.contains("vk-gate-stage")).toBe(true);
+    expect(list?.closest("figure")).toBeNull();
+    const steps = Array.from(list?.querySelectorAll("li") ?? []);
+    expect(steps.map((step) => step.getAttribute("data-state"))).toEqual([...GATE_STATES]);
+    expect(steps.map((step) => step.textContent)).toEqual(
+      frames().map((frame) => frame.querySelector("figcaption b")?.textContent),
+    );
+    expect(steps.map((step) => step.textContent)).toEqual([
+      en.landing.gate.candidate.label,
+      en.landing.gate.refused.label,
+      en.landing.gate.stale.label,
+    ]);
+    expect(list?.textContent).not.toMatch(/\d/);
+    expect(root.querySelector(".vk-gate-progress, .vk-gate-marker")).toBeNull();
+    expect(list?.querySelector("[style]")).toBeNull();
     const hidden = Array.from(root.querySelectorAll("[aria-hidden]"));
     expect(
       hidden.every(
         (node) =>
-          node.classList.contains("vk-gate-progress") || node.classList.contains("vk-lock-sign"),
+          node.classList.contains("vk-gate-steps") ||
+          node.classList.contains("vk-gate-pin-eyebrow") ||
+          node.classList.contains("vk-lock-sign"),
       ),
     ).toBe(true);
   });
@@ -422,13 +454,12 @@ describe("the gate stylesheet", () => {
       );
   });
 
-  it("scrolls no opacity and no transform on a frame, a caption, a card or an accent: only the state, the pointer of a frame and the progress fill", () => {
+  it("scrolls no opacity and no transform on a frame, a caption, a card or an accent: only the state and the pointer of a frame", () => {
     const allowed: Record<string, ReadonlyArray<string>> = {
       "vk-gate-state": ["--vk-gate-state", "animation-timing-function"],
       "vk-gate-hit-candidate": ["pointer-events", "animation-timing-function"],
       "vk-gate-hit-refused": ["pointer-events", "animation-timing-function"],
       "vk-gate-hit-stale": ["pointer-events", "animation-timing-function"],
-      "vk-gate-fill": ["transform"],
     };
     const names = new Set(keyframes.map((rule) => rule.media.replace(/^.*@keyframes /, "")));
     expect([...names].sort()).toEqual(Object.keys(allowed).sort());
@@ -440,7 +471,7 @@ describe("the gate stylesheet", () => {
       ).toEqual([]);
     }
     expect(timelineRules.map((rule) => rule.selector).sort()).toEqual(
-      [".vk-gate-pin", ".vk-gate-frame", ".vk-gate-progress i::after"].sort(),
+      [".vk-gate-pin", ".vk-gate-frame"].sort(),
     );
     const css = docsGlobalCss();
     for (const gone of [
@@ -556,11 +587,10 @@ describe("the gate stylesheet", () => {
     }
   });
 
-  it("lands an in-page jump to #gate on the start of the pin by cancelling the section's own top padding, only while the stage is pinned", () => {
-    const rule = rules.find((candidate) => candidate.selector === ".vk-home section.vk-gate[id]");
-    expect(rule?.declarations["scroll-margin-top"]).toBe("calc(-1 * var(--section-rhythm))");
-    expect(rule?.media).toContain("@supports (animation-timeline: view())");
-    expect(rule?.media).toContain("min-width: 64rem");
+  it("lands an in-page jump to #gate on the head of the section like every other section, with no scroll margin of its own", () => {
+    expect(
+      rules.filter((candidate) => candidate.selector === ".vk-home section.vk-gate[id]"),
+    ).toEqual([]);
     const padding = rules.find(
       (candidate) =>
         candidate.selector ===
@@ -568,7 +598,7 @@ describe("the gate stylesheet", () => {
     );
     expect(padding?.declarations["padding-block-start"]).toBe("var(--section-rhythm)");
     expect(root.querySelector("section#gate")?.className).toContain("vk-rhythm-md");
-    expect(skill).toContain("An in-page jump to `#gate` lands on the start of the pin");
+    expect(skill).toContain("An in-page jump to `#gate` lands on the head of the section");
   });
 
   it("runs the chip drop, the stamp and the exit badge on time from the frame that becomes active, ending in their rest state, and out-ranks the reveal", () => {
@@ -604,25 +634,43 @@ describe("the gate stylesheet", () => {
     expect(shape?.declarations["border-radius"]).toBe("var(--radius-sm)");
   });
 
-  it("runs the progress marker as three segments of at least the minimum width that fill across their whole state, back to back", () => {
-    const base = rules.find((rule) => rule.selector === ".vk-gate-progress i" && rule.media === "");
-    expect(base?.declarations.width).toBe(`${GATE_MARKER_MIN_PX / 16}rem`);
-    expect(
-      rules.find((rule) => rule.selector === ".vk-gate-progress" && rule.media === "")?.declarations
-        .display,
-    ).toBe("none");
-    expect(declared(".vk-gate-progress", "display")).toBe("flex");
-    const fill = pinned(".vk-gate-progress i::after");
-    expect(fill?.declarations["transform-origin"]).toBe("left");
-    expect(fill?.declarations["animation-name"]).toBe("vk-gate-fill");
-    expect(fill?.declarations["animation-fill-mode"]).toBe("both");
-    STATES.forEach((state, index) => {
-      const [from, to] = gateMarkerRange(index);
-      expect(declared(`.vk-gate-progress i[data-state="${state}"]::after`, "animation-range")).toBe(
-        `contain ${gatePercent(from)} contain ${gatePercent(to)}`,
+  it("top-aligns the pinned frame two rem under the header and lists the steps in columns 10 to 12, lit by the animated state alone", () => {
+    expect(pinned(".vk-gate-pin")?.declarations["padding-block-start"]).toBe("2rem");
+    for (const property of ["display", "justify-content", "height"])
+      expect(pinned(".vk-gate-pin")?.declarations[property], property).toBeUndefined();
+    expect(pinned(".vk-gate-stage")?.declarations["align-items"]).toBe("start");
+    expect(pinned(".vk-gate-frame")?.declarations["align-self"]).toBe("start");
+    expect(pinned(".vk-gate-head")?.declarations["margin-bottom"]).toBe(
+      "max(0px, calc(var(--head-gap) - 2rem))",
+    );
+    const hiddenBase = rules.find(
+      (rule) => rule.selector === ".vk-gate-pin-eyebrow, .vk-gate-steps" && rule.media === "",
+    );
+    expect(hiddenBase?.declarations.display).toBe("none");
+    expect(declared(".vk-gate-pin-eyebrow", "display")).toBe("block");
+    expect(declared(".vk-gate-head-eyebrow", "display")).toBe("none");
+    expect(declared(".vk-gate-steps", "display")).toBe("grid");
+    expect(declared(".vk-gate-steps", "grid-column")).toBe("10 / span 3");
+    expect(declared(".vk-gate-steps", "grid-row")).toBe("1");
+    for (const [index, state] of STATES.entries())
+      expect(declared(`.vk-gate-steps li[data-state="${state}"]`, "--vk-gate-step")).toBe(
+        String(index),
       );
-      expect(from).toBeLessThanOrEqual(index === 0 ? 1 : (GATE_CUTS[index - 1] ?? 0));
-    });
+    expect(squash(declared(".vk-gate-steps li", "--vk-gate-on"))).toBe(
+      "calc(1 - min(1, max(var(--vk-gate-step) - var(--vk-gate-state), var(--vk-gate-state) - var(--vk-gate-step))))",
+    );
+    expect(squash(declared(".vk-gate-steps li", "color"))).toBe(
+      "color-mix(in srgb, var(--text-strong) calc(var(--vk-gate-on) * 100%), var(--text-muted))",
+    );
+    expect(declared(".vk-gate-steps li", "opacity")).toBeUndefined();
+    expect(declared(".vk-gate-steps li::before", "opacity")).toBe("var(--vk-gate-on)");
+    expect(docsGlobalCss()).not.toContain("vk-gate-progress");
+    expect(
+      rules.some(
+        (rule) =>
+          rule.selector.includes(".vk-gate-steps") && "animation-timeline" in rule.declarations,
+      ),
+    ).toBe(false);
   });
 
   it("holds the same layout in the stacked and the staged card, spanning the column grid", () => {

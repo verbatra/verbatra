@@ -19,6 +19,7 @@ const ISLAND_MODULES = [
   "./marquee-motion",
   "./lock-demo-motion",
   "./faq-keys",
+  "./deck-hover",
   "./scroll-top",
   "@/components/command-row",
   "@/components/ui/copy-button",

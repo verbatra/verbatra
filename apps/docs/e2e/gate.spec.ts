@@ -2,11 +2,9 @@ import { expect, type Page, test } from "playwright/test";
 import { GATE_DE_CANDIDATE, GATE_DE_OLD } from "@/lib/gate-demo";
 import {
   GATE_CUTS,
-  GATE_MARKER_MIN_PX,
   GATE_PAGE_STEP_MARGIN_SVH,
   GATE_PAGE_STEP_MAX_SVH,
   GATE_PIN_SVH,
-  gateMarkerRange,
   gateStateAt,
   gateStateMiddle,
   gateStateRange,
@@ -51,7 +49,6 @@ const REVERSAL_DELAYS = [
   ...Array.from({ length: 9 }, (_, step) => 245 + step * 5),
 ];
 const REVERSAL_VIEWPORTS: ReadonlyArray<number> = [900, 672];
-const FREE_SPACE_TOLERANCE = 24;
 const CARD_SPREAD_LIMIT = 60;
 const ENTRANCE_REVERSALS = [
   [330, 330, 330],
@@ -62,22 +59,20 @@ type Sweep = {
   at: number;
   state: number;
   rest: GateRest;
-  headingTop: number;
-  headingBottom: number;
+  eyebrowTop: number;
+  eyebrowBottom: number;
   overflow: number;
   scrollX: number;
-  fill: number[];
 };
 
 async function sweep(page: Page, step: number, reverse: boolean): Promise<Sweep[]> {
   return page.evaluate(
     async ([header, stride, pin, backwards]) => {
       const track = document.querySelector(".vk-gate-track");
-      const heading = document.querySelector("#gate-heading");
-      if (!track || !heading || !window.gateProbe) throw new Error("no gate");
+      const eyebrow = document.querySelector(".vk-gate-pin-eyebrow");
+      if (!track || !eyebrow || !window.gateProbe) throw new Error("no gate");
       const start = track.getBoundingClientRect().top + window.scrollY - header;
       const range = (pin / 100) * innerHeight;
-      const segments = [...document.querySelectorAll(".vk-gate-progress i")];
       const offsets: number[] = [];
       for (let y = 0; y <= range; y += stride) offsets.push(y);
       if (backwards) offsets.reverse();
@@ -85,22 +80,16 @@ async function sweep(page: Page, step: number, reverse: boolean): Promise<Sweep[
       for (const offset of offsets) {
         window.scrollTo(0, start + offset);
         await window.gateProbe.settle();
-        const box = heading.getBoundingClientRect();
+        const box = eyebrow.getBoundingClientRect();
         const rest = window.gateProbe.rest();
         samples.push({
           at: offset,
           state: rest.current,
           rest,
-          headingTop: box.top,
-          headingBottom: box.bottom,
+          eyebrowTop: box.top,
+          eyebrowBottom: box.bottom,
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           scrollX: window.scrollX,
-          fill: segments.map((segment) => {
-            const transform = getComputedStyle(segment, "::after").transform;
-            return transform === "none"
-              ? 1
-              : Number(transform.split(",")[0]?.replace(/[^\d.-]/g, ""));
-          }),
         });
       }
       return samples;
@@ -110,6 +99,9 @@ async function sweep(page: Page, step: number, reverse: boolean): Promise<Sweep[
 }
 
 type Free = { state: string; above: number; below: number; card: number };
+
+const PIN_TOP_OFFSET_PX = 32;
+const PIN_TOP_TOLERANCE = 2;
 
 async function freeSpace(page: Page): Promise<Free[]> {
   const frees: Free[] = [];
@@ -121,10 +113,10 @@ async function freeSpace(page: Page): Promise<Free[]> {
           const card = document
             .querySelector(`.vk-gate-frame[data-state='${name}'] .vk-gate-card`)
             ?.getBoundingClientRect();
-          const heading = document.querySelector("#gate-heading")?.getBoundingClientRect();
+          const eyebrow = document.querySelector(".vk-gate-pin-eyebrow")?.getBoundingClientRect();
           return {
             state: name as string,
-            above: (heading?.top ?? 0) - (header as number),
+            above: (eyebrow?.top ?? 0) - (header as number),
             below: innerHeight - (card?.bottom ?? 0),
             card: card?.height ?? 0,
           };
@@ -171,15 +163,15 @@ for (const [width, height] of VIEWPORTS) {
       }
     });
 
-    test("keeps the heading in view while the stage is pinned, never overflows sideways and shifts no layout", async ({
+    test("keeps the pinned eyebrow in view while the stage is pinned, never overflows sideways and shifts no layout", async ({
       page,
     }) => {
       await installShiftCounter(page);
       await openStaged(page);
       const samples = await sweep(page, 12, false);
       for (const sample of samples) {
-        expect(sample.headingTop, `at ${sample.at}`).toBeGreaterThanOrEqual(HEADER);
-        expect(sample.headingBottom, `at ${sample.at}`).toBeLessThanOrEqual(height);
+        expect(sample.eyebrowTop, `at ${sample.at}`).toBeGreaterThanOrEqual(HEADER);
+        expect(sample.eyebrowBottom, `at ${sample.at}`).toBeLessThanOrEqual(height);
         expect(sample.overflow, `overflow at ${sample.at}`).toBeLessThanOrEqual(0);
         expect(sample.scrollX, `scrollX at ${sample.at}`).toBe(0);
       }
@@ -214,32 +206,42 @@ for (const [width, height] of VIEWPORTS) {
       }
     });
 
-    test("fills each progress segment across its whole state, back to back", async ({ page }) => {
+    test("lights the step of the current frame and dims the others, at every rest", async ({
+      page,
+    }) => {
       await openStaged(page);
-      const samples = await sweep(page, SCAN_STEP * 2, false);
-      const px = (svh: number) => (svh / 100) * height;
-      for (const index of STATES.keys()) {
-        const [from, to] = gateMarkerRange(index);
-        const during = samples.filter(
-          (sample) => sample.at > px(from + 0.5) && sample.at < px(to - 0.5),
-        );
-        const values = during.map((sample) => sample.fill[index] ?? 1);
-        expect(Math.min(...values), `fill ${index} starts empty`).toBeLessThan(0.2);
-        expect(Math.max(...values), `fill ${index} ends full`).toBeGreaterThan(0.8);
-        expect(
-          values.every((value, at) => at === 0 || value >= (values[at - 1] ?? 0) - 0.001),
-        ).toBe(true);
-        const mid = samples.find((sample) => sample.at >= px(gateStateMiddle(index)));
-        mid?.fill.forEach((fill, segment) => {
-          if (segment < index) expect(fill, `segment ${segment} before ${index}`).toBe(1);
-          if (segment > index) expect(fill, `segment ${segment} after ${index}`).toBe(0);
-        });
+      for (const [index] of STATES.entries()) {
+        await scrollToSvh(page, gateStateMiddle(index));
+        await expect
+          .poll(async () =>
+            page.locator(`${SECTION} .vk-gate-steps li`).evaluateAll((nodes) => {
+              const resolved = (strongShare: number) => {
+                const probe = document.createElement("span");
+                probe.style.color = `color-mix(in srgb, var(--text-strong) ${strongShare}%, var(--text-muted))`;
+                document.body.append(probe);
+                const colour = getComputedStyle(probe).color;
+                probe.remove();
+                return colour;
+              };
+              const strong = resolved(100);
+              const muted = resolved(0);
+              return nodes
+                .map((node) => getComputedStyle(node).color)
+                .map((colour) =>
+                  colour === strong ? "strong" : colour === muted ? "muted" : colour,
+                );
+            }),
+          )
+          .toEqual(STATES.map((_, step) => (step === index ? "strong" : "muted")));
       }
-      const widths = await page
-        .locator(`${SECTION} .vk-gate-progress i`)
-        .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width));
-      expect(widths).toHaveLength(STATES.length);
-      for (const segment of widths) expect(segment).toBeGreaterThanOrEqual(GATE_MARKER_MIN_PX);
+      const columns = await page.locator(`${SECTION} .vk-gate-steps`).evaluate((node) => {
+        const stage = node.parentElement?.getBoundingClientRect();
+        const box = node.getBoundingClientRect();
+        return { stageRight: stage?.right ?? 0, right: box.right, left: box.left };
+      });
+      expect(columns.right).toBeLessThanOrEqual(columns.stageRight + 1);
+      const labels = await page.locator(`${SECTION} .vk-gate-steps li`).allTextContents();
+      expect(labels).toEqual(await page.locator(`${FRAMES} figcaption b`).allTextContents());
     });
 
     test("slides the frames on time, left out and right in going down and the mirror going up, readable for most of the travel, with no two frames above 0.3 and inside the ceiling", async ({
@@ -283,31 +285,27 @@ for (const [width, height] of VIEWPORTS) {
       expectReversals(await reversalSweep(page, REVERSAL_DELAYS), `${width}x${height}`);
     });
 
-    test("lands /#gate on the start of the pin, with the heading and the card in view", async ({
-      page,
-    }) => {
+    test("lands /#gate on the head of the section, with the pin still ahead", async ({ page }) => {
       await page.addInitScript(installGateProbe);
       await page.goto(`${homeUrl("en")}#gate`, { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts.ready);
       const start = await pinStart(page);
       await expect
-        .poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - start))
+        .poll(async () =>
+          page.evaluate(
+            (header) =>
+              (document.querySelector("section#gate")?.getBoundingClientRect().top ?? 0) - header,
+            HEADER,
+          ),
+        )
         .toBeLessThanOrEqual(2);
       const view = await page.evaluate(() => {
         const heading = document.querySelector("#gate-heading")?.getBoundingClientRect();
-        const card = document
-          .querySelector(".vk-gate-frame .vk-gate-card")
-          ?.getBoundingClientRect();
-        return {
-          headingTop: heading?.top ?? 0,
-          cardBottom: card?.bottom ?? 0,
-          above: (heading?.top ?? 0) - 56,
-        };
+        return { headingTop: heading?.top ?? 0, headingBottom: heading?.bottom ?? 0 };
       });
-      expect(view.headingTop).toBeGreaterThanOrEqual(56);
-      expect(view.cardBottom).toBeLessThanOrEqual(height);
-      expect(view.above).toBeLessThanOrEqual(height / 3);
-      expectRest(await restNow(page), "/#gate");
+      expect(view.headingTop).toBeGreaterThanOrEqual(HEADER);
+      expect(view.headingBottom).toBeLessThanOrEqual(height);
+      expect(await page.evaluate(() => window.scrollY)).toBeLessThan(start);
     });
 
     test("keeps the chip of the first frame in place while its frame is current and before the pin, and parks it raised while another frame is", async ({
@@ -386,14 +384,15 @@ for (const [width, height] of [
   test.describe(`gate free space at ${width}x${height}`, () => {
     test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
 
-    test("centres the heading and the current card: free space above and below within 24px", async ({
+    test("top-aligns the pinned stage: the eyebrow sits 2rem under the header and the current card ends inside the viewport", async ({
       page,
     }) => {
       await openStaged(page);
       for (const free of await freeSpace(page)) {
-        expect(Math.abs(free.above - free.below), free.state).toBeLessThanOrEqual(
-          FREE_SPACE_TOLERANCE,
+        expect(Math.abs(free.above - PIN_TOP_OFFSET_PX), free.state).toBeLessThanOrEqual(
+          PIN_TOP_TOLERANCE,
         );
+        expect(free.below, free.state).toBeGreaterThanOrEqual(0);
       }
     });
   });
@@ -445,7 +444,7 @@ for (const locale of LOCALES) {
     test.describe(`gate fit ${homeUrl(locale)} at ${width}x${height}`, () => {
       test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
 
-      test("keeps the heading and the whole current card inside the viewport during every hold", async ({
+      test("keeps the pinned eyebrow and the whole current card inside the viewport during every hold", async ({
         page,
       }) => {
         await openStaged(page, locale);
@@ -456,8 +455,8 @@ for (const locale of LOCALES) {
               const current = document.querySelectorAll(".vk-gate-frame")[position as number];
               const card = current?.querySelector(".vk-gate-card")?.getBoundingClientRect();
               return {
-                headingTop:
-                  document.querySelector("#gate-heading")?.getBoundingClientRect().top ?? 0,
+                eyebrowTop:
+                  document.querySelector(".vk-gate-pin-eyebrow")?.getBoundingClientRect().top ?? 0,
                 cardBottom: card?.bottom ?? Number.POSITIVE_INFINITY,
                 header: header as number,
                 viewport: innerHeight,
@@ -465,7 +464,7 @@ for (const locale of LOCALES) {
             },
             [index, HEADER] as const,
           );
-          expect(fit.headingTop, `heading at ${index}`).toBeGreaterThanOrEqual(fit.header);
+          expect(fit.eyebrowTop, `eyebrow at ${index}`).toBeGreaterThanOrEqual(fit.header);
           expect(fit.cardBottom, `card at ${index}`).toBeLessThanOrEqual(fit.viewport);
         }
       });
@@ -615,13 +614,15 @@ test.describe("gate with reduced motion", () => {
     expect(colour).toBe(danger);
   });
 
-  test("shows no progress marker, which only the pinned stage draws", async ({ page }) => {
+  test("shows the head eyebrow only, the step list and the pinned eyebrow being drawn by the pinned stage alone", async ({
+    page,
+  }) => {
     await page.goto("/");
-    await expect(page.locator(`${SECTION} .vk-gate-progress`)).toBeHidden();
-    await expect(page.locator(`${SECTION} .vk-gate-progress`)).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    await expect(page.locator(`${SECTION} .vk-gate-head-eyebrow`)).toBeVisible();
+    for (const hidden of [".vk-gate-steps", ".vk-gate-pin-eyebrow"]) {
+      await expect(page.locator(`${SECTION} ${hidden}`)).toBeHidden();
+      await expect(page.locator(`${SECTION} ${hidden}`)).toHaveAttribute("aria-hidden", "true");
+    }
   });
 });
 
@@ -655,7 +656,7 @@ test.describe("gate on a phone", () => {
 
   for (const locale of LOCALES) {
     for (const motion of ["no-preference", "reduce"] as const) {
-      const ceiling = locale === "en" ? 1300 : 1375;
+      const ceiling = locale === "en" ? 1340 : 1415;
       test(`stays at most ${ceiling}px tall in ${locale} with motion ${motion}`, async ({
         page,
       }) => {

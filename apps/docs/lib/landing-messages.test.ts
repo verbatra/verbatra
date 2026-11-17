@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SPACELESS_SNIPPET_WIDTH, snippetLength } from "@/lib/display-width";
 import { i18n, type Locale } from "@/lib/i18n";
+import { countWords } from "@/lib/word-count";
 
 type MessageTree = { [key: string]: string | MessageTree };
 
@@ -70,6 +71,26 @@ const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
   "zh-CN": CJK_DESCRIPTION_WINDOW,
   "pt-BR": SEARCH_DESCRIPTION_WINDOW,
   ja: CJK_DESCRIPTION_WINDOW,
+};
+
+const STATEMENT_WORD_CAP: Readonly<Record<Locale, number>> = {
+  en: 8,
+  de: 8,
+  es: 8,
+  fr: 8,
+  "zh-CN": 10,
+  "pt-BR": 8,
+  ja: 12,
+};
+
+const EYEBROW_WORD_CAP: Readonly<Record<Locale, number>> = {
+  en: 4,
+  de: 4,
+  es: 4,
+  fr: 4,
+  "zh-CN": 4,
+  "pt-BR": 4,
+  ja: 4,
 };
 
 describe("landing message parity", () => {
@@ -154,6 +175,29 @@ describe("landing message parity", () => {
       expect(landingKeys(locale)).toEqual(source);
     });
   }
+
+  it("keeps the statement band to its word cap and to one sentence per beat, in every locale", () => {
+    for (const locale of i18n.languages) {
+      const text = landingText(locale, "statement.text");
+      expect(countWords(text, locale), locale).toBeLessThanOrEqual(STATEMENT_WORD_CAP[locale]);
+      expect(text, locale).not.toMatch(/\n/);
+    }
+  });
+
+  it("labels every content section with a short eyebrow that does not repeat its heading, in every locale", () => {
+    const sections = ["lockDemo", "gate", "features", "highlights", "comparison", "faq"];
+    for (const locale of i18n.languages) {
+      for (const section of sections) {
+        const label = landingText(locale, `${section}.label`);
+        const heading = section === "lockDemo" ? label : landingText(locale, `${section}.heading`);
+        expect(countWords(label, locale), `${locale} ${section}`).toBeLessThanOrEqual(
+          EYEBROW_WORD_CAP[locale],
+        );
+        expect(label.length, `${locale} ${section}`).toBeGreaterThan(0);
+        if (section !== "lockDemo") expect(heading, `${locale} ${section}`).not.toContain(label);
+      }
+    }
+  });
 
   it("gives the hero a lead that says something the headline does not", () => {
     for (const locale of i18n.languages) {

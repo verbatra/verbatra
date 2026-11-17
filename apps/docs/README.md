@@ -104,12 +104,12 @@ regenerates byte-identical subsets. Rebuild whenever a locale's OG text changes.
 ## Translating the interface strings
 
 ```bash
-GEMINI_API_KEY=... pnpm i18n
+ANTHROPIC_API_KEY=... pnpm i18n
 ```
 
 That runs `verbatra translate` against `verbatra.config.ts` in this directory:
 `format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`, targets taken from
-`TRANSLATED_LOCALES` in `lib/locales.ts`, provider `gemini`, `tone: "informal"`. Only new or changed keys are sent, so a run over
+`TRANSLATED_LOCALES` in `lib/locales.ts`, provider `anthropic`, `tone: "informal"`. Only new or changed keys are sent, so a run over
 unchanged messages calls no provider and needs no key. The key is read from the environment, never
 from the config.
 

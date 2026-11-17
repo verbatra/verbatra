@@ -37,6 +37,7 @@ import {
 } from "./hero-terminal";
 import {
   LOCK_STATE_STALE,
+  RAIL_BADGE,
   RAIL_ENTRIES,
   STUDIO_COLUMNS,
   STUDIO_ROW,
@@ -160,7 +161,7 @@ async function faq({ locale }: Context): Promise<string> {
     ),
   );
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead"),
     ...items,
     `${t("docs.label")}:`,
@@ -213,7 +214,7 @@ async function gate({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.gate" });
   const targetFile = GATE_TARGET_EXCERPT.join("\n");
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     `${t("lead")} ${link(GATE_DOCS_PATH.slice(1), localizedPath(locale, GATE_DOCS_PATH))}`,
     list([
       `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: GATE_SOURCE_FILE, placeholder: GATE_PLACEHOLDER })}`,
@@ -242,6 +243,11 @@ async function gate({ locale }: Context): Promise<string> {
   );
 }
 
+async function statement({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.statement" });
+  return t("text");
+}
+
 async function highlights({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.highlights" });
   const surface = (id: Surface, ...body: ReadonlyArray<string>): ReadonlyArray<string> => [
@@ -250,9 +256,9 @@ async function highlights({ locale }: Context): Promise<string> {
     link(SURFACE_DOCS_PATHS[id].slice(1), localizedPath(locale, SURFACE_DOCS_PATHS[id])),
   ];
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
-    `**${LOCK_FILE_NAME}** ${HERO_CHECK_BADGE}`,
+    `**${LOCK_FILE_NAME}** ${RAIL_BADGE}`,
     fencedMarkdown(
       "text",
       null,
@@ -355,7 +361,7 @@ async function comparison({ locale }: Context): Promise<string> {
     ].join("\n");
   }).join("\n");
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     t("lead"),
     t("caption"),
     table,
@@ -386,8 +392,9 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     marquee,
     lockDemo,
     gate,
-    highlights,
+    statement,
     features,
+    highlights,
     compare: comparison,
     faq,
     finalCta,

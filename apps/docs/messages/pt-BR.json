@@ -119,7 +119,8 @@
           "question": "Em que o Verbatra difere de outras ferramentas de i18n?",
           "answer": "É uma CLI que usa seus próprios arquivos versionados, não uma plataforma hospedada. A <link>tabela de comparação</link> a confronta com outras ferramentas, inclusive onde são mais fortes."
         }
-      }
+      },
+      "label": "As perguntas"
     },
     "footer": {
       "tagline": "Uma CLI e um SDK de código aberto que mantêm seus arquivos de locale i18n em sincronia por meio do provedor que você escolher.",
@@ -264,11 +265,12 @@
         "text": "A chave continua obsoleta, então a verificação continua falhando.",
         "foot": "{file} mantém o valor anterior. A chave continua obsoleta e é tentada de novo na próxima execução."
       },
-      "valueUnchanged": "inalterado"
+      "valueUnchanged": "inalterado",
+      "label": "A barreira"
     },
     "highlights": {
       "heading": "Pergunte a qualquer interface, receba a mesma resposta",
-      "lead": "Toda interface lê o mesmo arquivo de lock, então o alemão aparece com {stale} obsoletas e {upToDate} em dia, onde quer que você pergunte.",
+      "lead": "Toda interface lê o mesmo arquivo de lock, então com profile.greeting recusada, o alemão aparece com obsoletas: {stale} e em dia: {upToDate}, onde quer que você pergunte.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -284,10 +286,11 @@
       },
       "sdk": {
         "copyAria": "Copiar o comando de instalação do SDK"
-      }
+      },
+      "label": "O resultado"
     },
     "features": {
-      "label": "Recursos",
+      "label": "Os comandos",
       "heading": "Feito para todo o fluxo de tradução",
       "lead": "Da primeira string no seu código-fonte até a tradução revisada em produção.",
       "items": {
@@ -389,7 +392,11 @@
         "no": "Não"
       },
       "lastChecked": "Última verificação em {date}",
-      "sources": "Fontes"
+      "sources": "Fontes",
+      "label": "As alternativas"
+    },
+    "statement": {
+      "text": "Um arquivo de lock. Todo comando o lê."
     }
   },
   "legal": {

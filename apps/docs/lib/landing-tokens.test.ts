@@ -43,6 +43,75 @@ describe("the redesign tokens", () => {
   });
 });
 
+describe("the landing scale", () => {
+  const FROM_TABLET = "@media (min-width: 48rem)";
+  const TABLET_TO_LAPTOP = "@media (min-width: 48rem) and (max-width: 1365.98px)";
+  const override = (media: string, selector: string) =>
+    rulesFor(rules, selector).find((rule) => rule.media === media)?.declarations;
+
+  it("raises the section heading to 3.5rem and the lead to 22px on the landing from 48rem", () => {
+    expect(override(FROM_TABLET, ".vk-home")?.["--text-h2"]).toBe("3.5rem");
+    expect(override(FROM_TABLET, ".vk-home")?.["--text-lead"]).toBe("22px");
+  });
+
+  it("leaves the shared scale and every phone size alone", () => {
+    expect(rootToken("--text-h2")).toBe("clamp(1.9rem, 1.3rem + 2vw, 3rem)");
+    expect(rootToken("--text-lead")).toBe("clamp(1.0625rem, 1rem + 0.35vw, 1.25rem)");
+    expect(rootToken("--text-xs")).toBe("0.75rem");
+    expect(
+      rulesFor(rules, ".vk-home").filter(
+        (rule) => rule.media !== FROM_TABLET && "--text-h2" in rule.declarations,
+      ),
+    ).toEqual([]);
+    expect(rulesFor(stylesheetRules(uiTokensCss()), ".vk-home")).toEqual([]);
+  });
+
+  it("keeps the wide column as it was", () => {
+    expect(rootToken("--width-wide")).toBe("1285px");
+  });
+
+  it("sizes demo code at 14px in a single wide card and 13px in a 2-up pane, from 48rem", () => {
+    expect(override(FROM_TABLET, ".vk-home")?.["--vk-code-size"]).toBe("14px");
+    expect(override(FROM_TABLET, ".vk-home")?.["--vk-code-size-pane"]).toBe("13px");
+  });
+
+  it("reads the code variable with the old size as the phone fallback", () => {
+    const code = rulesFor(rules, ".vk-lock-code").find((rule) => rule.media === "");
+    expect(code?.declarations["font-size"]).toBe("var(--vk-code-size, var(--text-xs))");
+    const paneRule = rules.find(
+      (rule) =>
+        rule.media === "" &&
+        rule.selector.split(/,\s*/).includes(".vk-hl-pane .vk-lock-code") &&
+        "font-size" in rule.declarations,
+    );
+    expect(paneRule?.declarations["font-size"]).toBe("var(--vk-code-size-pane, var(--text-xs))");
+    expect(paneRule?.selector.split(/,\s*/)).toContain(".vk-hl-rail .vk-lock-code");
+  });
+
+  it("holds the features pane at the pane size between 48rem and 1366px", () => {
+    expect(override(TABLET_TO_LAPTOP, ".vk-home #features")?.["--vk-code-size"]).toBe(
+      "var(--vk-code-size-pane)",
+    );
+  });
+
+  it("sets the FAQ aside heading at 2.5rem from 64rem and 3rem from 80rem, where the sticky unit has to fit a 672px window", () => {
+    expect(override("@media (min-width: 64rem)", ".vk-faq-aside .vk-h2")?.["font-size"]).toBe(
+      "2.5rem",
+    );
+    expect(override("@media (min-width: 80rem)", ".vk-faq-aside .vk-h2")?.["font-size"]).toBe(
+      "3rem",
+    );
+  });
+
+  it("never touches --text-xs or the shared tokens file from the landing", () => {
+    expect(
+      rules.filter(
+        (rule) => rule.selector.startsWith(".vk-home") && "--text-xs" in rule.declarations,
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("the landing tile surface", () => {
   it("is mockup F's card and hairline in the dark theme and a white card in the light theme", () => {
     const themed = (prefix: string) =>

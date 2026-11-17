@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
-import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SYNCED_KEYS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { SDK_INSTALL_COMMAND } from "./install-commands";
 import { COMPARISON_ROWS, COMPARISON_TOOLS, comparisonCell } from "./landing-comparison";
@@ -30,8 +29,8 @@ const SECTION_HEADINGS = [
   "marquee.heading",
   "lockDemo.label",
   "gate.heading",
-  "highlights.heading",
   "features.heading",
+  "highlights.heading",
   "comparison.heading",
   "faq.heading",
   "closing.heading",
@@ -89,6 +88,26 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
 
+  it("sets the statement as a plain paragraph between the gate and the features", async () => {
+    const body = await landingMarkdown(locale);
+    const statement = message(messages, "statement.text");
+    const [gate, features] = [
+      message(messages, "gate.heading"),
+      message(messages, "features.heading"),
+    ];
+    const lines = body.split("\n");
+    const at = lines.indexOf(statement);
+    expect(at).toBeGreaterThan(-1);
+    expect(lines[at - 1]).toBe("");
+    expect(lines[at + 1]).toBe("");
+    expect(lines.findIndex((line) => line.startsWith("## ") && line.includes(gate))).toBeLessThan(
+      at,
+    );
+    expect(
+      lines.findIndex((line) => line.startsWith("## ") && line.includes(features)),
+    ).toBeGreaterThan(at);
+  });
+
   it("states every provider and format by name and gives no raw message keys", async () => {
     const body = await landingMarkdown(locale);
     for (const provider of landingProviders()) expect(body).toContain(provider.label);
@@ -126,11 +145,11 @@ describe("the English landing markdown after the surfaces and the comparison lin
 
   it("opens the highlights on the four surfaces and the one lock file, in the order of the panes", async () => {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## Ask any surface, get the same answer");
+    const at = body.indexOf("## The result: Ask any surface, get the same answer");
     expect(at).toBeGreaterThan(0);
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain(
-      `Every surface reads one lock file, so German reads ${HERO_TERMINAL_CHANGED_KEYS.length} stale and ${HERO_TERMINAL_SYNCED_KEYS.length} up-to-date wherever you ask.`,
+      `Every surface reads one lock file, so with profile.greeting refused, German reads 1 stale and 13 up-to-date wherever you ask.`,
     );
     const names = ["### CLI", "### Studio", "### SDK", "### MCP server"].map((heading) =>
       section.indexOf(heading),
@@ -138,14 +157,14 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(names.every((position) => position > 0)).toBe(true);
     expect([...names].sort((a, b) => a - b)).toEqual(names);
     expect(section).toContain(`[docs/sdk/inspect](${SITE_URL}/docs/sdk/inspect.md)`);
-    expect(section).toContain("| de | 86% 12 / 14 keys | 0 | 2 | 12 |");
+    expect(section).toContain("| de | 93% 13 / 14 keys | 0 | 1 | 13 |");
     expect(section).toContain("claude mcp add");
     expect(section).toContain(SDK_INSTALL_COMMAND);
   });
 
   it("prints the not-written stamp of the gate outside every fenced block, so no CLI line is altered", async () => {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## When the provider gets it wrong, nothing is written");
+    const at = body.indexOf("## The gate: When the provider gets it wrong, nothing is written");
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain("**verbatra translate** not written 1 integrity-withheld");
     const fenced = [...section.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(
@@ -171,7 +190,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
 describe("the English landing markdown comparison section", () => {
   async function section(): Promise<string> {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## How Verbatra compares");
+    const at = body.indexOf("## The alternatives: How Verbatra compares");
     expect(at).toBeGreaterThan(0);
     return body.slice(at, body.indexOf("\n## ", at + 3));
   }

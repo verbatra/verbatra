@@ -44,22 +44,10 @@ export const GATE_REVERSAL_SAMPLE_TAIL_MS = GATE_REVERSAL_SETTLE_MS + GATE_REVER
 
 export const GATE_LANDING_OFFSET_PX = 56;
 
-export const GATE_MARKER_MIN_PX = 48;
-
-const GATE_MARKER_EDGE_SVH = 1;
-
 export function gateStateRange(index: number): SvhRange {
   const [first, second] = GATE_CUTS;
   const edges = [0, first, second, GATE_PIN_SVH] as const;
   return [edges[index] ?? 0, edges[index + 1] ?? GATE_PIN_SVH];
-}
-
-export function gateMarkerRange(index: number): SvhRange {
-  const [from, to] = gateStateRange(index);
-  return [
-    index === 0 ? GATE_MARKER_EDGE_SVH : from,
-    index === 2 ? GATE_PIN_SVH - GATE_MARKER_EDGE_SVH : to,
-  ];
 }
 
 export function gateStateAt(svh: number): number {

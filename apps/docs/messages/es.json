@@ -119,7 +119,8 @@
           "question": "¿En qué se diferencia Verbatra de otras herramientas de i18n?",
           "answer": "Es una CLI que se ejecuta sobre tus propios archivos versionados, no una plataforma alojada. La <link>tabla de comparación</link> la contrasta con otras herramientas, incluso donde son más fuertes."
         }
-      }
+      },
+      "label": "Las preguntas"
     },
     "footer": {
       "tagline": "Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale de i18n a través del proveedor que elijas.",
@@ -264,11 +265,12 @@
         "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
         "foot": "{file} mantiene el valor anterior. La clave sigue obsoleta y se reintenta en la próxima ejecución."
       },
-      "valueUnchanged": "sin cambios"
+      "valueUnchanged": "sin cambios",
+      "label": "La barrera"
     },
     "highlights": {
       "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",
-      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que el alemán marca {stale} obsoletas y {upToDate} al día en todas.",
+      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que con profile.greeting rechazada, el alemán muestra obsoletas: {stale} y al día: {upToDate} en todas.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -284,10 +286,11 @@
       },
       "sdk": {
         "copyAria": "Copiar el comando de instalación del SDK"
-      }
+      },
+      "label": "El resultado"
     },
     "features": {
-      "label": "Características",
+      "label": "Los comandos",
       "heading": "Diseñado para todo el flujo de trabajo de traducción",
       "lead": "Desde la primera cadena en tu código fuente hasta la traducción revisada en producción.",
       "items": {
@@ -389,7 +392,11 @@
         "no": "No"
       },
       "lastChecked": "Última revisión: {date}",
-      "sources": "Fuentes"
+      "sources": "Fuentes",
+      "label": "Las alternativas"
+    },
+    "statement": {
+      "text": "Un archivo de bloqueo. Cada comando lo lee."
     }
   },
   "legal": {

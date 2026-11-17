@@ -14,7 +14,7 @@ Markdown/MDX.
   second edit. A value reaches `messages/<locale>.json` by one of two paths. (1) `pnpm i18n` from
   `apps/docs`, which runs `verbatra translate` (`apps/docs/package.json` `scripts.i18n`) against
   `apps/docs/verbatra.config.ts`: `format: "next-intl-json"`,
-  `files.pattern: "messages/{locale}.json"`, provider `gemini`, `tone: "informal"`. (2) Values an
+  `files.pattern: "messages/{locale}.json"`, provider `anthropic`, `tone: "informal"`. (2) Values an
   AI agent wrote in the repository, brought in with `verbatra export` then `verbatra import`; a
   locale's whole catalog and individual corrected values can come this way. Both are real,
   running verbatra. `.github/workflows/docs-i18n-check.yml` runs `verbatra/action` in `check` mode inside

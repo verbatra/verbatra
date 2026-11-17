@@ -27,14 +27,15 @@ async function render(): Promise<Document> {
 const copy = en.landing.comparison;
 
 describe("the landing comparison section", () => {
-  it("is the compare section, named by its heading, with a split head and no eyebrow", async () => {
+  it("is the compare section, named by its heading, with an eyebrow above a split head", async () => {
     const doc = await render();
     const section = doc.querySelector("section#compare");
     expect(section?.getAttribute("aria-labelledby")).toBe("compare-heading");
     expect(doc.querySelector("h2#compare-heading")?.textContent).toBe(copy.heading);
     expect(section?.querySelector(".vk-section-head")?.getAttribute("data-layout")).toBe("split");
     expect(section?.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
-    expect(section?.querySelector(".vk-eyebrow")).toBeNull();
+    expect(section?.querySelector(".vk-eyebrow")?.textContent).toBe(copy.label);
+    expect(section?.firstElementChild?.className).toBe("vk-eyebrow");
   });
 
   it("lays the bar behind the table inside the frame", async () => {

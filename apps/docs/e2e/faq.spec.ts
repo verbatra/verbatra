@@ -288,7 +288,7 @@ test.describe("faq layout", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await openAll(page);
-    await page.locator(ITEMS).last().scrollIntoViewIfNeeded();
+    await page.locator(ITEMS).nth(2).scrollIntoViewIfNeeded();
     const header = await page.locator("header").first().boundingBox();
     const head = page.locator(`${FAQ} .vk-faq-aside > .vk-section-aside-side`);
     const box = await head.boundingBox();
