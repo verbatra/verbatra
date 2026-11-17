@@ -30,6 +30,7 @@ const NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-dest": "document",
   "sec-fetch-mode": "navigate",
   "user-agent": SAFARI,
+  "x-forwarded-for": "84.132.10.7",
 };
 
 function navigation(
@@ -89,6 +90,14 @@ describe("countedPageview", () => {
       { host: null, "x-forwarded-host": "verbatra.kreitz-webdev.de, localhost" },
     ],
   ])("skips %s", (_case, headers) => {
+    expect(counted(navigation("/", headers))).toBeUndefined();
+  });
+
+  it.each([
+    ["no forwarding header", { "x-forwarded-for": null }],
+    ["only private forwarded addresses", { "x-forwarded-for": "10.1.2.3, 172.17.0.1" }],
+    ["an unparsable forwarded address", { "x-forwarded-for": "unknown" }],
+  ])("drops the count when there is no public client ip: %s", (_case, headers) => {
     expect(counted(navigation("/", headers))).toBeUndefined();
   });
 
@@ -296,7 +305,9 @@ describe("pageviewFor", () => {
   });
 
   it("leaves out a referrer, language and address it does not have", () => {
-    const pageview = pageviewFor(navigation("/", { referer: "not a url", "accept-language": "*" }));
+    const pageview = pageviewFor(
+      navigation("/", { referer: "not a url", "accept-language": "*", "x-forwarded-for": null }),
+    );
 
     expect(Object.keys(pageview?.payload ?? {}).sort()).toEqual([
       "hostname",

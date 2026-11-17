@@ -73,7 +73,7 @@ function ipv4FromNumber(value: number): string {
   return [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join(".");
 }
 
-function ipv6Hextets(address: string): number[] {
+export function ipv6Hextets(address: string): number[] {
   const hexOnly = address.replace(/(\d{1,3}(?:\.\d{1,3}){3})$/, (ipv4) => {
     const value = ipv4Number(ipv4);
     return `${(value >>> 16).toString(16)}:${(value & 0xffff).toString(16)}`;
@@ -232,6 +232,7 @@ export function countedPageview(
   if (requestHost(request.headers, new URL(request.url).host) !== SITE_HOST) return undefined;
   if (isTrackingRefused(request.headers)) return undefined;
   if (!isCountableNavigation(request, response, servedPathname, routes)) return undefined;
+  if (clientIp(request.headers) === undefined) return undefined;
   return pageviewFor(request);
 }
 

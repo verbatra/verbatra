@@ -24,6 +24,7 @@ const DOCUMENT_NAVIGATION: Record<string, string> = {
   "sec-fetch-dest": "document",
   "sec-fetch-mode": "navigate",
   "user-agent": SAFARI,
+  "x-forwarded-for": "84.132.10.7",
 };
 
 const fetchMock = vi.fn(async (..._args: unknown[]) => new Response("{}"));
