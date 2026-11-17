@@ -38,7 +38,7 @@ describe("report", () => {
     expect(await beaconBody()).toEqual({ e: "search_open", u: "/de/docs/cli" });
   });
 
-  it("falls back to a keepalive fetch without credentials when the beacon is refused", () => {
+  it("falls back to a keepalive fetch that still carries same-origin cookies when the beacon is refused", () => {
     sendBeacon.mockReturnValue(false);
     const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
     vi.stubGlobal("fetch", fetchMock);
@@ -48,7 +48,7 @@ describe("report", () => {
       expect.objectContaining({
         method: "POST",
         keepalive: true,
-        credentials: "omit",
+        credentials: "same-origin",
         body: JSON.stringify({ e: "search_open", u: "/de/docs/cli" }),
       }),
     );

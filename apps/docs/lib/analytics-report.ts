@@ -13,7 +13,7 @@ function post(body: string): void {
       body,
       headers: { "content-type": "application/json" },
       keepalive: true,
-      credentials: "omit",
+      credentials: "same-origin",
     }).catch(() => undefined);
   } catch {
     return;

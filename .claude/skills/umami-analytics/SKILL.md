@@ -63,7 +63,7 @@ the reporter, the objection handling, or the privacy wording about them.
   the refusal rule.
 - **Reporter** - lib/analytics-report.ts: `report(name, props)` and `reportPageview(path)` post
   `{ e, p?, u }` with `navigator.sendBeacon` (Blob `application/json`), falling back to
-  `fetch` with `keepalive` and `credentials: "omit"`; they never throw. The body carries the event
+  `fetch` with `keepalive` and `credentials: "same-origin"` (so the objection cookies reach the relay on either transport); they never throw. The body carries the event
   name, allowlisted properties and the bare path only. components/analytics-reporter.tsx (renders
   null, mounted in the locale layout) owns one delegated click listener and a `usePathname` effect:
   the first render and a re-render on the same path report nothing (the document load is the
