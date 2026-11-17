@@ -1,13 +1,11 @@
 import { chromium } from "playwright";
-import { UMAMI_ORIGIN } from "../lib/umami-config.mjs";
-import { stubUmami } from "./umami-stub.mjs";
 
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
 
 const PAGES = [
   { path: "/", html: true },
   { path: "/de", html: true },
-  { path: "/docs", html: true, search: true },
+  { path: "/docs", html: true, search: true, navigate: true },
   { path: "/docs/quickstart", html: true },
   { path: "/fr/docs/quickstart", html: true },
   { path: "/docs/quickstart/react", html: true },
@@ -34,11 +32,6 @@ const COLLECT_VIOLATIONS = () => {
 
 const STEP_TIMEOUT_MS = 10_000;
 const STATIC_ASSET = "/_next/static/";
-const CONSENT_PAGES = [
-  { path: "/", html: true },
-  { path: "/de/docs", html: true },
-  { path: "/privacy", html: true },
-];
 const PAGE_ORIGIN = new URL(baseUrl).origin;
 const NETWORK_SCHEMES = new Set(["http:", "https:", "ws:", "wss:"]);
 const CSP_HEADER = "content-security-policy";
@@ -60,6 +53,25 @@ async function searchWorks(page) {
     return false;
   }
   return searched;
+}
+
+async function softNavigationReported(page) {
+  const reported = page
+    .waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/e" && response.request().method() === "POST",
+      { timeout: STEP_TIMEOUT_MS },
+    )
+    .then((response) => response.status() === 204)
+    .catch(() => false);
+  try {
+    await page.locator("header a[href='/'], header a[href$='/']").first().click({
+      timeout: STEP_TIMEOUT_MS,
+    });
+  } catch {
+    return false;
+  }
+  return reported;
 }
 
 async function holds(page, predicate) {
@@ -100,33 +112,31 @@ function watchStaticAssets(page) {
   return failures;
 }
 
-function watchThirdPartyRequests(page, allowedOrigins) {
+function watchThirdPartyRequests(page) {
   const requests = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (
-      NETWORK_SCHEMES.has(url.protocol) &&
-      url.origin !== PAGE_ORIGIN &&
-      !allowedOrigins.includes(url.origin)
-    ) {
-      requests.push(url.origin === UMAMI_ORIGIN ? `${request.url()} (Umami)` : request.url());
+    if (NETWORK_SCHEMES.has(url.protocol) && url.origin !== PAGE_ORIGIN) {
+      requests.push(request.url());
     }
   });
   return requests;
 }
 
-async function visit(context, { path, html, search = false }, allowedOrigins = []) {
+async function visit(context, { path, html, search = false, navigate = false }) {
   const page = await context.newPage();
   const consoleViolations = [];
   page.on("console", (message) => {
     if (/content security policy/i.test(message.text())) consoleViolations.push(message.text());
   });
   const staticFailures = watchStaticAssets(page);
-  const thirdPartyRequests = watchThirdPartyRequests(page, allowedOrigins);
+  const thirdPartyRequests = watchThirdPartyRequests(page);
   const response = await page.goto(`${baseUrl}${path}`, { waitUntil: "networkidle" });
   const headerProblems = html && response ? policyProblems(await response.headersArray()) : [];
   const hydrated = html ? await holds(page, HYDRATED) : null;
   const searched = search ? await searchWorks(page) : null;
+  if (search) await page.keyboard.press("Escape");
+  const relayed = navigate ? await softNavigationReported(page) : null;
   const pageViolations = await page.evaluate(() => window.__cspViolations ?? []);
   const result = {
     path,
@@ -136,6 +146,7 @@ async function visit(context, { path, html, search = false }, allowedOrigins = [
     hydrated,
     thirdPartyRequests,
     searched,
+    relayed,
   };
   await page.close();
   return result;
@@ -147,17 +158,6 @@ await context.addInitScript(COLLECT_VIOLATIONS);
 const results = [];
 for (const target of PAGES) results.push(await visit(context, target));
 
-const consentContext = await browser.newContext();
-await consentContext.addInitScript(COLLECT_VIOLATIONS);
-await consentContext.addCookies([{ name: "verbatra_analytics", value: "full", url: PAGE_ORIGIN }]);
-const umamiRequests = await stubUmami(consentContext);
-for (const target of CONSENT_PAGES) {
-  const result = await visit(consentContext, target, [UMAMI_ORIGIN]);
-  results.push({ ...result, path: `${result.path} (consent)` });
-}
-const scriptsLoaded = ["/script.js", "/recorder.js", "/api/send"].every((pathname) =>
-  umamiRequests.some((request) => request.pathname === pathname),
-);
 await browser.close();
 
 function note(value, passed, failed) {
@@ -172,6 +172,7 @@ function failedChecks({
   hydrated,
   thirdPartyRequests,
   searched,
+  relayed,
 }) {
   return [
     ...violations.map((violation) => `CSP violation: ${violation}`),
@@ -180,25 +181,20 @@ function failedChecks({
     ...(hydrated === false ? ["did not hydrate"] : []),
     ...thirdPartyRequests.map((url) => `request to a third-party origin: ${url}`),
     ...(searched === false ? ["search did not answer"] : []),
+    ...(relayed === false ? ["the soft-navigation pageview did not reach /api/e with a 204"] : []),
   ];
 }
 
 let failures = 0;
 for (const result of results) {
-  const { path, violations, staticFailures, hydrated, thirdPartyRequests, searched } = result;
+  const { path, violations, staticFailures, hydrated, thirdPartyRequests, searched, relayed } =
+    result;
   console.log(
-    `${path}: ${violations.length} CSP violations, ${staticFailures.length} failed static assets, hydration ${note(hydrated, "ok", "MISSING")}, ${thirdPartyRequests.length} third-party requests, search ${note(searched, "works", "BROKEN")}`,
+    `${path}: ${violations.length} CSP violations, ${staticFailures.length} failed static assets, hydration ${note(hydrated, "ok", "MISSING")}, ${thirdPartyRequests.length} third-party requests, search ${note(searched, "works", "BROKEN")}, relay ${note(relayed, "ok", "BROKEN")}`,
   );
   const checks = failedChecks(result);
   for (const check of checks) console.log(`  ${check}`);
   if (checks.length > 0) failures += 1;
-}
-
-if (!scriptsLoaded) {
-  console.log(
-    "consent run: the tracker, the recorder or the pageview did not reach the Umami stub",
-  );
-  failures += 1;
 }
 
 console.log(failures === 0 ? "csp-smoke: passed" : `csp-smoke: ${failures} pages failed`);
