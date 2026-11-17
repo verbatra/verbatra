@@ -1,8 +1,9 @@
 import "server-only";
 import { after } from "next/server";
+import { MAX_RELAY_PATH_LENGTH } from "@/lib/relay-events";
 import { requestHost } from "@/lib/request-host";
 import { isTrackingRefused, visitorOf } from "@/lib/server-pageview";
-import { SITE_HOST } from "@/lib/site";
+import { SITE_HOST, SITE_URL } from "@/lib/site";
 import { UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
 import { sendToUmami, type UmamiEventData, type UmamiMessage } from "@/lib/umami-send";
 
@@ -47,5 +48,18 @@ export function emitUmamiEvent(
     schedule(() => send(message));
   } catch {
     return;
+  }
+}
+
+const SITE_ORIGIN = new URL(SITE_URL).origin;
+
+export function refererPage(request: Request, fallback: string): string {
+  const referer = request.headers.get("referer");
+  if (referer === null) return fallback;
+  try {
+    const { origin, pathname } = new URL(referer);
+    return origin === SITE_ORIGIN && pathname.length <= MAX_RELAY_PATH_LENGTH ? pathname : fallback;
+  } catch {
+    return fallback;
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { UMAMI_WEBSITE_ID } from "./umami-config.mjs";
-import { emitUmamiEvent, umamiEventFor } from "./umami-event";
+import { emitUmamiEvent, refererPage, umamiEventFor } from "./umami-event";
 
 const SAFARI =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
@@ -94,5 +94,27 @@ describe("emitUmamiEvent", () => {
       throw new Error("outside a request scope");
     });
     expect(() => emitUmamiEvent(request(), SPEC, { schedule })).not.toThrow();
+  });
+});
+
+describe("refererPage", () => {
+  const withReferer = (referer: string) => request({ ...HEADERS, referer });
+
+  it("returns the path of a same-site referer without query or fragment", () => {
+    expect(
+      refererPage(withReferer("https://verbatra.kreitz-webdev.de/de/contact?x=1#top"), "/contact"),
+    ).toBe("/de/contact");
+  });
+
+  it.each([
+    ["a foreign referer", "https://evil.test/contact"],
+    ["an unparsable referer", "not a url"],
+    ["an overlong path", `https://verbatra.kreitz-webdev.de/${"a".repeat(300)}`],
+  ])("falls back for %s", (_case, referer) => {
+    expect(refererPage(withReferer(referer), "/contact")).toBe("/contact");
+  });
+
+  it("falls back when there is no referer", () => {
+    expect(refererPage(request(), "/contact")).toBe("/contact");
   });
 });
